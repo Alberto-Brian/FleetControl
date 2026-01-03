@@ -1,14 +1,14 @@
-import { db } from "../db_client";
-import { clients } from "@/lib/db/schemas/clients";
-import { generateUuid } from "@/lib/cripto";
-import { eq } from "drizzle-orm";
+import { db } from '../db_client';  // Novo path
+import { clients } from '@/lib/db/schemas/clients';
+import { generateUuid } from '@/lib/cripto';
+import { eq } from 'drizzle-orm';
 
-export interface CreateClient {
+export interface ICreateClient {
     name: string;
     email: string;
 }
 
-export async function createNewClient(clientData: CreateClient) {
+export async function createClient(clientData: ICreateClient) {
     const id = generateUuid();
     const result = await db
         .insert(clients)

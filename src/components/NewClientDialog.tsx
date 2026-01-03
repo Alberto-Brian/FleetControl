@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import RegisterClientInputs from "./RegisterClientInputs";
 import { Form } from "./ui/form";
 import SubmitButton from "./SubmitButton";
-import { createNewClient } from "@/helpers/clients-helpers";
+import { createClient } from "@/helpers/clients-helpers";
 import { Client } from "@/lib/types/client";
 import { useToast } from "./ui/use-toast";
 import { useTranslation } from "react-i18next";
@@ -49,7 +49,7 @@ export default function NewClientDialog({ onRegisterClient }: NewClientDialogPro
 
     function onSubmit(data: RegisterClientSchemaType) {
         setIsPendingRegister(true);
-        createNewClient(data)
+        createClient(data)
             .then((client) => {
                 if (!client) {
                     return;
