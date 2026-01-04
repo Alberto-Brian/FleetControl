@@ -10,17 +10,73 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses";
 const config: ForgeConfig = {
     packagerConfig: {
         asar: true,
+        // Ícone principal do aplicativo (sem extensão)
+        // Windows: procura .ico
+        // macOS: procura .icns
+        // Linux: procura .png
+        icon: './build/icons/icon',
+        
+        // Nome do aplicativo
+        name: 'Meu App Drizzle',
+        
+        // Configurações adicionais do macOS
+        appBundleId: 'com.seuapp.id',
+        appCategoryType: 'public.app-category.productivity',
         extraResource: [
             'drizzle',
-        ]
+        ],
+
+        // Configurações específicas do macOS
+        osxSign: {}, // Se for assinar o app
+        
+        // Informações do executável Windows
+        executableName: 'meu-app-drizzle',
         
     },
     rebuildConfig: {},
     makers: [
-        new MakerSquirrel({}),
+        new MakerSquirrel({
+            setupIcon: './build/icons/icon.ico',
+            iconUrl: './build/icons/icon.ico', // URL pública do ícone
+            // Nome do executável
+            name: 'meu-app-drizzle',
+            authors: 'Alberto Kiowa Massanza',
+            description: 'Descrição do Meu App Drizzle',
+        }),
         new MakerZIP({}, ["darwin"]),
-        new MakerRpm({}),
-        new MakerDeb({}),
+        new MakerRpm({
+            options: {
+                icon: './build/icons/icon.png',
+                // Informações do pacote
+                name: 'meu-app-drizzle',
+                productName: 'Meu App Drizzle',
+                genericName: 'Aplicativo',
+                description: 'Descrição do Meu App Drizzle',
+                categories: ['Utility'],
+                
+                // Dependências
+                bin: 'meu-app-drizzle',
+            }
+        }),
+        new MakerDeb({
+            options: {
+                icon: './build/icons/icon.png',
+
+                 // Informações do pacote
+                name: 'meu-app-drizzle',
+                productName: 'Meu App Drizzle',
+                genericName: 'Aplicativo',
+                description: 'Descrição do Meu App Drizzle',
+                categories: ['Utility'],
+                
+                // Informações de manutenção
+                maintainer: 'Alberto Kiowa Massanza <albertokiowa10@gmail.com>',
+                homepage: 'https://github.com/alberto-kiowa/electric-drizzle',
+                
+                // Dependências do sistema
+                section: 'utils',
+            }
+        }),
     ],
     plugins: [
         new VitePlugin({

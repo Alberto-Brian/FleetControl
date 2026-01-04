@@ -26,6 +26,7 @@ async function createSplashWindow() {
     center: true, 
     resizable: false, 
     show: true,
+    icon: path.join(app.getAppPath(), 'build', 'icons', 'icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -48,6 +49,7 @@ async function createWindow() {
     mainWindow = new BrowserWindow({
         width: 800,
         height: 600, 
+        icon: path.join(app.getAppPath(), 'build', 'icons', 'icon.png'),
         show: false, // NÃO mostrar até estar pronta
         webPreferences: {
             devTools: false, //inDevelopment,
