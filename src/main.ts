@@ -1,6 +1,9 @@
 import { app, BrowserWindow } from "electron";
 import registerListeners from "./helpers/ipc/listeners-register";
 import path from "path";
+import fs from 'fs';
+import { dbManager } from './lib/db/db_client';
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { runMigrations } from './lib/db/migrate';
 
 const inDevelopment = process.env.NODE_ENV === "development";
@@ -13,7 +16,7 @@ let splashWindow: BrowserWindow | null = null;
 let mainWindow: BrowserWindow | null = null;
 
 // Criar janela de splash
-function createSplashWindow() {
+async function createSplashWindow() {
   splashWindow = new BrowserWindow({
     width: 500,
     height: 350,
@@ -22,23 +25,22 @@ function createSplashWindow() {
     alwaysOnTop: true,
     center: true, 
     resizable: false, 
-    show: false,
+    show: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
     },
   });
 
-  // Carregar o arquivo HTML do splash diretamente
-  const splashPath = inDevelopment 
-    ? path.join(__dirname, '../../src/renderer/public/splash.html')
-    : path.join(__dirname, '../renderer/public/splash.html');
-  
-  splashWindow.loadFile(splashPath);
-  
-  splashWindow.once('ready-to-show', () => {
-    splashWindow?.show();
-  });
+
+   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    await splashWindow.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}/splash.html`);
+    //  const splashPath = path.join(__dirname, '../../src/renderer/public/splash.html');
+    // splashWindow.loadFile(splashPath);
+  } else {
+    const splashPath = path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/splash.html`);
+    await splashWindow.loadFile(splashPath);
+  }
 }
 
 async function createWindow() {
@@ -89,16 +91,32 @@ async function createWindow() {
 // Inicializar app
 app.whenReady().then(async () => {
     // 1. Mostrar splash imediatamente
-    createSplashWindow();
+    await createSplashWindow();
 
-    // 2. Executar tarefas pesadas (migrations)
-    try {
-        await runMigrations();
+    //2. Inicializar banco
+  const db = dbManager.initialize();
+  
+  try {
+        const isDev = process.env.NODE_ENV === 'development';
+        const migrationsFolder = isDev
+            ? './drizzle'
+            : path.join(process.resourcesPath, 'drizzle');
+        
+        console.log('📂 Migrations folder:', migrationsFolder);
+        migrate(db, { migrationsFolder });
+        console.log('✅ Migrations completed!');
     } catch (error) {
-        console.error('Error running migrations:', error);
+        console.error('⚠️ Erro nas migrations:', error);
+        // Continuar mesmo com erro
     }
+  
+  //3. Verificar se precisa rotacionar
+  if (dbManager.shouldRotate()) {
+    dbManager.rotate();
+  }
 
-    // 3. Criar janela principal (ela só vai aparecer quando estiver pronta)
+
+    // 4. Criar janela principal (ela só vai aparecer quando estiver pronta)
     await createWindow();
 });
 

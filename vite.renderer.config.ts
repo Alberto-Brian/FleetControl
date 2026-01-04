@@ -17,6 +17,7 @@ export default defineConfig((env) => {
         build: {
             outDir: `.vite/renderer/${name}`,
         },
+        publicDir: path.resolve(__dirname, './src/renderer/public'), // ← Adicione esta linha
         plugins: [pluginExposeRenderer(name), react()],
         resolve: {
             preserveSymlinks: true,

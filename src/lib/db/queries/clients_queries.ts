@@ -1,4 +1,4 @@
-import { db } from '../db_client';  // Novo path
+import { dbManager, db } from '@/lib/db/db_client';
 import { clients } from '@/lib/db/schemas/clients';
 import { generateUuid } from '@/lib/cripto';
 import { eq } from 'drizzle-orm';
@@ -10,6 +10,11 @@ export interface ICreateClient {
 
 export async function createClient(clientData: ICreateClient) {
     const id = generateUuid();
+        // Verificar se precisa rotacionar antes de inserir
+    if (dbManager.shouldRotate()) {
+        console.log('🔄 Limite atingido, rotacionando...');
+        dbManager.rotate();
+    }
     const result = await db
         .insert(clients)
         .values([
