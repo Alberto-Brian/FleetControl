@@ -1,8 +1,8 @@
 {
-    "name": "electric-drizzle",
-    "productName": "electric-drizzle",
+    "name": "MercadoPro",
+    "productName": "MercadoPro",
     "version": "1.0.0",
-    "description": "shadcn-ui and Drizzle ORM with Electron. Based on electron-shadcn",
+    "description": "Sistema de Gestão de Mercado (SGM)",
     "main": ".vite/build/main.js",
     "scripts": {
         "start": "electron-forge start",

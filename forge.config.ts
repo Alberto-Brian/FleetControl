@@ -17,10 +17,10 @@ const config: ForgeConfig = {
         icon: './build/icons/icon',
         
         // Nome do aplicativo
-        name: 'Meu App Drizzle',
+        name: 'MercadoPro',
         
         // Configurações adicionais do macOS
-        appBundleId: 'com.seuapp.id',
+        appBundleId: 'com.mercadoPro.id',
         appCategoryType: 'public.app-category.productivity',
         extraResource: [
             'drizzle',
@@ -30,7 +30,7 @@ const config: ForgeConfig = {
         osxSign: {}, // Se for assinar o app
         
         // Informações do executável Windows
-        executableName: 'meu-app-drizzle',
+        executableName: 'MercadoPro',
         
     },
     rebuildConfig: {},
@@ -39,23 +39,23 @@ const config: ForgeConfig = {
             setupIcon: './build/icons/icon.ico',
             iconUrl: './build/icons/icon.ico', // URL pública do ícone
             // Nome do executável
-            name: 'meu-app-drizzle',
+            name: 'MercadoPro',
             authors: 'Alberto Kiowa Massanza',
-            description: 'Descrição do Meu App Drizzle',
+            description: 'Sistema de Gestão de Mercado (SGM)',
         }),
         new MakerZIP({}, ["darwin"]),
         new MakerRpm({
             options: {
                 icon: './build/icons/icon.png',
                 // Informações do pacote
-                name: 'meu-app-drizzle',
-                productName: 'Meu App Drizzle',
+                name: 'MercadoPro',
+                productName: 'MercadoPro',
                 genericName: 'Aplicativo',
-                description: 'Descrição do Meu App Drizzle',
+                description: 'Sistema de Gestão de Mercado (SGM)',
                 categories: ['Utility'],
                 
                 // Dependências
-                bin: 'meu-app-drizzle',
+                bin: 'MercadoPro',
             }
         }),
         new MakerDeb({
@@ -63,10 +63,10 @@ const config: ForgeConfig = {
                 icon: './build/icons/icon.png',
 
                  // Informações do pacote
-                name: 'meu-app-drizzle',
-                productName: 'Meu App Drizzle',
+                name: 'MercadoPro',
+                productName: 'MercadoPro',
                 genericName: 'Aplicativo',
-                description: 'Descrição do Meu App Drizzle',
+                description: 'Sistema de Gestão de Mercado (SGM)',
                 categories: ['Utility'],
                 
                 // Informações de manutenção
