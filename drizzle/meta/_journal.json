@@ -5,8 +5,15 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1767086742264,
-      "tag": "0000_perfect_oracle",
+      "when": 1767627466806,
+      "tag": "0000_lame_sue_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1767820260633,
+      "tag": "1.0.0_init",
       "breakpoints": true
     }
   ]

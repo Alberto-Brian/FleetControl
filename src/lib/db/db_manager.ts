@@ -19,7 +19,7 @@ export class DatabaseManager {
   private baseDir: string;
   private maxSizeInMB: number;
   private maxRecordsPerFile: number;
-  private currentDb: Database.Database | null = null;
+  private currentDb: Database.Database = new Database();
   private currentDbPath: string | null = null;
 
   constructor(
@@ -78,6 +78,16 @@ export class DatabaseManager {
       throw new Error('Database not initialized');
     }
     return drizzle(this.currentDb, { schema });
+  }
+
+  /**
+   * Retorna a instância do Drizzle ORM para o banco ativo
+   */
+  getCurrentDbInstance() {
+    if (!this.currentDb) {
+      throw new Error('Database not initialized');
+    }
+    return this.currentDb;
   }
 
   /**

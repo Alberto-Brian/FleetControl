@@ -35,6 +35,8 @@ export default function NewClientDialog({ onRegisterClient }: NewClientDialogPro
     });
     const { toast } = useToast();
     const [isPendingRegister, setIsPendingRegister] = useState(false);
+    // Ref para acessar o botão de fechar
+    const closeButtonRef = useRef<HTMLButtonElement>(null);
 
     function onClientRegistered(client: Client) {
         form.setFocus("name");
@@ -45,6 +47,8 @@ export default function NewClientDialog({ onRegisterClient }: NewClientDialogPro
             description: t("toast:clientRegisteredDescription", { name: client.name }),
         });
         onRegisterClient?.(client);
+        // Fechar o dialog clicando no botão programaticamente
+        closeButtonRef.current?.click();
     }
 
     function onSubmit(data: RegisterClientSchemaType) {
@@ -72,7 +76,15 @@ export default function NewClientDialog({ onRegisterClient }: NewClientDialogPro
                         </DialogHeader>
                         <RegisterClientInputs control={form.control} />
                         <DialogFooter className="gap-2">
-                            <DialogClose>{t("registerClientDialog:cancelButton")}</DialogClose>
+                            <DialogClose asChild>
+                                <Button 
+                                    type="button" 
+                                    variant="ghost"
+                                    ref={closeButtonRef}
+                                >
+                                    {t("registerClientDialog:cancelButton")}
+                                </Button>
+                            </DialogClose>
                             <SubmitButton isLoading={isPendingRegister}>
                                 {isPendingRegister
                                     ? t("registerClientDialog:submitButtonLoading")

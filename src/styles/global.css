@@ -129,4 +129,9 @@
         @apply bg-background;
         -webkit-app-region: drag;
     }
+
+    .-webkit-drag-region {
+        -webkit-app-region: drag;
+        -webkit-user-select: none;
+}
 }

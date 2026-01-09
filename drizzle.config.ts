@@ -6,6 +6,6 @@ export default defineConfig({
   schema: './src/lib/db/schemas',
   out: './drizzle',
   dbCredentials: {
-    url: 'file:./database.db'
+    url: 'file:./dev.db'
   }
 });

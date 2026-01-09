@@ -17,6 +17,7 @@ import Database from 'better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { dbUrl } from './db_consts';
 
+//src/lib/db/migrate.ts
 export function runMigrations() {
   const sqlite = new Database(dbUrl);
   const db = drizzle(sqlite);

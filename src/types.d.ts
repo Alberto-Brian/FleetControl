@@ -17,6 +17,12 @@ interface ElectronWindow {
     maximize: () => Promise<void>;
     close: () => Promise<void>;
 }
+
+interface System {
+    getSystemVersion: () => Promise<string>;
+    getSchemaVersion: () => Promise<number>;
+}
+
 interface IClients {
     createClient: (clientData: any) => Promise<any>;
     getAllClients: () => Promise<any>;
@@ -24,6 +30,7 @@ interface IClients {
 }
 
 declare interface Window {
+    system: System;
     themeMode: ThemeModeContext;
     electronWindow: ElectronWindow;
     _clients: IClients;

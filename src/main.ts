@@ -5,6 +5,8 @@ import fs from 'fs';
 import { dbManager } from './lib/db/db_client';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { runMigrations } from './lib/db/migrate';
+import { MIGRATIONS_FOLDER_PATH } from './system/system.config';
+import { VersionManager } from './system/version_manager';
 
 const inDevelopment = process.env.NODE_ENV === "development";
 
@@ -19,7 +21,7 @@ let mainWindow: BrowserWindow | null = null;
 async function createSplashWindow() {
   splashWindow = new BrowserWindow({
     width: 500,
-    height: 350,
+    height: 370,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
@@ -58,7 +60,10 @@ async function createWindow() {
             nodeIntegrationInSubFrames: false,
             preload: preload,
         },
-        titleBarStyle: "hidden",
+        frame: false, // remove a moldura nativa do sistema
+        // titleBarStyle: 'hidden', // esconde a barra de título, MAS deixa os botões do sistema (macOS)
+        titleBarStyle: 'hiddenInset', // alternativa no macOS para mais padding
+        trafficLightPosition: { x: 12, y: 12 }, // opcional: ajusta posição dos botões no macOS
     });
     
     registerListeners(mainWindow);
@@ -83,7 +88,7 @@ async function createWindow() {
                 mainWindow?.webContents.openDevTools();
             }
         }, 1500); // Delay de 1.5 segundos 
-    });
+    }); 
 
     mainWindow.on('closed', () => {
         mainWindow = null;
@@ -97,22 +102,29 @@ app.whenReady().then(async () => {
 
     //2. Inicializar banco
   const db = dbManager.initialize();
+  const sql = dbManager.getCurrentDbInstance();
   
   try {
-        const isDev = process.env.NODE_ENV === 'development';
-        const migrationsFolder = isDev
-            ? './drizzle'
-            : path.join(process.resourcesPath, 'drizzle');
-        
-        console.log('📂 Migrations folder:', migrationsFolder);
-        migrate(db, { migrationsFolder });
+
+        console.log('📂 Migrations folder:', MIGRATIONS_FOLDER_PATH);
+        migrate(db, { migrationsFolder: MIGRATIONS_FOLDER_PATH });
         console.log('✅ Migrations completed!');
+
+        //3.  🆕 Gerenciar versionamento
+        const versionManager = new VersionManager(db, sql);
+        await versionManager.registerInstallation('MercadoPro');
+
+        if (await versionManager.needsUpgrade()) {
+            console.log('🔄 Upgrade detectado!');
+            await versionManager.runMigrations();
+        }
+
     } catch (error) {
         console.error('⚠️ Erro nas migrations:', error);
         // Continuar mesmo com erro
     }
   
-  //3. Verificar se precisa rotacionar
+  //4. Verificar se precisa rotacionar
   if (dbManager.shouldRotate()) {
     dbManager.rotate();
   }
