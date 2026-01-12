@@ -5,8 +5,22 @@ CREATE TABLE `blocks` (
 	`description` text,
 	`total_spaces` integer DEFAULT 0 NOT NULL,
 	`occupied_spaces` integer DEFAULT 0 NOT NULL,
-	`created_at` text NOT NULL,
-	`updated_at` text NOT NULL
+	`available_spaces` integer DEFAULT 0 NOT NULL,
+	`status` text DEFAULT 'active' NOT NULL,
+	`created_at` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
+	`created_by` text,
+	`updated_at` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
+	`updated_by` text,
+	`deleted_at` text,
+	`deleted_by` text,
+	`metadata` text,
+	`notes` text
+);
+--> statement-breakpoint
+CREATE TABLE `clients` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`email` text NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE `payments` (
@@ -39,7 +53,6 @@ CREATE TABLE `sellers` (
 CREATE TABLE `spaces` (
 	`id` text PRIMARY KEY NOT NULL,
 	`block_id` text NOT NULL,
-	`type` text NOT NULL,
 	`number` text NOT NULL,
 	`size` text NOT NULL,
 	`status` text DEFAULT 'Disponível' NOT NULL,
@@ -51,6 +64,14 @@ CREATE TABLE `spaces` (
 	`updated_at` text NOT NULL,
 	FOREIGN KEY (`block_id`) REFERENCES `blocks`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`seller_id`) REFERENCES `sellers`(`id`) ON UPDATE no action ON DELETE set null
+);
+--> statement-breakpoint
+CREATE TABLE `system_info` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`system_name` text NOT NULL,
+	`version` text NOT NULL,
+	`installed_at` text NOT NULL,
+	`updated_at` text
 );
 --> statement-breakpoint
 CREATE TABLE `transactions` (
@@ -66,6 +87,16 @@ CREATE TABLE `transactions` (
 	`created_at` text NOT NULL,
 	`updated_at` text NOT NULL,
 	FOREIGN KEY (`payment_id`) REFERENCES `payments`(`id`) ON UPDATE no action ON DELETE set null
+);
+--> statement-breakpoint
+CREATE TABLE `users` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`email` text,
+	`password` text NOT NULL,
+	`gender` text,
+	`address` text,
+	`avatar` text
 );
 --> statement-breakpoint
 CREATE TABLE `reports` (

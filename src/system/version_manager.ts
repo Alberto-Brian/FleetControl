@@ -1,39 +1,30 @@
 import { app } from 'electron';
 import { eq } from 'drizzle-orm';
 import { systemInfo } from '../lib/db/schemas/system';
-import { MigrationRunner } from './migration_runner';
-import { MIGRATIONS_FOLDER_PATH } from './system.config';
-import Database from 'better-sqlite3';
-import fs from "fs"
-import path from 'path';
+import { APP_NAME } from "@/system/system.config"
 
+/**
+ * Gerencia apenas a versão da aplicação
+ * Migrations são gerenciadas automaticamente pelo Drizzle
+ */
 export class VersionManager {
   private db: any;
-  private sqlite: Database.Database;
-  private migrationRunner: MigrationRunner;
 
-  constructor(db: any, sqlite: Database.Database) {
+  constructor(db: any) {
     this.db = db;
-    this.sqlite = sqlite;
-    this.migrationRunner = new MigrationRunner(sqlite);
   }
 
+  /**
+   * Retorna a versão atual da aplicação (package.json)
+   */
   static getCurrentVersion(): string {
     return app.getVersion();
   }
 
-  static getSchemaVersion(): number {
-    if (!fs.existsSync(MIGRATIONS_FOLDER_PATH)) {
-        return 0;
-      }
-  
-      const files = fs.readdirSync(MIGRATIONS_FOLDER_PATH)
-        .filter(f => f.endsWith('.sql'))
-        .sort();
-  
-      return files.length;
-  }
-
+  /**
+   * Compara duas versões (semver)
+   * Retorna: 1 se v1 > v2, -1 se v1 < v2, 0 se iguais
+   */
   static compare(v1: string, v2: string): number {
     const a = v1.split('.').map(Number);
     const b = v2.split('.').map(Number);
@@ -45,6 +36,9 @@ export class VersionManager {
     return 0;
   }
 
+  /**
+   * Retorna a versão instalada no banco de dados
+   */
   async getInstalledVersion(): Promise<string | null> {
     try {
       const result = await this.db
@@ -54,68 +48,78 @@ export class VersionManager {
 
       return result[0]?.version || null;
     } catch (error) {
+      console.warn('⚠️ Não foi possível ler versão instalada:', error);
       return null;
     }
   }
 
-  async registerInstallation(systemName: string = 'MercadoPro'): Promise<void> {
+  /**
+   * Registra a primeira instalação do sistema
+   */
+  async registerInstallation(systemName: string = APP_NAME): Promise<void> {
     const version = VersionManager.getCurrentVersion();
-    const existing = await this.getInstalledVersion();
 
-    if (!existing) {
+    try {
       await this.db.insert(systemInfo).values({
         systemName,
         version,
         installedAt: new Date().toISOString()
       });
       console.log(`✅ Sistema instalado: v${version}`);
+    } catch (error) {
+      console.error('❌ Erro ao registrar instalação:', error);
+      throw error;
     }
   }
 
-  async updateVersion(newVersion: string): Promise<void> {
-    await this.db
-      .update(systemInfo)
-      .set({
-        version: newVersion,
-        updatedAt: new Date().toISOString()
-      })
-      .where(eq(systemInfo.id, 1));
+  /**
+   * Atualiza a versão no banco de dados
+   */
+  async updateVersion(): Promise<void> {
+    const newVersion = VersionManager.getCurrentVersion();
 
-    console.log(`✅ Versão actualizada para v${newVersion}`);
+    try {
+      await this.db
+        .update(systemInfo)
+        .set({
+          version: newVersion,
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(systemInfo.id, 1));
+
+      console.log(`✅ Versão atualizada para v${newVersion}`);
+    } catch (error) {
+      console.error('❌ Erro ao atualizar versão:', error);
+      throw error;
+    }
   }
 
+  /**
+   * Verifica se a aplicação foi atualizada
+   */
   async needsUpgrade(): Promise<boolean> {
     const installedVersion = await this.getInstalledVersion();
     const currentVersion = VersionManager.getCurrentVersion();
 
-    if (!installedVersion) return false;
+    if (!installedVersion) {
+      return false; // Primeira instalação
+    }
 
     return VersionManager.compare(currentVersion, installedVersion) > 0;
   }
 
   /**
-   * Executa migrations do Drizzle baseado na versão
+   * Retorna informações completas da versão
    */
-  async runMigrations(): Promise<void> {
-    const dbVersion = await this.getInstalledVersion();
-    const appVersion = VersionManager.getCurrentVersion();
+  async getVersionInfo() {
+    const installed = await this.getInstalledVersion();
+    const current = VersionManager.getCurrentVersion();
 
-    if (!dbVersion) {
-      console.log('⚠️  Versão não encontrada no banco');
-      return;
-    }
-
-    console.log(`📊 Versão do banco: ${dbVersion}`);
-    console.log(`📊 Versão do app: ${appVersion}`);
-
-    if (VersionManager.compare(appVersion, dbVersion) <= 0) {
-      console.log('✅ Sistema já está atualizado');
-      return;
-    }
-
-    console.log('🔄 Executando migrations...');
-    await this.migrationRunner.runMigrations(dbVersion, appVersion);
-    await this.updateVersion(appVersion);
-    console.log('✅ Migrations concluídas!');
+    return {
+      installed,
+      current,
+      needsUpgrade: await this.needsUpgrade(),
+      isFirstInstall: !installed
+    };
   }
 }

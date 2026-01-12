@@ -15,5 +15,5 @@ export {
     sellers,
     spaces,
     payments,
-    transactions
+    transactions,
 }

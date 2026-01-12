@@ -158,7 +158,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                                                 <Package className="w-8 h-8 text-primary-foreground" />
                                                 {/* <img src={icon} alt="Logo" className="w-8 h-8" /> */}
                                             </div>
-                                            <h3 className="text-xl font-bold mb-1">MercadoPro</h3>
+                                            <h3 className="text-xl font-bold mb-1">MarketPro</h3>
                                             <p className="text-xs text-muted-foreground mb-2">
                                                 Sistema de Gestão de Mercado (SGM)
                                             </p>

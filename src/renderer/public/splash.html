@@ -142,7 +142,7 @@
     <div class="splash-container">
         <img src="./images/logo.png" alt="Logo" class="logo">
         
-        <div class="title">MercadoPro</div>
+        <div class="title">MarketPro</div>
         <div class="description">Sistema de Gestão de Mercado (SGM)</div>
         <div class="version" id="app-version">Versão 1.0.0</div>
         
@@ -157,26 +157,15 @@
     </div>
 
     <script>
-
-        import { getSystemVersion, getSchemaVersion } from './system-helpers.js';
-
-        // Carrega a versão dinamicamente
         async function loadVersion() {
             try {
-                const systemVersion = await getSystemVersion();
-                const schemaVersion = await getSchemaVersion();
-
-                console.log("SPLASH VERSION(systemVersion): ", systemVersion)
-                console.log("SPLASH VERSION(schemaVersion): ", schemaVersion)
-
+                const systemVersion = await window.system.getSystemVersion();
+                const schemaVersion = await window.system.getSchemaVersion();
                 document.getElementById('app-version').textContent = `Versão ${systemVersion} (${schemaVersion})`;
             } catch (error) {
-                console.error('Erro ao carregar versão:', error);
                 document.getElementById('app-version').textContent = 'Versão 1.0.0';
             }
         }
-
-        // Carrega quando o DOM estiver pronto
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', loadVersion);
         } else {

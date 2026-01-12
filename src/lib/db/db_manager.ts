@@ -1,9 +1,9 @@
-// src/lib/db/db_manager.ts
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import * as schema from './schemas';
 
 interface DatabaseFile {
@@ -19,7 +19,7 @@ export class DatabaseManager {
   private baseDir: string;
   private maxSizeInMB: number;
   private maxRecordsPerFile: number;
-  private currentDb: Database.Database = new Database();
+  private currentDb: Database.Database | null = null;
   private currentDbPath: string | null = null;
 
   constructor(
@@ -48,6 +48,49 @@ export class DatabaseManager {
     }
   }
 
+  /**
+   * Aplica migrations automaticamente usando o sistema nativo do Drizzle
+   */
+  private applyMigrations() {
+    if (!this.currentDbPath || !this.currentDb) {
+      throw new Error('Database not initialized');
+    }
+
+    console.log('🔄 Verificando migrations...');
+    
+    try {
+      const db = this.getCurrentDrizzleInstance();
+      
+      // Caminho das migrations (em produção e desenvolvimento)
+      const migrationsFolder = app.isPackaged
+        ? path.join(process.resourcesPath, 'drizzle')
+        : path.join(process.cwd(), 'drizzle');
+      
+      console.log('📂 Migrations folder:', migrationsFolder);
+
+      // Verificar se a pasta existe
+      if (!fs.existsSync(migrationsFolder)) {
+        console.warn('⚠️ Pasta de migrations não encontrada:', migrationsFolder);
+        return;
+      }
+
+      // O Drizzle automaticamente:
+      // 1. Cria tabela __drizzle_migrations se não existir
+      // 2. Verifica quais migrations já foram aplicadas (por hash)
+      // 3. Executa apenas as novas
+      // 4. Registra os hashes na tabela
+      migrate(db, { migrationsFolder });
+      
+      console.log('✅ Migrations aplicadas com sucesso!');
+    } catch (error) {
+      console.error('❌ Erro ao aplicar migrations:', error);
+      // Não fazer throw - deixar a app continuar mesmo com erro
+    }
+  }
+
+  /**
+   * Inicializa o banco de dados
+   */
   initialize() {
     console.log('🔧 Inicializando banco de dados...');
     
@@ -64,12 +107,16 @@ export class DatabaseManager {
         this.configurePragmas(this.currentDb);
       }
 
+      // ⭐ Aplicar migrations SEMPRE que inicializar
+      this.applyMigrations();
+
       return this.getCurrentDrizzleInstance();
     } catch (error) {
       console.error('❌ Erro ao inicializar banco:', error);
       throw error;
     }
   }
+
   /**
    * Retorna a instância do Drizzle ORM para o banco ativo
    */
@@ -81,7 +128,7 @@ export class DatabaseManager {
   }
 
   /**
-   * Retorna a instância do Drizzle ORM para o banco ativo
+   * Retorna a instância do better-sqlite3 para o banco ativo
    */
   getCurrentDbInstance() {
     if (!this.currentDb) {
@@ -105,10 +152,11 @@ export class DatabaseManager {
       return true;
     }
 
-    // Verifica quantidade de registros (exemplo com tabela clients)
+    // Verifica quantidade de registros
     try {
+      // Contar registros de uma tabela principal (ajuste conforme necessário)
       const result = this.currentDb!.prepare(
-        'SELECT COUNT(*) as count FROM clients'
+        'SELECT COUNT(*) as count FROM sellers'
       ).get() as { count: number };
 
       if (result.count >= this.maxRecordsPerFile) {
@@ -145,6 +193,9 @@ export class DatabaseManager {
     // Criar novo banco
     this.createNewDatabase();
     
+    // Aplicar migrations no novo banco
+    this.applyMigrations();
+    
     console.log('✅ Rotação concluída!');
     return this.getCurrentDrizzleInstance();
   }
@@ -168,7 +219,7 @@ export class DatabaseManager {
       filepath,
       createdAt: new Date().toISOString(),
       isActive: true,
-      version: '1.0.0'
+      version: app.getVersion()
     };
     fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2));
 
@@ -216,7 +267,7 @@ export class DatabaseManager {
   }
 
   /**
-   * Retorna o banco de dados ativo
+   * Retorna o banco de dados activo
    */
   private getActiveDatabase(): DatabaseFile | null {
     const databases = this.listDatabases();
@@ -230,7 +281,7 @@ export class DatabaseManager {
     try {
       const db = new Database(filepath, { readonly: true });
       const result = db.prepare(
-        'SELECT COUNT(*) as count FROM clients'
+        'SELECT COUNT(*) as count FROM sellers'
       ).get() as { count: number };
       db.close();
       return result.count;
@@ -334,7 +385,7 @@ export class DatabaseManager {
       .filter(db => !db.isActive)
       .slice(keepLastN);
 
-    console.log(`🗑️  Limpando ${databases.length} arquivo(s) antigo(s)...`);
+    console.log(`🗑️ Limpando ${databases.length} arquivo(s) antigo(s)...`);
 
     for (const db of databases) {
       fs.unlinkSync(db.filepath);

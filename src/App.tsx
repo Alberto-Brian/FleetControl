@@ -5,6 +5,7 @@ import BaseLayout from "./layouts/BaseLayout";
 import { syncThemeWithLocal } from "./helpers/theme-helpers";
 import { useTranslation } from "react-i18next";
 import "./localization/i18n";
+import { LicenseGuard } from "./components/LicenseGuard";
 import { updateAppLanguage } from "./helpers/language-helpers";
 
 export default function App() {
@@ -16,9 +17,11 @@ export default function App() {
     }, []);
 
     return (
-        <BaseLayout>
-            <HomePage />
-        </BaseLayout>
+        <LicenseGuard>
+            <BaseLayout>
+                <HomePage />
+            </BaseLayout>
+        </LicenseGuard>
     );
 }
 

@@ -7,5 +7,7 @@ export default defineConfig({
   out: './drizzle',
   dbCredentials: {
     url: 'file:./dev.db'
-  }
+  },
+  //  verbose: true,
+  //  strict: true,
 });

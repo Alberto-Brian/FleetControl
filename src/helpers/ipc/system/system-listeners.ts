@@ -7,6 +7,6 @@ export function addSystemEventListeners() {
         return VersionManager.getCurrentVersion();
     });
     ipcMain.handle(GET_DB_VERSION, () => {
-        return VersionManager.getSchemaVersion();
+        // return VersionManager.getSchemaVersion();
     });
 }

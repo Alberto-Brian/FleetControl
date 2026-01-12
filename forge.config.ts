@@ -6,6 +6,7 @@ import { MakerRpm } from "@electron-forge/maker-rpm";
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
+import { APP_NAME } from "./src/system/system.config";
 
 const config: ForgeConfig = {
     packagerConfig: {
@@ -17,7 +18,7 @@ const config: ForgeConfig = {
         icon: './build/icons/icon',
         
         // Nome do aplicativo
-        name: 'MercadoPro',
+        name: APP_NAME,
         
         // Configurações adicionais do macOS
         appBundleId: 'com.mercadoPro.id',
@@ -30,16 +31,16 @@ const config: ForgeConfig = {
         osxSign: {}, // Se for assinar o app
         
         // Informações do executável Windows
-        executableName: 'MercadoPro',
+        executableName: APP_NAME,
         
     },
     rebuildConfig: {},
     makers: [
         new MakerSquirrel({
             setupIcon: './build/icons/icon.ico',
-            iconUrl: './build/icons/icon.ico', // URL pública do ícone
+            //iconUrl: './build/icons/icon.ico', // URL pública do ícone
             // Nome do executável
-            name: 'MercadoPro',
+            name: APP_NAME,
             authors: 'Alberto Kiowa Massanza',
             description: 'Sistema de Gestão de Mercado (SGM)',
         }),
@@ -48,14 +49,14 @@ const config: ForgeConfig = {
             options: {
                 icon: './build/icons/icon.png',
                 // Informações do pacote
-                name: 'MercadoPro',
-                productName: 'MercadoPro',
+                name: APP_NAME,
+                productName: APP_NAME,
                 genericName: 'Aplicativo',
                 description: 'Sistema de Gestão de Mercado (SGM)',
                 categories: ['Utility'],
                 
                 // Dependências
-                bin: 'MercadoPro',
+                bin: APP_NAME,
             }
         }),
         new MakerDeb({
@@ -63,8 +64,8 @@ const config: ForgeConfig = {
                 icon: './build/icons/icon.png',
 
                  // Informações do pacote
-                name: 'MercadoPro',
-                productName: 'MercadoPro',
+                name: APP_NAME,
+                productName: APP_NAME,
                 genericName: 'Aplicativo',
                 description: 'Sistema de Gestão de Mercado (SGM)',
                 categories: ['Utility'],
