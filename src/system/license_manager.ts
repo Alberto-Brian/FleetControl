@@ -16,56 +16,31 @@ export interface ValidatedLicense {
   error?: string;
 }
 
+export interface UserData {
+  clientName: string;
+  clientEmail: string;
+  clientNIF: string;
+  maxUsers: number;
+  features: string[];
+  licenseType: string;
+  activatedAt: string;
+  lastValidation: string;
+}
+
 export class LicenseManager {
   private readonly LICENSE_FILE = path.join(app.getPath('userData'), 'license.dat');
   private readonly MACHINE_ID_FILE = path.join(app.getPath('userData'), 'machine.id');
+  private readonly USER_FILE = path.join(app.getPath('userData'), 'user.json');
 
   /**
    * Obtém o caminho correto da chave pública
-   * A chave deve estar na pasta build/keys/publickey_v1.pem
    */
-  // private getPublicKeyPath(): string {
-  //   // Em desenvolvimento: usa a pasta build na raiz do projeto
-  //   if (process.env.NODE_ENV === 'development' || process.env.VITE_DEV_SERVER_URL) {
-  //     return path.join(process.cwd(), 'build', 'keys', 'publickey_v1.pem');
-  //   }
-    
-  //   // Em produção: a pasta build é empacotada junto com a aplicação
-  //   // process.resourcesPath aponta para: app.asar/
-  //   // Precisamos acessar resources/build/keys/
-  //   const productionPaths = [
-  //     // Electron Forge - recursos extraídos
-  //     path.join(process.resourcesPath, 'build', 'keys', 'publickey_v1.pem'),
-  //     // Fallback - dentro do app
-  //     path.join(app.getAppPath(), 'build', 'keys', 'publickey_v1.pem'),
-  //     // Fallback 2 - uma pasta acima
-  //     path.join(path.dirname(app.getAppPath()), 'build', 'keys', 'publickey_v1.pem'),
-  //   ];
-
-  //   for (const keyPath of productionPaths) {
-  //     if (fs.existsSync(keyPath)) {
-  //       console.log('✅ Chave pública encontrada:', keyPath);
-  //       return keyPath;
-  //     }
-  //   }
-
-  //   // Debug: mostra todos os caminhos tentados
-  //   throw new Error(
-  //     '❌ Chave pública não encontrada!\n' +
-  //     'Caminhos tentados:\n' +
-  //     productionPaths.map(p => `  - ${p} (existe: ${fs.existsSync(p)})`).join('\n') +
-  //     '\n\n📁 app.getAppPath(): ' + app.getAppPath() +
-  //     '\n📁 process.resourcesPath: ' + process.resourcesPath +
-  //     '\n📁 __dirname: ' + __dirname
-  //   );
-  // }
-
   private getPublicKeyPath(): string {
-     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-        return path.join(`src/renderer/public/keys/publickey_v1.pem`);
-      } else {
-        return path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/keys/publickey_v1.pem`);
-      }
+    if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+      return path.join('src/renderer/public/keys/publickey_v1.pem');
+    } else {
+      return path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/keys/publickey_v1.pem`);
+    }
   }
 
   /**
@@ -127,8 +102,18 @@ export class LicenseManager {
 
       const daysRemaining = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-      // 8. Salvar licença localmente
+      // 8. Salvar licença e dados do usuário
       this.saveLicense(licenseKey, machineId);
+      this.saveUserData({
+        clientName: licenseData.cn,
+        clientEmail: licenseData.ce,
+        clientNIF: licenseData.nif,
+        maxUsers: licenseData.mu,
+        features: licenseData.ft.split(','),
+        licenseType: licenseData.lt,
+        activatedAt: new Date().toISOString(),
+        lastValidation: new Date().toISOString(),
+      });
 
       // 9. Retornar dados validados
       return {
@@ -175,7 +160,40 @@ export class LicenseManager {
     if (!storedLicense) {
       return { isValid: false, error: 'Nenhuma licença encontrada' };
     }
+    
+    // Actualiza lastValidation no user.json
+    const userData = this.getUserData();
+    if (userData) {
+      userData.lastValidation = new Date().toISOString();
+      this.saveUserData(userData);
+    }
+    
     return this.validateLicense(storedLicense.key);
+  }
+
+  /**
+   * Obtém dados do usuário salvos
+   */
+  getUserData(): UserData | null {
+    if (!fs.existsSync(this.USER_FILE)) {
+      return null;
+    }
+    try {
+      return JSON.parse(fs.readFileSync(this.USER_FILE, 'utf-8'));
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Salva dados do usuário
+   */
+  private saveUserData(userData: UserData): void {
+    const dir = path.dirname(this.USER_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(this.USER_FILE, JSON.stringify(userData, null, 2));
   }
 
   /**
@@ -198,11 +216,14 @@ export class LicenseManager {
   }
 
   /**
-   * Remove licença salva
+   * Remove todos os dados de licença e usuário
    */
   removeLicense(): void {
     if (fs.existsSync(this.LICENSE_FILE)) {
       fs.unlinkSync(this.LICENSE_FILE);
+    }
+    if (fs.existsSync(this.USER_FILE)) {
+      fs.unlinkSync(this.USER_FILE);
     }
   }
 

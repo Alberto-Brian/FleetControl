@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import { BackupManager } from '@/system/backup_manager';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
@@ -21,14 +22,20 @@ export class DatabaseManager {
   private maxRecordsPerFile: number;
   private currentDb: Database.Database | null = null;
   private currentDbPath: string | null = null;
+  private backupManager: BackupManager;
 
   constructor(
     maxSizeInMB: number = 100,
     maxRecordsPerFile: number = 100000
   ) {
     console.log('🔧 Inicializando DatabaseManager...');
-    
+
     try {
+
+      this.backupManager = new BackupManager()
+      // Verificar se precisa fazer backup automático
+      this.checkAutoBackup();
+
       this.baseDir = path.join(app.getPath('userData'), 'databases');
       console.log('📁 Base dir:', this.baseDir);
       
@@ -92,16 +99,16 @@ export class DatabaseManager {
    * Inicializa o banco de dados
    */
   initialize() {
-    console.log('🔧 Inicializando banco de dados...');
+    console.log('++ Inicializando banco de dados...');
     
     try {
       const activeDb = this.getActiveDatabase();
       
       if (!activeDb) {
-        console.log('📝 Nenhum banco ativo, criando novo...');
+        console.log(' ++ Nenhum banco activo, criando novo...');
         this.createNewDatabase();
       } else {
-        console.log('✅ Usando banco existente:', activeDb.filename);
+        console.log(' ++ Usando banco existente:', activeDb.filename);
         this.currentDbPath = activeDb.filepath;
         this.currentDb = new Database(activeDb.filepath);
         this.configurePragmas(this.currentDb);
@@ -112,10 +119,67 @@ export class DatabaseManager {
 
       return this.getCurrentDrizzleInstance();
     } catch (error) {
-      console.error('❌ Erro ao inicializar banco:', error);
+      console.error('-- Erro ao inicializar banco:', error);
       throw error;
     }
   }
+
+/**
+ * Fecha a conexão actual com o banco de dados e tenta liberar locks
+ * Deve ser chamado antes de qualquer operação FS na pasta databases
+ */
+close(): void {
+  // Limpar ficheiros WAL/SHM manualmente (Windows lock comum)
+  if (this.currentDbPath) {
+    const walPath = this.currentDbPath + '-wal';
+    const shmPath = this.currentDbPath + '-shm';
+    try {
+      if (fs.existsSync(walPath)) fs.unlinkSync(walPath);
+      if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath);
+      console.log('🗑️ WAL/SHM limpos manualmente');
+    } catch (e: any) {
+      console.log('ℹ️ WAL/SHM já limpos ou locked:', e.message);
+    }
+  }
+
+  if (this.currentDb) {
+    try {
+      this.currentDb.close();
+      console.log('🔒 Conexão DB fechada (close chamado)');
+    } catch (error) {
+      console.error('❌ Erro ao chamar close():', error);
+    } finally {
+      this.currentDb = null;
+      this.currentDbPath = null;
+    }
+  } else {
+    console.log('ℹ️ Nenhuma conexão activa para fechar');
+  }
+
+  // Forçar liberação de handles no Windows
+  this.forceReleaseLocks();
+}
+
+/**
+ * Força liberação de locks residuais (Windows-specific)
+ */
+private forceReleaseLocks(): void {
+  // 1. Forçar garbage collection (libera handles JS)
+  if (global.gc) {
+    global.gc();
+    console.log('♻️ Garbage collection forçado');
+  }
+
+  // 2. Delay curto para OS liberar file handles
+  // Isso é crucial no Windows - sem delay, rmSync/renameSync falha
+  const delayMs = 100; // 1.5 segundos - ajusta se necessário
+  console.log(`⏳ Aguardando ${delayMs}ms para liberação de locks...`);
+  const start = Date.now();
+  while (Date.now() - start < delayMs) {
+    // Busy wait simples (não bloqueia event loop muito)
+  }
+  console.log('✓ Tempo de espera concluído');
+}
 
   /**
    * Retorna a instância do Drizzle ORM para o banco ativo
@@ -141,6 +205,10 @@ export class DatabaseManager {
    * Verifica se precisa rotacionar para um novo arquivo
    */
   shouldRotate(): boolean {
+
+    // Fecha antes de qualquer FS op
+    this.close();
+
     if (!this.currentDbPath) return false;
 
     const stats = fs.statSync(this.currentDbPath);
@@ -177,9 +245,7 @@ export class DatabaseManager {
     console.log('🔄 Iniciando rotação de banco de dados...');
     
     // Fechar banco atual
-    if (this.currentDb) {
-      this.currentDb.close();
-    }
+    this.close()
 
     // Marcar banco atual como inativo
     if (this.currentDbPath) {
@@ -403,6 +469,33 @@ export class DatabaseManager {
 
       console.log(`  ✓ Removido: ${db.filename}`);
     }
+  }
+
+  /**
+   * Verifica e executa backup automático se necessário
+   */
+  private async checkAutoBackup() {
+    const config = this.backupManager['loadConfig']();
+    
+    if (!config.autoBackupEnabled) return;
+    
+    const lastBackup = config.lastAutoBackup 
+      ? new Date(config.lastAutoBackup)
+      : null;
+    
+    const now = new Date();
+    const shouldBackup = !lastBackup || 
+      (config.autoBackupFrequency === 'daily' && 
+       now.getTime() - lastBackup.getTime() > 24 * 60 * 60 * 1000);
+    
+    if (shouldBackup) {
+      console.log('🔄 Executando backup automático agendado...');
+      await this.backupManager.createAutoBackup();
+    }
+  }
+  
+  getBackupManager(): BackupManager {
+    return this.backupManager;
   }
 
   /**

@@ -1,8 +1,8 @@
-import { app, BrowserWindow } from "electron";
+import { app, dialog, BrowserWindow } from "electron";
 import registerListeners from "./helpers/ipc/listeners-register";
 import path from "path";
 import { dbManager } from './lib/db/db_client';
-import { VersionManager } from './system/version_manager';
+import { VersionManager } from '@/system/version_manager';
 import { APP_NAME } from "@/system/system.config";
 
 const inDevelopment = process.env.NODE_ENV === "development";
@@ -98,9 +98,8 @@ async function createWindow() {
  * Inicializar aplicação
  */
 app.whenReady().then(async () => {
-  try {*
+  try {
     console.log('🚀 Inicializando aplicação...');
-
     // 1. Mostrar splash imediatamente
     await createSplashWindow();
 
@@ -157,9 +156,10 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") {
-        app.quit();
-    }
+  dbManager.close();
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
 });
 
 app.on("activate", () => {

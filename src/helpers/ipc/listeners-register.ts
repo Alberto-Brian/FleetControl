@@ -4,6 +4,7 @@ import { addWindowEventListeners } from "./window/window-listeners";
 import { addClientsEventListeners } from "./db/clients/clients-listeners";
 import { addSystemEventListeners } from "./system/system-listeners";
 import { addLicenseEventListeners } from "./license/license-listeners";
+import { addBackupEventListeners } from "./backup/backup-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
     addWindowEventListeners(mainWindow);
@@ -11,4 +12,5 @@ export default function registerListeners(mainWindow: BrowserWindow) {
     addThemeEventListeners();
     addSystemEventListeners();
     addLicenseEventListeners();
+    addBackupEventListeners();
 }

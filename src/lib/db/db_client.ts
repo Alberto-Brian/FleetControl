@@ -43,3 +43,41 @@ export const db = dbManager.initialize();
 
 // Exportar para uso em IPC handlers
 // export { dbManager };
+
+
+//=======================================================================================
+
+// import { DatabaseManager } from './db_manager';
+// import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
+// import * as schema from './schemas';
+
+// let dbManager: DatabaseManager | null = null;
+
+// /**
+//  * Inicializa o DatabaseManager (chamado UMA vez no bootstrap)
+//  */
+// export function initializeDatabase(): BetterSQLite3Database<typeof schema> {
+//   if (!dbManager) {
+//     dbManager = new DatabaseManager(100, 100000);
+//     return dbManager.initialize();
+//   }
+
+//   return dbManager.getCurrentDrizzleInstance();
+// }
+
+// /**
+//  * Obtém o DatabaseManager (seguro após bootstrap)
+//  */
+// export function getDbManager(): DatabaseManager {
+//   if (!dbManager || !dbManager.isInitialized()) {
+//     throw new Error('DatabaseManager not initialized. Call initializeDatabase() first.');
+//   }
+//   return dbManager;
+// }
+
+// /**
+//  * Obtém instância do Drizzle SEM estado duplicado
+//  */
+// export function getDb(): BetterSQLite3Database<typeof schema> {
+//   return getDbManager().getCurrentDrizzleInstance();
+// }
