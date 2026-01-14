@@ -40,6 +40,10 @@ interface Backup {
     restore: () => Promise<RestoreBackupReturn>;
     getConfig: () => Promise<void>;
     updateConfig: () => Promise<void>;
+    onProgress: (callback: (progress: any) => void) => void;
+    onRestoreProgress: (callback: (progress: any) => void) => void;
+    removeProgressListener: () => void;
+    removeRestoreProgressListener: () => void;
 }
 
 interface IClients {

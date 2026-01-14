@@ -47,37 +47,14 @@ export interface RestoreBackupReturn {
   error?: string;
 }
 
-export interface BackupProgress {
-  step: string;
-  current: number;
-  total: number;
-  message: string;
-}
-
 export class BackupManager {
   private readonly userDataPath = app.getPath('userData');
   private readonly autoBackupDir = path.join(this.userDataPath, 'backups', 'auto');
   private readonly configFile = path.join(this.userDataPath, 'backup-config.json');
-  
-  // Callback para progresso
-  private onProgress?: (progress: BackupProgress) => void;
 
   constructor() {
     this.ensureDirectories();
     this.loadConfig();
-  }
-
-  /**
-   * Define callback para monitorar progresso
-   */
-  setProgressCallback(callback: (progress: BackupProgress) => void): void {
-    this.onProgress = callback;
-  }
-
-  private emitProgress(step: string, current: number, total: number, message: string): void {
-    if (this.onProgress) {
-      this.onProgress({ step, current, total, message });
-    }
   }
 
   private ensureDirectories(): void {
@@ -107,27 +84,25 @@ export class BackupManager {
   }
 
   /**
-   * BACKUP AUTOMÁTICO usando SQLite Online Backup API
+   * 🔄 BACKUP AUTOMÁTICO usando SQLite Online Backup API
+   * Não precisa fechar o banco de dados!
    */
   async createAutoBackup(): Promise<BackupReturn> {
     try {
-      console.log('Iniciando backup automatico (Online Backup API)...');
-      this.emitProgress('init', 0, 100, 'Inicializando backup automatico');
+      console.log('🔄 Iniciando backup automático (Online Backup API)...');
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const backupDir = path.join(this.autoBackupDir, `auto_${timestamp}`);
       
       fs.mkdirSync(backupDir, { recursive: true });
-      this.emitProgress('prepare', 10, 100, 'Preparando diretorios');
 
+      // Usar Online Backup API para copiar databases SEM fechar conexões
       const dbDir = path.join(this.userDataPath, 'databases');
       const dbBackupDir = path.join(backupDir, 'databases');
       
       if (fs.existsSync(dbDir)) {
         fs.mkdirSync(dbBackupDir, { recursive: true });
-        this.emitProgress('backup', 20, 100, 'Copiando databases');
         await this.backupDatabasesOnline(dbDir, dbBackupDir);
-        this.emitProgress('backup', 70, 100, 'Databases copiados');
       }
 
       const metadata: BackupMetadata = {
@@ -145,33 +120,28 @@ export class BackupManager {
         path.join(backupDir, 'backup-metadata.json'),
         JSON.stringify(metadata, null, 2)
       );
-      this.emitProgress('metadata', 80, 100, 'Metadata criada');
 
       this.cleanupAutoBackups();
-      this.emitProgress('cleanup', 90, 100, 'Limpando backups antigos');
 
       const config = this.loadConfig();
       config.lastAutoBackup = new Date().toISOString();
       this.saveConfig(config);
 
-      this.emitProgress('complete', 100, 100, 'Backup automatico concluido');
-      console.log('Backup automatico concluido:', backupDir);
+      console.log('✅ Backup automático concluído:', backupDir);
 
       return { success: true, path: backupDir };
     } catch (error) {
-      console.error('Erro no backup automatico:', error);
-      this.emitProgress('error', 0, 100, 'Erro no backup automatico');
+      console.error('❌ Erro no backup automático:', error);
       return { success: false, error: (error as Error).message };
     }
   }
 
   /**
-   * BACKUP MANUAL usando SQLite Online Backup API
+   * 📦 BACKUP MANUAL usando SQLite Online Backup API
    */
   async createManualBackup(outputPath?: string): Promise<BackupReturn> {
     try {
-      console.log('Iniciando backup manual (Online Backup API)...');
-      this.emitProgress('init', 0, 100, 'Iniciando backup manual');
+      console.log('📦 Iniciando backup manual (Online Backup API)...');
 
       let savePath = outputPath;
       if (!savePath) {
@@ -187,38 +157,32 @@ export class BackupManager {
         });
 
         if (result.canceled || !result.filePath) {
-          this.emitProgress('cancel', 0, 100, 'Cancelado pelo usuario');
-          return { success: false, error: 'Cancelado pelo usuario' };
+          return { success: false, error: 'Cancelado pelo usuário' };
         }
 
         savePath = result.filePath;
       }
 
-      this.emitProgress('prepare', 10, 100, 'Preparando backup');
-
       const zip = new AdmZip();
 
-      // Criar pasta temporária
+      // Criar pasta temporária para backup
       const tempDir = path.join(this.userDataPath, 'temp-backup');
       if (fs.existsSync(tempDir)) {
         fs.rmSync(tempDir, { recursive: true, force: true });
       }
       fs.mkdirSync(tempDir, { recursive: true });
 
-      // Backup dos databases
+      // Backup dos databases usando Online Backup API
       const dbDir = path.join(this.userDataPath, 'databases');
       const tempDbDir = path.join(tempDir, 'databases');
       
       if (fs.existsSync(dbDir)) {
         fs.mkdirSync(tempDbDir, { recursive: true });
-        this.emitProgress('backup', 20, 100, 'Copiando databases');
         await this.backupDatabasesOnline(dbDir, tempDbDir);
-        this.emitProgress('backup', 60, 100, 'Databases copiados');
         zip.addLocalFolder(tempDbDir, 'databases');
       }
 
       // Adicionar user.json
-      this.emitProgress('files', 70, 100, 'Adicionando arquivos de configuracao');
       const userFile = path.join(this.userDataPath, 'user.json');
       if (fs.existsSync(userFile)) {
         zip.addLocalFile(userFile, '');
@@ -248,18 +212,15 @@ export class BackupManager {
       );
 
       // Salvar ZIP
-      this.emitProgress('compress', 80, 100, 'Compactando backup');
       zip.writeZip(savePath);
 
       // Limpar pasta temporária
       fs.rmSync(tempDir, { recursive: true, force: true });
 
       const stats = fs.statSync(savePath);
-      const sizeMB = (stats.size / 1024 / 1024).toFixed(2);
 
-      this.emitProgress('complete', 100, 100, `Backup criado (${sizeMB} MB)`);
-      console.log('Backup manual criado:', savePath);
-      console.log('Tamanho:', sizeMB, 'MB');
+      console.log('✅ Backup manual criado:', savePath);
+      console.log('📊 Tamanho:', (stats.size / 1024 / 1024).toFixed(2), 'MB');
 
       return {
         success: true,
@@ -267,33 +228,34 @@ export class BackupManager {
         size: stats.size,
       };
     } catch (error) {
-      console.error('Erro no backup manual:', error);
-      this.emitProgress('error', 0, 100, 'Erro no backup manual');
+      console.error('❌ Erro no backup manual:', error);
       return { success: false, error: (error as Error).message };
     }
   }
 
   /**
-   * BACKUP ONLINE de databases usando SQLite .backup()
+   * 💾 BACKUP ONLINE de databases usando SQLite .backup()
+   * Copia databases SEM fechar conexões!
    */
   private async backupDatabasesOnline(sourceDir: string, destDir: string): Promise<void> {
     const files = fs.readdirSync(sourceDir);
     const dbFiles = files.filter(f => f.endsWith('.db'));
 
-    console.log(`Copiando ${dbFiles.length} databases usando Online Backup API...`);
+    console.log(`📂 Copiando ${dbFiles.length} databases usando Online Backup API...`);
 
-    for (let i = 0; i < dbFiles.length; i++) {
-      const dbFile = dbFiles[i];
+    for (const dbFile of dbFiles) {
       const sourcePath = path.join(sourceDir, dbFile);
       const destPath = path.join(destDir, dbFile);
 
       try {
+        // Abrir database de origem (read-only para segurança)
         const sourceDb = new Database(sourcePath, { readonly: true });
         
+        // Usar .backup() para copiar de forma online
         await new Promise<void>((resolve, reject) => {
           sourceDb.backup(destPath)
             .then(() => {
-              console.log(`${dbFile} copiado`);
+              console.log(`✓ ${dbFile} copiado`);
               sourceDb.close();
               resolve();
             })
@@ -303,7 +265,7 @@ export class BackupManager {
             });
         });
 
-        // Copiar .meta.json se existir
+        // Copiar arquivos .meta.json se existirem
         const metaFile = dbFile.replace('.db', '.meta.json');
         const sourceMetaPath = path.join(sourceDir, metaFile);
         const destMetaPath = path.join(destDir, metaFile);
@@ -312,104 +274,124 @@ export class BackupManager {
           fs.copyFileSync(sourceMetaPath, destMetaPath);
         }
 
-        // Emitir progresso (20-70% do total)
-        const progress = 20 + Math.floor((i + 1) / dbFiles.length * 50);
-        this.emitProgress('backup', progress, 100, `Copiando ${i + 1}/${dbFiles.length} databases`);
-
       } catch (error) {
-        console.error(`Erro ao copiar ${dbFile}:`, error);
+        console.error(`❌ Erro ao copiar ${dbFile}:`, error);
         throw error;
       }
     }
 
-    console.log('Todos os databases copiados com sucesso');
+    console.log('✓ Todos os databases copiados com sucesso');
   }
 
   /**
-   * RESTAURAR BACKUP usando SQLite .backup() reverso
+   * 📥 RESTAURAR BACKUP usando SQLite .backup() reverso
+   * Restaura SEM fechar o banco de dados principal!
    */
   async restoreBackup(backupPath: string): Promise<RestoreBackupReturn> {
     try {
-      console.log('Iniciando restauracao (Online Backup API)');
-      this.emitProgress('init', 0, 100, 'Iniciando restauracao');
+      console.log('');
+      console.log('═══════════════════════════════════════════════════');
+      console.log('📥 INICIANDO RESTAURAÇÃO (Online Backup API)');
+      console.log('═══════════════════════════════════════════════════');
+      console.log('');
 
       // 1. Validar backup
-      this.emitProgress('validate', 5, 100, 'Validando backup');
+      console.log('🔍 Validando backup...');
       const validation = await this.validateBackup(backupPath);
       if (!validation.isValid) {
-        this.emitProgress('error', 0, 100, 'Backup invalido');
         return { 
           success: false, 
-          error: 'Backup invalido: ' + validation.errors.join(', ') 
+          error: 'Backup inválido: ' + validation.errors.join(', ') 
         };
       }
+      console.log('✓ Backup validado');
 
       // 2. Confirmar com usuário
       const proceed = await dialog.showMessageBox({
         type: 'warning',
         title: 'Restaurar Backup',
-        message: 'Todos os dados atuais serao substituidos!',
+        message: 'Todos os dados atuais serão substituídos!',
         detail: 
-          'Esta operacao ira:\n\n' +
-          '- Criar um backup de seguranca dos dados actuais\n' +
-          '- Restaurar os dados do backup\n' +
-          '- O sistema continuara funcionando normalmente\n\n' +
+          'Esta operação irá:\n\n' +
+          '✓ Criar um backup de segurança dos dados actuais\n' +
+          '✓ Restaurar os dados do backup\n' +
+          '✓ O sistema continuará funcionando normalmente\n\n' +
           (validation.warnings.length > 0 
-            ? 'Avisos:\n' + validation.warnings.map(w => `- ${w}`).join('\n') + '\n\n'
+            ? '⚠️ Avisos:\n' + validation.warnings.map(w => `• ${w}`).join('\n') + '\n\n'
             : '') +
-          'Usando SQLite Online Backup API (sem interrupcoes)',
+          '🔄 Usando SQLite Online Backup API (sem interrupções)',
         buttons: ['Cancelar', 'Restaurar Agora'],
         defaultId: 1,
         cancelId: 0,
       });
 
       if (proceed.response === 0) {
-        this.emitProgress('cancel', 0, 100, 'Cancelado pelo usuario');
-        return { success: false, error: 'Cancelado pelo usuario' };
+        return { success: false, error: 'Cancelado pelo usuário' };
       }
 
       // 3. Criar backup de segurança
-      this.emitProgress('safety-backup', 10, 100, 'Criando backup de seguranca');
+      console.log('💾 Criando backup de segurança...');
       await this.createAutoBackup();
+      console.log('✓ Backup de segurança criado');
 
-      // 4. Extrair backup
+      // 4. Extrair backup para pasta temporária
       const tempDir = path.join(this.userDataPath, 'temp-restore');
       if (fs.existsSync(tempDir)) {
         fs.rmSync(tempDir, { recursive: true, force: true });
       }
       fs.mkdirSync(tempDir, { recursive: true });
 
-      this.emitProgress('extract', 20, 100, 'Extraindo backup');
+      console.log('📂 Extraindo backup...');
       const zip = new AdmZip(backupPath);
       zip.extractAllTo(tempDir, true);
+      console.log('✓ Backup extraído');
 
-      // 5. Restaurar databases
+      // 5. Restaurar databases usando .backup() reverso
       const tempDbDir = path.join(tempDir, 'databases');
       const dbDir = path.join(this.userDataPath, 'databases');
 
       if (fs.existsSync(tempDbDir)) {
-        this.emitProgress('restore', 30, 100, 'Restaurando databases');
+        console.log('🔄 Restaurando databases usando Online Backup API...');
         await this.restoreDatabasesOnline(tempDbDir, dbDir);
+        console.log('✓ Databases restaurados');
       }
 
       // 6. Restaurar user.json
-      this.emitProgress('files', 85, 100, 'Restaurando configuracoes');
       const tempUserFile = path.join(tempDir, 'user.json');
       const userFile = path.join(this.userDataPath, 'user.json');
       
       if (fs.existsSync(tempUserFile)) {
+        console.log('👤 Restaurando user.json...');
         if (fs.existsSync(userFile)) {
           fs.unlinkSync(userFile);
         }
         fs.copyFileSync(tempUserFile, userFile);
+        console.log('✓ user.json restaurado');
       }
 
-      // 7. Limpar temporários
-      this.emitProgress('cleanup', 95, 100, 'Limpando arquivos temporarios');
+      // 7. Limpar pasta temporária
+      console.log('🧹 Limpando arquivos temporários...');
       fs.rmSync(tempDir, { recursive: true, force: true });
+      console.log('✓ Limpeza concluída');
 
-      this.emitProgress('complete', 100, 100, 'Restauracao concluida');
-      console.log('Restauracao concluida com sucesso');
+      console.log('');
+      console.log('═══════════════════════════════════════════════════');
+      console.log('✅ RESTAURAÇÃO CONCLUÍDA COM SUCESSO!');
+      console.log('═══════════════════════════════════════════════════');
+      console.log('🎯 Sistema funcionando normalmente');
+      console.log('');
+
+      // Mostrar mensagem de sucesso
+      dialog.showMessageBox({
+        type: 'info',
+        title: 'Restauração Concluída',
+        message: 'O backup foi restaurado com sucesso!',
+        detail: 
+          '✓ Todos os dados foram restaurados\n' +
+          '✓ O sistema está funcionando normalmente\n' +
+          '✓ Um backup de segurança foi criado',
+        buttons: ['OK'],
+      });
 
       return {
         success: true,
@@ -418,9 +400,20 @@ export class BackupManager {
       };
 
     } catch (error) {
-      console.error('Erro na restauracao:', error);
-      this.emitProgress('error', 0, 100, 'Erro na restauracao');
-      
+      console.error('');
+      console.error('═══════════════════════════════════════════════════');
+      console.error('❌ ERRO NA RESTAURAÇÃO!');
+      console.error('═══════════════════════════════════════════════════');
+      console.error(error);
+      console.error('');
+
+      dialog.showErrorBox(
+        'Erro na Restauração',
+        'Ocorreu um erro ao restaurar o backup.\n' +
+        'Os dados anteriores foram mantidos.\n\n' +
+        `Erro: ${(error as Error).message}`
+      );
+
       return { 
         success: false, 
         error: (error as Error).message 
@@ -429,46 +422,28 @@ export class BackupManager {
   }
 
   /**
-   * RESTAURAÇÃO ONLINE usando .backup() reverso
+   * 🔄 RESTAURAÇÃO ONLINE usando .backup() reverso
+   * Restaura databases SEM fechar conexões!
    */
   private async restoreDatabasesOnline(sourceDir: string, destDir: string): Promise<void> {
     const files = fs.readdirSync(sourceDir);
     const dbFiles = files.filter(f => f.endsWith('.db'));
 
-    console.log(`Restaurando ${dbFiles.length} databases usando Online Backup API...`);
+    console.log(`📂 Restaurando ${dbFiles.length} databases usando Online Backup API...`);
 
-    //Limpar TUDO do diretório de destino primeiro
-    if (fs.existsSync(destDir)) {
-        console.log('Limpando databases antigos...');
-        const oldFiles = fs.readdirSync(destDir);
-        for (const oldFile of oldFiles) {
-            const oldPath = path.join(destDir, oldFile);
-            try {
-                if (fs.statSync(oldPath).isFile()) {
-                    fs.unlinkSync(oldPath);
-                }
-            } catch (error) {
-                console.error(`Erro ao remover ${oldFile}:`, error);
-            }
-        }
-        console.log('Databases antigos removidos');
-    } else {
-        // Se não existe, criar
-        fs.mkdirSync(destDir, { recursive: true });
-    }
-
-    for (let i = 0; i < dbFiles.length; i++) {
-      const dbFile = dbFiles[i];
+    for (const dbFile of dbFiles) {
       const sourcePath = path.join(sourceDir, dbFile);
       const destPath = path.join(destDir, dbFile);
 
       try {
+        // Abrir backup como fonte (read-only)
         const sourceDb = new Database(sourcePath, { readonly: true });
         
+        // Usar .backup() REVERSO: copiar do backup para o destino
         await new Promise<void>((resolve, reject) => {
           sourceDb.backup(destPath)
             .then(() => {
-              console.log(`${dbFile} restaurado`);
+              console.log(`✓ ${dbFile} restaurado`);
               sourceDb.close();
               resolve();
             })
@@ -478,7 +453,7 @@ export class BackupManager {
             });
         });
 
-        // Restaurar .meta.json
+        // Restaurar .meta.json se existir
         const metaFile = dbFile.replace('.db', '.meta.json');
         const sourceMetaPath = path.join(sourceDir, metaFile);
         const destMetaPath = path.join(destDir, metaFile);
@@ -490,21 +465,17 @@ export class BackupManager {
           fs.copyFileSync(sourceMetaPath, destMetaPath);
         }
 
-        // Emitir progresso (30-85% do total)
-        const progress = 30 + Math.floor((i + 1) / dbFiles.length * 55);
-        this.emitProgress('restore', progress, 100, `Restaurando ${i + 1}/${dbFiles.length} databases`);
-
       } catch (error) {
-        console.error(`Erro ao restaurar ${dbFile}:`, error);
+        console.error(`❌ Erro ao restaurar ${dbFile}:`, error);
         throw error;
       }
     }
 
-    console.log('Todos os databases restaurados com sucesso');
+    console.log('✓ Todos os databases restaurados com sucesso');
   }
 
   /**
-   * VALIDAR BACKUP
+   * 🔍 VALIDAR BACKUP
    */
   async validateBackup(backupPath: string): Promise<RestoreValidation> {
     const errors: string[] = [];
@@ -522,14 +493,14 @@ export class BackupManager {
 
       const metadataEntry = entries.find(e => e.entryName === 'backup-metadata.json');
       if (!metadataEntry) {
-        errors.push('Arquivo de metadata nao encontrado');
+        errors.push('Arquivo de metadata não encontrado');
         return { isValid: false, errors, warnings };
       }
 
       metadata = JSON.parse(metadataEntry.getData().toString('utf8'));
 
       if (metadata && metadata.version !== '1.0') {
-        warnings.push(`Versao do backup (${metadata.version}) diferente da esperada (1.0)`);
+        warnings.push(`Versão do backup (${metadata.version}) diferente da esperada (1.0)`);
       }
 
       const hasDatabases = entries.some(e => e.entryName.startsWith('databases/'));
@@ -538,7 +509,7 @@ export class BackupManager {
       }
 
       if (!entries.some(e => e.entryName === 'user.json')) {
-        warnings.push('user.json nao encontrado - dados do usuario ausentes');
+        warnings.push('user.json não encontrado - dados do usuário ausentes');
       }
 
       return {
@@ -570,7 +541,7 @@ export class BackupManager {
     const toRemove = backups.slice(config.keepLastN);
     
     for (const backup of toRemove) {
-      console.log('Removendo backup antigo:', backup.name);
+      console.log('🗑️ Removendo backup antigo:', backup.name);
       fs.rmSync(backup.path, { recursive: true, force: true });
     }
   }

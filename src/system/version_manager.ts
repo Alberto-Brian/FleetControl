@@ -87,9 +87,9 @@ export class VersionManager {
         })
         .where(eq(systemInfo.id, 1));
 
-      console.log(`✅ Versão atualizada para v${newVersion}`);
+      console.log(`✅ Versão actualizada para v${newVersion}`);
     } catch (error) {
-      console.error('❌ Erro ao atualizar versão:', error);
+      console.error('❌ Erro ao actualizar versão:', error);
       throw error;
     }
   }

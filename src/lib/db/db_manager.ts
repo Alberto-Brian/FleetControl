@@ -16,6 +16,21 @@ interface DatabaseFile {
   isActive: boolean;
 }
 
+/**
+ * Configuração de tabelas master que devem ser copiadas durante rotação
+ */
+interface MasterTableConfig {
+  tableName: string;
+  /** Se true, copia TODOS os registros. Se false, usa customQuery */
+  copyAll?: boolean;
+  /** Query customizada para selecionar quais registros copiar */
+  customQuery?: string;
+  /** Colunas a ignorar na cópia (ex: timestamps que devem ser regenerados) */
+  excludeColumns?: string[];
+  /** Se true, limpa a tabela de destino antes de copiar */
+  truncateBeforeCopy?: boolean;
+}
+
 export class DatabaseManager {
   private baseDir: string;
   private maxSizeInMB: number;
@@ -522,4 +537,369 @@ private forceReleaseLocks(): void {
 
     return results;
   }
+
+
+/**
+ * Copia tabelas master do banco antigo para o novo durante rotação
+ * 
+ * @param tables - Array de configurações de tabelas a copiar
+ * @returns Estatísticas da cópia
+ * 
+ * @example
+ * // Copiar tabelas inteiras
+ * await dbManager.copyMasterTables([
+ *   { tableName: 'users', copyAll: true },
+ *   { tableName: 'settings', copyAll: true }
+ * ]);
+ * 
+ * @example
+ * // Copiar apenas registros específicos
+ * await dbManager.copyMasterTables([
+ *   { 
+ *     tableName: 'products', 
+ *     customQuery: 'SELECT * FROM products WHERE active = 1',
+ *     excludeColumns: ['created_at', 'updated_at']
+ *   }
+ * ]);
+ */
+async copyMasterTables(
+  tables: MasterTableConfig[]
+): Promise<{
+  success: boolean;
+  copied: { table: string; records: number }[];
+  errors: { table: string; error: string }[];
+}> {
+  console.log('📋 Iniciando cópia de tabelas master...');
+  
+  const copied: { table: string; records: number }[] = [];
+  const errors: { table: string; error: string }[] = [];
+
+  if (!this.currentDb || !this.currentDbPath) {
+    throw new Error('Banco de dados atual não inicializado');
+  }
+
+  for (const config of tables) {
+    try {
+      console.log(`  📊 Copiando tabela: ${config.tableName}...`);
+
+      // 1. Verificar se tabela existe no banco atual
+      const tableExists = this.currentDb
+        .prepare(
+          `SELECT name FROM sqlite_master WHERE type='table' AND name=?`
+        )
+        .get(config.tableName);
+
+      if (!tableExists) {
+        console.warn(`  ⚠️ Tabela ${config.tableName} não existe, pulando...`);
+        continue;
+      }
+
+      // 2. Obter estrutura da tabela
+      const tableInfo = this.currentDb
+        .prepare(`PRAGMA table_info(${config.tableName})`)
+        .all() as Array<{ name: string; type: string }>;
+
+      // 3. Filtrar colunas a excluir
+      const columns = tableInfo
+        .map(col => col.name)
+        .filter(col => !config.excludeColumns?.includes(col));
+
+      const columnsList = columns.join(', ');
+
+      // 4. Obter dados do banco antigo
+      let query: string;
+      
+      if (config.copyAll || !config.customQuery) {
+        query = `SELECT ${columnsList} FROM ${config.tableName}`;
+      } else {
+        // Usar query customizada mas garantir que seleciona apenas as colunas válidas
+        query = config.customQuery;
+      }
+
+      const records = this.currentDb.prepare(query).all();
+
+      if (records.length === 0) {
+        console.log(`  ℹ️ Nenhum registro para copiar em ${config.tableName}`);
+        copied.push({ table: config.tableName, records: 0 });
+        continue;
+      }
+
+      // 5. Preparar placeholders para INSERT
+      const placeholders = columns.map(() => '?').join(', ');
+      const insertQuery = `INSERT OR REPLACE INTO ${config.tableName} (${columnsList}) VALUES (${placeholders})`;
+
+      // 6. Truncar tabela de destino se solicitado
+      if (config.truncateBeforeCopy) {
+        this.currentDb.prepare(`DELETE FROM ${config.tableName}`).run();
+      }
+
+      // 7. Copiar registros em transação
+      const insert = this.currentDb.prepare(insertQuery);
+      const transaction = this.currentDb.transaction((rows: any[]) => {
+        for (const row of rows) {
+          const values = columns.map(col => row[col]);
+          insert.run(...values);
+        }
+      });
+
+      transaction(records);
+
+      console.log(`  ✅ ${records.length} registros copiados de ${config.tableName}`);
+      copied.push({ table: config.tableName, records: records.length });
+
+    } catch (error: any) {
+      console.error(`  ❌ Erro ao copiar ${config.tableName}:`, error.message);
+      errors.push({ table: config.tableName, error: error.message });
+    }
+  }
+
+  const summary = {
+    success: errors.length === 0,
+    copied,
+    errors
+  };
+
+  console.log('📊 Resumo da cópia:');
+  console.log(`  ✅ Sucesso: ${copied.length} tabelas`);
+  console.log(`  ❌ Erros: ${errors.length} tabelas`);
+  console.log(`  📈 Total de registros: ${copied.reduce((sum, c) => sum + c.records, 0)}`);
+
+  return summary;
 }
+
+/**
+ * Versão melhorada do rotate() que aceita tabelas master
+ * 
+ * @param masterTables - Configuração de tabelas a copiar (opcional)
+ * 
+ * @example
+ * dbManager.rotateWithMasters([
+ *   { tableName: 'users', copyAll: true },
+ *   { tableName: 'categories', copyAll: true },
+ *   { 
+ *     tableName: 'products', 
+ *     customQuery: 'SELECT * FROM products WHERE active = 1' 
+ *   }
+ * ]);
+ */
+async rotateWithMasters(masterTables?: MasterTableConfig[]) {
+  console.log('🔄 Iniciando rotação de banco de dados...');
+  
+  // Guardar referência ao banco antigo ANTES de fechar
+  const oldDbPath = this.currentDbPath;
+  const oldDb = this.currentDb;
+
+  if (!oldDbPath || !oldDb) {
+    throw new Error('Nenhum banco ativo para rotacionar');
+  }
+
+  try {
+    // 1. Marcar banco atual como inativo (mas NÃO fechar ainda)
+    const metaPath = oldDbPath.replace('.db', '.meta.json');
+    const meta = this.readMetadata(metaPath);
+    meta.isActive = false;
+    meta.closedAt = new Date().toISOString();
+    fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2));
+
+    // 2. Criar novo banco
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `database_${timestamp}.db`;
+    const filepath = path.join(this.baseDir, filename);
+
+    const newDb = new Database(filepath);
+    this.configurePragmas(newDb);
+
+    // 3. Criar metadata do novo banco
+    const newMetaPath = filepath.replace('.db', '.meta.json');
+    const newMetadata = {
+      filename,
+      filepath,
+      createdAt: new Date().toISOString(),
+      isActive: true,
+      version: app.getVersion(),
+      copiedFrom: path.basename(oldDbPath)
+    };
+    fs.writeFileSync(newMetaPath, JSON.stringify(newMetadata, null, 2));
+
+    // 4. Aplicar migrations no novo banco
+    this.currentDbPath = filepath;
+    this.currentDb = newDb;
+    this.applyMigrations();
+
+    // 5. Copiar tabelas master se fornecidas
+    let copyStats = null;
+    if (masterTables && masterTables.length > 0) {
+      console.log('📋 Copiando tabelas master do banco antigo...');
+      
+      // Anexar banco antigo temporariamente
+      newDb.prepare(`ATTACH DATABASE '${oldDbPath}' AS old_db`).run();
+
+      try {
+        copyStats = await this.copyMasterTablesFromAttached(masterTables, 'old_db');
+      } finally {
+        // Desanexar banco antigo
+        newDb.prepare('DETACH DATABASE old_db').run();
+      }
+    }
+
+    // 6. AGORA SIM fechar o banco antigo
+    oldDb.close();
+    console.log('🔒 Banco antigo fechado');
+
+    console.log('✅ Rotação concluída!');
+    
+    return {
+      newDatabase: filepath,
+      oldDatabase: oldDbPath,
+      copyStats,
+      drizzle: this.getCurrentDrizzleInstance()
+    };
+
+  } catch (error) {
+    console.error('❌ Erro durante rotação:', error);
+    
+    // Rollback: restaurar banco antigo como ativo
+    if (oldDbPath) {
+      const metaPath = oldDbPath.replace('.db', '.meta.json');
+      const meta = this.readMetadata(metaPath);
+      meta.isActive = true;
+      delete meta.closedAt;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2));
+      
+      this.currentDbPath = oldDbPath;
+      this.currentDb = oldDb;
+    }
+    
+    throw error;
+  }
+}
+
+/**
+ * Copia tabelas master usando ATTACH DATABASE (mais eficiente)
+ */
+private async copyMasterTablesFromAttached(
+  tables: MasterTableConfig[],
+  attachedDbName: string
+): Promise<{
+  success: boolean;
+  copied: { table: string; records: number }[];
+  errors: { table: string; error: string }[];
+}> {
+  const copied: { table: string; records: number }[] = [];
+  const errors: { table: string; error: string }[] = [];
+
+  if (!this.currentDb) {
+    throw new Error('Banco atual não inicializado');
+  }
+
+  for (const config of tables) {
+    try {
+      console.log(`  📊 Copiando ${config.tableName}...`);
+
+      // Verificar se tabela existe no banco antigo
+      const tableExists = this.currentDb
+        .prepare(
+          `SELECT name FROM ${attachedDbName}.sqlite_master WHERE type='table' AND name=?`
+        )
+        .get(config.tableName);
+
+      if (!tableExists) {
+        console.warn(`  ⚠️ Tabela ${config.tableName} não existe no banco antigo`);
+        continue;
+      }
+
+      // Obter colunas
+      const tableInfo = this.currentDb
+        .prepare(`PRAGMA ${attachedDbName}.table_info(${config.tableName})`)
+        .all() as Array<{ name: string }>;
+
+      const columns = tableInfo
+        .map(col => col.name)
+        .filter(col => !config.excludeColumns?.includes(col));
+
+      const columnsList = columns.join(', ');
+
+      // Truncar se necessário
+      if (config.truncateBeforeCopy) {
+        this.currentDb.prepare(`DELETE FROM ${config.tableName}`).run();
+      }
+
+      // Copiar dados usando INSERT SELECT (muito mais rápido!)
+      let insertQuery: string;
+      
+      if (config.copyAll || !config.customQuery) {
+        insertQuery = `
+          INSERT OR REPLACE INTO ${config.tableName} (${columnsList})
+          SELECT ${columnsList} FROM ${attachedDbName}.${config.tableName}
+        `;
+      } else {
+        // Adaptar query customizada
+        const customQuery = config.customQuery.replace(
+          `FROM ${config.tableName}`,
+          `FROM ${attachedDbName}.${config.tableName}`
+        );
+        insertQuery = `
+          INSERT OR REPLACE INTO ${config.tableName} (${columnsList})
+          ${customQuery}
+        `;
+      }
+
+      const result = this.currentDb.prepare(insertQuery).run();
+      const recordCount = result.changes;
+
+      console.log(`  ✅ ${recordCount} registros copiados`);
+      copied.push({ table: config.tableName, records: recordCount });
+
+    } catch (error: any) {
+      console.error(`  ❌ Erro ao copiar ${config.tableName}:`, error.message);
+      errors.push({ table: config.tableName, error: error.message });
+    }
+  }
+
+  return { success: errors.length === 0, copied, errors };
+}
+
+/**
+ * Helper para definir tabelas master padrão do sistema
+ * Você pode customizar isso conforme suas necessidades
+ */
+static getDefaultMasterTables(): MasterTableConfig[] {
+  return [
+    { tableName: 'users', copyAll: true },
+    { tableName: 'settings', copyAll: true },
+    { tableName: 'categories', copyAll: true },
+    { 
+      tableName: 'products', 
+      customQuery: 'SELECT * FROM products WHERE active = 1',
+      excludeColumns: ['created_at', 'updated_at']
+    }
+  ];
+}
+}
+
+/** 
+// Exemplo 1: Rotação simples com tabelas master
+await dbManager.rotateWithMasters([
+  { tableName: 'users', copyAll: true },
+  { tableName: 'settings', copyAll: true }
+]);
+ 
+// Exemplo 2: Com queries customizadas
+await dbManager.rotateWithMasters([
+  { 
+    tableName: 'products', 
+    customQuery: 'SELECT * FROM products WHERE active = 1',
+    excludeColumns: ['created_at', 'updated_at']
+  },
+  { 
+    tableName: 'sellers',
+    copyAll: true,
+    truncateBeforeCopy: true // limpa destino antes
+  }
+]);
+
+// Exemplo 3: Usar configuração padrão
+const masterTables = DatabaseManager.getDefaultMasterTables();
+await dbManager.rotateWithMasters(masterTables);
+
+**/

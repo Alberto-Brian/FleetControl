@@ -132,7 +132,15 @@ app.whenReady().then(async () => {
     // 4. Verificar se precisa rotacionar banco
     if (dbManager.shouldRotate()) {
       console.log('🔄 Rotacionando banco de dados...');
-      dbManager.rotate();
+      // dbManager.rotate();
+      await dbManager.rotateWithMasters([
+       { 
+        tableName: 'users', 
+        customQuery: 'SELECT * FROM users WHERE status = 1',
+        excludeColumns: ['created_at', 'updated_at']
+      },
+      { tableName: 'clients', copyAll: true }
+    ]);
     }
 
     // 5. Criar janela principal
