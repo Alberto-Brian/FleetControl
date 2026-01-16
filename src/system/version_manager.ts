@@ -1,6 +1,6 @@
 import { app } from 'electron';
 import { eq } from 'drizzle-orm';
-import { systemInfo } from '../lib/db/schemas/system';
+import { systemInfo } from '@/lib/db/schemas/system';
 import { APP_NAME } from "@/system/system.config"
 
 /**

@@ -52,6 +52,17 @@ interface IClients {
     deleteClient: (clientId: string) => Promise<string>;
 }
 
+interface Services {
+    Auth: {
+        login: (loginData: ILogin) => Promise<IUser>;
+        logout: (userId: string) => Promise<string>;
+        hasUsers: () => Promise<boolean>;
+        createFirstUser: (userData: ICreateFirstUser) => Promise<IUser>;
+        changePassword: (changePasswordData: IChangePassword) => Promise<any>;
+        updateProfile: (userId: string, updateProfileData: IUpdateProfile) => Promise<IUser>;
+    }
+}
+
 declare interface Window {
     system: System;
     license: License;
@@ -59,4 +70,5 @@ declare interface Window {
     themeMode: ThemeModeContext;
     electronWindow: ElectronWindow;
     _clients: IClients;
+    _service_auth: Services["Auth"];
 }

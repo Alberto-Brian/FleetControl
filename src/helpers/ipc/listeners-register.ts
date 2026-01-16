@@ -5,6 +5,7 @@ import { addClientsEventListeners } from "./db/clients/clients-listeners";
 import { addSystemEventListeners } from "./system/system-listeners";
 import { addLicenseEventListeners } from "./license/license-listeners";
 import { addBackupEventListeners } from "./backup/backup-listeners";
+import { addServiceAuthEventListeners } from "./services/auth/auth-service-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
     addWindowEventListeners(mainWindow);
@@ -13,4 +14,5 @@ export default function registerListeners(mainWindow: BrowserWindow) {
     addSystemEventListeners();
     addLicenseEventListeners();
     addBackupEventListeners();
+    addServiceAuthEventListeners();
 }

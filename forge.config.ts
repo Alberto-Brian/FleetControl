@@ -21,7 +21,7 @@ const config: ForgeConfig = {
         name: APP_NAME,
         
         // Configurações adicionais do macOS
-        appBundleId: 'com.mercadoPro.id',
+        appBundleId: 'com.fleetcontrol.id',
         appCategoryType: 'public.app-category.productivity',
         extraResource: [
             'drizzle',
@@ -42,7 +42,7 @@ const config: ForgeConfig = {
             // Nome do executável
             name: APP_NAME,
             authors: 'Alberto Kiowa Massanza',
-            description: 'Sistema de Gestão de Mercado (SGM)',
+            description: 'Sistema de Gestão de Frotas',
         }),
         new MakerZIP({}, ["darwin"]),
         new MakerRpm({
@@ -52,7 +52,7 @@ const config: ForgeConfig = {
                 name: APP_NAME,
                 productName: APP_NAME,
                 genericName: 'Aplicativo',
-                description: 'Sistema de Gestão de Mercado (SGM)',
+                description: 'Sistema de Gestão de Frotas',
                 categories: ['Utility'],
                 
                 // Dependências
@@ -67,7 +67,7 @@ const config: ForgeConfig = {
                 name: APP_NAME,
                 productName: APP_NAME,
                 genericName: 'Aplicativo',
-                description: 'Sistema de Gestão de Mercado (SGM)',
+                description: 'Sistema de Gestão de Frotas',
                 categories: ['Utility'],
                 
                 // Informações de manutenção

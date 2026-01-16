@@ -1,8 +1,8 @@
 {
-    "name": "MarketPro",
-    "productName": "MarketPro",
+    "name": "FleetControl",
+    "productName": "FleetControl",
     "version": "1.0.0",
-    "description": "Sistema de Gestão de Mercado (SGM)",
+    "description": "Sistema de Gestão de Frotas",
     "main": ".vite/build/main.js",
     "scripts": {
         "start": "electron-forge start",
@@ -24,7 +24,8 @@
         "db:rename": "node src/scripts/rename-migration.js",
         "rebuild": "electron-rebuild -f -w better-sqlite3",
         "build-icons": "electron-icon-builder --input=./images/logo.png --output=./build --flatten",
-        "postinstall": "npm run rebuild"
+        "postinstall": "npm run rebuild",
+        "db:seed": "tsx src/lib/db/seeds/index.ts"
     },
     "author": "Alberto Kiowa Massanza <albertokiowa10@gmail.com>",
     "license": "MIT",
@@ -55,11 +56,13 @@
         "@testing-library/react": "^16.0.0",
         "@testing-library/user-event": "^14.5.2",
         "@types/adm-zip": "^0.5.7",
+        "@types/bcryptjs": "^2.4.6",
         "@types/better-sqlite3": "^7.6.13",
         "@types/jest": "^29.5.12",
         "@types/node": "^20.14.11",
         "@types/react": "^18.3.3",
         "@types/react-dom": "^18.3.0",
+        "@types/react-router-dom": "^5.3.3",
         "autoprefixer": "^10.4.19",
         "drizzle-kit": "^0.23.2",
         "electron": "^31.2.1",
@@ -74,12 +77,15 @@
         "storybook": "^8.2.5",
         "tailwindcss": "^3.4.6",
         "ts-node": "^10.9.2",
+        "tsx": "^4.21.0",
         "typescript": "^5.5.3",
         "vite": "^5.3.4"
     },
     "dependencies": {
         "@hookform/resolvers": "^3.9.0",
+        "@radix-ui/react-avatar": "^1.1.11",
         "@radix-ui/react-dialog": "^1.1.1",
+        "@radix-ui/react-dropdown-menu": "^2.1.16",
         "@radix-ui/react-label": "^2.1.0",
         "@radix-ui/react-progress": "^1.1.8",
         "@radix-ui/react-scroll-area": "^1.1.0",
@@ -91,6 +97,7 @@
         "@radix-ui/react-toggle-group": "^1.1.0",
         "@vitejs/plugin-react": "^4.3.1",
         "adm-zip": "^0.5.16",
+        "bcryptjs": "^3.0.3",
         "better-sqlite3": "^12.5.0",
         "class-variance-authority": "^0.7.0",
         "clsx": "^2.1.1",
@@ -103,6 +110,7 @@
         "react-hook-form": "^7.52.1",
         "react-i18next": "^15.0.0",
         "react-query": "^3.39.3",
+        "react-router-dom": "^7.12.0",
         "tailwind-merge": "^2.4.0",
         "tailwindcss-animate": "^1.0.7",
         "zod": "^3.23.8"

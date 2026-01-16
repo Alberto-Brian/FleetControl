@@ -318,6 +318,98 @@ private forceReleaseLocks(): void {
   }
 
   /**
+ * Desactiva PRAGMAs temporariamente para operações de sistema de arquivos
+ * Isso previne locks de arquivo (especialmente WAL mode) que causam EBUSY
+ * 
+ * IMPORTANTE: Sempre chamar restorePragmas() depois!
+ * 
+ * @example
+ * dbManager.disablePragmas();
+ * try {
+ *   fs.rmSync(backupDir, { recursive: true });
+ * } finally {
+ *   dbManager.restorePragmas();
+ * }
+ */
+disablePragmas(): void {
+  if (!this.currentDb) {
+    console.warn('⚠️ Nenhum banco activo para desactivar PRAGMAs');
+    return;
+  }
+
+  console.log('🔓 Desactivando PRAGMAs para operações FS...');
+  
+  try {
+    // 1. Fazer checkpoint do WAL (flush para o DB principal)
+    this.currentDb.pragma('wal_checkpoint(TRUNCATE)');
+    console.log('  ✓ WAL checkpoint executado');
+    
+    // 2. Mudar para DELETE mode (sem arquivos -wal/-shm)
+    this.currentDb.pragma('journal_mode = DELETE');
+    console.log('  ✓ Journal mode: WAL → DELETE');
+    
+    // 3. Reduzir cache (libera memória)
+    this.currentDb.pragma('cache_size = -2000'); // 2MB apenas
+    console.log('  ✓ Cache reduzido');
+    
+    // 4. Desativar synchronous (mais rápido para operações FS)
+    this.currentDb.pragma('synchronous = OFF');
+    console.log('  ✓ Synchronous desativado');
+    
+    console.log('✅ PRAGMAs desativados com sucesso');
+  } catch (error) {
+    console.error('❌ Erro ao desativar PRAGMAs:', error);
+  }
+}
+
+/**
+ * Restaura PRAGMAs para valores normais de produção
+ * Deve ser chamado após disablePragmas()
+ */
+restorePragmas(): void {
+  if (!this.currentDb) {
+    console.warn('⚠️ Nenhum banco ativo para restaurar PRAGMAs');
+    return;
+  }
+
+  console.log('🔒 Restaurando PRAGMAs...');
+  
+  try {
+    this.configurePragmas(this.currentDb);
+    console.log('✅ PRAGMAs restaurados');
+  } catch (error) {
+    console.error('❌ Erro ao restaurar PRAGMAs:', error);
+  }
+}
+
+/**
+ * Executa uma operação FS com PRAGMAs desactivados automaticamente
+ * Garante que PRAGMAs sempre são restaurados, mesmo com erro
+ * 
+ * @param operation - Função com a operação FS a executar
+ * @returns Resultado da operação
+ * 
+ * @example
+ * await dbManager.withDisabledPragmas(() => {
+ *   fs.rmSync(backupDir, { recursive: true, force: true });
+ *   fs.renameSync(oldPath, newPath);
+ * });
+ */
+async withDisabledPragmas<T>(
+  operation: () => T | Promise<T>
+): Promise<T> {
+  this.disablePragmas();
+  
+  try {
+    const result = await operation();
+    return result;
+  } finally {
+    // Sempre restaurar, mesmo com erro
+    this.restorePragmas();
+  }
+}
+
+  /**
    * Lista todos os arquivos de banco
    */
   listDatabases(): DatabaseFile[] {

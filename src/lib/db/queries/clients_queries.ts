@@ -1,6 +1,6 @@
 import { dbManager, db } from '@/lib/db/db_client';
 import { clients } from '@/lib/db/schemas/clients';
-import { generateUuid } from '@/lib/cripto';
+import { generateUuid } from '@/lib/utils/cripto';
 import { eq } from 'drizzle-orm';
 
 export interface ICreateClient {
