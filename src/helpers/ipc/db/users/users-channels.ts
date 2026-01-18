@@ -1,3 +1,4 @@
+// src/helpers/ipc/db/users/users-channels.ts
 export const CREATE_USER = "CREATE_USER";
 export const UPDATE_USER = "UPDATE_USER";
 export const GET_ALL_USERS = "GET_ALL_USERS";

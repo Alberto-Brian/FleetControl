@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import RegisterClientInputs from "./RegisterClientInputs";
 import { Form } from "./ui/form";
 import SubmitButton from "./SubmitButton";
-import { createClient } from "@/helpers/clients-helpers";
+import { createClient } from "@/helpers/client-helpers";
 import { Client } from "@/lib/types/client";
 import { useToast } from "./ui/use-toast";
 import { useTranslation } from "react-i18next";

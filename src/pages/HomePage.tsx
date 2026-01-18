@@ -1,14 +1,26 @@
+// src/pages/HomePage.tsx
 import React, { useState, useEffect } from 'react';
 import { 
-  Truck, Fuel, Wrench, Users, MapPin, DollarSign, 
-  FileText, BarChart3, Home, Settings, Menu
+  Truck, Fuel, Wrench, Users, MapPin, Route as RouteIcon, DollarSign, 
+  FileText, BarChart3, Home, Settings, Menu, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
 import UserMenu from '@/components/UserMenu';
-import DashboardPage from '@/pages/DashboardPage';
 import SettingsDialog from '@/components/SettingsDialog';
+
+// imports pages
+import DashboardPage from '@/pages/DashboardPage';
+import VehiclesPage from '@/pages/VehiclesPage';
+import DriversPage from '@/pages/DriversPage';
+import TripsPage from '@/pages/TripsPage';
+import FuelPage from '@/pages/FuelPage';
+import MaintenancePage from '@/pages/MaintenancePage';
+import ExpensesPage from '@/pages/ExpensesPage';
+import FinesPage from '@/pages/FinesPage';
+import ReportsPage from '@/pages/ReportsPage';
+import AnalyticsPage from '@/pages/AnalyticsPage';
 
 export default function HomePage() {
   const { user, logout } = useAuth();
@@ -21,10 +33,11 @@ export default function HomePage() {
     { id: 'dashboard', icon: Home, label: 'Dashboard' },
     { id: 'vehicles', icon: Truck, label: 'Veículos' },
     { id: 'drivers', icon: Users, label: 'Motoristas' },
-    { id: 'trips', icon: MapPin, label: 'Viagens' },
+    { id: 'trips', icon: RouteIcon, label: 'Viagens' },
     { id: 'fuel', icon: Fuel, label: 'Abastecimentos' },
     { id: 'maintenance', icon: Wrench, label: 'Manutenções' },
     { id: 'expenses', icon: DollarSign, label: 'Despesas' },
+    { id: 'fines', icon: AlertTriangle, label: 'Multas' },
     { id: 'reports', icon: FileText, label: 'Relatórios' },
     { id: 'analytics', icon: BarChart3, label: 'Análises' },
   ];
@@ -60,77 +73,23 @@ export default function HomePage() {
       case 'dashboard':
         return <DashboardPage />;
       case 'vehicles':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Gestão de Veículos</h2>
-              <p className="text-muted-foreground">Em desenvolvimento</p>
-            </div>
-          </div>
-        );
+        return <VehiclesPage />;
       case 'drivers':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Gestão de Motoristas</h2>
-              <p className="text-muted-foreground">Em desenvolvimento</p>
-            </div>
-          </div>
-        );
+        return <DriversPage />;
       case 'trips':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Gestão de Viagens</h2>
-              <p className="text-muted-foreground">Em desenvolvimento</p>
-            </div>
-          </div>
-        );
+        return <TripsPage />;
       case 'fuel':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Abastecimentos</h2>
-              <p className="text-muted-foreground">Em desenvolvimento</p>
-            </div>
-          </div>
-        );
+        return <FuelPage />;
       case 'maintenance':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Manutenções</h2>
-              <p className="text-muted-foreground">Em desenvolvimento</p>
-            </div>
-          </div>
-        );
+        return <MaintenancePage />;
       case 'expenses':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Despesas</h2>
-              <p className="text-muted-foreground">Em desenvolvimento</p>
-            </div>
-          </div>
-        );
+        return <ExpensesPage />;
+      case 'fines':
+        return <FinesPage />;
       case 'reports':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Relatórios</h2>
-              <p className="text-muted-foreground">Em desenvolvimento</p>
-            </div>
-          </div>
-        );
+        return <ReportsPage />;
       case 'analytics':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Análises</h2>
-              <p className="text-muted-foreground">Em desenvolvimento</p>
-            </div>
-          </div>
-        );
+        return <AnalyticsPage />;
       default:
         return <DashboardPage />;
     }
@@ -210,7 +169,6 @@ export default function HomePage() {
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
         <header className="h-14 min-h-[56px] border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 flex-shrink-0">
-          {/* Lado esquerdo - Menu e título */}
           <div className="flex items-center gap-3 min-w-0">
             {(showCompactSidebar || !isSidebarOpen) && (
               <Button
@@ -232,7 +190,6 @@ export default function HomePage() {
             </h1>
           </div>
 
-          {/* Lado direito - Perfil do usuário */}
           <UserMenu 
             user={user ? {
               name: user.name,

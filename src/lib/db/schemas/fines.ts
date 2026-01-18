@@ -1,3 +1,6 @@
+// ========================================
+// FILE: src/lib/db/schemas/fines.ts
+// ========================================
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 import { relations } from 'drizzle-orm';
@@ -7,7 +10,7 @@ import { drivers } from './drivers';
 export const fineStatus = {
   PENDING: 'pending',
   PAID: 'paid',
-  APPEALED: 'appealed',
+  CONTESTED: 'contested',
   CANCELLED: 'cancelled',
 } as const;
 
@@ -17,24 +20,23 @@ export const fines = sqliteTable('fines', {
   id: text('id').primaryKey(),
   vehicle_id: text('vehicle_id').notNull().references(() => vehicles.id),
   driver_id: text('driver_id').references(() => drivers.id),
-  infraction_date: text('infraction_date').notNull(),
+  fine_number: text('fine_number').notNull().unique(),
+  fine_date: text('fine_date').notNull(),
   infraction_type: text('infraction_type').notNull(),
-  infraction_code: text('infraction_code'),
   description: text('description').notNull(),
   location: text('location'),
-  amount: integer('amount').notNull(),
-  license_points: integer('license_points').notNull().default(0),
+  fine_amount: integer('fine_amount').notNull(),
   due_date: text('due_date'),
   payment_date: text('payment_date'),
   status: text('status', { enum: [
     fineStatus.PENDING,
     fineStatus.PAID,
-    fineStatus.APPEALED,
+    fineStatus.CONTESTED,
     fineStatus.CANCELLED,
   ] }).notNull().default(fineStatus.PENDING),
-  notice_number: text('notice_number'),
+  points: integer('points'),
+  authority: text('authority'),
   notes: text('notes'),
-  file_path: text('file_path'),
   created_at: text('created_at').notNull().default(sql`(datetime('now', 'localtime'))`),
   created_by: text('created_by'),
   updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'localtime'))`),

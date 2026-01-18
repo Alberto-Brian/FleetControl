@@ -1,11 +1,4 @@
-// import {
-//     login,
-//     logout,
-//     hasUsers,
-//     createFirstUser,
-//     changePassword,
-//     updateProfile,
-// } from '@/lib/services/auth.service'
+//src/helpers/services/auth/auth-service-listeners.ts
 import { AuthService } from '@/lib/services/auth.service';
 import { ipcMain } from "electron";
 import { 

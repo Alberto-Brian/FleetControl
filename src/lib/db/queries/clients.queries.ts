@@ -1,3 +1,4 @@
+// src/lib/db/queries/clients_queries.ts
 import { dbManager, db } from '@/lib/db/db_client';
 import { clients } from '@/lib/db/schemas/clients';
 import { generateUuid } from '@/lib/utils/cripto';

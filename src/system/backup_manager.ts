@@ -55,7 +55,7 @@ export interface BackupProgress {
 }
 
 export class BackupManager {
-  private readonly userDataPath = app.getPath('userData');
+  private readonly userDataPath = app?.getPath('userData');
   private readonly autoBackupDir = path.join(this.userDataPath, 'backups', 'auto');
   private readonly configFile = path.join(this.userDataPath, 'backup-config.json');
   

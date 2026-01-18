@@ -1,5 +1,9 @@
+// src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { login as loginService, updateProfile as updateProfileService } from '@/helpers/service-auth-helpers';
+import { 
+  login as loginService, 
+  updateProfile as updateProfileService
+ } from '@/helpers/service-auth-helpers';
 import { ILogin } from '@/lib/types/auth';
 import { IUser } from '@/lib/types/user';
 

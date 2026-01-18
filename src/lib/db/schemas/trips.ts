@@ -23,8 +23,8 @@ export const trips = sqliteTable('trips', {
   end_date: text('end_date'),
   start_mileage: integer('start_mileage').notNull(),
   end_mileage: integer('end_mileage'),
-  origin: text('origin').notNull(),
-  destination: text('destination').notNull(),
+  origin: text('origin'),
+  destination: text('destination'),
   purpose: text('purpose'),
   status: text('status', { enum: [
     tripStatus.IN_PROGRESS,

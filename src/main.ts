@@ -1,3 +1,4 @@
+// src/main.ts
 import { app, dialog, BrowserWindow } from "electron";
 import registerListeners from "./helpers/ipc/listeners-register";
 import path from "path";

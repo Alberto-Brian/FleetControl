@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "8744dc58-3d6d-4558-be17-0527ecc600d7",
+  "id": "63837d9f-fde8-423e-aa9c-9b4451d9462f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "audit_logs": {
@@ -791,8 +791,15 @@
           "notNull": false,
           "autoincrement": false
         },
-        "infraction_date": {
-          "name": "infraction_date",
+        "fine_number": {
+          "name": "fine_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "fine_date": {
+          "name": "fine_date",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -803,13 +810,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "infraction_code": {
-          "name": "infraction_code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         },
         "description": {
@@ -826,20 +826,12 @@
           "notNull": false,
           "autoincrement": false
         },
-        "amount": {
-          "name": "amount",
+        "fine_amount": {
+          "name": "fine_amount",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "license_points": {
-          "name": "license_points",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         },
         "due_date": {
           "name": "due_date",
@@ -863,8 +855,15 @@
           "autoincrement": false,
           "default": "'pending'"
         },
-        "notice_number": {
-          "name": "notice_number",
+        "points": {
+          "name": "points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "authority": {
+          "name": "authority",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -872,13 +871,6 @@
         },
         "notes": {
           "name": "notes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "file_path": {
-          "name": "file_path",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -929,7 +921,15 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "fines_fine_number_unique": {
+          "name": "fines_fine_number_unique",
+          "columns": [
+            "fine_number"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "fines_vehicle_id_vehicles_id_fk": {
           "name": "fines_vehicle_id_vehicles_id_fk",
@@ -978,8 +978,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "tax_id": {
-          "name": "tax_id",
+        "brand": {
+          "name": "brand",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "phone": {
+          "name": "phone",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -999,15 +1006,31 @@
           "notNull": false,
           "autoincrement": false
         },
-        "state": {
-          "name": "state",
+        "fuel_types": {
+          "name": "fuel_types",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "phone": {
-          "name": "phone",
+        "has_convenience_store": {
+          "name": "has_convenience_store",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'false'"
+        },
+        "has_car_wash": {
+          "name": "has_car_wash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'false'"
+        },
+        "notes": {
+          "name": "notes",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -1758,34 +1781,33 @@
           "name": "distance_km",
           "type": "integer",
           "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "estimated_duration_hours": {
+          "name": "estimated_duration_hours",
+          "type": "integer",
+          "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "estimated_time_minutes": {
-          "name": "estimated_time_minutes",
-          "type": "integer",
+        "route_type": {
+          "name": "route_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'regular'"
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "toll_count": {
-          "name": "toll_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "toll_cost": {
-          "name": "toll_cost",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "notes": {
-          "name": "notes",
+        "waypoints": {
+          "name": "waypoints",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -2646,13 +2668,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "tax_id": {
-          "name": "tax_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "phone": {
           "name": "phone",
           "type": "text",
@@ -2690,6 +2705,13 @@
         },
         "specialties": {
           "name": "specialties",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "notes": {
+          "name": "notes",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

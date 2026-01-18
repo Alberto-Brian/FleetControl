@@ -1,4 +1,4 @@
-import { ICreateClient } from "@/lib/db/queries/clients_queries";
+import { ICreateClient } from "@/lib/db/queries/clients.queries";
 import { CREATE_CLIENT, DELETE_CLIENT, GET_ALL_CLIENTS } from "./clients-channels";
 
 export function exposeClientsContext() {

@@ -1,3 +1,4 @@
+//src/helpers/services/auth/auth-service-channels.ts
 export const LOGIN = "service-auth:login";
 export const LOGOUT = "service-auth:logout";
 export const HAS_USERS = "service-auth:has-users";

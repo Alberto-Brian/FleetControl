@@ -3,7 +3,7 @@ import {
     createClient,
     deleteClient,
     getAllClients,
-} from "@/lib/db/queries/clients_queries";
+} from "@/lib/db/queries/clients.queries";
 import { ipcMain } from "electron";
 import { CREATE_CLIENT, DELETE_CLIENT, GET_ALL_CLIENTS } from "./clients-channels";
 import { Client } from "@/lib/types/client";
