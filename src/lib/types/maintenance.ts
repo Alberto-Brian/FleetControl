@@ -1,10 +1,7 @@
-// ========================================
-// FILE: src/lib/types/maintenance.ts
-
+// src/lib/types/maintenance.ts
 import { MaintenanceType } from "../db/schemas/maintenance_categories";
 import { MaintenancePriority, MaintenanceStatus } from "../db/schemas/maintenances";
 
-// ========================================
 export interface IMaintenance {
     id: string;
     vehicle_id: string;
@@ -36,6 +33,11 @@ export interface ICreateMaintenance {
     description: string;
     priority?: MaintenancePriority;
     notes?: string;
+    // Campos adicionais que podem ser fornecidos na criação
+    parts_cost?: number;
+    labor_cost?: number;
+    work_order_number?: string;
+    status?: MaintenanceStatus; // Permitir definir status na criação
 }
 
 export interface IUpdateMaintenance {
@@ -50,6 +52,7 @@ export interface IUpdateMaintenance {
     status?: MaintenanceStatus;
     priority?: MaintenancePriority;
     notes?: string;
+    work_order_number?: string;
 }
 
 export interface IMaintenanceCategory {

@@ -14,6 +14,7 @@ import { Toaster } from "./components/ui/toaster";
 import { syncThemeWithLocal } from "./helpers/theme-helpers";
 import { updateAppLanguage } from "./helpers/language-helpers";
 import { useTranslation } from "react-i18next";
+import './styles/scrollbar-styles.css';
 import "./localization/i18n";
 
 

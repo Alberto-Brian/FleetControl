@@ -132,6 +132,11 @@ interface IExpenses {
 
 interface IMaintenanceCategories {
     getAll: () => Promise<IMaintenaceCategory>;
+    create: (data: ICreateMaintenance) => Promise<IMaintenanceCategory>;
+    getById: (id: string) => Promise<IMaintenanceCategory | null>;
+    update: (id: string, data: IUpdateMaintenance) => Promise<IWorkshop>;
+    delete: (id: string) => Promise<string>;
+    getActive: () => Promise<IMaintenanceCategory[]>;
 }
 
 interface IWorkshops {

@@ -78,6 +78,7 @@ async function createWindow() {
 
     // Quando estiver pronta, fechar splash e mostrar janela principal
     mainWindow.once('ready-to-show', () => {
+      console.log("Aqui no evento ready-to-show")
         setTimeout(() => {
             if (splashWindow && !splashWindow.isDestroyed()) {
                 splashWindow.close();

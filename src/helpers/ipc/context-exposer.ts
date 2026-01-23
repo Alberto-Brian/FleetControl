@@ -16,6 +16,7 @@ import { exposeMaintenanceCategoriesContext } from "./db/maintenance_categories/
 import { exposeWorkshopsContext } from "./db/workshops/workshops-context";
 import { exposeRoutesContext } from "./db/routes/route-context";
 import { exposeFinesContext } from "./db/fines/fine-context";
+import { exposeFuelStationsContext } from "./db/fuel_stations/fuel-stations-context";
 
 export default function exposeContexts() {
     exposeWindowContext();
@@ -35,4 +36,5 @@ export default function exposeContexts() {
     exposeWorkshopsContext();
     exposeRoutesContext();
     exposeFinesContext();
+    exposeFuelStationsContext();
 }

@@ -1,6 +1,4 @@
-// ========================================
-// FILE: src/lib/db/queries/maintenances_queries.ts
-// ========================================
+// src/lib/db/queries/maintenances_queries.ts
 import { dbManager, db } from '@/lib/db/db_client';
 import { maintenances, vehicles, maintenance_categories, workshops } from '@/lib/db/schemas';
 import { generateUuid } from '@/lib/utils/cripto';
@@ -14,25 +12,42 @@ export async function createMaintenance(maintenanceData: ICreateMaintenance) {
         dbManager.rotate();
     }
 
+    // Calcular custo total
+    const partsCost = maintenanceData.parts_cost || 0;
+    const laborCost = maintenanceData.labor_cost || 0;
+    const totalCost = partsCost + laborCost;
+
+    // Determinar status (padrão: scheduled, ou o fornecido)
+    const status = maintenanceData.status || 'scheduled';
+
     const result = await db
         .insert(maintenances)
         .values({
             id,
             entry_date: new Date().toISOString(),
-            status: 'scheduled',
+            status: status,
             priority: maintenanceData.priority || 'normal',
-            parts_cost: 0,
-            labor_cost: 0,
-            total_cost: 0,
-            ...maintenanceData,
+            parts_cost: partsCost,
+            labor_cost: laborCost,
+            total_cost: totalCost,
+            work_order_number: maintenanceData.work_order_number || null,
+            vehicle_id: maintenanceData.vehicle_id,
+            category_id: maintenanceData.category_id,
+            workshop_id: maintenanceData.workshop_id || null,
+            type: maintenanceData.type,
+            vehicle_mileage: maintenanceData.vehicle_mileage,
+            description: maintenanceData.description,
+            notes: maintenanceData.notes || null,
         })
         .returning();
 
-    // Atualizar status do veículo
-    await db
-        .update(vehicles)
-        .set({ status: 'maintenance', updated_at: new Date().toISOString() })
-        .where(eq(vehicles.id, maintenanceData.vehicle_id));
+    // Atualizar status do veículo para manutenção se status for in_progress
+    if (status === 'in_progress') {
+        await db
+            .update(vehicles)
+            .set({ status: 'maintenance', updated_at: new Date().toISOString() })
+            .where(eq(vehicles.id, maintenanceData.vehicle_id));
+    }
 
     return result[0];
 }
@@ -54,9 +69,15 @@ export async function getAllMaintenances() {
             exit_date: maintenances.exit_date,
             vehicle_mileage: maintenances.vehicle_mileage,
             description: maintenances.description,
+            diagnosis: maintenances.diagnosis,
+            solution: maintenances.solution,
+            parts_cost: maintenances.parts_cost,
+            labor_cost: maintenances.labor_cost,
             total_cost: maintenances.total_cost,
             status: maintenances.status,
             priority: maintenances.priority,
+            work_order_number: maintenances.work_order_number,
+            notes: maintenances.notes,
             created_at: maintenances.created_at,
         })
         .from(maintenances)
@@ -85,14 +106,36 @@ export async function getMaintenanceById(maintenanceId: string) {
 }
 
 export async function updateMaintenance(maintenanceId: string, maintenanceData: IUpdateMaintenance) {
+    // Buscar a manutenção atual
+    const current = await getMaintenanceById(maintenanceId);
+    if (!current) throw new Error('Manutenção não encontrada');
+
+    // Calcular total se parts_cost ou labor_cost foram fornecidos
+    let updateData: any = { ...maintenanceData };
+    
+    if (maintenanceData.parts_cost !== undefined || maintenanceData.labor_cost !== undefined) {
+        const partsCost = maintenanceData.parts_cost ?? current.parts_cost;
+        const laborCost = maintenanceData.labor_cost ?? current.labor_cost;
+        updateData.total_cost = partsCost + laborCost;
+    }
+
+    // Atualizar a manutenção
     const result = await db
         .update(maintenances)
         .set({
-            ...maintenanceData,
+            ...updateData,
             updated_at: new Date().toISOString(),
         })
         .where(eq(maintenances.id, maintenanceId))
         .returning();
+
+    // Se o status mudou para in_progress, atualizar veículo para maintenance
+    if (maintenanceData.status === 'in_progress' && current.status !== 'in_progress') {
+        await db
+            .update(vehicles)
+            .set({ status: 'maintenance', updated_at: new Date().toISOString() })
+            .where(eq(vehicles.id, current.vehicle_id));
+    }
 
     return result[0];
 }
@@ -106,10 +149,18 @@ export async function completeMaintenance(maintenanceId: string, completeData: I
 
     if (!maintenance[0]) throw new Error('Manutenção não encontrada');
 
+    // Calcular total final
+    const partsCost = completeData.parts_cost ?? maintenance[0].parts_cost;
+    const laborCost = completeData.labor_cost ?? maintenance[0].labor_cost;
+    const totalCost = partsCost + laborCost;
+
     const result = await db
         .update(maintenances)
         .set({
             ...completeData,
+            parts_cost: partsCost,
+            labor_cost: laborCost,
+            total_cost: totalCost,
             exit_date: new Date().toISOString(),
             status: 'completed',
             updated_at: new Date().toISOString(),

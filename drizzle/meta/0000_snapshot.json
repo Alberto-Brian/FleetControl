@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "63837d9f-fde8-423e-aa9c-9b4451d9462f",
+  "id": "023e4ef8-785e-4155-867e-3d4a89b48024",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "audit_logs": {
@@ -1985,14 +1985,14 @@
           "name": "origin",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "destination": {
           "name": "destination",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "purpose": {
