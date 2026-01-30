@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { db } from '@/lib/db/db_client';
+import { getDb } from '@/lib/db/db_client';
 import { users } from '@/lib/db/schemas';
 import { eq, and, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -11,6 +11,7 @@ export class AuthService {
    * Login - verifica credenciais e retorna usuário
    */
   static async login(email: string, password: string): Promise<IUser> {
+    const db = getDb();
     const user = await db.query.users.findFirst({
       where: and(
         eq(users.email, email),
@@ -51,6 +52,7 @@ export class AuthService {
   }
 
   static async logout(userId: string): Promise<void> {
+    const db = getDb();
     await db
       .update(users)
       .set({ 
@@ -64,6 +66,7 @@ export class AuthService {
    * Verifica se existe algum usuário cadastrado
    */
   static async hasUsers(): Promise<boolean> {
+    const db = getDb();
     const allUsers = await db.query.users.findMany({
       where: isNull(users.deleted_at)
     });
@@ -79,7 +82,7 @@ export class AuthService {
     email: string,
     password: string
   ): Promise<IUser> {
-    
+    const db = getDb();
     // Verificar se já existe usuário
     const hasUsers = await this.hasUsers();
     if (hasUsers) {
@@ -110,7 +113,7 @@ export class AuthService {
     currentPassword: string,
     newPassword: string
   ): Promise<void> {
-    
+    const db = getDb();
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId)
     });
@@ -147,7 +150,7 @@ export class AuthService {
     userId: string,
     data: { name?: string; email?: string; avatar?: string }
   ): Promise<IUser> {
-
+    const db = getDb();
     const [updated] = await db
       .update(users)
       .set({

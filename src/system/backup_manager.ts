@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import AdmZip from 'adm-zip';
 import Database from 'better-sqlite3';
+import { APP_NAME } from './system.config';
 
 export interface BackupConfig {
   autoBackupEnabled: boolean;
@@ -179,7 +180,7 @@ export class BackupManager {
           title: 'Exportar Backup Completo',
           defaultPath: path.join(
             app.getPath('documents'),
-            `marketpro-backup-${new Date().toISOString().split('T')[0]}.zip`
+            `${APP_NAME.toLocaleLowerCase()}-backup-${new Date().toISOString().split('T')[0]}.zip`
           ),
           filters: [
             { name: 'Arquivo ZIP', extensions: ['zip'] },
@@ -220,15 +221,15 @@ export class BackupManager {
       // Adicionar user.json
       this.emitProgress('files', 70, 100, 'Adicionando arquivos de configuracao');
       const userFile = path.join(this.userDataPath, 'user.json');
-      if (fs.existsSync(userFile)) {
-        zip.addLocalFile(userFile, '');
-      }
+      // if (fs.existsSync(userFile)) {
+      //   zip.addLocalFile(userFile, '');
+      // }
 
       // Adicionar machine.id
       const machineIdFile = path.join(this.userDataPath, 'machine.id');
-      if (fs.existsSync(machineIdFile)) {
-        zip.addLocalFile(machineIdFile, '');
-      }
+      // if (fs.existsSync(machineIdFile)) {
+      //   zip.addLocalFile(machineIdFile, '');
+      // }
 
       // Criar metadata
       const metadata: BackupMetadata = {

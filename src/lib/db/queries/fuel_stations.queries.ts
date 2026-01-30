@@ -1,18 +1,16 @@
 // ========================================
 // FILE: src/lib/db/queries/fuel_stations.queries.ts
 // ========================================
-import { dbManager, db } from '@/lib/db/db_client';
+import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { fuel_stations } from '@/lib/db/schemas';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull } from 'drizzle-orm';
 import { ICreateFuelStation, IUpdateFuelStation } from '@/lib/types/fuel-station';
 
 export async function createFuelStation(stationData: ICreateFuelStation) {
+    await checkAndRotate();
+    const { db } = useDb();
     const id = generateUuid();
-    
-    if (dbManager.shouldRotate()) {
-        dbManager.rotate();
-    }
 
     const result = await db
         .insert(fuel_stations)
@@ -26,6 +24,7 @@ export async function createFuelStation(stationData: ICreateFuelStation) {
 }
 
 export async function getAllFuelStations() {
+    const { db } = useDb();
     const result = await db
         .select({
             id: fuel_stations.id,
@@ -47,6 +46,7 @@ export async function getAllFuelStations() {
 }
 
 export async function getFuelStationById(stationId: string) {
+    const { db } = useDb();
     const result = await db
         .select()
         .from(fuel_stations)
@@ -62,6 +62,7 @@ export async function getFuelStationById(stationId: string) {
 }
 
 export async function updateFuelStation(stationId: string, stationData: IUpdateFuelStation) {
+    const { db } = useDb();
     const result = await db
         .update(fuel_stations)
         .set({
@@ -75,6 +76,7 @@ export async function updateFuelStation(stationId: string, stationData: IUpdateF
 }
 
 export async function deleteFuelStation(stationId: string) {
+    const { db } = useDb();
     await db
         .update(fuel_stations)
         .set({

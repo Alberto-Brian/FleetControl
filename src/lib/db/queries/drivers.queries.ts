@@ -1,19 +1,20 @@
 // ========================================
-// FILE: src/lib/db/queries/drivers_queries.ts
+// FILE: src/lib/db/queries/drivers.queries.ts
 // ========================================
-import { dbManager, db } from '@/lib/db/db_client';
+import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { drivers } from '@/lib/db/schemas/drivers';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull, desc, lte, gte } from 'drizzle-orm';
 import { ICreateDriver, IUpdateDriver } from '@/lib/types/driver';
 
+/**
+ * Cria um novo motorista
+ * ✅ Verifica necessidade de rotação antes de inserir
+ */
 export async function createDriver(driverData: ICreateDriver) {
+    await checkAndRotate();
+    const { db } = useDb();
     const id = generateUuid();
-    
-    if (dbManager.shouldRotate()) {
-        console.log('🔄 Limite atingido, rotacionando...');
-        dbManager.rotate();
-    }
 
     const result = await db
         .insert(drivers)
@@ -37,7 +38,12 @@ export async function createDriver(driverData: ICreateDriver) {
     return result[0];
 }
 
+/**
+ * Obtém todos os motoristas ativos
+ */
 export async function getAllDrivers() {
+    const { db } = useDb();
+    
     const result = await db
         .select({
             id: drivers.id,
@@ -61,7 +67,12 @@ export async function getAllDrivers() {
     return result;
 }
 
+/**
+ * Obtém um motorista por ID
+ */
 export async function getDriverById(driverId: string) {
+    const { db } = useDb();
+    
     const result = await db
         .select()
         .from(drivers)
@@ -76,7 +87,12 @@ export async function getDriverById(driverId: string) {
     return result[0] || null;
 }
 
+/**
+ * Atualiza um motorista
+ */
 export async function updateDriver(driverId: string, driverData: IUpdateDriver) {
+    const { db } = useDb();
+    
     const result = await db
         .update(drivers)
         .set({
@@ -89,7 +105,12 @@ export async function updateDriver(driverId: string, driverData: IUpdateDriver) 
     return result[0];
 }
 
+/**
+ * Deleta (soft delete) um motorista
+ */
 export async function deleteDriver(driverId: string) {
+    const { db } = useDb();
+    
     await db
         .update(drivers)
         .set({
@@ -101,7 +122,12 @@ export async function deleteDriver(driverId: string) {
     return driverId;
 }
 
+/**
+ * Obtém motoristas ativos
+ */
 export async function getActiveDrivers() {
+    const { db } = useDb();
+    
     const result = await db
         .select({
             id: drivers.id,
@@ -120,7 +146,12 @@ export async function getActiveDrivers() {
     return result;
 }
 
+/**
+ * Obtém motoristas com licenças próximas do vencimento
+ */
 export async function getExpiringLicenses(days: number = 30) {
+    const { db } = useDb();
+    
     const today = new Date();
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + days);

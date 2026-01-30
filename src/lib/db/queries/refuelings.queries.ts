@@ -1,18 +1,16 @@
 // ========================================
 // FILE: src/lib/db/queries/refuelings.queries.ts
 // ========================================
-import { dbManager, db } from '@/lib/db/db_client';
+import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { refuelings, vehicles, drivers } from '@/lib/db/schemas';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull, desc } from 'drizzle-orm';
 import { ICreateRefueling } from '@/lib/types/refueling';
 
 export async function createRefueling(refuelingData: ICreateRefueling) {
+    await checkAndRotate();
+    const { db } = useDb();
     const id = generateUuid();
-    
-    if (dbManager.shouldRotate()) {
-        dbManager.rotate();
-    }
 
     const totalCost = refuelingData.liters * refuelingData.price_per_liter;
 
@@ -30,6 +28,7 @@ export async function createRefueling(refuelingData: ICreateRefueling) {
 }
 
 export async function getAllRefuelings() {
+    const { db } = useDb();
     const result = await db
         .select({
             id: refuelings.id,
@@ -55,6 +54,7 @@ export async function getAllRefuelings() {
 }
 
 export async function getRefuelingsByVehicle(vehicleId: string) {
+    const { db } = useDb();
     const result = await db
         .select()
         .from(refuelings)

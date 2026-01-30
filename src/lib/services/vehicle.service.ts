@@ -1,4 +1,4 @@
-import { db } from '@/lib/db/db_client';
+import { getDb } from '@/lib/db/db_client';
 import { vehicles, vehicle_documents } from '@/lib/db/schemas';
 import { eq, and, isNull } from 'drizzle-orm';
 import { generateUuid } from '@/lib//utils/cripto';
@@ -7,7 +7,7 @@ import { createAuditLog } from '@/hooks/audit';
 export class VehicleService {
   static async create(data: any, userId?: string) {
     const id = generateUuid();
-    
+    const db = getDb();
     const [vehicle] = await db.insert(vehicles).values({
       ...data,
       id,
@@ -27,6 +27,7 @@ export class VehicleService {
   }
 
   static async findById(id: string) {
+    const db = getDb();
     return db.query.vehicles.findFirst({
       where: (vehicles, { eq, isNull }) => 
         and(eq(vehicles.id, id), isNull(vehicles.deleted_at)),
@@ -37,6 +38,7 @@ export class VehicleService {
   }
 
   static async findAll(includeInactive = false) {
+    const db = getDb();
     return db.query.vehicles.findMany({
       where: includeInactive 
         ? undefined 
@@ -51,7 +53,7 @@ export class VehicleService {
   static async update(id: string, data: any, userId?: string) {
     const previous = await this.findById(id);
     if (!previous) throw new Error('Vehicle not found');
-
+    const db = getDb();
     const [updated] = await db
       .update(vehicles)
       .set({
@@ -77,7 +79,7 @@ export class VehicleService {
   static async delete(id: string, userId?: string) {
     const previous = await this.findById(id);
     if (!previous) throw new Error('Vehicle not found');
-
+    const db = getDb();
     await db
       .update(vehicles)
       .set({
@@ -99,7 +101,7 @@ export class VehicleService {
   static async getExpiringDocuments(days: number = 30) {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + days);
-
+    const db = getDb();
     return db.query.vehicle_documents.findMany({
       where: (docs, { and, lte, isNull, gte }) => 
         and(

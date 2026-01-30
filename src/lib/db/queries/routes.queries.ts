@@ -1,18 +1,16 @@
 // ========================================
 // FILE: src/lib/db/queries/routes.queries.ts
 // ========================================
-import { dbManager, db } from '@/lib/db/db_client';
+import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { routes } from '@/lib/db/schemas';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull } from 'drizzle-orm';
 import { ICreateRoute, IUpdateRoute } from '@/lib/types/route';
 
 export async function createRoute(routeData: ICreateRoute) {
+    await checkAndRotate();
+    const { db } = useDb();
     const id = generateUuid();
-    
-    if (dbManager.shouldRotate()) {
-        dbManager.rotate();
-    }
 
     const result = await db
         .insert(routes)
@@ -27,6 +25,7 @@ export async function createRoute(routeData: ICreateRoute) {
 }
 
 export async function getAllRoutes() {
+    const { db } = useDb();
     const result = await db
         .select({
             id: routes.id,
@@ -47,6 +46,7 @@ export async function getAllRoutes() {
 }
 
 export async function getRouteById(routeId: string) {
+    const { db } = useDb();
     const result = await db
         .select()
         .from(routes)
@@ -62,6 +62,7 @@ export async function getRouteById(routeId: string) {
 }
 
 export async function updateRoute(routeId: string, routeData: IUpdateRoute) {
+    const { db } = useDb();
     const result = await db
         .update(routes)
         .set({
@@ -75,6 +76,7 @@ export async function updateRoute(routeId: string, routeData: IUpdateRoute) {
 }
 
 export async function deleteRoute(routeId: string) {
+    const { db } = useDb();
     await db
         .update(routes)
         .set({
@@ -86,6 +88,7 @@ export async function deleteRoute(routeId: string) {
 }
 
 export async function getActiveRoutes() {
+    const { db } = useDb();
     const result = await db
         .select()
         .from(routes)

@@ -2,7 +2,7 @@
 import { app, dialog, BrowserWindow } from "electron";
 import registerListeners from "./helpers/ipc/listeners-register";
 import path from "path";
-import { dbManager } from './lib/db/db_client';
+import { initializeDatabase, getDbManager } from './lib/db/db_client';
 import { VersionManager } from '@/system/version_manager';
 import { APP_NAME } from "@/system/system.config";
 
@@ -19,6 +19,7 @@ let mainWindow: BrowserWindow | null = null;
  * Criar janela de splash
  */
 async function createSplashWindow() {
+  const preload = path.join(__dirname, "preload.js");
   splashWindow = new BrowserWindow({
     width: 500,
     height: 370,
@@ -32,6 +33,7 @@ async function createSplashWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      preload: preload,
     },
   });
 
@@ -47,15 +49,15 @@ async function createSplashWindow() {
  * Criar janela principal
  */
 async function createWindow() {
+    const SPLASH_DELAY = 1500;
     const preload = path.join(__dirname, "preload.js");
-    
     mainWindow = new BrowserWindow({
         width: 800,
         height: 600,
         icon: path.join(app.getAppPath(), 'build', 'icons', 'icon.png'),
-        show: false, // Não mostrar até estar pronta
+        show: false,
         webPreferences: {
-            devTools: true, // inDevelopment, 
+            devTools: true,
             contextIsolation: true,
             nodeIntegration: true,
             nodeIntegrationInSubFrames: false,
@@ -76,9 +78,9 @@ async function createWindow() {
         );
     }
 
-    // Quando estiver pronta, fechar splash e mostrar janela principal
+    let shown = false;
     mainWindow.once('ready-to-show', () => {
-      console.log("Aqui no evento ready-to-show")
+      console.log("📺 Evento ready-to-show disparado");
         setTimeout(() => {
             if (splashWindow && !splashWindow.isDestroyed()) {
                 splashWindow.close();
@@ -88,8 +90,39 @@ async function createWindow() {
             if (inDevelopment) {
                 mainWindow?.webContents.openDevTools();
             }
-        }, 1500);
+            shown = true;
+        }, SPLASH_DELAY);
     });
+
+    mainWindow.webContents.once('did-finish-load', () => {
+      if (!shown) {
+        console.log("📺 Evento did-finish-load disparado (fallback)");
+        if (splashWindow && !splashWindow.isDestroyed()) {
+          splashWindow.close();
+          splashWindow = null;
+        }
+        mainWindow?.show();
+        if (inDevelopment) {
+          mainWindow?.webContents.openDevTools();
+        }
+        shown = true;
+      }
+    });
+
+    setTimeout(() => {
+      if (!shown) {
+        console.log("📺 Timeout final disparado (fallback)");
+        if (splashWindow && !splashWindow.isDestroyed()) {
+          splashWindow.close();
+          splashWindow = null;
+        }
+        mainWindow?.show();
+        if (inDevelopment) {
+          mainWindow?.webContents.openDevTools();
+        }
+        shown = true;
+      }
+    }, SPLASH_DELAY + 6000);
 
     mainWindow.on('closed', () => {
         mainWindow = null;
@@ -97,64 +130,112 @@ async function createWindow() {
 }
 
 /**
- * Inicializar aplicação
+ * Inicializar aplicação - ORDEM GARANTIDA DE EXECUÇÃO
  */
 app.whenReady().then(async () => {
   try {
-    console.log('🚀 Inicializando aplicação...');
-    // 1. Mostrar splash imediatamente
+    console.log('╔════════════════════════════════════════════════════════════╗');
+    console.log('║          🚀 INICIALIZANDO APLICAÇÃO                        ║');
+    console.log('╚════════════════════════════════════════════════════════════╝');
+    console.log('');
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ETAPA 1: Mostrar splash imediatamente
+    // ═══════════════════════════════════════════════════════════════════
+    console.log('┌─ ETAPA 1: Interface ─────────────────────────────────────┐');
+    console.log('│ 🎨 Criando janela de splash...');
     await createSplashWindow();
+    console.log('│ ✅ Splash criada');
+    console.log('└──────────────────────────────────────────────────────────┘');
+    console.log('');
 
-    // 2. Inicializar banco de dados
-    // O DatabaseManager automaticamente aplica migrations
-    console.log('📊 Inicializando banco de dados...');
-    const db = dbManager.initialize();
-    console.log('✅ Banco de dados inicializado');
+    // ═══════════════════════════════════════════════════════════════════
+    // ETAPA 2: Inicializar DatabaseManager (SEM executar backups)
+    // ═══════════════════════════════════════════════════════════════════
+    console.log('┌─ ETAPA 2: Database ──────────────────────────────────────┐');
+    console.log('│ 📊 Inicializando DatabaseManager...');
+    const db = initializeDatabase(100, 5); // maxSize=100MB, maxRecords=5
+    console.log('│ ✅ DatabaseManager inicializado');
+    console.log('└──────────────────────────────────────────────────────────┘');
+    console.log('');
 
-    // 3. Gerenciar versão da aplicação
-    console.log('🔢 Verificando versão...');
+    // ═══════════════════════════════════════════════════════════════════
+    // ETAPA 3: Gerenciar versão da aplicação
+    // ═══════════════════════════════════════════════════════════════════
+    console.log('┌─ ETAPA 3: Versão ────────────────────────────────────────┐');
+    console.log('│ 🔢 Verificando versão...');
     const versionManager = new VersionManager(db);
     const versionInfo = await versionManager.getVersionInfo();
 
-    console.log('📋 Informações de versão:', versionInfo);
+    console.log('│ 📋 Informações:', {
+      instalada: versionInfo.installed,
+      atual: versionInfo.current,
+      primeiraInstalacao: versionInfo.isFirstInstall,
+      precisaAtualizar: versionInfo.needsUpgrade
+    });
 
     if (versionInfo.isFirstInstall) {
-      // Primeira instalação
-      console.log('🆕 Primeira instalação detectada');
+      console.log('│ 🆕 Primeira instalação detectada');
       await versionManager.registerInstallation(APP_NAME);
+      console.log('│ ✅ Instalação registrada');
     } else if (versionInfo.needsUpgrade) {
-      // Atualização detectada
-      console.log(`🔄 Atualização detectada: ${versionInfo.installed} → ${versionInfo.current}`);
+      console.log(`│ 🔄 Atualização detectada: ${versionInfo.installed} → ${versionInfo.current}`);
       await versionManager.updateVersion();
-      console.log('✅ Versão atualizada no banco');
+      console.log('│ ✅ Versão atualizada');
     } else {
-      console.log(`✅ Sistema atualizado: v${versionInfo.current}`);
+      console.log(`│ ✅ Sistema atualizado: v${versionInfo.current}`);
     }
+    console.log('└──────────────────────────────────────────────────────────┘');
+    console.log('');
 
-    // 4. Verificar se precisa rotacionar banco
-    if (dbManager.shouldRotate()) {
-      console.log('🔄 Rotacionando banco de dados...');
-      // dbManager.rotate();
-      await dbManager.rotateWithMasters([
-       { 
-        tableName: 'users', 
-        customQuery: 'SELECT * FROM users WHERE status = 1',
-        excludeColumns: ['created_at', 'updated_at']
-      },
-      { tableName: 'clients', copyAll: true }
-    ]);
+    // ═══════════════════════════════════════════════════════════════════
+    // ETAPA 4: Verificar necessidade de rotação (SEM executar ainda)
+    // ═══════════════════════════════════════════════════════════════════
+    console.log('┌─ ETAPA 4: Rotação de Database ───────────────────────────┐');
+    const dbManager = getDbManager();
+    const needsRotation = dbManager.shouldRotate();
+    
+    if (needsRotation) {
+      console.log('│ 🔄 Rotação necessária - executando...');
+      await dbManager.rotate(true); // Aplicar master tables
+      console.log('│ ✅ Rotação concluída');
+    } else {
+      console.log('│ ℹ️  Rotação não necessária');
     }
+    console.log('└──────────────────────────────────────────────────────────┘');
+    console.log('');
 
-    // 5. Criar janela principal
+    // ═══════════════════════════════════════════════════════════════════
+    // ETAPA 5: Verificar e executar backup automático (ÚLTIMA ETAPA)
+    // ═══════════════════════════════════════════════════════════════════
+    console.log('┌─ ETAPA 5: Backup Automático ─────────────────────────────┐');
+    console.log('│ 🔄 Verificando necessidade de backup automático...');
+    await dbManager.checkAndRunAutoBackup();
+    console.log('│ ✅ Verificação de backup concluída');
+    console.log('└──────────────────────────────────────────────────────────┘');
+    console.log('');
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ETAPA 6: Criar janela principal
+    // ═══════════════════════════════════════════════════════════════════
+    console.log('┌─ ETAPA 6: Janela Principal ──────────────────────────────┐');
+    console.log('│ 🪟 Criando janela principal...');
     await createWindow();
+    console.log('│ ✅ Janela principal criada');
+    console.log('└──────────────────────────────────────────────────────────┘');
+    console.log('');
 
-    console.log('✅ Aplicação inicializada com sucesso!');
+    console.log('╔════════════════════════════════════════════════════════════╗');
+    console.log('║          ✅ APLICAÇÃO INICIALIZADA COM SUCESSO            ║');
+    console.log('╚════════════════════════════════════════════════════════════╝');
 
   } catch (error) {
-    console.error('❌ Erro fatal ao inicializar aplicação:', error);
+    console.log('');
+    console.log('╔════════════════════════════════════════════════════════════╗');
+    console.log('║          ❌ ERRO FATAL NA INICIALIZAÇÃO                   ║');
+    console.log('╚════════════════════════════════════════════════════════════╝');
+    console.error(error);
     
-    // Mostrar mensagem de erro ao usuário
-    const { dialog } = require('electron');
     dialog.showErrorBox(
       'Erro de Inicialização',
       'Ocorreu um erro ao inicializar a aplicação. Por favor, entre em contacto com o suporte.\n\n' +
@@ -166,7 +247,16 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
-  dbManager.close();
+  console.log('🔒 Fechando aplicação...');
+  
+  try {
+    const dbManager = getDbManager();
+    dbManager.close();
+    console.log('✅ Database fechado corretamente');
+  } catch (error) {
+    console.error('⚠️ Erro ao fechar database:', error);
+  }
+  
   if (process.platform !== "darwin") {
     app.quit();
   }

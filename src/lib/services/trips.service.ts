@@ -1,5 +1,5 @@
 
-import { db } from '@/lib/db/db_client';
+import { getDb } from '@/lib/db/db_client';
 import { trips, vehicles } from '@/lib/db/schemas';
 import { updateVehicleMileage } from '@/hooks/calculations';
 import { eq, and, isNull } from 'drizzle-orm';
@@ -10,7 +10,7 @@ import { createAuditLog } from '@/hooks/audit';
 export class TripService {
   static async create(data: any, userId?: string) {
     const id = generateUuid();
-    
+    const db = getDb();
     // Gera código único para viagem
     const tripCode = `VIA-${Date.now().toString().slice(-8)}`;
 
@@ -43,6 +43,7 @@ export class TripService {
   }
 
   static async complete(id: string, endMileage: number, userId?: string) {
+    const db = getDb();
     const trip = await db.query.trips.findFirst({
       where: (trips, { eq }) => eq(trips.id, id),
     });
@@ -87,6 +88,7 @@ export class TripService {
   }
 
   static async getActive() {
+    const db = getDb();
     return db.query.trips.findMany({
       where: (trips, { eq, isNull }) => 
         and(eq(trips.status, 'in_progress'), isNull(trips.deleted_at)),

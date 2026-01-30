@@ -1,16 +1,14 @@
 // src/lib/db/queries/maintenance_categories.queries.ts
-import { dbManager, db } from '@/lib/db/db_client';
+import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { maintenance_categories } from '@/lib/db/schemas/maintenance_categories';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull } from 'drizzle-orm';
 import { ICreateMaintenanceCategory, IUpdateMaintenanceCategory } from '@/lib/types/maintenance_category';
 
 export async function createMaintenanceCategory(categoryData: ICreateMaintenanceCategory) {
+    await checkAndRotate();
+    const { db } = useDb();
     const id = generateUuid();
-    
-    if (dbManager.shouldRotate()) {
-        dbManager.rotate();
-    }
 
     const result = await db
         .insert(maintenance_categories)
@@ -25,6 +23,7 @@ export async function createMaintenanceCategory(categoryData: ICreateMaintenance
 }
 
 export async function getAllMaintenanceCategories() {
+    const { db } = useDb();
     const result = await db
         .select({
             id: maintenance_categories.id,
@@ -42,6 +41,7 @@ export async function getAllMaintenanceCategories() {
 }
 
 export async function getMaintenanceCategoryById(categoryId: string) {
+    const { db } = useDb();
     const result = await db
         .select()
         .from(maintenance_categories)
@@ -57,6 +57,7 @@ export async function getMaintenanceCategoryById(categoryId: string) {
 }
 
 export async function updateMaintenanceCategory(categoryId: string, categoryData: IUpdateMaintenanceCategory) {
+    const { db } = useDb();
     const result = await db
         .update(maintenance_categories)
         .set({
@@ -70,6 +71,7 @@ export async function updateMaintenanceCategory(categoryId: string, categoryData
 }
 
 export async function deleteMaintenanceCategory(categoryId: string) {
+    const { db } = useDb();
     await db
         .update(maintenance_categories)
         .set({
@@ -81,6 +83,7 @@ export async function deleteMaintenanceCategory(categoryId: string) {
 }
 
 export async function getActiveMaintenanceCategories() {
+    const { db } = useDb();
     const result = await db
         .select()
         .from(maintenance_categories)

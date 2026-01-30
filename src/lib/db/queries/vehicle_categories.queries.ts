@@ -1,19 +1,16 @@
 // ========================================
 // FILE: src/lib/db/queries/vehicle_categories.queries.ts
 // ========================================
-import { dbManager, db } from '@/lib/db/db_client';
+import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { vehicle_categories } from '@/lib/db/schemas/vehicle_categories';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, isNull, desc } from 'drizzle-orm';
 import { ICreateVehicleCategory, IUpdateVehicleCategory } from '@/lib/types/vehicle-category';
 
 export async function createVehicleCategory(categoryData: ICreateVehicleCategory) {
+    await checkAndRotate();
+    const { db } = useDb();
     const id = generateUuid();
-    
-    if (dbManager.shouldRotate()) {
-        console.log('🔄 Limite atingido, rotacionando...');
-        dbManager.rotate();
-    }
 
     const result = await db
         .insert(vehicle_categories)
@@ -35,6 +32,7 @@ export async function createVehicleCategory(categoryData: ICreateVehicleCategory
 }
 
 export async function getAllVehicleCategories() {
+    const { db } = useDb();
     const result = await db
         .select({
             id: vehicle_categories.id,
@@ -52,6 +50,7 @@ export async function getAllVehicleCategories() {
 }
 
 export async function updateVehicleCategory(categoryId: string, categoryData: IUpdateVehicleCategory) {
+    const { db } = useDb();
     const result = await db
         .update(vehicle_categories)
         .set({
@@ -65,6 +64,7 @@ export async function updateVehicleCategory(categoryId: string, categoryData: IU
 }
 
 export async function deleteVehicleCategory(categoryId: string) {
+    const { db } = useDb();
     await db
         .update(vehicle_categories)
         .set({

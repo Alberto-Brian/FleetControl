@@ -1,18 +1,16 @@
 // ========================================
 // FILE: src/lib/db/queries/workshops_queries.ts
 // ========================================
-import { dbManager, db } from '@/lib/db/db_client';
+import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { workshops } from '@/lib/db/schemas';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull } from 'drizzle-orm';
 import { ICreateWorkshop, IUpdateWorkshop } from '@/lib/types/workshop';
 
 export async function createWorkshop(workshopData: ICreateWorkshop) {
+    await checkAndRotate();
+    const { db } = useDb();
     const id = generateUuid();
-    
-    if (dbManager.shouldRotate()) {
-        dbManager.rotate();
-    }
 
     const result = await db
         .insert(workshops)
@@ -26,6 +24,7 @@ export async function createWorkshop(workshopData: ICreateWorkshop) {
 }
 
 export async function getAllWorkshops() {
+    const { db } = useDb();
     const result = await db
         .select({
             id: workshops.id,
@@ -45,6 +44,7 @@ export async function getAllWorkshops() {
 }
 
 export async function getWorkshopById(workshopId: string) {
+    const { db } = useDb();
     const result = await db
         .select()
         .from(workshops)
@@ -60,6 +60,7 @@ export async function getWorkshopById(workshopId: string) {
 }
 
 export async function updateWorkshop(workshopId: string, workshopData: IUpdateWorkshop) {
+    const { db } = useDb();
     const result = await db
         .update(workshops)
         .set({
@@ -73,6 +74,7 @@ export async function updateWorkshop(workshopId: string, workshopData: IUpdateWo
 }
 
 export async function deleteWorkshop(workshopId: string) {
+    const { db } = useDb();
     await db
         .update(workshops)
         .set({

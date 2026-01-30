@@ -1,16 +1,14 @@
 // src/lib/db/queries/maintenances_queries.ts
-import { dbManager, db } from '@/lib/db/db_client';
+import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { maintenances, vehicles, maintenance_categories, workshops } from '@/lib/db/schemas';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull, desc } from 'drizzle-orm';
 import { ICreateMaintenance, IUpdateMaintenance } from '@/lib/types/maintenance';
 
 export async function createMaintenance(maintenanceData: ICreateMaintenance) {
+    await checkAndRotate();
+    const { db } = useDb();
     const id = generateUuid();
-    
-    if (dbManager.shouldRotate()) {
-        dbManager.rotate();
-    }
 
     // Calcular custo total
     const partsCost = maintenanceData.parts_cost || 0;
@@ -53,6 +51,7 @@ export async function createMaintenance(maintenanceData: ICreateMaintenance) {
 }
 
 export async function getAllMaintenances() {
+    const { db } = useDb();
     const result = await db
         .select({
             id: maintenances.id,
@@ -91,6 +90,7 @@ export async function getAllMaintenances() {
 }
 
 export async function getMaintenanceById(maintenanceId: string) {
+    const { db } = useDb();
     const result = await db
         .select()
         .from(maintenances)
@@ -106,9 +106,9 @@ export async function getMaintenanceById(maintenanceId: string) {
 }
 
 export async function updateMaintenance(maintenanceId: string, maintenanceData: IUpdateMaintenance) {
-    // Buscar a manutenção atual
+    const { db } = useDb();
+    // Buscar a manutenção actual
     const current = await getMaintenanceById(maintenanceId);
-    if (!current) throw new Error('Manutenção não encontrada');
 
     // Calcular total se parts_cost ou labor_cost foram fornecidos
     let updateData: any = { ...maintenanceData };
@@ -141,6 +141,7 @@ export async function updateMaintenance(maintenanceId: string, maintenanceData: 
 }
 
 export async function completeMaintenance(maintenanceId: string, completeData: IUpdateMaintenance) {
+    const { db } = useDb();
     const maintenance = await db
         .select()
         .from(maintenances)
@@ -178,6 +179,7 @@ export async function completeMaintenance(maintenanceId: string, completeData: I
 }
 
 export async function deleteMaintenance(maintenanceId: string) {
+    const { db } = useDb();
     await db
         .update(maintenances)
         .set({
@@ -190,6 +192,7 @@ export async function deleteMaintenance(maintenanceId: string) {
 }
 
 export async function getActiveMaintenances() {
+    const { db } = useDb();
     const result = await db
         .select()
         .from(maintenances)

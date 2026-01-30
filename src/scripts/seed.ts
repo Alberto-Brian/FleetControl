@@ -1,5 +1,5 @@
 // src/scripts/seed.ts
-import { DatabaseManager } from '@/lib/db/db_manager'; // ajusta o caminho correto
+import { DatabaseManager } from '@/system/db_manager'; // ajusta o caminho correto
 
 async function main() {
   console.log('Iniciando seed seguro...');

@@ -1,19 +1,17 @@
 // ========================================
 // FILE: src/lib/db/queries/trips.queries.ts
 // ========================================
-import { dbManager, db } from '@/lib/db/db_client';
+import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { trips, vehicles, drivers, routes } from '@/lib/db/schemas';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull, desc } from 'drizzle-orm';
 import { ICreateTrip, ICompleteTrip } from '@/lib/types/trip';
 
 export async function createTrip(tripData: ICreateTrip) {
+    await checkAndRotate();
+    const { db } = useDb();
     const id = generateUuid();
     const tripCode = `VIA-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
-    
-    if (dbManager.shouldRotate()) {
-        dbManager.rotate();
-    }
 
     // Se route_id foi informado, buscar origem/destino da rota
     let origin = tripData.origin;
@@ -67,6 +65,7 @@ export async function createTrip(tripData: ICreateTrip) {
 }
 
 export async function getAllTrips() {
+    const { db } = useDb();
     const result = await db
         .select({
             id: trips.id,
@@ -101,6 +100,7 @@ export async function getAllTrips() {
 }
 
 export async function getActiveTrips() {
+    const { db } = useDb();
     const result = await db
         .select({
             id: trips.id,
@@ -128,6 +128,7 @@ export async function getActiveTrips() {
 }
 
 export async function completeTrip(tripId: string, completeData: ICompleteTrip) {
+    const { db } = useDb();
     const trip = await db
         .select()
         .from(trips)
@@ -166,6 +167,7 @@ export async function completeTrip(tripId: string, completeData: ICompleteTrip) 
 }
 
 export async function cancelTrip(tripId: string) {
+    const { db } = useDb();
     const trip = await db
         .select()
         .from(trips)

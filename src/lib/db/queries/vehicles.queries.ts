@@ -1,5 +1,5 @@
 // src/lib/db/queries/vehicles.queries.ts
-import { dbManager, db } from '@/lib/db/db_client';
+import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { vehicles, VehicleStatus } from '@/lib/db/schemas/vehicles';
 import { vehicle_categories } from '@/lib/db/schemas/vehicle_categories';
 import { generateUuid } from '@/lib/utils/cripto';
@@ -10,13 +10,9 @@ import { ICreateVehicle, IUpdateVehicle } from '@/lib/types/vehicle';
  * Criar novo veículo
  */
 export async function createVehicle(vehicleData: ICreateVehicle) {
+    await checkAndRotate();
+    const { db } = useDb();
     const id = generateUuid();
-    
-    // Verificar se precisa rotacionar antes de inserir
-    if (dbManager.shouldRotate()) {
-        console.log('🔄 Limite atingido, rotacionando...');
-        dbManager.rotate();
-    }
 
     const result = await db
         .insert(vehicles)
@@ -60,6 +56,7 @@ export async function createVehicle(vehicleData: ICreateVehicle) {
  * Buscar todos os veículos (ativos)
  */
 export async function getAllVehicles() {
+    const { db } = useDb();
     const result = await db
         .select({
             id: vehicles.id,
@@ -89,6 +86,7 @@ export async function getAllVehicles() {
  * Buscar veículo por ID
  */
 export async function getVehicleById(vehicleId: string) {
+    const { db } = useDb();
     const result = await db
         .select({
             id: vehicles.id,
@@ -129,6 +127,7 @@ export async function getVehicleById(vehicleId: string) {
  * Atualizar veículo
  */
 export async function updateVehicle(vehicleId: string, vehicleData: IUpdateVehicle) {
+    const { db } = useDb();
     const result = await db
         .update(vehicles)
         .set({
@@ -152,6 +151,7 @@ export async function updateVehicle(vehicleId: string, vehicleData: IUpdateVehic
  * Deletar veículo (soft delete)
  */
 export async function deleteVehicle(vehicleId: string) {
+    const { db } = useDb();
     await db
         .update(vehicles)
         .set({
@@ -167,6 +167,7 @@ export async function deleteVehicle(vehicleId: string) {
  * Buscar veículos disponíveis
  */
 export async function getAvailableVehicles() {
+    const { db } = useDb();
     const result = await db
         .select({
             id: vehicles.id,
@@ -192,6 +193,7 @@ export async function getAvailableVehicles() {
  * Atualizar status do veículo
  */
 export async function updateVehicleStatus(vehicleId: string, status: VehicleStatus) {
+    const { db } = useDb();
     const result = await db
         .update(vehicles)
         .set({
@@ -211,6 +213,7 @@ export async function updateVehicleStatus(vehicleId: string, status: VehicleStat
  * Atualizar quilometragem
  */
 export async function updateVehicleMileage(vehicleId: string, newMileage: number) {
+    const { db } = useDb();
     const result = await db
         .update(vehicles)
         .set({
@@ -230,6 +233,7 @@ export async function updateVehicleMileage(vehicleId: string, newMileage: number
  * Buscar veículos por categoria
  */
 export async function getVehiclesByCategory(categoryId: string) {
+    const { db } = useDb();
     const result = await db
         .select({
             id: vehicles.id,
@@ -254,6 +258,7 @@ export async function getVehiclesByCategory(categoryId: string) {
  * Contar veículos por status
  */
 export async function countVehiclesByStatus() {
+    const { db } = useDb();
     const result = await db
         .select({
             status: vehicles.status,

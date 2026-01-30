@@ -1,5 +1,5 @@
 // src/lib/db/queries/clients_queries.ts
-import { dbManager, db } from '@/lib/db/db_client';
+import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { clients } from '@/lib/db/schemas/clients';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq } from 'drizzle-orm';
@@ -11,11 +11,8 @@ export interface ICreateClient {
 
 export async function createClient(clientData: ICreateClient) {
     const id = generateUuid();
-        // Verificar se precisa rotacionar antes de inserir
-    if (dbManager.shouldRotate()) {
-        console.log('🔄 Limite atingido, rotacionando...');
-        dbManager.rotate();
-    }
+    await checkAndRotate();
+    const { db } = useDb();
     const result = await db
         .insert(clients)
         .values([
@@ -35,6 +32,7 @@ export async function createClient(clientData: ICreateClient) {
 }
 
 export async function getAllClients() {
+    const { db } = useDb();
     const result = await db.query.clients.findMany({
         columns: {
             id: true,
@@ -47,6 +45,7 @@ export async function getAllClients() {
 }
 
 export async function deleteClient(clientId: string) {
+    const { db } = useDb();
     await db.delete(clients).where(eq(clients.id, clientId));
 
     return clientId;

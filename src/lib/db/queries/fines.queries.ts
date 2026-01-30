@@ -1,18 +1,16 @@
 // ========================================
 // FILE: src/lib/db/queries/fines.queries.ts
 // ========================================
-import { dbManager, db } from '@/lib/db/db_client';
+import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { fines, vehicles, drivers } from '@/lib/db/schemas';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull, desc } from 'drizzle-orm';
 import { ICreateFine, IUpdateFine, PayFineData } from '@/lib/types/fine';
 
 export async function createFine(fineData: ICreateFine) {
+    await checkAndRotate();
+    const { db } = useDb();
     const id = generateUuid();
-    
-    if (dbManager.shouldRotate()) {
-        dbManager.rotate();
-    }
 
     const result = await db
         .insert(fines)
@@ -27,6 +25,7 @@ export async function createFine(fineData: ICreateFine) {
 }
 
 export async function getAllFines() {
+    const { db } = useDb();
     const result = await db
         .select({
             id: fines.id,
@@ -57,6 +56,7 @@ export async function getAllFines() {
 }
 
 export async function getFineById(fineId: string) {
+    const { db } = useDb();
     const result = await db
         .select()
         .from(fines)
@@ -72,6 +72,7 @@ export async function getFineById(fineId: string) {
 }
 
 export async function updateFine(fineId: string, fineData: IUpdateFine) {
+    const { db } = useDb();
     const result = await db
         .update(fines)
         .set({
@@ -85,6 +86,7 @@ export async function updateFine(fineId: string, fineData: IUpdateFine) {
 }
 
 export async function markFineAsPaid(fineId: string, paymentData: PayFineData) {
+    const { db } = useDb();
     const result = await db
         .update(fines)
         .set({
@@ -99,6 +101,7 @@ export async function markFineAsPaid(fineId: string, paymentData: PayFineData) {
 }
 
 export async function deleteFine(fineId: string) {
+    const { db } = useDb();
     await db
         .update(fines)
         .set({
@@ -110,6 +113,7 @@ export async function deleteFine(fineId: string) {
 }
 
 export async function getPendingFines() {
+    const { db } = useDb();
     const result = await db
         .select()
         .from(fines)

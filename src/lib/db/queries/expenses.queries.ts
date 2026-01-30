@@ -1,18 +1,16 @@
 // ========================================
 // FILE: src/lib/db/queries/expenses_queries.ts
 // ========================================
-import { dbManager, db } from '@/lib/db/db_client';
+import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { expenses, expense_categories, vehicles } from '@/lib/db/schemas';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull, desc, gte, lte } from 'drizzle-orm';
 import { ICreateExpense, IUpdateExpense, PaymentData } from '@/lib/types/expense';
 
 export async function createExpense(expenseData: ICreateExpense) {
+    await checkAndRotate();
+    const { db } = useDb();
     const id = generateUuid();
-    
-    if (dbManager.shouldRotate()) {
-        dbManager.rotate();
-    }
 
     const result = await db
         .insert(expenses)
@@ -27,6 +25,7 @@ export async function createExpense(expenseData: ICreateExpense) {
 }
 
 export async function getAllExpenses() {
+    const { db } = useDb();
     const result = await db
         .select({
             id: expenses.id,
@@ -54,6 +53,7 @@ export async function getAllExpenses() {
 };
 
 export async function getExpenseById(expenseId: string) {
+    const { db } = useDb();
     const result = await db
         .select()
         .from(expenses)
@@ -69,6 +69,7 @@ export async function getExpenseById(expenseId: string) {
 }
 
 export async function updateExpense(expenseId: string, expenseData: IUpdateExpense) {
+    const { db } = useDb();
     const result = await db
         .update(expenses)
         .set({
@@ -82,6 +83,7 @@ export async function updateExpense(expenseId: string, expenseData: IUpdateExpen
 }
 
 export async function markAsPaid(expenseId: string, paymentData: PaymentData) {
+    const { db } = useDb();
     const result = await db
         .update(expenses)
         .set({
@@ -97,6 +99,7 @@ export async function markAsPaid(expenseId: string, paymentData: PaymentData) {
 }
 
 export async function deleteExpense(expenseId: string) {
+    const { db } = useDb();
     await db
         .update(expenses)
         .set({
@@ -108,6 +111,7 @@ export async function deleteExpense(expenseId: string) {
 }
 
 export async function getExpensesByPeriod(startDate: string, endDate: string) {
+    const { db } = useDb();
     const result = await db
         .select()
         .from(expenses)
@@ -123,6 +127,7 @@ export async function getExpensesByPeriod(startDate: string, endDate: string) {
 }
 
 export async function getAllExpenseCategories() {
+    const { db } = useDb();
     const result = await db
         .select({
             id: expense_categories.id,
