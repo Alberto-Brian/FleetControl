@@ -3,6 +3,9 @@
 // ========================================
 import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { trips, vehicles, drivers, routes } from '@/lib/db/schemas';
+import { vehicleStatus } from '../schemas/vehicles';
+import { driverAvailability } from '../schemas/drivers';
+import { tripStatus } from '../schemas/trips';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull, desc } from 'drizzle-orm';
 import { ICreateTrip, ICompleteTrip } from '@/lib/types/trip';
@@ -43,7 +46,7 @@ export async function createTrip(tripData: ICreateTrip) {
             id,
             trip_code: tripCode,
             start_date: new Date().toISOString(),
-            status: 'in_progress',
+            status: tripStatus.IN_PROGRESS,
             vehicle_id: tripData.vehicle_id,
             driver_id: tripData.driver_id,
             route_id: tripData.route_id || null,
@@ -58,9 +61,15 @@ export async function createTrip(tripData: ICreateTrip) {
     // Atualizar status do veículo
     await db
         .update(vehicles)
-        .set({ status: 'in_use', updated_at: new Date().toISOString() })
+        .set({ status: vehicleStatus.IN_USE, updated_at: new Date().toISOString() })
         .where(eq(vehicles.id, tripData.vehicle_id));
 
+    // Atualizar status do motorista
+    await db
+        .update(drivers)
+        .set({ availability: driverAvailability.ON_TRIP, updated_at: new Date().toISOString() })
+        .where(eq(drivers.id, tripData.driver_id));
+        
     return result[0];
 }
 
@@ -162,6 +171,12 @@ export async function completeTrip(tripId: string, completeData: ICompleteTrip) 
             updated_at: new Date().toISOString(),
         })
         .where(eq(vehicles.id, trip[0].vehicle_id));
+
+    // Atualizar status do motorista
+    await db
+        .update(drivers)
+        .set({ availability: driverAvailability.AVAILABLE, updated_at: new Date().toISOString() })
+        .where(eq(drivers.id, trip[0].driver_id));
 
     return result[0];
 }

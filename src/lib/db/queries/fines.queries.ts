@@ -11,6 +11,8 @@ export async function createFine(fineData: ICreateFine) {
     await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
+     const date = new Date();
+    date.setDate(date.getDate() - 3)
 
     const result = await db
         .insert(fines)
@@ -18,6 +20,7 @@ export async function createFine(fineData: ICreateFine) {
             id,
             status: 'pending',
             ...fineData,
+            updated_at: new Date().toISOString()
         })
         .returning();
 

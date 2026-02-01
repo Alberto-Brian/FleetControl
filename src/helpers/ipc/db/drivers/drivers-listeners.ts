@@ -10,6 +10,7 @@ import {
     DELETE_DRIVER,
     GET_ACTIVE_DRIVERS,
     GET_EXPIRING_LICENSES,
+    GET_AVAILABLE_DRIVERS
 } from "./drivers-channels";
 
 import {
@@ -20,6 +21,7 @@ import {
     deleteDriver,
     getActiveDrivers,
     getExpiringLicenses,
+    getActiveAndAvailableDrivers
 } from '@/lib/db/queries/drivers.queries';
 
 import { ICreateDriver, IUpdateDriver } from '@/lib/types/driver';
@@ -31,5 +33,6 @@ export function addDriversEventListeners() {
     ipcMain.handle(UPDATE_DRIVER, async (_, id: string, data: IUpdateDriver) => await updateDriver(id, data));
     ipcMain.handle(DELETE_DRIVER, async (_, id: string) => await deleteDriver(id));
     ipcMain.handle(GET_ACTIVE_DRIVERS, async (_) => await getActiveDrivers());
+    ipcMain.handle(GET_AVAILABLE_DRIVERS, async (_) => await getActiveAndAvailableDrivers());
     ipcMain.handle(GET_EXPIRING_LICENSES, async (_, days: number) => await getExpiringLicenses(days));
 }

@@ -15,6 +15,7 @@ export const company_settings = sqliteTable('company_settings', {
   logo: text('logo'),
   currency: text('currency').notNull().default('AOA'),
   timezone: text('timezone').notNull().default('Africa/Luanda'),
+  deleted_at: text('deleted_at'),
   created_at: text('created_at').notNull().default(sql`(datetime('now', 'localtime'))`),
   updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'localtime'))`),
 });

@@ -57,7 +57,7 @@ async function createWindow() {
         icon: path.join(app.getAppPath(), 'build', 'icons', 'icon.png'),
         show: false,
         webPreferences: {
-            devTools: true,
+            devTools: inDevelopment,
             contextIsolation: true,
             nodeIntegration: true,
             nodeIntegrationInSubFrames: false,
@@ -134,40 +134,44 @@ async function createWindow() {
  */
 app.whenReady().then(async () => {
   try {
-    console.log('╔════════════════════════════════════════════════════════════╗');
-    console.log('║          🚀 INICIALIZANDO APLICAÇÃO                        ║');
-    console.log('╚════════════════════════════════════════════════════════════╝');
+    console.log('====================================================');
+    console.log('          -- INICIALIZANDO APLICAÇÃO --                ');
+    console.log('====================================================');
     console.log('');
 
     // ═══════════════════════════════════════════════════════════════════
     // ETAPA 1: Mostrar splash imediatamente
     // ═══════════════════════════════════════════════════════════════════
-    console.log('┌─ ETAPA 1: Interface ─────────────────────────────────────┐');
-    console.log('│ 🎨 Criando janela de splash...');
+    console.log(' ETAPA 1: Interface ====================================');
+    console.log(' -- Criando janela de splash --');
     await createSplashWindow();
-    console.log('│ ✅ Splash criada');
-    console.log('└──────────────────────────────────────────────────────────┘');
+    console.log(' __ Splash criada');
+    console.log('__________________________________________________________');
     console.log('');
 
     // ═══════════════════════════════════════════════════════════════════
     // ETAPA 2: Inicializar DatabaseManager (SEM executar backups)
     // ═══════════════════════════════════════════════════════════════════
-    console.log('┌─ ETAPA 2: Database ──────────────────────────────────────┐');
-    console.log('│ 📊 Inicializando DatabaseManager...');
-    const db = initializeDatabase(100, 5); // maxSize=100MB, maxRecords=5
-    console.log('│ ✅ DatabaseManager inicializado');
-    console.log('└──────────────────────────────────────────────────────────┘');
+    console.log('== ETAPA 2: Database =================================');
+    console.log(' -- Inicializando DatabaseManager --');
+    const db = initializeDatabase(
+        100, // 100,  // maxSizeInMB: 100MB 
+        30, // 30,   // maxAgeInDays: Rotação mensal
+        1 // 30    // transitionPeriodDays: Copiar último mês
+      );
+    console.log(' __ DatabaseManager inicializado');
+    console.log('________________________________________________________');
     console.log('');
 
     // ═══════════════════════════════════════════════════════════════════
     // ETAPA 3: Gerenciar versão da aplicação
     // ═══════════════════════════════════════════════════════════════════
-    console.log('┌─ ETAPA 3: Versão ────────────────────────────────────────┐');
-    console.log('│ 🔢 Verificando versão...');
+    console.log('== ETAPA 3: Versão =======================================');
+    console.log(' -- Verificando versão --');
     const versionManager = new VersionManager(db);
     const versionInfo = await versionManager.getVersionInfo();
 
-    console.log('│ 📋 Informações:', {
+    console.log('  __ Informações:', {
       instalada: versionInfo.installed,
       atual: versionInfo.current,
       primeiraInstalacao: versionInfo.isFirstInstall,
@@ -175,60 +179,59 @@ app.whenReady().then(async () => {
     });
 
     if (versionInfo.isFirstInstall) {
-      console.log('│ 🆕 Primeira instalação detectada');
+      console.log(' __ Primeira instalação detectada');
       await versionManager.registerInstallation(APP_NAME);
-      console.log('│ ✅ Instalação registrada');
+      console.log(' __ Instalação registrada');
     } else if (versionInfo.needsUpgrade) {
-      console.log(`│ 🔄 Atualização detectada: ${versionInfo.installed} → ${versionInfo.current}`);
+      console.log(` __ Atualização detectada: ${versionInfo.installed} → ${versionInfo.current}`);
       await versionManager.updateVersion();
-      console.log('│ ✅ Versão atualizada');
+      console.log(' __ Versão atualizada');
     } else {
-      console.log(`│ ✅ Sistema atualizado: v${versionInfo.current}`);
+      console.log(` __ Sistema atualizado: v${versionInfo.current}`);
     }
-    console.log('└──────────────────────────────────────────────────────────┘');
+    console.log('____________________________________________________________');
     console.log('');
 
     // ═══════════════════════════════════════════════════════════════════
     // ETAPA 4: Verificar necessidade de rotação (SEM executar ainda)
     // ═══════════════════════════════════════════════════════════════════
-    console.log('┌─ ETAPA 4: Rotação de Database ───────────────────────────┐');
+    console.log('== ETAPA 4: Rotação de Database ===========================');
     const dbManager = getDbManager();
     const needsRotation = dbManager.shouldRotate();
     
     if (needsRotation) {
-      console.log('│ 🔄 Rotação necessária - executando...');
+      console.log(' -- Rotação necessária - executando --');
       await dbManager.rotate(true); // Aplicar master tables
-      console.log('│ ✅ Rotação concluída');
+      console.log(' __ Rotação concluída');
     } else {
-      console.log('│ ℹ️  Rotação não necessária');
+      console.log(' __ Rotação não necessária');
     }
-    console.log('└──────────────────────────────────────────────────────────┘');
+    console.log('_____________________________________________________________');
     console.log('');
 
     // ═══════════════════════════════════════════════════════════════════
     // ETAPA 5: Verificar e executar backup automático (ÚLTIMA ETAPA)
     // ═══════════════════════════════════════════════════════════════════
-    console.log('┌─ ETAPA 5: Backup Automático ─────────────────────────────┐');
-    console.log('│ 🔄 Verificando necessidade de backup automático...');
+    console.log('== ETAPA 5: Backup Automático ===============================');
+    console.log(' -- Verificando necessidade de backup automático --');
     await dbManager.checkAndRunAutoBackup();
-    console.log('│ ✅ Verificação de backup concluída');
-    console.log('└──────────────────────────────────────────────────────────┘');
+    console.log(' __ Verificação de backup concluída');
+    console.log('_____________________________________________________________');
     console.log('');
 
     // ═══════════════════════════════════════════════════════════════════
     // ETAPA 6: Criar janela principal
     // ═══════════════════════════════════════════════════════════════════
-    console.log('┌─ ETAPA 6: Janela Principal ──────────────────────────────┐');
-    console.log('│ 🪟 Criando janela principal...');
+    console.log('== ETAPA 6: Janela Principal ================================');
+    console.log('-- Criando janela principal --');
     await createWindow();
-    console.log('│ ✅ Janela principal criada');
-    console.log('└──────────────────────────────────────────────────────────┘');
+    console.log(' __ Janela principal criada');
+    console.log('____________________________________________________________');
     console.log('');
 
-    console.log('╔════════════════════════════════════════════════════════════╗');
-    console.log('║          ✅ APLICAÇÃO INICIALIZADA COM SUCESSO            ║');
-    console.log('╚════════════════════════════════════════════════════════════╝');
-
+    console.log('______________________________________________________________');
+    console.log('            -- APLICAÇÃO INICIALIZADA COM SUCESSO --           ');
+    console.log('______________________________________________________________');
   } catch (error) {
     console.log('');
     console.log('╔════════════════════════════════════════════════════════════╗');

@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "ceef5b89-7b97-4a1d-9fb0-66996ca39e13",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "53c3c3c9-b69e-447e-8f07-71d8aa96aca1",
+  "prevId": "ceef5b89-7b97-4a1d-9fb0-66996ca39e13",
   "tables": {
     "audit_logs": {
       "name": "audit_logs",
@@ -361,6 +361,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'active'"
+        },
+        "availability": {
+          "name": "availability",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'available'"
         },
         "photo": {
           "name": "photo",

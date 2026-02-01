@@ -37,7 +37,7 @@ export default function NewVehicleCategoryDialog() {
       if (newVehicleCategory) {
         toast({
           title: 'Sucesso!',
-          description: 'Veículo criado com sucesso.',
+          description: 'Categoria de veículos criado com sucesso.',
         });
         setOpen(false);
         resetForm();
@@ -71,7 +71,7 @@ export default function NewVehicleCategoryDialog() {
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Cadastrar Novo Veículo</DialogTitle>
+          <DialogTitle>Cadastrar Nova Categoria de Veículo</DialogTitle>
           <DialogDescription>
             Preencha os dados da categoria abaixo
           </DialogDescription>

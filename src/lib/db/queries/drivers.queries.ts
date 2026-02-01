@@ -3,9 +3,11 @@
 // ========================================
 import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { drivers } from '@/lib/db/schemas/drivers';
+import { driverStatus } from '@/lib/db/schemas/drivers';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull, desc, lte, gte } from 'drizzle-orm';
 import { ICreateDriver, IUpdateDriver } from '@/lib/types/driver';
+import { driverAvailability } from '@/lib/db/schemas/drivers';
 
 /**
  * Cria um novo motorista
@@ -21,7 +23,7 @@ export async function createDriver(driverData: ICreateDriver) {
         .values({
             id: id,
             ...driverData,
-            status: 'active',
+            status: driverStatus.ACTIVE,
             is_active: true,
         })
         .returning({
@@ -139,6 +141,29 @@ export async function getActiveDrivers() {
         .where(
             and(
                 eq(drivers.status, 'active'),
+                isNull(drivers.deleted_at)
+            )
+        );
+
+    return result;
+}
+
+export async function getActiveAndAvailableDrivers() {
+    const { db } = useDb();
+    
+    const result = await db
+        .select({
+            id: drivers.id,
+            name: drivers.name,
+            license_number: drivers.license_number,
+            license_category: drivers.license_category,
+        })
+        .from(drivers)
+        .where(
+            and(
+                eq(drivers.status, 'active'),
+                eq(drivers.availability, driverAvailability.AVAILABLE),
+                eq(drivers.is_active, true),
                 isNull(drivers.deleted_at)
             )
         );

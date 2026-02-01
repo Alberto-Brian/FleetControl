@@ -29,6 +29,7 @@ interface ElectronWindow {
 interface System {
     getSystemVersion: () => Promise<string>;
     getSchemaVersion: () => Promise<number>;
+    forceDbRotation: () => Promise<void>
 }
 
 interface License {
@@ -92,6 +93,7 @@ interface IDrivers {
     update: (id: string, data: IUpdateDriver) => Promise<IDriver | null>;
     delete: (id: string) => Promise<string | null>;
     getActive: () => Promise<IDriver[]>;
+    getAvailable: () => Promise<IDriver[]>;
     getExpiringLicenses: (days: number = 30) => Promise<IDriver[]>; 
 }
 

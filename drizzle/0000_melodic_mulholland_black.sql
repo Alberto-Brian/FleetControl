@@ -31,6 +31,7 @@ CREATE TABLE `company_settings` (
 	`logo` text,
 	`currency` text DEFAULT 'AOA' NOT NULL,
 	`timezone` text DEFAULT 'Africa/Luanda' NOT NULL,
+	`deleted_at` text,
 	`created_at` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
 	`updated_at` text DEFAULT (datetime('now', 'localtime')) NOT NULL
 );
@@ -266,6 +267,7 @@ CREATE TABLE `system_info` (
 	`system_name` text NOT NULL,
 	`version` text NOT NULL,
 	`installed_at` text NOT NULL,
+	`deleted_at` text,
 	`updated_at` text
 );
 --> statement-breakpoint

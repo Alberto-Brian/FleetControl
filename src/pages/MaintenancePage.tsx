@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Wrench, AlertCircle, Search, Settings, Tag, Edit, Trash2, LayoutGrid, List, Rows } from 'lucide-react';
+import { Wrench, AlertCircle, Search, Settings, Tag, Edit, Trash2, LayoutGrid, List, Rows, Phone, Mail, MapPin, Building2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import NewMaintenanceDialog from '@/components/maintenance/NewMaintenceDialog';
 import NewWorkshopDialog from '@/components/workshop/NewWorkshopDialog';
@@ -17,6 +17,7 @@ import ViewMaintenanceDialog from '@/components/maintenance/ViewMaintenanceDialo
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 import { getAllMaintenances, deleteMaintenance } from '@/helpers/maintenance-helpers';
 import { getAllMaintenanceCategories, deleteMaintenanceCategory } from '@/helpers/maintenance-category-helpers';
+import { getAllWorkshops, deleteWorkshop } from '@/helpers/workshop-helpers';
 import { IMaintenance } from '@/lib/types/maintenance';
 
 type ViewMode = 'compact' | 'normal' | 'cards';
@@ -45,9 +46,18 @@ export default function MaintenancePage() {
   const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
 
+  // Workshops state
+  const [workshops, setWorkshops] = useState<any[]>([]);
+  const [workshopSearch, setWorkshopSearch] = useState('');
+  const [isWorkshopsLoading, setIsWorkshopsLoading] = useState(true);
+  const [workshopDeleteDialogOpen, setWorkshopDeleteDialogOpen] = useState(false);
+  const [workshopToDelete, setWorkshopToDelete] = useState<any>(null);
+  const [isDeletingWorkshop, setIsDeletingWorkshop] = useState(false);
+
   useEffect(() => {
     loadMaintenances();
     loadCategories();
+    loadWorkshops();
   }, []);
 
   async function loadMaintenances() {
@@ -76,6 +86,23 @@ export default function MaintenancePage() {
       console.error(error);
     } finally {
       setIsCategoriesLoading(false);
+    }
+  }
+
+  async function loadWorkshops() {
+    setIsWorkshopsLoading(true);
+    try {
+      const data = await getAllWorkshops();
+      setWorkshops(data);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao carregar oficinas',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsWorkshopsLoading(false);
     }
   }
 
@@ -137,6 +164,35 @@ export default function MaintenancePage() {
     }
   }
 
+  function openWorkshopDeleteDialog(workshop: any) {
+    setWorkshopToDelete(workshop);
+    setWorkshopDeleteDialogOpen(true);
+  }
+
+  async function handleDeleteWorkshop() {
+    if (!workshopToDelete) return;
+
+    setIsDeletingWorkshop(true);
+    try {
+      await deleteWorkshop(workshopToDelete.id);
+      setWorkshops(workshops.filter(w => w.id !== workshopToDelete.id));
+      toast({
+        title: 'Sucesso',
+        description: 'Oficina excluída com sucesso',
+      });
+      setWorkshopDeleteDialogOpen(false);
+      setWorkshopToDelete(null);
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao excluir oficina',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeletingWorkshop(false);
+    }
+  }
+
   const filteredMaintenances = maintenances.filter((m: IMaintenance) => {
     const matchesSearch = m.vehicle_license?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       m.category_name?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -146,6 +202,11 @@ export default function MaintenancePage() {
 
   const filteredCategories = categories.filter(c =>
     c.name?.toLowerCase().includes(categorySearch.toLowerCase())
+  );
+
+  const filteredWorkshops = workshops.filter(w =>
+    w.name?.toLowerCase().includes(workshopSearch.toLowerCase()) ||
+    w.city?.toLowerCase().includes(workshopSearch.toLowerCase())
   );
 
   function getPriorityBadge(priority: string) {
@@ -434,6 +495,7 @@ export default function MaintenancePage() {
   const inProgress = maintenances.filter(m => m.status === 'in_progress').length;
   const preventiveCount = categories.filter(c => c.type === 'preventive').length;
   const correctiveCount = categories.filter(c => c.type === 'corrective').length;
+  const activeWorkshops = workshops.filter(w => w.is_active).length;
 
   return (
     <div className="space-y-6">
@@ -443,14 +505,16 @@ export default function MaintenancePage() {
           <p className="text-muted-foreground">
             {activeTab === 'maintenances' 
               ? `${inProgress} manutenç${inProgress !== 1 ? 'ões' : 'ão'} em andamento`
-              : `${categories.length} categoria${categories.length !== 1 ? 's' : ''} registada${categories.length !== 1 ? 's' : ''}`
+              : activeTab === 'categories'
+              ? `${categories.length} categoria${categories.length !== 1 ? 's' : ''} registada${categories.length !== 1 ? 's' : ''}`
+              : `${activeWorkshops} oficina${activeWorkshops !== 1 ? 's' : ''} activa${activeWorkshops !== 1 ? 's' : ''}`
             }
           </p>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3">
           <TabsTrigger value="maintenances" className="flex items-center gap-2">
             <Wrench className="w-4 h-4" />
             Manutenções
@@ -458,6 +522,10 @@ export default function MaintenancePage() {
           <TabsTrigger value="categories" className="flex items-center gap-2">
             <Tag className="w-4 h-4" />
             Categorias
+          </TabsTrigger>
+          <TabsTrigger value="workshops" className="flex items-center gap-2">
+            <Building2 className="w-4 h-4" />
+            Oficinas
           </TabsTrigger>
         </TabsList>
 
@@ -516,9 +584,7 @@ export default function MaintenancePage() {
               </div>
             </div>
             <div className="flex gap-2 w-full lg:w-auto">
-              <NewWorkshopDialog onWorkshopCreated={() => {
-                toast({ title: 'Sucesso!', description: 'Oficina registada com sucesso.' });
-              }} />
+              <NewWorkshopDialog onWorkshopCreated={loadWorkshops} />
               <NewMaintenanceDialog onMaintenanceCreated={(maintenance) => {
                 setMaintenances([maintenance, ...maintenances]);
               }} />
@@ -640,6 +706,118 @@ export default function MaintenancePage() {
             </div>
           )}
         </TabsContent>
+
+        {/* TAB: OFICINAS */}
+        <TabsContent value="workshops" className="space-y-4 mt-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total</p>
+                  <p className="text-2xl font-bold">{workshops.length}</p>
+                </div>
+                <Building2 className="w-8 h-8 text-blue-600" />
+              </div>
+            </Card>
+
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Activas</p>
+                  <p className="text-2xl font-bold">{activeWorkshops}</p>
+                </div>
+                <Building2 className="w-8 h-8 text-green-600" />
+              </div>
+            </Card>
+
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Inactivas</p>
+                  <p className="text-2xl font-bold">{workshops.length - activeWorkshops}</p>
+                </div>
+                <Building2 className="w-8 h-8 text-gray-400" />
+              </div>
+            </Card>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Pesquisar oficina..."
+                value={workshopSearch}
+                onChange={(e) => setWorkshopSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <NewWorkshopDialog onWorkshopCreated={loadWorkshops} />
+          </div>
+
+          {isWorkshopsLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Carregando...</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {filteredWorkshops.map((workshop) => (
+                <Card key={workshop.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Building2 className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{workshop.name}</h3>
+                        <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
+                          {workshop.phone && (
+                            <div className="flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              <span>{workshop.phone}</span>
+                            </div>
+                          )}
+                          {workshop.email && (
+                            <div className="flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              <span>{workshop.email}</span>
+                            </div>
+                          )}
+                          {workshop.city && (
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              <span>{workshop.city}</span>
+                            </div>
+                          )}
+                        </div>
+                        {workshop.specialties && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            <span className="font-medium">Especialidades:</span> {workshop.specialties}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={workshop.is_active ? 'default' : 'outline'}>
+                        {workshop.is_active ? 'Activa' : 'Inactiva'}
+                      </Badge>
+                      <Button variant="ghost" size="icon">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => openWorkshopDeleteDialog(workshop)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       {/* Confirm Delete Dialogs */}
@@ -659,6 +837,15 @@ export default function MaintenancePage() {
         title="Excluir Categoria"
         itemName={categoryToDelete?.name}
         isLoading={isDeletingCategory}
+      />
+
+      <ConfirmDeleteDialog
+        open={workshopDeleteDialogOpen}
+        onOpenChange={setWorkshopDeleteDialogOpen}
+        onConfirm={handleDeleteWorkshop}
+        title="Excluir Oficina"
+        itemName={workshopToDelete?.name}
+        isLoading={isDeletingWorkshop}
       />
     </div>
   );

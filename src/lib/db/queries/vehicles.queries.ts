@@ -1,6 +1,6 @@
 // src/lib/db/queries/vehicles.queries.ts
 import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
-import { vehicles, VehicleStatus } from '@/lib/db/schemas/vehicles';
+import { vehicles, VehicleStatus, vehicleStatus } from '@/lib/db/schemas/vehicles';
 import { vehicle_categories } from '@/lib/db/schemas/vehicle_categories';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull, desc } from 'drizzle-orm';
@@ -157,6 +157,7 @@ export async function deleteVehicle(vehicleId: string) {
         .set({
             deleted_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
+            status: vehicleStatus.INACTIVE
         })
         .where(eq(vehicles.id, vehicleId));
 

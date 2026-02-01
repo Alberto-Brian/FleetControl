@@ -1,0 +1,1 @@
+ALTER TABLE `drivers` ADD `availability` text DEFAULT 'available' NOT NULL;

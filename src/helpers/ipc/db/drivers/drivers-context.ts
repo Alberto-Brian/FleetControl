@@ -9,6 +9,7 @@ import {
     DELETE_DRIVER,
     GET_ACTIVE_DRIVERS,
     GET_EXPIRING_LICENSES,
+    GET_AVAILABLE_DRIVERS
 } from "./drivers-channels";
 
 import { ICreateDriver, IUpdateDriver } from '@/lib/types/driver';
@@ -23,6 +24,7 @@ export function exposeDriversContext() {
         update: (id: string, data: IUpdateDriver) => ipcRenderer.invoke(UPDATE_DRIVER, id, data),
         delete: (id: string) => ipcRenderer.invoke(DELETE_DRIVER, id),
         getActive: () => ipcRenderer.invoke(GET_ACTIVE_DRIVERS),
+        getAvailable: () => ipcRenderer.invoke(GET_AVAILABLE_DRIVERS),
         getExpiringLicenses: (days: number) => ipcRenderer.invoke(GET_EXPIRING_LICENSES, days),
     });
 }

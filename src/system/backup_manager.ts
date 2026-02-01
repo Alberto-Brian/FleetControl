@@ -56,14 +56,37 @@ export interface BackupProgress {
 }
 
 export class BackupManager {
-  private readonly userDataPath = app?.getPath('userData');
-  private readonly autoBackupDir = path.join(this.userDataPath, 'backups', 'auto');
-  private readonly configFile = path.join(this.userDataPath, 'backup-config.json');
+  private readonly userDataPath: string;
+  private readonly autoBackupDir: string;
+  private readonly configFile: string;
   
   // Callback para progresso
   private onProgress?: (progress: BackupProgress) => void;
 
   constructor() {
+    const resolveUserData = (): string => {
+      try {
+        if (app && typeof (app as any).getPath === 'function') {
+          return app.getPath('userData');
+        }
+      } catch {}
+      const platform = process.platform;
+      if (platform === 'win32') {
+        const appData =
+          process.env.APPDATA ||
+          path.join(process.env.USERPROFILE || process.cwd(), 'AppData', 'Roaming');
+        return path.join(appData, APP_NAME);
+      }
+      if (platform === 'darwin') {
+        return path.join(process.env.HOME || process.cwd(), 'Library', 'Application Support', APP_NAME);
+      }
+      const xdg = process.env.XDG_CONFIG_HOME || path.join(process.env.HOME || process.cwd(), '.config');
+      return path.join(xdg, APP_NAME);
+    };
+
+    this.userDataPath = resolveUserData();
+    this.autoBackupDir = path.join(this.userDataPath, 'backups', 'auto');
+    this.configFile = path.join(this.userDataPath, 'backup-config.json');
     this.ensureDirectories();
     this.loadConfig();
   }
@@ -131,6 +154,16 @@ export class BackupManager {
         this.emitProgress('backup', 70, 100, 'Databases copiados');
       }
 
+      const appVersion =
+        (() => {
+          try {
+            if (app && typeof (app as any).getVersion === 'function') {
+              return app.getVersion();
+            }
+          } catch {}
+          return process.env.npm_package_version || 'dev';
+        })();
+
       const metadata: BackupMetadata = {
         version: '1.0',
         createdAt: new Date().toISOString(),
@@ -139,7 +172,7 @@ export class BackupManager {
         hasUserData: false,
         hasLicense: false,
         totalSize: this.getDirectorySize(backupDir),
-        appVersion: app.getVersion(),
+        appVersion
       };
 
       fs.writeFileSync(
@@ -178,10 +211,19 @@ export class BackupManager {
       if (!savePath) {
         const result = await dialog.showSaveDialog({
           title: 'Exportar Backup Completo',
-          defaultPath: path.join(
-            app.getPath('documents'),
-            `${APP_NAME.toLocaleLowerCase()}-backup-${new Date().toISOString().split('T')[0]}.zip`
-          ),
+          defaultPath: (() => {
+            let documentsDir: string;
+            try {
+              documentsDir = app.getPath('documents');
+            } catch {
+              const home = process.env.USERPROFILE || process.env.HOME || process.cwd();
+              documentsDir = path.join(home, 'Documents');
+            }
+            return path.join(
+              documentsDir,
+              `${APP_NAME.toLocaleLowerCase()}-backup-${new Date().toISOString().split('T')[0]}.zip`
+            );
+          })(),
           filters: [
             { name: 'Arquivo ZIP', extensions: ['zip'] },
           ],
@@ -232,6 +274,15 @@ export class BackupManager {
       // }
 
       // Criar metadata
+      const appVersion =
+        (() => {
+          try {
+            if (app && typeof (app as any).getVersion === 'function') {
+              return app.getVersion();
+            }
+          } catch {}
+          return process.env.npm_package_version || 'dev';
+        })();
       const metadata: BackupMetadata = {
         version: '1.0',
         createdAt: new Date().toISOString(),
@@ -240,7 +291,7 @@ export class BackupManager {
         hasUserData: fs.existsSync(userFile),
         hasLicense: false,
         totalSize: 0,
-        appVersion: app.getVersion(),
+        appVersion
       };
 
       zip.addFile(

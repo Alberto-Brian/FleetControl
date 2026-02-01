@@ -8,6 +8,15 @@ export const driverStatus = {
   TERMINATED: 'terminated',
 } as const;
 
+export const driverAvailability = {
+  AVAILABLE: 'available',
+  ON_TRIP: 'on_trip',
+  OFFLINE: 'offline',
+} as const;
+
+export type DriverAvailability =
+  typeof driverAvailability[keyof typeof driverAvailability];
+
 export type DriverStatus = typeof driverStatus[keyof typeof driverStatus];
 
 export const drivers = sqliteTable('drivers', {
@@ -31,6 +40,13 @@ export const drivers = sqliteTable('drivers', {
     driverStatus.ON_LEAVE,
     driverStatus.TERMINATED,
   ] }).notNull().default(driverStatus.ACTIVE),
+  availability: text('availability', {
+  enum: [
+    driverAvailability.AVAILABLE,
+    driverAvailability.ON_TRIP,
+    driverAvailability.OFFLINE,
+    ],
+  }).notNull().default(driverAvailability.AVAILABLE),
   photo: text('photo'),
   notes: text('notes'),
   is_active: integer('is_active', { mode: 'boolean' }).notNull().default(true),

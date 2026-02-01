@@ -12,7 +12,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Plus, Truck, User, MapPin, Gauge, Route as RouteIcon, ArrowRight } from 'lucide-react';
 import { createTrip } from '@/helpers/trip-helpers';
 import { getAvailableVehicles } from '@/helpers/vehicle-helpers';
-import { getActiveDrivers } from '@/helpers/driver-helpers';
+import { getAvailableDrivers } from '@/helpers/driver-helpers';
 import { getActiveRoutes } from '@/helpers/route-helpers';
 import { ICreateTrip } from '@/lib/types/trip';
 import { Separator } from '@/components/ui/separator';
@@ -50,7 +50,7 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
     try {
       const [vehiclesData, driversData, routesData] = await Promise.all([
         getAvailableVehicles(),
-        getActiveDrivers(),
+        getAvailableDrivers(),
         getActiveRoutes()
       ]);
       

@@ -1,3 +1,7 @@
+// ========================================
+// FILE: src/lib/db/db_client.ts
+// ========================================
+
 import { DatabaseManager } from '@/system/db_manager';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import * as schema from './schemas';
@@ -19,26 +23,27 @@ export function getDbManager(): DatabaseManager {
 }
 
 /**
- * Inicializa o DatabaseManager pela primeira vez
- * DEVE ser chamado no app.whenReady() da main.ts
+ * ✅ ATUALIZADO: Suporte a período de transição
  * 
- * @param maxSizeInMB - Tamanho máximo do arquivo de banco em MB
- * @param maxRecordsPerFile - Número máximo de registros por arquivo
- * @returns Instância do Drizzle ORM
+ * @param maxSizeInMB - Tamanho máximo (padrão: 100MB)
+ * @param maxAgeInDays - Idade máxima (padrão: 30 dias)
+ * @param transitionPeriodDays - Dias de dados a copiar (padrão: 30 dias)
  */
 export function initializeDatabase(
   maxSizeInMB: number = 100,
-  maxRecordsPerFile: number = 5
+  maxAgeInDays: number = 30,
+  transitionPeriodDays: number = 30 // ✅ NOVO
 ): BetterSQLite3Database<typeof schema> {
   if (dbManagerInstance) {
-    console.log('⚠️ DatabaseManager já foi inicializado');
     return dbManagerInstance.getCurrentDrizzleInstance();
   }
 
-  console.log('🚀 Criando DatabaseManager...');
-  dbManagerInstance = new DatabaseManager(maxSizeInMB, maxRecordsPerFile);
+  dbManagerInstance = new DatabaseManager(
+    maxSizeInMB, 
+    maxAgeInDays, 
+    transitionPeriodDays
+  );
   
-  console.log('🚀 Inicializando DatabaseManager...');
   return dbManagerInstance.initialize();
 }
 

@@ -1,11 +1,13 @@
-// src/scripts/seed.ts
-import { DatabaseManager } from '@/system/db_manager'; // ajusta o caminho correto
+
+// ========================================
+// FILE: src/scripts/seed.ts
+// ========================================
+import { initializeDatabase } from '@/lib/db/db_client';
 
 async function main() {
   console.log('Iniciando seed seguro...');
 
-  const manager = new DatabaseManager();
-  const db = manager.initialize(); // ou await se for async
+  initializeDatabase();
 
   const { seedDatabase } = await import('@/lib/db/seeds');
 

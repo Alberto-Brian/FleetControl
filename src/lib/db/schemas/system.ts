@@ -5,5 +5,6 @@ export const systemInfo = sqliteTable('system_info', {
   systemName: text('system_name').notNull(),
   version: text('version').notNull(),
   installedAt: text('installed_at').notNull(),
+  deleted_at: text('deleted_at'),
   updatedAt: text('updated_at')
 });

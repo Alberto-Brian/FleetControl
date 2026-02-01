@@ -25,7 +25,7 @@
         "rebuild": "electron-rebuild -f -w better-sqlite3",
         "build-icons": "electron-icon-builder --input=./images/logo.png --output=./build --flatten",
         "postinstall": "npm run rebuild",
-        "db:seed": "tsx src/scripts/seed.ts"
+        "seed": "tsx src/scripts/seed.ts"
     },
     "author": "Alberto Kiowa Massanza <albertokiowa10@gmail.com>",
     "license": "MIT",

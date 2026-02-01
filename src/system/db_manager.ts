@@ -6,6 +6,7 @@ import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import * as schema from '../lib/db/schemas';
+import { APP_NAME } from '@/system/system.config';
 
 interface DatabaseFile {
   filename: string;
@@ -16,18 +17,26 @@ interface DatabaseFile {
   isActive: boolean;
 }
 
-interface MasterTableConfig {
+/**
+ * ✅ NOVA: Configuração completa de tabelas
+ */
+interface TableConfig {
   tableName: string;
-  copyAll?: boolean;
-  customQuery?: string;
+  type: 'master' | 'transactional' | 'audit';
+  copyStrategy: {
+    copyAll?: boolean;           
+    recentDays?: number;         // ✅ OPCIONAL - se não definido, usa transitionPeriodDays
+    timestampColumn?: string;    
+    customQuery?: string;        
+  };
   excludeColumns?: string[];
-  truncateBeforeCopy?: boolean;
 }
 
 export class DatabaseManager {
   private baseDir: string;
   private maxSizeInMB: number;
-  private maxRecordsPerFile: number;
+  private maxAgeInDays: number;
+  private transitionPeriodDays: number; // ✅ NOVO
   private currentDb: Database.Database | null = null;
   private currentDbPath: string | null = null;
   private backupManager: BackupManager | null = null;
@@ -35,20 +44,19 @@ export class DatabaseManager {
 
   constructor(
     maxSizeInMB: number = 100,
-    maxRecordsPerFile: number = 5
+    maxAgeInDays: number = 30,
+    transitionPeriodDays: number = 30 // ✅ Valor PADRÃO global
   ) {
-    // ✅ Apenas armazenar configurações - NÃO inicializar nada aqui
     this.maxSizeInMB = maxSizeInMB;
-    this.maxRecordsPerFile = maxRecordsPerFile;
-    this.baseDir = ''; // Será definido em initialize()
+    this.maxAgeInDays = maxAgeInDays;
+    this.transitionPeriodDays = transitionPeriodDays;
+    this.baseDir = '';
     
-    console.log('🔧 DatabaseManager criado (ainda não inicializado)');
+    console.log('🔧 DatabaseManager criado');
+    console.log(`   Limites: ${maxSizeInMB}MB, ${maxAgeInDays} dias`);
+    console.log(`   Período de transição: ${transitionPeriodDays} dias`);
   }
 
-  /**
-   * Inicializa o banco de dados - DEVE ser chamado explicitamente
-   * Agora com ordem garantida de execução
-   */
   initialize() {
     if (this.isInitialized) {
       console.log('⚠️ DatabaseManager já inicializado');
@@ -58,38 +66,45 @@ export class DatabaseManager {
     console.log('++ Inicializando DatabaseManager...');
     
     try {
-      // 1. Definir diretório base
-      this.baseDir = path.join(app.getPath('userData'), 'databases');
+      const resolveUserData = (): string => {
+        try {
+          if (app && typeof (app as any).getPath === 'function') {
+            return app.getPath('userData');
+          }
+        } catch {}
+        const platform = process.platform;
+        if (platform === 'win32') {
+          const appData =
+            process.env.APPDATA ||
+            path.join(process.env.USERPROFILE || process.cwd(), 'AppData', 'Roaming');
+          return path.join(appData, APP_NAME);
+        }
+        if (platform === 'darwin') {
+          return path.join(process.env.HOME || process.cwd(), 'Library', 'Application Support', APP_NAME);
+        }
+        const xdg = process.env.XDG_CONFIG_HOME || path.join(process.env.HOME || process.cwd(), '.config');
+        return path.join(xdg, APP_NAME);
+      };
+      this.baseDir = path.join(resolveUserData(), 'databases');
       console.log('📁 Base dir:', this.baseDir);
       
-      // 2. Criar diretório se não existir
       if (!fs.existsSync(this.baseDir)) {
-        console.log('📂 Criando diretório databases...');
         fs.mkdirSync(this.baseDir, { recursive: true });
       }
 
-      // 3. Inicializar BackupManager (SEM executar backup ainda)
       this.backupManager = new BackupManager();
-      console.log('✅ BackupManager inicializado');
 
-      // 4. Inicializar banco de dados
-      console.log('++ Inicializando banco de dados...');
       const activeDb = this.getActiveDatabase();
       
       if (!activeDb) {
-        console.log(' ++ Nenhum banco ativo, criando novo...');
         this.createNewDatabase();
       } else {
-        console.log(' ++ Usando banco existente:', activeDb.filename);
         this.currentDbPath = activeDb.filepath;
         this.currentDb = new Database(activeDb.filepath);
         this.configurePragmas(this.currentDb);
       }
 
-      // 5. Aplicar migrations
       this.applyMigrations();
-
-      // 6. Marcar como inicializado
       this.isInitialized = true;
       console.log('✅ DatabaseManager completamente inicializado');
 
@@ -101,21 +116,11 @@ export class DatabaseManager {
     }
   }
 
-  /**
-   * Verifica e executa backup automático SE necessário
-   * Agora é um método separado, chamado DEPOIS da inicialização
-   */
   async checkAndRunAutoBackup(): Promise<void> {
-    if (!this.isInitialized) {
-      throw new Error('DatabaseManager deve ser inicializado antes de executar backups');
+    if (!this.isInitialized || !this.backupManager) {
+      throw new Error('DatabaseManager não inicializado');
     }
 
-    if (!this.backupManager) {
-      throw new Error('BackupManager não foi inicializado');
-    }
-
-    console.log('🔍 Verificando necessidade de backup automático...');
-    
     const config = this.backupManager['loadConfig']();
     
     if (!config.autoBackupEnabled) {
@@ -123,27 +128,18 @@ export class DatabaseManager {
       return;
     }
     
-    const lastBackup = config.lastAutoBackup 
-      ? new Date(config.lastAutoBackup)
-      : null;
-    
+    const lastBackup = config.lastAutoBackup ? new Date(config.lastAutoBackup) : null;
     const now = new Date();
     const shouldBackup = !lastBackup || 
       (config.autoBackupFrequency === 'daily' && 
        now.getTime() - lastBackup.getTime() > 24 * 60 * 60 * 1000);
     
     if (shouldBackup) {
-      console.log('🔄 Executando backup automático agendado...');
+      console.log('🔄 Executando backup automático...');
       await this.backupManager.createAutoBackup();
-    } else {
-      console.log('✅ Backup automático não necessário ainda');
     }
   }
 
-  /**
-   * Aplica migrations automaticamente usando o sistema nativo do Drizzle
-   * CORRIGIDO: Agora verifica se a migration já foi aplicada
-   */
   private applyMigrations() {
     if (!this.currentDbPath || !this.currentDb) {
       throw new Error('Database not initialized');
@@ -154,73 +150,43 @@ export class DatabaseManager {
     try {
       const db = this.getCurrentDrizzleInstance();
       
-      // Caminho das migrations
-      const migrationsFolder = app.isPackaged
-        ? path.join(process.resourcesPath, 'drizzle')
+      const isPackaged = (): boolean => {
+        try {
+          return !!(app && (app as any).isPackaged);
+        } catch {
+          return false;
+        }
+      };
+      const migrationsFolder = isPackaged()
+        ? path.join(process.resourcesPath || process.cwd(), 'drizzle')
         : path.join(process.cwd(), 'drizzle');
-      
-      console.log('📂 Migrations folder:', migrationsFolder);
 
-      // Verificar se a pasta existe
       if (!fs.existsSync(migrationsFolder)) {
-        console.warn('⚠️ Pasta de migrations não encontrada:', migrationsFolder);
+        console.warn('⚠️ Pasta de migrations não encontrada');
         return;
       }
 
-      // ✅ CORREÇÃO: Verificar se __drizzle_migrations existe
-      const hasMigrationsTable = this.currentDb
-        .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='__drizzle_migrations'`)
-        .get();
-
-      if (!hasMigrationsTable) {
-        console.log('📝 Primeira execução - criando tabela de migrations');
-      }
-
-      // Aplicar migrations (Drizzle gerencia automaticamente o que já foi aplicado)
       migrate(db, { migrationsFolder });
-      
-      console.log('✅ Migrations aplicadas/verificadas com sucesso!');
+      console.log('✅ Migrations aplicadas');
       
     } catch (error: any) {
-      // ✅ CORREÇÃO: Tratar erro específico de "table already exists"
       if (error.message?.includes('already exists')) {
-        console.warn('⚠️ Migration já aplicada manualmente, pulando...');
-        
-        // Registrar a migration como aplicada no Drizzle
-        try {
-          this.currentDb!.prepare(`
-            CREATE TABLE IF NOT EXISTS __drizzle_migrations (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              hash TEXT NOT NULL,
-              created_at INTEGER
-            )
-          `).run();
-          
-          console.log('✅ Tabela de controle de migrations criada');
-        } catch (e) {
-          console.warn('⚠️ Não foi possível criar tabela de controle:', e);
-        }
+        console.warn('⚠️ Migration já aplicada');
       } else {
         console.error('❌ Erro ao aplicar migrations:', error);
-        // Não fazer throw - deixar a app continuar
       }
     }
   }
 
-  /**
-   * Fecha a conexão atual com o banco de dados
-   */
   close(): void {
-    // Limpar ficheiros WAL/SHM manualmente
     if (this.currentDbPath) {
       const walPath = this.currentDbPath + '-wal';
       const shmPath = this.currentDbPath + '-shm';
       try {
         if (fs.existsSync(walPath)) fs.unlinkSync(walPath);
         if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath);
-        console.log('🗑️ WAL/SHM limpos manualmente');
-      } catch (e: any) {
-        console.log('ℹ️ WAL/SHM já limpos ou locked:', e.message);
+      } catch (e) {
+        // Ignorar erros
       }
     }
 
@@ -229,7 +195,7 @@ export class DatabaseManager {
         this.currentDb.close();
         console.log('🔒 Conexão DB fechada');
       } catch (error) {
-        console.error('❌ Erro ao chamar close():', error);
+        console.error('❌ Erro ao fechar:', error);
       } finally {
         this.currentDb = null;
         this.currentDbPath = null;
@@ -239,27 +205,14 @@ export class DatabaseManager {
     this.forceReleaseLocks();
   }
 
-  /**
-   * Força liberação de locks residuais (Windows-specific)
-   */
   private forceReleaseLocks(): void {
-    if (global.gc) {
-      global.gc();
-      console.log('♻️ Garbage collection forçado');
-    }
-
-    const delayMs = 100;
-    console.log(`⏳ Aguardando ${delayMs}ms para liberação de locks...`);
+    if (global.gc) global.gc();
     const start = Date.now();
-    while (Date.now() - start < delayMs) {
+    while (Date.now() - start < 100) {
       // Busy wait
     }
-    console.log('✓ Tempo de espera concluído');
   }
 
-  /**
-   * Retorna a instância do Drizzle ORM
-   */
   getCurrentDrizzleInstance() {
     if (!this.currentDb) {
       throw new Error('Database not initialized');
@@ -267,9 +220,6 @@ export class DatabaseManager {
     return drizzle(this.currentDb, { schema });
   }
 
-  /**
-   * Retorna a instância do better-sqlite3
-   */
   getCurrentDbInstance() {
     if (!this.currentDb) {
       throw new Error('Database not initialized');
@@ -277,44 +227,50 @@ export class DatabaseManager {
     return this.currentDb;
   }
 
-  /**
-   * Verifica se precisa rotacionar
-   */
   shouldRotate(): boolean {
-    console.log("🔍 Verificando necessidade de rotação...");
+    console.log('========================================');
+    console.log(' -- VERIFICAÇÃO DE ROTAÇÃO --');
+    console.log('========================================');
     
-    if (!this.currentDbPath) return false;
-
-    const stats = fs.statSync(this.currentDbPath);
-    const sizeInMB = stats.size / (1024 * 1024);
-
-    // Verifica tamanho
-    if (sizeInMB >= this.maxSizeInMB) {
-      console.log(`🔄 Rotação necessária por tamanho: ${sizeInMB.toFixed(2)}MB`);
-      return true;
+    if (!this.currentDbPath || !this.currentDb) {
+      console.log(' __ Banco não inicializado');
+      console.log('');
+      return false;
     }
 
-    // Verifica quantidade de registros
     try {
-      const result = this.currentDb!.prepare(
-        'SELECT COUNT(*) as count FROM drivers'
-      ).get() as { count: number };
+      const stats = fs.statSync(this.currentDbPath);
+      const sizeInMB = stats.size / (1024 * 1024);
+      const createdAt = new Date(stats.birthtimeMs);
+      const ageInDays = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
 
-      if (result.count >= this.maxRecordsPerFile) {
-        console.log(`🔄 Rotação necessária por quantidade: ${result.count} registros`);
+      console.log(`__ Tamanho:  ${sizeInMB.toFixed(2)} MB / ${this.maxSizeInMB} MB`);
+      console.log(`__ Idade:    ${ageInDays.toFixed(1)} dias / ${this.maxAgeInDays} dias`);
+      console.log(`__ Arquivo:  ${path.basename(this.currentDbPath)}`);
+
+      if (sizeInMB >= this.maxSizeInMB) {
+        console.log(`__ ROTAÇÃO: Tamanho ultrapassou ${this.maxSizeInMB}MB`);
+        console.log('');
         return true;
       }
-    } catch (error) {
-      // Tabela pode não existir ainda
-    }
 
-    console.log('✅ Rotação não necessária');
-    return false;
+      if (ageInDays >= this.maxAgeInDays) {
+        console.log(` __ ROTAÇÃO: Banco com mais de ${this.maxAgeInDays} dias`);
+        console.log('==========================================');
+        return true;
+      }
+
+      console.log(' -- ROTAÇÃO NÃO NECESSÁRIA --');
+      console.log('_____________________________________________');
+      return false;
+
+    } catch (error) {
+      console.error('❌ Erro ao verificar rotação:', error);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      return false;
+    }
   }
 
-  /**
-   * Cria um novo arquivo de banco de dados
-   */
   private createNewDatabase() {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `database_${timestamp}.db`;
@@ -324,23 +280,28 @@ export class DatabaseManager {
     this.currentDb = new Database(filepath);
     this.configurePragmas(this.currentDb);
 
-    // Criar metadata
     const metaPath = filepath.replace('.db', '.meta.json');
+    const version =
+      (() => {
+        try {
+          if (app && typeof (app as any).getVersion === 'function') {
+            return app.getVersion();
+          }
+        } catch {}
+        return process.env.npm_package_version || 'dev';
+      })();
     const metadata = {
       filename,
       filepath,
       createdAt: new Date().toISOString(),
       isActive: true,
-      version: app.getVersion()
+      version
     };
     fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2));
 
     console.log(`📁 Novo banco criado: ${filename}`);
   }
 
-  /**
-   * Configura PRAGMAs do SQLite
-   */
   private configurePragmas(db: Database.Database) {
     db.pragma('journal_mode = WAL');
     db.pragma('synchronous = NORMAL');
@@ -348,9 +309,6 @@ export class DatabaseManager {
     db.pragma('cache_size = -64000');
   }
 
-  /**
-   * Lista todos os arquivos de banco
-   */
   listDatabases(): DatabaseFile[] {
     const files = fs.readdirSync(this.baseDir)
       .filter(f => f.endsWith('.db'))
@@ -369,7 +327,7 @@ export class DatabaseManager {
           filepath,
           size: stats.size,
           createdAt: new Date(stats.birthtime),
-          recordCount: this.getRecordCount(filepath),
+          recordCount: 0,
           isActive: meta.isActive || false
         };
       })
@@ -378,33 +336,11 @@ export class DatabaseManager {
     return files;
   }
 
-  /**
-   * Retorna o banco de dados ativo
-   */
   private getActiveDatabase(): DatabaseFile | null {
     const databases = this.listDatabases();
     return databases.find(db => db.isActive) || null;
   }
 
-  /**
-   * Conta registros em um banco
-   */
-  private getRecordCount(filepath: string): number {
-    try {
-      const db = new Database(filepath, { readonly: true });
-      const result = db.prepare(
-        'SELECT COUNT(*) as count FROM sellers'
-      ).get() as { count: number };
-      db.close();
-      return result.count;
-    } catch {
-      return 0;
-    }
-  }
-
-  /**
-   * Lê metadata de um arquivo
-   */
   private readMetadata(metaPath: string): any {
     try {
       return JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
@@ -413,9 +349,6 @@ export class DatabaseManager {
     }
   }
 
-  /**
-   * Retorna o BackupManager
-   */
   getBackupManager(): BackupManager {
     if (!this.backupManager) {
       throw new Error('BackupManager not initialized');
@@ -424,11 +357,16 @@ export class DatabaseManager {
   }
 
   /**
-   * Rotaciona para um novo arquivo de banco de dados
+   * ✅ NOVA VERSÃO: Rotação com período de transição
    */
-  async rotate(applyMasterTables: boolean = true) {
-    const masterTables: MasterTableConfig[] = DatabaseManager.getDefaultMasterTables();
-    console.log('🔄 Iniciando rotação de banco de dados...');
+  async rotate(copyRecentData: boolean = true, force: boolean = false) {
+    if (!this.shouldRotate()) {
+      console.log('⚠️ Rotação cancelada - limite não atingido');
+      return null;
+    }
+    
+    console.log('🔄 Iniciando rotação com período de transição...');
+    console.log(`   Copiando dados dos últimos ${this.transitionPeriodDays} dias`);
     
     const oldDbPath = this.currentDbPath;
     
@@ -437,10 +375,9 @@ export class DatabaseManager {
     }
 
     try {
-      // Fechar conexão
       this.close();
 
-      // Marcar banco atual como inativo
+      // Marcar banco antigo como inativo
       const metaPath = oldDbPath.replace('.db', '.meta.json');
       const meta = this.readMetadata(metaPath);
       meta.isActive = false;
@@ -450,18 +387,19 @@ export class DatabaseManager {
       // Criar novo banco
       this.createNewDatabase();
       
-      // Aplicar migrations no novo banco
+      // Aplicar migrations
       this.applyMigrations();
 
-      // Copiar tabelas master se necessário
+      // ✅ Copiar tabelas com período de transição
       let copyStats = null;
-      if (applyMasterTables && masterTables && masterTables.length > 0) {
-        console.log('📋 Copiando tabelas master...');
+      if (copyRecentData) {
+        console.log('📋 Copiando tabelas com período de transição...');
         
         this.currentDb!.prepare(`ATTACH DATABASE '${oldDbPath}' AS old_db`).run();
 
         try {
-          copyStats = await this.copyMasterTablesFromAttached(masterTables, 'old_db');
+          const tableConfigs = DatabaseManager.getTableConfigurations();
+          copyStats = await this.copyTablesWithTransition(tableConfigs, 'old_db');
         } finally {
           this.currentDb!.prepare('DETACH DATABASE old_db').run();
         }
@@ -483,27 +421,31 @@ export class DatabaseManager {
   }
 
   /**
-   * Copia tabelas master usando ATTACH DATABASE
+   * ✅ NOVO: Copia tabelas com estratégias diferentes
    */
-  private async copyMasterTablesFromAttached(
-    tables: MasterTableConfig[],
+  private async copyTablesWithTransition(
+    tables: TableConfig[],
     attachedDbName: string
   ): Promise<{
     success: boolean;
-    copied: { table: string; records: number }[];
+    copied: { table: string; records: number; type: string }[];
     errors: { table: string; error: string }[];
   }> {
-    const copied: { table: string; records: number }[] = [];
+    const copied: { table: string; records: number; type: string }[] = [];
     const errors: { table: string; error: string }[] = [];
 
     if (!this.currentDb) {
       throw new Error('Banco atual não inicializado');
     }
 
-    for (const config of tables) {
-      try {
-        console.log(`  📊 Copiando ${config.tableName}...`);
+        // ✅ Ordenar tabelas por dependência (master primeiro, depois transactional)
+    const sortedTables = this.sortTablesByDependency(tables);
 
+    for (const config of sortedTables) {
+      try {
+        console.log(`  📊 Processando ${config.tableName} (${config.type})...`);
+
+        // Verificar se tabela existe
         const tableExists = this.currentDb
           .prepare(
             `SELECT name FROM ${attachedDbName}.sqlite_master WHERE type='table' AND name=?`
@@ -515,6 +457,7 @@ export class DatabaseManager {
           continue;
         }
 
+        // Obter colunas
         const tableInfo = this.currentDb
           .prepare(`PRAGMA ${attachedDbName}.table_info(${config.tableName})`)
           .all() as Array<{ name: string }>;
@@ -525,19 +468,35 @@ export class DatabaseManager {
 
         const columnsList = columns.join(', ');
 
-        if (config.truncateBeforeCopy) {
-          this.currentDb.prepare(`DELETE FROM ${config.tableName}`).run();
-        }
-
+        // Construir query baseado na estratégia
         let insertQuery: string;
         
-        if (config.copyAll || !config.customQuery) {
+        if (config.copyStrategy.copyAll) {
+          // ═══ MASTER TABLE: Copiar TUDO ═══
           insertQuery = `
             INSERT OR REPLACE INTO ${config.tableName} (${columnsList})
-            SELECT ${columnsList} FROM ${attachedDbName}.${config.tableName}
+            SELECT ${columnsList}
+            FROM ${attachedDbName}.${config.tableName}
+            WHERE deleted_at IS NULL
           `;
-        } else {
-          const customQuery = config.customQuery.replace(
+          
+        } else if (/*config.copyStrategy.recentDays &&*/ config.copyStrategy.timestampColumn) {
+          // ═══ TRANSACTIONAL TABLE: Copiar período recente ═══
+          const daysAgo = config.copyStrategy.recentDays ?? this.transitionPeriodDays;
+          const dateColumn = config.copyStrategy.timestampColumn;
+          
+          insertQuery = `
+            INSERT OR REPLACE INTO ${config.tableName} (${columnsList})
+            SELECT ${columnsList}
+            FROM ${attachedDbName}.${config.tableName}
+            WHERE deleted_at IS NULL
+              AND ${dateColumn} >= date('now', '-${daysAgo} days')
+            ORDER BY ${dateColumn} DESC
+          `;
+          
+        } else if (config.copyStrategy.customQuery) {
+          // ═══ CUSTOM QUERY ═══
+          const customQuery = config.copyStrategy.customQuery.replace(
             `FROM ${config.tableName}`,
             `FROM ${attachedDbName}.${config.tableName}`
           );
@@ -545,13 +504,22 @@ export class DatabaseManager {
             INSERT OR REPLACE INTO ${config.tableName} (${columnsList})
             ${customQuery}
           `;
+          
+        } else {
+          console.warn(`  ⚠️ Nenhuma estratégia definida para ${config.tableName}`);
+          continue;
         }
 
+        // Executar cópia
         const result = this.currentDb.prepare(insertQuery).run();
         const recordCount = result.changes;
 
-        console.log(`  ✅ ${recordCount} registros copiados`);
-        copied.push({ table: config.tableName, records: recordCount });
+        console.log(`  ✅ ${recordCount} registros copiados (${config.type})`);
+        copied.push({ 
+          table: config.tableName, 
+          records: recordCount,
+          type: config.type
+        });
 
       } catch (error: any) {
         console.error(`  ❌ Erro ao copiar ${config.tableName}:`, error.message);
@@ -559,17 +527,237 @@ export class DatabaseManager {
       }
     }
 
+    // Resumo
+    console.log('');
+    console.log('📊 RESUMO DA CÓPIA:');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+    const masterCount = copied.filter(c => c.type === 'master').length;
+    const transCount = copied.filter(c => c.type === 'transactional').length;
+    const totalRecords = copied.reduce((sum, c) => sum + c.records, 0);
+    
+    console.log(`  Master tables:        ${masterCount} tabelas`);
+    console.log(`  Transactional tables: ${transCount} tabelas (${this.transitionPeriodDays} dias)`);
+    console.log(`  Total de registros:   ${totalRecords}`);
+    console.log(`  Erros:                ${errors.length}`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
     return { success: errors.length === 0, copied, errors };
   }
 
   /**
-   * Helper para definir tabelas master padrão
+ * ✅ Ordena tabelas respeitando dependências de Foreign Keys
+ */
+private sortTablesByDependency(tables: TableConfig[]): TableConfig[] {
+  // Ordem manual baseada nas dependências do seu schema
+  const dependencyOrder = [
+    // 1️⃣ Tabelas sem dependências (base)
+    'system_info',
+    'users',
+    'company_settings',
+    
+    // 2️⃣ Categorias e configurações
+    'vehicle_categories',
+    'maintenance_categories',
+    'expense_categories',
+    'categories',
+    'fuel_stations',
+    'workshops',
+    'routes',
+    
+    // 3️⃣ Mestres que dependem de categorias
+    'drivers',
+    'vehicles',
+    
+    // 4️⃣ Documentos (dependem de vehicles)
+    'vehicle_documents',
+    
+    // 5️⃣ Transacionais (dependem de tudo acima)
+    'trips', // depende de vehicle, driver, route
+    'refuelings', // depende de vehicle, driver, trip, fuel_station
+    'maintenances',
+    'maintenance_items',
+    'expenses',
+    'fines'
+  ];
+
+  return tables.sort((a, b) => {
+    const indexA = dependencyOrder.indexOf(a.tableName);
+    const indexB = dependencyOrder.indexOf(b.tableName);
+    
+    // Se não estiver na lista, coloca no final
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    
+    return indexA - indexB;
+  });
+}
+
+  /**
+   * ✅ NOVO: Configuração de tabelas do sistema
+   * IMPORTANTE: Adapte as tabelas e colunas conforme seu schema!
    */
-  static getDefaultMasterTables(): MasterTableConfig[] {
+  static getTableConfigurations(): TableConfig[] {
     return [
-      { tableName: 'users', copyAll: true },
-      { tableName: 'drivers', copyAll: true },
-      { tableName: 'routes', copyAll: true },
+      // ═══════════════════════════════════════════════════════════
+      // MASTER TABLES - Copiar TUDO (configurações, referências)
+      // ═══════════════════════════════════════════════════════════
+      {
+        tableName: 'system_info',
+        type: 'master',
+        copyStrategy: { copyAll: true }
+      },
+      {
+        tableName: 'users',
+        type: 'master',
+        copyStrategy: { copyAll: true }
+      },
+      {
+        tableName: 'drivers',
+        type: 'master',
+        copyStrategy: { copyAll: true }
+      },
+      {
+        tableName: 'vehicles',
+        type: 'master',
+        copyStrategy: { copyAll: true }
+      },
+      {
+        tableName: 'vehicle_categories',
+        type: 'master',
+        copyStrategy: { copyAll: true }
+      },
+      {
+        tableName: 'vehicle_documents',
+        type: 'master',
+        copyStrategy: { copyAll: true }
+      },
+      {
+        tableName: 'routes',
+        type: 'master',
+        copyStrategy: { copyAll: true }
+      },
+      {
+        tableName: 'fuel_stations',
+        type: 'master',
+        copyStrategy: { copyAll: true }
+      },
+      {
+        tableName: 'maintenance_categories',
+        type: 'master',
+        copyStrategy: { copyAll: true }
+      },
+      {
+        tableName: 'categories',
+        type: 'master',
+        copyStrategy: { copyAll: true }
+      },
+      {
+        tableName: 'workshops',
+        type: 'master',
+        copyStrategy: { copyAll: true }
+      },
+      {
+        tableName: 'company_settings',
+        type: 'master',
+        copyStrategy: { copyAll: true }
+      },
+      {
+        tableName: 'expense_categories',
+        type: 'master',
+        copyStrategy: { copyAll: true }
+      },
+
+      // ═══════════════════════════════════════════════════════════
+      // TRANSACTIONAL TABLES - Copiar últimos 30 dias
+      // ═══════════════════════════════════════════════════════════
+      {
+        tableName: 'trips',
+        type: 'transactional',
+        copyStrategy: {
+          recentDays: 60,
+          timestampColumn: 'created_at' // ou 'created_at'
+        }
+      },
+      {
+        tableName: 'maintenances',
+        type: 'transactional',
+        copyStrategy: {
+          recentDays: 30,
+          timestampColumn: 'created_at'
+        }
+      },
+      {
+        tableName: 'maintenance_items',
+        type: 'transactional',
+        copyStrategy: {
+          recentDays: 30,
+          timestampColumn: 'created_at'
+        }
+      },
+      {
+        tableName: 'expenses',
+        type: 'transactional',
+        copyStrategy: {
+          recentDays: 60,
+          timestampColumn: 'created_at'
+        }
+      },
+      // {
+      //   tableName: 'fuel_records',
+      //   type: 'transactional',
+      //   copyStrategy: {
+      //     recentDays: 30,
+      //     timestampColumn: 'created_at'
+      //   }
+      // },
+      {
+        tableName: 'refuelings',
+        type: 'transactional',
+        copyStrategy: {
+          recentDays: 30,
+          timestampColumn: 'created_at'
+        }
+      },
+      {
+        tableName: 'fines',
+        type: 'transactional',
+        copyStrategy: {
+          // recentDays: 30,
+          timestampColumn: 'created_at'
+        }
+      },
+
+      // ═══════════════════════════════════════════════════════════
+      // AUDIT/LOG TABLES - NÃO incluir (não serão copiadas)
+      // ═══════════════════════════════════════════════════════════
+      // 'audit_logs' - Não incluir
+      // 'system_logs' - Não incluir
     ];
+  }
+
+  /**
+   * Consulta em múltiplos bancos (para relatórios históricos)
+   */
+  queryMultiple<T>(
+    query: string,
+    params: any[] = [],
+    maxDatabases: number = 5
+  ): T[] {
+    const databases = this.listDatabases().slice(0, maxDatabases);
+    const results: T[] = [];
+
+    for (const dbFile of databases) {
+      try {
+        const db = new Database(dbFile.filepath, { readonly: true });
+        const rows = db.prepare(query).all(...params) as T[];
+        results.push(...rows);
+        db.close();
+      } catch (error) {
+        console.error(`Erro ao consultar ${dbFile.filename}:`, error);
+      }
+    }
+
+    return results;
   }
 }

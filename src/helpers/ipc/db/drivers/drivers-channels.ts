@@ -7,4 +7,5 @@ export const CREATE_DRIVER = "drivers:create";
 export const UPDATE_DRIVER = "drivers:update";
 export const DELETE_DRIVER = "drivers:delete";
 export const GET_ACTIVE_DRIVERS = "drivers:get-active";
+export const GET_AVAILABLE_DRIVERS = "drivers:get-available";
 export const GET_EXPIRING_LICENSES = "drivers:get-expiring-licenses";

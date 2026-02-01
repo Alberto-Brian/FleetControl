@@ -29,7 +29,6 @@ import {
     CheckCircle,
     XCircle,
 } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
@@ -37,6 +36,8 @@ import {
     exportBackup,
     restoreBackup,
 } from "@/helpers/backup-helpers";
+
+import { forceDbRotation } from "@/helpers/system-helpers";
 
 // ────────────────────────────────────────────────
 //   Modais Auxiliares
@@ -350,91 +351,97 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
     // ═══════════════════════════════════════════════
     //   HANDLER: Executar Restauração
     // ═══════════════════════════════════════════════
-   // ═══════════════════════════════════════════════
-//   HANDLER: Restaurar Backup (após confirmação)
-// ═══════════════════════════════════════════════
-const handleDoRestore = async () => {
-  setShowConfirmRestore(false);
-  setOperation('restoring');
+    const handleDoRestore = async () => {
+        setShowConfirmRestore(false);
+        setOperation('restoring');
 
-  try {
-    const result = await restoreBackup();
+        try {
+            const result = await restoreBackup();
 
-    // ────────────────────────────────────────────────
-    // Cancelamento ou falha inicial → silencioso
-    // ────────────────────────────────────────────────
-    if (!result?.success) {
-      setOperation('idle');
-      return;
+            // ────────────────────────────────────────────────
+            // Cancelamento ou falha inicial → silencioso
+            // ────────────────────────────────────────────────
+            if (!result?.success) {
+                setOperation('idle');
+                return;
+            }
+
+            // ────────────────────────────────────────────────
+            // Só mostramos progresso se o ficheiro foi seleccionado e a restauração começou
+            // ────────────────────────────────────────────────
+            setProgressData({
+                type: 'restore',
+                progress: 0,
+                phase: 'A iniciar...',
+                message: 'A validar o ficheiro seleccionado...',
+                status: 'loading',
+            });
+            setShowProgress(true);
+
+            // Simulação (substituir por progresso real via IPC quando disponível)
+            const phases = [
+                { phase: 'Validação', msg: 'A verificar integridade...', pct: 20 },
+                { phase: 'Extração', msg: 'A extrair conteúdos...', pct: 45 },
+                { phase: 'Restauração', msg: 'A restaurar bases de dados e configurações...', pct: 80 },
+                { phase: 'Finalização', msg: 'A aplicar alterações...', pct: 95 },
+            ];
+
+            for (const step of phases) {
+                await new Promise(r => setTimeout(r, 800));
+                setProgressData(prev => ({
+                    ...prev,
+                    phase: step.phase,
+                    message: step.msg,
+                    progress: step.pct,
+                }));
+            }
+
+            setProgressData(prev => ({
+                ...prev,
+                progress: 100,
+                phase: 'Concluído',
+                message: 'Restauração finalizada',
+                status: 'success',
+            }));
+
+            await new Promise(r => setTimeout(r, 1400));
+            setShowProgress(false);
+
+            setResult({
+                type: 'success',
+                title: 'Backup restaurado',
+                message: result.requiresRestart
+                    ? 'Restauração concluída. A aplicação será reiniciada em breve...'
+                    : 'Restauração concluída com sucesso.',
+                needsReactivation: false,
+            });
+            setShowResult(true);
+
+            if (result.requiresRestart) {
+                setTimeout(() => window.location.reload(), 2200);
+            }
+        } catch (err: any) {
+            setShowProgress(false);
+            setResult({
+                type: 'error',
+                title: 'Erro durante a restauração',
+                message: err.message || 'Ocorreu um problema inesperado.',
+                needsReactivation: false,
+            });
+            setShowResult(true);
+        } finally {
+            setOperation('idle');
+        }
+    };
+
+    const handleRotetion = async () => {
+        try{
+            console.log('Click handle rotation detectado')
+            await forceDbRotation() 
+        } catch (erro: any) {
+            console.log("Erro ao forçar rotation: ", erro)
+        }
     }
-
-    // ────────────────────────────────────────────────
-    // Só mostramos progresso se o ficheiro foi seleccionado e a restauração começou
-    // ────────────────────────────────────────────────
-    setProgressData({
-      type: 'restore',
-      progress: 0,
-      phase: 'A iniciar...',
-      message: 'A validar o ficheiro seleccionado...',
-      status: 'loading',
-    });
-    setShowProgress(true);
-
-    // Simulação (substituir por progresso real via IPC quando disponível)
-    const phases = [
-      { phase: 'Validação', msg: 'A verificar integridade...', pct: 20 },
-      { phase: 'Extração', msg: 'A extrair conteúdos...', pct: 45 },
-      { phase: 'Restauração', msg: 'A restaurar bases de dados e configurações...', pct: 80 },
-      { phase: 'Finalização', msg: 'A aplicar alterações...', pct: 95 },
-    ];
-
-    for (const step of phases) {
-      await new Promise(r => setTimeout(r, 800));
-      setProgressData(prev => ({
-        ...prev,
-        phase: step.phase,
-        message: step.msg,
-        progress: step.pct,
-      }));
-    }
-
-    setProgressData(prev => ({
-      ...prev,
-      progress: 100,
-      phase: 'Concluído',
-      message: 'Restauração finalizada',
-      status: 'success',
-    }));
-
-    await new Promise(r => setTimeout(r, 1400));
-    setShowProgress(false);
-
-    setResult({
-      type: 'success',
-      title: 'Backup restaurado',
-      message: result.requiresRestart
-        ? 'Restauração concluída. A aplicação será reiniciada em breve...'
-        : 'Restauração concluída com sucesso.',
-      needsReactivation: false,
-    });
-    setShowResult(true);
-
-    if (result.requiresRestart) {
-      setTimeout(() => window.location.reload(), 2200);
-    }
-  } catch (err: any) {
-    setShowProgress(false);
-    setResult({
-      type: 'error',
-      title: 'Erro durante a restauração',
-      message: err.message || 'Ocorreu um problema inesperado.',
-      needsReactivation: false,
-    });
-    setShowResult(true);
-  } finally {
-    setOperation('idle');
-  }
-};
 
     return (
         <>
@@ -442,18 +449,18 @@ const handleDoRestore = async () => {
             {/*   Dialog Principal de Definições             */}
             {/* ============================================= */}
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-4xl h-[600px] p-0 gap-0 overflow-hidden">
-                    <div className="flex h-full">
+                <DialogContent className="max-w-4xl h-[600px] max-h-[85vh] p-0 gap-0 flex flex-col">
+                    <div className="flex flex-1 min-h-0">
                         {/* Sidebar de navegação */}
-                        <aside className="w-64 border-r border-border bg-muted/30 flex flex-col">
-                            <DialogHeader className="p-6 pb-4">
+                        <aside className="w-64 border-r border-border bg-muted/30 flex flex-col shrink-0">
+                            <DialogHeader className="p-6 pb-4 shrink-0">
                                 <DialogTitle className="flex items-center gap-2 text-lg">
                                     <Settings className="w-5 h-5" />
                                     Definições
                                 </DialogTitle>
                             </DialogHeader>
 
-                            <ScrollArea className="flex-1 px-3">
+                            <div className="flex-1 min-h-0 overflow-y-auto px-3">
                                 <nav className="space-y-1 py-2">
                                     {settingsSections.map((section) => {
                                         const Icon = section.icon;
@@ -473,12 +480,12 @@ const handleDoRestore = async () => {
                                         );
                                     })}
                                 </nav>
-                            </ScrollArea>
+                            </div>
                         </aside>
 
                         {/* Conteúdo das definições */}
-                        <main className="flex-1 flex flex-col">
-                            <ScrollArea className="flex-1 px-1 py-2">
+                        <main className="flex-1 min-h-0 min-w-0 flex flex-col">
+                            <div className="flex-1 overflow-y-auto">
                                 <div className="p-6 space-y-6">
                                     {activeTab === "appearance" && (
                                         <div className="space-y-6">
@@ -670,126 +677,165 @@ const handleDoRestore = async () => {
                                                     será necessário reativar a licença com o novo Machine ID.
                                                 </div>
                                             </div>
+
+                                            {/* Ferramentas Avançadas / Testes */}
+                                            <div className="pt-6 border-t border-border space-y-4">
+                                                <div>
+                                                    <h4 className="text-sm font-semibold text-destructive mb-1">
+                                                        Ferramentas Avançadas (Testes)
+                                                    </h4>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Estas ações são apenas para testes e manutenção. 
+                                                        Não utilize em produção sem orientação técnica.
+                                                    </p>
+                                                </div>
+
+                                                <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5 space-y-3">
+                                                    <div className="flex items-start gap-3">
+                                                        <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
+                                                        <div className="space-y-1">
+                                                            <p className="text-sm font-medium text-destructive">
+                                                                Forçar rotação da base de dados
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                                                Cria uma nova base de dados ativa e arquiva a atual.
+                                                                Útil apenas para testes de rotação e backup.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <Button
+                                                        variant="destructive"
+                                                        size="sm"
+                                                        onClick={handleRotetion}
+                                                        disabled={isBusy}
+                                                        className="w-full flex items-center gap-2"
+                                                    >
+                                                        <HardDrive className="w-4 h-4" />
+                                                        Forçar rotação agora
+                                                    </Button>
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
 
-{activeTab === "about" && (
-    <div className="space-y-6">
-        {/* Cabeçalho / Logo */}
-        <div className="text-center pb-6 border-b border-border">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
-                <Package className="w-10 h-10 text-primary-foreground" />
-            </div>
-            <h3 className="text-2xl font-bold mb-1">MarketPro</h3>
-            <p className="text-sm text-muted-foreground mb-3">
-                Sistema de Gestão de Mercado (SGM)
-            </p>
-            <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
-                Versão 1.0.0 • Build 2025.01.08
-            </span>
-        </div>
+                                    {activeTab === "about" && (
+                                        <div className="space-y-6">
+                                            {/* Cabeçalho / Logo */}
+                                            <div className="text-center pb-6 border-b border-border">
+                                                <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
+                                                    <Package className="w-10 h-10 text-primary-foreground" />
+                                                </div>
+                                                <h3 className="text-2xl font-bold mb-1">FleetControl</h3>
+                                                <p className="text-sm text-muted-foreground mb-3">
+                                                    Sistema de Gestão de Frotas
+                                                </p>
+                                                <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
+                                                    Versão 1.0.0 • Build 2026.02.01
+                                                </span>
+                                            </div>
 
-        {/* Informações do Sistema */}
-        <div className="space-y-4">
-            <h3 className="text-base font-semibold">Informações do Sistema</h3>
-            <div className="p-4 rounded-lg border bg-card/50 space-y-3 text-sm">
-                <div className="flex justify-between">
-                    <span className="text-muted-foreground">Versão</span>
-                    <span className="font-medium">1.0.0</span>
-                </div>
-                <div className="flex justify-between">
-                    <span className="text-muted-foreground">Build</span>
-                    <span className="font-medium">2025.01.08</span>
-                </div>
-                <div className="flex justify-between">
-                    <span className="text-muted-foreground">Última atualização</span>
-                    <span className="font-medium">8 de Janeiro de 2025</span>
-                </div>
-                <div className="flex justify-between">
-                    <span className="text-muted-foreground">Licença</span>
-                    <span className="font-medium">Proprietária</span>
-                </div>
-            </div>
-        </div>
+                                            {/* Informações do Sistema */}
+                                            <div className="space-y-4">
+                                                <h3 className="text-base font-semibold">Informações do Sistema</h3>
+                                                <div className="p-4 rounded-lg border bg-card/50 space-y-3 text-sm">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Versão</span>
+                                                        <span className="font-medium">1.0.0</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Build</span>
+                                                        <span className="font-medium">2026.02.01</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Última atualização</span>
+                                                        <span className="font-medium">1 de Fevereiro de 2026</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-muted-foreground">Licença</span>
+                                                        <span className="font-medium">Proprietária</span>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-        {/* Desenvolvido por */}
-        <div className="space-y-4 pt-2">
-            <h3 className="text-base font-semibold">Desenvolvido por</h3>
-            <div className="p-5 rounded-xl border bg-gradient-to-br from-primary/5 to-primary/10 space-y-4">
-                <div>
-                    <h4 className="text-lg font-bold flex items-center gap-2 mb-2">
-                        <Building2 className="w-5 h-5 text-primary" />
-                        TechSoft Solutions
-                    </h4>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                        Empresa angolana especializada no desenvolvimento de software de gestão empresarial, 
-                        oferecendo soluções tecnológicas modernas e adaptadas ao mercado nacional.
-                    </p>
-                </div>
+                                            {/* Desenvolvido por */}
+                                            <div className="space-y-4 pt-2">
+                                                <h3 className="text-base font-semibold">Desenvolvido por</h3>
+                                                <div className="p-5 rounded-xl border bg-gradient-to-br from-primary/5 to-primary/10 space-y-4">
+                                                    <div>
+                                                        <h4 className="text-lg font-bold flex items-center gap-2 mb-2">
+                                                            <Building2 className="w-5 h-5 text-primary" />
+                                                            TechSoft Solutions
+                                                        </h4>
+                                                        <p className="text-sm text-muted-foreground leading-relaxed">
+                                                            Empresa angolana especializada no desenvolvimento de software de gestão empresarial, 
+                                                            oferecendo soluções tecnológicas modernas e adaptadas ao mercado nacional.
+                                                        </p>
+                                                    </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm pt-2">
-                    <div>
-                        <p className="text-xs text-muted-foreground uppercase">Localização</p>
-                        <p className="font-medium">Luanda, Angola</p>
-                    </div>
-                    <div>
-                        <p className="text-xs text-muted-foreground uppercase">Fundação</p>
-                        <p className="font-medium">2020</p>
-                    </div>
-                    <div>
-                        <p className="text-xs text-muted-foreground uppercase">NIF</p>
-                        <p className="font-medium">5401234567</p>
-                    </div>
-                    <div>
-                        <p className="text-xs text-muted-foreground uppercase">Reg. Comercial</p>
-                        <p className="font-medium">RC-123456</p>
-                    </div>
-                </div>
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm pt-2">
+                                                        <div>
+                                                            <p className="text-xs text-muted-foreground uppercase">Localização</p>
+                                                            <p className="font-medium">Luanda, Angola</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-muted-foreground uppercase">Fundação</p>
+                                                            <p className="font-medium">2025</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-muted-foreground uppercase">NIF</p>
+                                                            <p className="font-medium">5401234567</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-muted-foreground uppercase">Reg. Comercial</p>
+                                                            <p className="font-medium">RC-123456</p>
+                                                        </div>
+                                                    </div>
 
-                <div className="pt-4 border-t border-border/50 space-y-3">
-                    <p className="text-xs font-medium text-muted-foreground uppercase">Contactos</p>
-                    <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2">
-                            <Mail className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">suporte.techsoft@gmail.com</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Mail className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">comercial@techsoft.ao</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-muted-foreground" />
-                            <span>+244 923 456 789</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Globe className="w-4 h-4 text-muted-foreground" />
-                            <span>www.techsoft.ao</span>
-                        </div>
-                    </div>
-                </div>
+                                                    <div className="pt-4 border-t border-border/50 space-y-3">
+                                                        <p className="text-xs font-medium text-muted-foreground uppercase">Contactos</p>
+                                                        <div className="space-y-2 text-sm">
+                                                            <div className="flex items-center gap-2">
+                                                                <Mail className="w-4 h-4 text-muted-foreground" />
+                                                                <span className="truncate">suporte.techsoft@gmail.com</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <Mail className="w-4 h-4 text-muted-foreground" />
+                                                                <span className="truncate">comercial@techsoft.ao</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <Phone className="w-4 h-4 text-muted-foreground" />
+                                                                <span>+244 923 456 789</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <Globe className="w-4 h-4 text-muted-foreground" />
+                                                                <span>www.techsoft.ao</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
 
-                <div className="pt-3 border-t border-border/50">
-                    <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Endereço</p>
-                    <div className="flex items-start gap-2 text-sm">
-                        <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                        <div className="leading-relaxed">
-                            <p>Rua Comandante Gika, Edifício Tech Plaza</p>
-                            <p>5º Andar, Sala 502 - Ingombota, Luanda</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+                                                    <div className="pt-3 border-t border-border/50">
+                                                        <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Endereço</p>
+                                                        <div className="flex items-start gap-2 text-sm">
+                                                            <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                                                            <div className="leading-relaxed">
+                                                                <p>Avenida 4 de Fevereiro, Torre Executiva</p>
+                                                                <p>7º Andar, Escritório 705 - Luanda, Angola</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-        {/* Copyright */}
-        <div className="text-center pt-6 text-xs text-muted-foreground border-t border-border">
-            <p>© 2020–2025 TechSoft Solutions. Todos os direitos reservados.</p>
-            <p className="mt-1">Desenvolvido em Angola para Angola</p>
-        </div>
-    </div>
-)}
+                                            {/* Copyright */}
+                                            <div className="text-center pt-6 text-xs text-muted-foreground border-t border-border">
+                                                <p>© 2025–2026 TechSoft Solutions. Todos os direitos reservados.</p>
+                                                <p className="mt-1">Desenvolvido em Angola para Angola</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            </ScrollArea>
+                            </div>
                         </main>
                     </div>
                 </DialogContent>

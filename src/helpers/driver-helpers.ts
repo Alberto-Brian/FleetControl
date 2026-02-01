@@ -63,6 +63,16 @@ export async function getActiveDrivers(): Promise<IDriver[]> {
     }
 }
 
+export async function getAvailableDrivers(): Promise<IDriver[]> {
+    try {
+        const result = await window._drivers.getAvailable();
+        return result;
+    } catch (error) {
+        console.error(error);
+        return [];
+    }
+}
+
 export async function getExpiringLicenses(days: number = 30): Promise<IDriver[]> {
     try {
         const result = await window._drivers.getExpiringLicenses(days);
