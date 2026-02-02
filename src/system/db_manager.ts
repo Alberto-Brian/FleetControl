@@ -1,3 +1,7 @@
+// ========================================
+// FILE: src/system/db_manager.ts
+// ========================================
+
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';

@@ -1,3 +1,7 @@
+// ========================================
+// FILE: src/system/version_manager.ts
+// ========================================
+
 import { app } from 'electron';
 import { eq } from 'drizzle-orm';
 import { systemInfo } from '@/lib/db/schemas/system';

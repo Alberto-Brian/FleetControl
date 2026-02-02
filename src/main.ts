@@ -5,6 +5,7 @@ import path from "path";
 import { initializeDatabase, getDbManager } from './lib/db/db_client';
 import { VersionManager } from '@/system/version_manager';
 import { APP_NAME } from "@/system/system.config";
+import { RestoreController } from '@/system/restore_manager';
 
 const inDevelopment = process.env.NODE_ENV === "development";
 
@@ -139,6 +140,21 @@ app.whenReady().then(async () => {
     console.log('====================================================');
     console.log('');
 
+    // ═══════════════════════════════════════════════════════════
+    // ETAPA 0: Verificar restore pendente (ANTES DE TUDO)
+    // ═══════════════════════════════════════════════════════════
+    console.log('== ETAPA 0: Restore Pendente ========================');
+    const restoreCtrl = new RestoreController();
+    const hadRestore = await restoreCtrl.checkAndExecuteRestore();
+    
+    if (hadRestore) {
+      console.log('✅ Restore executado - continuando inicialização...');
+    } else {
+      console.log('ℹ️  Nenhum restore pendente');
+    }
+    console.log('_____________________________________________________');
+    console.log('');
+
     // ═══════════════════════════════════════════════════════════════════
     // ETAPA 1: Mostrar splash imediatamente
     // ═══════════════════════════════════════════════════════════════════
@@ -152,12 +168,12 @@ app.whenReady().then(async () => {
     // ═══════════════════════════════════════════════════════════════════
     // ETAPA 2: Inicializar DatabaseManager (SEM executar backups)
     // ═══════════════════════════════════════════════════════════════════
-    console.log('== ETAPA 2: Database =================================');
+    console.log('== ETAPA 2: Database == == == == == == == == == == == ==');
     console.log(' -- Inicializando DatabaseManager --');
     const db = initializeDatabase(
-        100, // 100,  // maxSizeInMB: 100MB 
-        30, // 30,   // maxAgeInDays: Rotação mensal
-        1 // 30    // transitionPeriodDays: Copiar último mês
+        100, // 100,  // maxSizeInMB: 100MB - tamanho da base de dados em MBs
+        30, // 30,   // maxAgeInDays: Rotação mensal - idade da base de dados em dias 
+        30 // 30    // transitionPeriodDays: Copiar último mês
       );
     console.log(' __ DatabaseManager inicializado');
     console.log('________________________________________________________');

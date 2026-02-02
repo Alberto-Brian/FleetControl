@@ -43,13 +43,15 @@ export async function addBackupEventListeners() {
         const result = await backup_manager.restoreBackup(filePaths[0]);
         // const result = await backup_manager.scheduleRestore(filePaths[0]);
   
-            if (result.success && result.requiresRestart) {
-                // Reiniciar a aplicação
-                app.relaunch();
-                app.exit(0);
-            } else {
-                 return result
-            }
+            // if (result.success && result.requiresRestart) {
+            //     // Reiniciar a aplicação
+            //     app.relaunch();
+            //     app.exit(0);
+            // } else {
+            //      return result
+            // }
+
+            return result;
     });
 
     ipcMain.handle(BACKUP_GET_CONFIG_CHANNEL, async() => {
