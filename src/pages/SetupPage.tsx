@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/components/ui/use-toast';
 import { Truck } from 'lucide-react';
 import { createFirstUser } from '@/helpers/service-auth-helpers';
@@ -13,6 +14,7 @@ interface SetupPageProps {
 }
 
 export default function SetupPage({ onSetupComplete }: SetupPageProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -27,8 +29,8 @@ export default function SetupPage({ onSetupComplete }: SetupPageProps) {
     
     if (formData.password !== formData.confirmPassword) {
       toast({
-        title: 'Erro',
-        description: 'As senhas não coincidem',
+        title: t('auth.toast.errorTitle'),
+        description: t('auth.setup.passwordsDontMatch'),
         variant: 'destructive'
       });
       return;
@@ -36,8 +38,8 @@ export default function SetupPage({ onSetupComplete }: SetupPageProps) {
 
     if (formData.password.length < 6) {
       toast({
-        title: 'Erro',
-        description: 'A senha deve ter pelo menos 6 caracteres',
+        title: t('auth.toast.errorTitle'),
+        description: t('auth.setup.passwordTooShort'),
         variant: 'destructive'
       });
       return;
@@ -53,16 +55,16 @@ export default function SetupPage({ onSetupComplete }: SetupPageProps) {
       });
 
       toast({
-        title: 'Sucesso!',
-        description: 'Utilizador criado. Faça login para continuar.',
+        title: t('auth.toast.successTitle'),
+        description: t('auth.setup.userCreatedSuccess'),
       });
 
       // Chama callback para mudar para tela de login
       onSetupComplete();
     } catch (error: any) {
       toast({
-        title: 'Erro',
-        description: error.message,
+        title: t('auth.toast.errorTitle'),
+        description: t(error?.message || 'auth:errors.userAlreadyExists'),
         variant: 'destructive'
       });
     } finally {

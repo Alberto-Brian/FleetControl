@@ -4,7 +4,7 @@
 export interface IVehicleCategory {
     id: string;
     name: string;
-    description?: string;
+    description: string | null;
     color: string;
     is_active: boolean;
     created_at: string;

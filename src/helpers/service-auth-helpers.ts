@@ -5,7 +5,8 @@ import {
     IChangePassword,
     IUpdateProfile,
  } from "@/lib/types/auth";
- import { IUser } from "@/lib/types/user";
+import { IUser } from "@/lib/types/user";
+import { getIpcErrorKey } from "@/helpers/error-helpers";
 
 
 export async function login(loginData: ILogin): Promise<IUser | null> {
@@ -13,8 +14,8 @@ export async function login(loginData: ILogin): Promise<IUser | null> {
         const result = await window._service_auth.login(loginData);
         return result;
     } catch (error) {
-        console.error(error);
-        return null;
+        const key = getIpcErrorKey(error, 'auth:errors.loginFailed');
+        throw new Error(key);
     }
 }
 
@@ -24,19 +25,33 @@ export async function logout(userId: string): Promise<string> {
     return result as string;
 }
 
+export async function logoutAllUsers(): Promise<void> {
+    await window._service_auth.logoutAllUsers();
+}
+
 export async function hasUsers(): Promise<boolean> {
     const result = await window._service_auth.hasUsers();
     return result;
 }
 
 export async function createFirstUser(userInfo: ICreateFirstUser) {
-    const result = await window._service_auth.createFirstUser(userInfo);
-    return result;
+    try {
+        const result = await window._service_auth.createFirstUser(userInfo);
+        return result;
+    } catch (error) {
+        const key = getIpcErrorKey(error, 'auth:errors.userAlreadyExists');
+        throw new Error(key);
+    }
 }
 
 export async function changePassword(changePasswordData: IChangePassword) {
-    const result = await window._service_auth.changePassword(changePasswordData);
-    return result;
+    try {
+        const result = await window._service_auth.changePassword(changePasswordData);
+        return result;
+    } catch (error) {
+        const key = getIpcErrorKey(error, 'auth:errors.wrongCurrentPassword');
+        throw new Error(key);
+    }
 }
 
 export async function updateProfile(userId: string, profileData: IUpdateProfile) {

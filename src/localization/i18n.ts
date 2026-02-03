@@ -1,10 +1,14 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import { vehicleTranslations } from "./vehicles_translations";
+import { authTranslations } from "./auth_translations";
 
 i18n.use(initReactI18next).init({
     fallbackLng: "en",
     resources: {
         en: {
+            vehicles: vehicleTranslations.en.vehicles,
+            auth: authTranslations.en.auth,
             homePage: {
                 registerNewClientButton: "Register new client",
                 idTableColumn: "ID",
@@ -31,6 +35,8 @@ i18n.use(initReactI18next).init({
             }
         },
         "pt-BR": {
+            vehicles: vehicleTranslations.pt.vehicles,
+            auth: authTranslations.pt.auth,
             homePage: {
                 registerNewClientButton: "Cadastrar novo cliente",
                 idTableColumn: "ID",

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
+import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
 import { createVehicle } from '@/helpers/vehicle-helpers';
 import { getAllVehicleCategories } from '@/helpers/vehicle-category-helpers';
@@ -19,6 +20,7 @@ interface NewVehicleDialogProps {
 
 export default function NewVehicleDialog({ onVehicleCreated }: NewVehicleDialogProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
@@ -64,11 +66,10 @@ export default function NewVehicleDialog({ onVehicleCreated }: NewVehicleDialogP
       //   status: 'available',
       //   created_at: new Date().toISOString(),
       // };
-
       if (newVehicle) {
         toast({
-          title: 'Sucesso!',
-          description: 'Veículo criado com sucesso.',
+          title: t('vehicles:toast.successTitle'),
+          description: t('vehicles:toast.createSuccess'),
         });
         onVehicleCreated(newVehicle);
         setOpen(false);
@@ -76,8 +77,8 @@ export default function NewVehicleDialog({ onVehicleCreated }: NewVehicleDialogP
       }
     } catch (error: any) {
       toast({
-        title: 'Erro',
-        description: error.message || 'Erro ao criar veículo',
+        title: t('vehicles:toast.errorTitle'),
+        description: t(error?.message || 'vehicles:toast.createError'),
         variant: 'destructive',
       });
     } finally {

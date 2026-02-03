@@ -24,6 +24,7 @@ import {
     updateVehicleMileage,
     getVehiclesByCategory,
     countVehiclesByStatus,
+    findVehicleByLicensePlate
 } from '@/lib/db/queries/vehicles.queries';
 
 import { ICreateVehicle, IUpdateVehicle } from '@/lib/types/vehicle';
@@ -51,14 +52,32 @@ async function getVehicleByIdEvent(vehicleId: string) {
 }
 
 async function createVehicleEvent(vehicleData: ICreateVehicle) {
+    const vehicleExists = await findVehicleByLicensePlate(vehicleData.license_plate);
+    if(vehicleExists) {
+        throw new Error('vehicles:errors.vehicleAlreadyExists');
+    }
     return await createVehicle(vehicleData);
 }
 
 async function updateVehicleEvent(vehicleId: string, vehicleData: IUpdateVehicle) {
+    const current = await getVehicleById(vehicleId);
+    if (!current) {
+        throw new Error('vehicles:errors.vehicleNotFound');
+    }
+    if (vehicleData.license_plate) {
+        const other = await findVehicleByLicensePlate(vehicleData.license_plate);
+        if (other && other.id !== vehicleId) {
+            throw new Error('vehicles:errors.vehicleAlreadyExists');
+        }
+    }
     return await updateVehicle(vehicleId, vehicleData);
 }
 
 async function deleteVehicleEvent(vehicleId: string) {
+    const current = await getVehicleById(vehicleId);
+    if (!current) {
+        throw new Error('vehicles:errors.vehicleNotFound');
+    }
     return await deleteVehicle(vehicleId);
 }
 

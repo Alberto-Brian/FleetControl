@@ -238,6 +238,14 @@ function DropdownMenuSubContent({
   )
 }
 
+ // SOLUÇÃO SIMPLIFICADA: Helper para fechar dropdowns antes de abrir diálogos
+  function closeDropdownsAndOpenDialog(callback: () => void) {
+    // Força o fechamento de qualquer dropdown aberto
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    // Pequeno delay para garantir que o dropdown fechou
+    setTimeout(callback, 50);
+  }
+
 export {
   DropdownMenu,
   DropdownMenuPortal,
@@ -254,4 +262,5 @@ export {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
+  closeDropdownsAndOpenDialog
 }

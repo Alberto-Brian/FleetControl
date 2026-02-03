@@ -6,16 +6,16 @@ export interface IVehicle extends IBase {
     brand: string;
     model: string;
     year: number;
-    color?: string;
-    chassis_number?: string;
-    engine_number?: string;
-    fuel_tank_capacity?: number;
+    color: string | null;
+    chassis_number: string | null;
+    engine_number: string | null;
+    fuel_tank_capacity: number | null;
     current_mileage: number;
-    acquisition_date?: string;
-    acquisition_value?: number;
+    acquisition_date: string | null;
+    acquisition_value: number | null;
     status: string;
-    photo?: string;
-    notes?: string;
+    photo: string | null;
+    notes: string | null;
     is_active: boolean;
 }
 

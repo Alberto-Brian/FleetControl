@@ -1,4 +1,4 @@
-import { db } from '@/lib/db/db_client';
+import { useDb } from '@/lib/db/db_helpers';
 import { eq } from 'drizzle-orm'
 
 // Formata data para SQLite
@@ -21,6 +21,7 @@ export async function softDelete(
   id: string,
   userId?: string
 ) {
+  const db = useDb();
   await db
     .update(table)
     .set({

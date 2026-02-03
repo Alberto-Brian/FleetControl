@@ -12,10 +12,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, LogOut, Settings, KeyRound } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { useTranslation } from 'react-i18next';
 
 export default function UserMenu() {
   const { user, logout } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -23,13 +25,13 @@ export default function UserMenu() {
     try {
       await logout();
       toast({
-        title: 'Sessão encerrada',
-        description: 'Até logo!',
+        title: t('auth:toast.logoutSuccessTitle'),
+        description: t('auth:toast.logoutSuccess'),
       });
     } catch (error: any) {
       toast({
-        title: 'Erro ao sair',
-        description: error.message,
+        title: t('auth:toast.logoutErrorTitle'),
+        description: t(error?.message || 'auth:errors.logoutFailed'),
         variant: 'destructive',
       });
     } finally {

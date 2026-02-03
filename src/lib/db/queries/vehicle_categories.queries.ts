@@ -5,9 +5,9 @@ import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { vehicle_categories } from '@/lib/db/schemas/vehicle_categories';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, isNull, desc } from 'drizzle-orm';
-import { ICreateVehicleCategory, IUpdateVehicleCategory } from '@/lib/types/vehicle-category';
+import { ICreateVehicleCategory, IUpdateVehicleCategory, IVehicleCategory } from '@/lib/types/vehicle-category';
 
-export async function createVehicleCategory(categoryData: ICreateVehicleCategory) {
+export async function createVehicleCategory(categoryData: ICreateVehicleCategory): Promise<IVehicleCategory> {
     await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
@@ -26,12 +26,31 @@ export async function createVehicleCategory(categoryData: ICreateVehicleCategory
             name: vehicle_categories.name,
             description: vehicle_categories.description,
             color: vehicle_categories.color,
+            is_active: vehicle_categories.is_active,
+            created_at: vehicle_categories.created_at
         });
 
     return result[0];
 }
 
-export async function getAllVehicleCategories() {
+export async function findVehcleCategoryByName(name: string): Promise<IVehicleCategory>{
+    const { db } = useDb();
+    const result  = await db    
+        .select({
+            id: vehicle_categories.id,
+            name: vehicle_categories.name,
+            description: vehicle_categories.description,
+            color: vehicle_categories.color,
+            is_active: vehicle_categories.is_active,
+            created_at: vehicle_categories.created_at
+        })
+        .from(vehicle_categories)
+        .where(eq(vehicle_categories.name, name))
+
+        return result[0];
+}
+
+export async function getAllVehicleCategories(): Promise<IVehicleCategory[]> {
     const { db } = useDb();
     const result = await db
         .select({
@@ -44,12 +63,12 @@ export async function getAllVehicleCategories() {
         })
         .from(vehicle_categories)
         .where(isNull(vehicle_categories.deleted_at))
-        .orderBy(desc(vehicle_categories.created_at));
+        .orderBy(desc(vehicle_categories.created_at))
 
     return result;
 }
 
-export async function updateVehicleCategory(categoryId: string, categoryData: IUpdateVehicleCategory) {
+export async function updateVehicleCategory(categoryId: string, categoryData: IUpdateVehicleCategory): Promise<IVehicleCategory> {
     const { db } = useDb();
     const result = await db
         .update(vehicle_categories)
@@ -63,7 +82,7 @@ export async function updateVehicleCategory(categoryId: string, categoryData: IU
     return result[0];
 }
 
-export async function deleteVehicleCategory(categoryId: string) {
+export async function deleteVehicleCategory(categoryId: string): Promise<string> {
     const { db } = useDb();
     await db
         .update(vehicle_categories)

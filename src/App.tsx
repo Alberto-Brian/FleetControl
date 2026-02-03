@@ -82,6 +82,7 @@ export default function App() {
     return (
         <AuthProvider>
             <AppContent />
+            <Toaster />
         </AuthProvider>
     );
 }

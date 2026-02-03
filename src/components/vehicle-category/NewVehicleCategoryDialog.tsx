@@ -7,12 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
+import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
 import { createVehicleCategory } from '@/helpers/vehicle-category-helpers';
-import { ICreateVehicleCategory } from '@/lib/types/vehicle-category';
+import { ICreateVehicleCategory, IVehicleCategory } from '@/lib/types/vehicle-category';
 
-
-export default function NewVehicleCategoryDialog() {
+type NewVehicleCategoryDialogProps = {
+  onCategoryCreated?: (category: IVehicleCategory) => void;
+}
+export default function NewVehicleCategoryDialog({ onCategoryCreated }: NewVehicleCategoryDialogProps)  { 
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,13 +43,16 @@ export default function NewVehicleCategoryDialog() {
           title: 'Sucesso!',
           description: 'Categoria de veículos criado com sucesso.',
         });
+        if (onCategoryCreated) {
+          onCategoryCreated(newVehicleCategory);
+        }
         setOpen(false);
         resetForm();
       }
     } catch (error: any) {
       toast({
         title: 'Erro',
-        description: error.message || 'Erro ao criar veículo',
+        description: t(error?.message || 'vehicles:errors.createVehicleCategory'),
         variant: 'destructive',
       });
     } finally {

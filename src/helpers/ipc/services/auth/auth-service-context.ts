@@ -2,6 +2,7 @@
 import {
     LOGIN,
     LOGOUT,
+    LOGOUT_ALL_USERS,
     HAS_USERS,
     CREATE_FIRST_USER,
     CHANGE_PASSWORD,
@@ -19,7 +20,8 @@ export function exposeServiceAuthContext() {
     const { contextBridge, ipcRenderer } = window.require("electron");
     contextBridge.exposeInMainWorld("_service_auth", {
         login: (credentials: ILogin) => ipcRenderer.invoke(LOGIN, credentials),
-        logout: () => ipcRenderer.invoke(LOGOUT),
+        logout: (userId: string) => ipcRenderer.invoke(LOGOUT, userId),
+        logoutAllUsers: () => ipcRenderer.invoke(LOGOUT_ALL_USERS),
         hasUsers: () => ipcRenderer.invoke(HAS_USERS),
         createFirstUser: (userData: ICreateFirstUser) => ipcRenderer.invoke(CREATE_FIRST_USER, userData),
         changePassword: (changePasswordData: IChangePassword) => ipcRenderer.invoke(CHANGE_PASSWORD, changePasswordData),

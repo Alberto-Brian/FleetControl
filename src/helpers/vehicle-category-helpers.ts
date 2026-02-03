@@ -2,6 +2,7 @@
 // FILE: src/helpers/vehicle-categories-helpers.ts
 // ========================================
 import { ICreateVehicleCategory, IUpdateVehicleCategory, IVehicleCategory } from '@/lib/types/vehicle-category';
+import { getIpcErrorKey } from '@/helpers/error-helpers';
 
 export async function getAllVehicleCategories(): Promise<IVehicleCategory[]> {
     try {
@@ -17,9 +18,9 @@ export async function createVehicleCategory(data: ICreateVehicleCategory): Promi
     try {
         const result = await window._vehicle_categories.create(data);
         return result;
-    } catch (error) {
-        console.error(error);
-        return null;
+    } catch (error: any) {
+        const key = getIpcErrorKey(error, 'vehicles:errors.createVehicleCategory');
+        throw new Error(key);
     }
 }
 

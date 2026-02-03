@@ -22,7 +22,12 @@ import NewVehicleDialog from '@/components/vehicle/NewVehicleDialog';
 import EditVehicleDialog from '@/components/vehicle/EditVehicleDialog';
 import ViewVehicleDialog from '@/components/vehicle/ViewVehicleDialog';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, 
+        DropdownMenuContent, 
+        DropdownMenuItem, 
+        DropdownMenuTrigger, 
+        closeDropdownsAndOpenDialog 
+      } from '@/components/ui/dropdown-menu';
 
 type ViewMode = 'compact' | 'normal' | 'cards';
 
@@ -66,7 +71,7 @@ export default function VehiclesPage() {
     } catch (error) {
       console.error(error);
       toast({
-        title: t('common:error'),
+        title: t('vehicles:toast.errorTitle'),
         description: t('vehicles:errorLoading'),
         variant: 'destructive',
       });
@@ -83,7 +88,7 @@ export default function VehiclesPage() {
     } catch (error) {
       console.error(error);
       toast({
-        title: t('common:error'),
+        title: t('vehicles:toast.errorTitle'),
         description: t('vehicles:errorLoadingCategories'),
         variant: 'destructive',
       });
@@ -93,8 +98,10 @@ export default function VehiclesPage() {
   }
 
   function openDeleteDialog(vehicle: any) {
-    setSelectedVehicle(vehicle);
-    setDeleteDialogOpen(true);
+    closeDropdownsAndOpenDialog(() => {
+      setSelectedVehicle(vehicle);
+      setDeleteDialogOpen(true);
+    });
   }
 
   async function handleDeleteVehicle() {
@@ -104,15 +111,15 @@ export default function VehiclesPage() {
       await deleteVehicle(selectedVehicle.id);
       setVehicles(vehicles.filter(v => v.id !== selectedVehicle.id));
       toast({
-        title: t('common:success'),
-        description: t('vehicles:deleteSuccess'),
+        title: t('vehicles:toast.successTitle'),
+        description: t('vehicles:toast.deleteSuccess'),
       });
       setDeleteDialogOpen(false);
       setSelectedVehicle(null);
     } catch (error) {
       toast({
-        title: t('common:error'),
-        description: t('vehicles:deleteError'),
+        title: t('vehicles:toast.errorTitle'),
+        description: t('vehicles:toast.deleteError'),
         variant: 'destructive',
       });
     } finally {
@@ -132,15 +139,15 @@ export default function VehiclesPage() {
       await deleteVehicleCategory(categoryToDelete.id);
       setCategories(categories.filter(c => c.id !== categoryToDelete.id));
       toast({
-        title: t('common:success'),
-        description: t('vehicles:categoryDeleteSuccess'),
+        title: t('vehicles:toast.successTitle'),
+        description: t('vehicles:toast.categoryDeleteSuccess'),
       });
       setCategoryDeleteDialogOpen(false);
       setCategoryToDelete(null);
     } catch (error) {
       toast({
-        title: t('common:error'),
-        description: t('vehicles:categoryDeleteError'),
+        title: t('vehicles:toast.errorTitle'),
+        description: t('vehicles:toast.categoryDeleteError'),
         variant: 'destructive',
       });
     } finally {
@@ -232,10 +239,20 @@ export default function VehiclesPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuItem onClick={() => { setSelectedVehicle(vehicle); setViewDialogOpen(true); }}>
+                    <DropdownMenuItem onClick={() => {
+                      closeDropdownsAndOpenDialog(() => {
+                        setSelectedVehicle(vehicle);
+                        setViewDialogOpen(true);
+                      });
+                    }}>
                       <Eye className="w-4 h-4 mr-2" /> {t('vehicles:details')}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setSelectedVehicle(vehicle); setEditDialogOpen(true); }}>
+                    <DropdownMenuItem onClick={() => {
+                      closeDropdownsAndOpenDialog(() => {
+                        setSelectedVehicle(vehicle);
+                        setEditDialogOpen(true);
+                      });
+                    }}>
                       <Edit className="w-4 h-4 mr-2" /> {t('vehicles:edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => openDeleteDialog(vehicle)}>
@@ -275,13 +292,22 @@ export default function VehiclesPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => { setSelectedVehicle(vehicle); setViewDialogOpen(true); }}>
+                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => {
+                    setSelectedVehicle(vehicle);
+                    setViewDialogOpen(true);
+                  }}>
                     <Eye className="w-5 h-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => { setSelectedVehicle(vehicle); setEditDialogOpen(true); }}>
+                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => {
+                    setSelectedVehicle(vehicle);
+                    setEditDialogOpen(true);
+                  }}>
                     <Edit className="w-5 h-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog(vehicle)}>
+                  <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:bg-destructive/10" onClick={() => {
+                    setSelectedVehicle(vehicle);
+                    setDeleteDialogOpen(true);
+                  }}>
                     <Trash2 className="w-5 h-5" />
                   </Button>
                 </div>
@@ -330,7 +356,10 @@ export default function VehiclesPage() {
               <div className="mt-auto pt-2 flex gap-2">
                 <Button 
                   className="flex-1 h-10 text-sm font-bold shadow-sm" 
-                  onClick={() => { setSelectedVehicle(vehicle); setViewDialogOpen(true); }}
+                  onClick={() => {
+                    setSelectedVehicle(vehicle);
+                    setViewDialogOpen(true);
+                  }}
                 >
                   {t('vehicles:details')}
                 </Button>
@@ -341,7 +370,12 @@ export default function VehiclesPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => { setSelectedVehicle(vehicle); setEditDialogOpen(true); }}>
+                    <DropdownMenuItem onClick={() => {
+                      closeDropdownsAndOpenDialog(() => {
+                        setSelectedVehicle(vehicle);
+                        setEditDialogOpen(true);
+                      });
+                    }}>
                       <Edit className="w-4 h-4 mr-2" /> {t('vehicles:edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => openDeleteDialog(vehicle)}>
@@ -362,7 +396,6 @@ export default function VehiclesPage() {
   const maintenanceCount = vehicles.filter(v => v.status === 'maintenance').length;
 
   return (
-    /* Fundo cinza suave apenas no modo claro, modo escuro mantém o original */
     <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6"> 
       <div className="max-w-[1500px] mx-auto space-y-8 pb-10">
         {/* Header Section */}

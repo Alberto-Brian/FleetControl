@@ -41,6 +41,28 @@ export class RestoreController {
     try {
       fs.writeFileSync(this.restoreFile, JSON.stringify(pending, null, 2));
       console.log('✅ Restore agendado. Reiniciando aplicação...');
+      // ✅ VERIFICAR AMBIENTE
+    const isDev = process.env.NODE_ENV === 'development';
+
+    if (isDev) {
+      // ═══ DESENVOLVIMENTO: Não reiniciar automaticamente ═══
+      console.log('');
+      console.log('⚠️  MODO DEV: Reinício automático desabilitado');
+      console.log('📋 Para executar o restore:');
+      console.log('   1. Feche a aplicação (Ctrl+C)');
+      console.log('   2. Execute: npm start');
+      console.log('   3. O restore será executado automaticamente');
+      console.log('');
+      
+      // Não faz nada - usuário reinicia manualmente
+      
+    } else {
+      // ═══ PRODUÇÃO: Reiniciar automaticamente ═══
+      console.log('🔄 Reiniciando aplicação...');
+      app.relaunch();
+      app.quit();
+    }
+  
     } catch(error: any) {
       console.log("Erro ao criar o arquivo .restore-pending.json:", error.message);
     }

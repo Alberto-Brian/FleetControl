@@ -4,12 +4,12 @@ import { vehicles, VehicleStatus, vehicleStatus } from '@/lib/db/schemas/vehicle
 import { vehicle_categories } from '@/lib/db/schemas/vehicle_categories';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull, desc } from 'drizzle-orm';
-import { ICreateVehicle, IUpdateVehicle } from '@/lib/types/vehicle';
+import { ICreateVehicle, IUpdateVehicle, IVehicle } from '@/lib/types/vehicle';
 
 /**
  * Criar novo veículo
  */
-export async function createVehicle(vehicleData: ICreateVehicle) {
+export async function createVehicle(vehicleData: ICreateVehicle): Promise<IVehicle> {
     await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
@@ -43,12 +43,41 @@ export async function createVehicle(vehicleData: ICreateVehicle) {
             model: vehicles.model,
             year: vehicles.year,
             color: vehicles.color,
-            current_mileage: vehicles.current_mileage,
             status: vehicles.status,
+            is_active: vehicles.is_active,
             photo: vehicles.photo,
+            notes: vehicles.notes,
+            fuel_tank_capacity: vehicles.fuel_tank_capacity,
+            chassis_number: vehicles.chassis_number,
+            engine_number: vehicles.engine_number,
+            current_mileage: vehicles.current_mileage,
+            acquisition_date: vehicles.acquisition_date,
+            acquisition_value: vehicles.acquisition_value,
+            updated_at: vehicles.updated_at,
             created_at: vehicles.created_at,
         });
 
+    return result[0];
+}
+
+
+export async function findVehicleByLicensePlate(license_plate: string) {
+    const { db } = useDb();
+    const result = await db 
+        .select({
+            id: vehicles.id,
+            category_id: vehicles.category_id,
+            license_plate: vehicles.license_plate,
+            brand: vehicles.brand,
+            model: vehicles.model,
+            year: vehicles.year,
+            color: vehicles.color,
+            current_mileage: vehicles.current_mileage,
+            status: vehicles.status,
+            photo: vehicles.photo,
+        })
+        .from(vehicles)
+        .where(eq(vehicles.license_plate, license_plate))
     return result[0];
 }
 

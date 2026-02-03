@@ -21,6 +21,7 @@ export interface IDriver {
     license_expiry_date: string;
     hire_date?: string;
     status: string;
+    availability: string;
     photo?: string;
     notes?: string;
     is_active: boolean;

@@ -54,6 +54,7 @@ interface Services {
     Auth: {
         login: (loginData: ILogin) => Promise<IUser>;
         logout: (userId: string) => Promise<string>;
+        logoutAllUsers: () => Promise<void>;
         hasUsers: () => Promise<boolean>;
         createFirstUser: (userData: ICreateFirstUser) => Promise<IUser>;
         changePassword: (changePasswordData: IChangePassword) => Promise<any>;

@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-// import { updateVehicle } from '@/helpers/vehicles-helpers';
-// import { getAllVehicleCategories } from '@/helpers/vehicle-categories-helpers';
+import { useTranslation } from 'react-i18next';
+import { updateVehicle } from '@/helpers/vehicle-helpers';
+import { getAllVehicleCategories } from '@/helpers/vehicle-category-helpers';
 import { IUpdateVehicle } from '@/lib/types/vehicle';
 
 interface EditVehicleDialogProps {
@@ -21,6 +22,7 @@ interface EditVehicleDialogProps {
 
 export default function EditVehicleDialog({ vehicle, open, onOpenChange, onVehicleUpdated }: EditVehicleDialogProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [formData, setFormData] = useState<IUpdateVehicle>({
@@ -51,15 +53,15 @@ export default function EditVehicleDialog({ vehicle, open, onOpenChange, onVehic
   }, [open, vehicle]);
 
   async function loadCategories() {
-    // const cats = await getAllVehicleCategories();
-    // setCategories(cats);
+    const cats = await getAllVehicleCategories();
+    setCategories(cats);
     
-    // Mock temporário
-    setCategories([
-      { id: '1', name: 'Passeio', color: '#3B82F6' },
-      { id: '2', name: 'Utilitário', color: '#10B981' },
-      { id: '3', name: 'Caminhão', color: '#F59E0B' },
-    ]);
+    // // Mock temporário
+    // setCategories([
+    //   { id: '1', name: 'Passeio', color: '#3B82F6' },
+    //   { id: '2', name: 'Utilitário', color: '#10B981' },
+    //   { id: '3', name: 'Caminhão', color: '#F59E0B' },
+    // ]);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -67,23 +69,23 @@ export default function EditVehicleDialog({ vehicle, open, onOpenChange, onVehic
     setIsLoading(true);
 
     try {
-      // const updated = await updateVehicle(vehicle.id, formData);
+      const updated = await updateVehicle(vehicle.id, formData);
       
-      // Mock temporário
-      const updated = { ...vehicle, ...formData };
+      // // Mock temporário
+      // const updated = { ...vehicle, ...formData };
 
       if (updated) {
         toast({
-          title: 'Sucesso!',
-          description: 'Veículo atualizado com sucesso.',
+          title: t('vehicles:toast.successTitle'),
+          description: t('vehicles:toast.updateSuccess'),
         });
         onVehicleUpdated(updated);
         onOpenChange(false);
       }
     } catch (error: any) {
       toast({
-        title: 'Erro',
-        description: error.message || 'Erro ao atualizar veículo',
+        title: t('vehicles:toast.errorTitle'),
+        description: t(error?.message || 'vehicles:toast.updateError'),
         variant: 'destructive',
       });
     } finally {
@@ -97,7 +99,7 @@ export default function EditVehicleDialog({ vehicle, open, onOpenChange, onVehic
         <DialogHeader>
           <DialogTitle>Editar Veículo</DialogTitle>
           <DialogDescription>
-            Atualize os dados do veículo {vehicle?.license_plate}
+            Actualize os dados do veículo {vehicle?.license_plate}
           </DialogDescription>
         </DialogHeader>
 

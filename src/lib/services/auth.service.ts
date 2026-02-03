@@ -1,53 +1,51 @@
 import bcrypt from 'bcryptjs';
 import { getDb } from '@/lib/db/db_client';
 import { users } from '@/lib/db/schemas';
-import { eq, and, isNull } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
+import { eq, isNull } from 'drizzle-orm';
 import { IUser } from '@/lib/types/user';
 import { generateUuid } from '../utils/cripto';
 
 export class AuthService {
-  /**
-   * Login - verifica credenciais e retorna usuário
-   */
-  static async login(email: string, password: string): Promise<IUser> {
+  static async findUserByEmail(email: string) {
     const db = getDb();
     const user = await db.query.users.findFirst({
-      where: and(
-        eq(users.email, email),
-        isNull(users.deleted_at)
-      )
+      where: eq(users.email, email)
     });
+    if (user && user.deleted_at) return null;
+    return user || null;
+  }
 
-    if (!user) {
-      throw new Error('Utilizador não encontrado');
-    }
+  static async findUserById(userId: string) {
+    const db = getDb();
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId)
+    });
+    if (user && user.deleted_at) return null;
+    return user || null;
+  }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-    
-    if (!isPasswordValid) {
-      throw new Error('Senha incorreta');
-    }
+  static async verifyPassword(password: string, passwordHash: string): Promise<boolean> {
+    return await bcrypt.compare(password, passwordHash);
+  }
 
-    if (!user.is_active) {
-      throw new Error('Utilizador inativo');
-    }
-
-    // Actualizar último acesso
+  static isUserActive(user: any): boolean {
+    return !!user?.is_active;
+  }
+  static async finishLogin(userId: string): Promise<IUser> {
+    const db = getDb();
     await db
       .update(users)
-      .set({ 
+      .set({
         last_access_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
-      .where(eq(users.id, user.id));
-
-    // Retornar dados sem a senha
+      .where(eq(users.id, userId));
+    const record = await db.query.users.findFirst({ where: eq(users.id, userId) });
     return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar || undefined
+      id: record!.id,
+      name: record!.name,
+      email: record!.email,
+      avatar: record!.avatar || undefined
     };
   }
 
@@ -60,6 +58,18 @@ export class AuthService {
         updated_at: new Date().toISOString()
       })
       .where(eq(users.id, userId));
+  }
+
+  static async logoutAllUsers (): Promise<void>  {
+    const db = getDb();
+    await db
+      .update(users)
+      .set({ 
+        last_access_at: null,
+        updated_at: new Date().toISOString()
+      })
+      .where(isNull(users.deleted_at));
+      localStorage.removeItem('fleet_user');
   }
 
   /**
@@ -83,11 +93,6 @@ export class AuthService {
     password: string
   ): Promise<IUser> {
     const db = getDb();
-    // Verificar se já existe usuário
-    const hasUsers = await this.hasUsers();
-    if (hasUsers) {
-      throw new Error('Já existe um utilizador cadastrado');
-    }
 
     const userId = generateUuid();
     const passwordHash = await bcrypt.hash(password, 10);
@@ -110,27 +115,9 @@ export class AuthService {
    */
   static async changePassword(
     userId: string,
-    currentPassword: string,
     newPassword: string
   ): Promise<void> {
     const db = getDb();
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, userId)
-    });
-
-    if (!user) {
-      throw new Error('Utilizador não encontrado');
-    }
-
-    const isCurrentPasswordValid = await bcrypt.compare(
-      currentPassword,
-      user.password_hash
-    );
-
-    if (!isCurrentPasswordValid) {
-      throw new Error('Senha atual incorreta');
-    }
-
     const newPasswordHash = await bcrypt.hash(newPassword, 10);
 
     await db

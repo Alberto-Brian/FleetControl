@@ -44,6 +44,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (loginData: ILogin) => {
     try {
       const userData = await loginService(loginData);
+      if (!userData) {
+        throw new Error('auth:errors.loginFailed');
+      }
       setUser(userData);
       localStorage.setItem('fleet_user', JSON.stringify(userData));
          

@@ -6,6 +6,7 @@ import { initializeDatabase, getDbManager } from './lib/db/db_client';
 import { VersionManager } from '@/system/version_manager';
 import { APP_NAME } from "@/system/system.config";
 import { RestoreController } from '@/system/restore_manager';
+import { logoutAllUsers } from "./helpers/service-auth-helpers";
 
 const inDevelopment = process.env.NODE_ENV === "development";
 
@@ -148,6 +149,7 @@ app.whenReady().then(async () => {
     const hadRestore = await restoreCtrl.checkAndExecuteRestore();
     
     if (hadRestore) {
+      await logoutAllUsers();
       console.log('✅ Restore executado - continuando inicialização...');
     } else {
       console.log('ℹ️  Nenhum restore pendente');
