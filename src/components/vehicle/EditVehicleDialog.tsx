@@ -88,7 +88,7 @@ export default function EditVehicleDialog({
     setIsLoading(true);
     
     try {
-      const updated = await updateBdVehicle(selectedVehicle.id, formData);
+      const updated = await updateBdVehicle(selectedVehicle!.id, formData);
       
       if (updated) {
         updateVehicle(updated); // actualiza o context
@@ -308,7 +308,7 @@ export default function EditVehicleDialog({
                   </div>
                 </div>
 
-                {formData.acquisition_date && formData?.acquisition_value > 0 && (
+                {formData.acquisition_date && formData.acquisition_value && formData?.acquisition_value > 0 && (
                   <div className="p-4 bg-muted/50 rounded-lg border border-muted">
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>

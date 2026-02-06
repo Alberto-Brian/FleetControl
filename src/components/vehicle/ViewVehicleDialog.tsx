@@ -48,7 +48,7 @@ export default function ViewVehicleDialog({
         className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800'
       },
       in_use: { 
-        label: t('vehicles:status.inUse.label'),
+        label: t('vehicles:status.in_use.label'),
         icon: Clock,
         className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800'
       },
@@ -125,6 +125,7 @@ export default function ViewVehicleDialog({
               size="sm"
               onClick={() => setStatusDialogOpen(true)}
               className="flex items-center gap-2"
+              disabled={selectedVehicle.status === 'in_use'}
             >
               <RefreshCw className="w-4 h-4" />
               Alterar Status

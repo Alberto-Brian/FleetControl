@@ -203,43 +203,59 @@ export default function ChangeStatusDialog({
                   </Label>
                   <RadioGroup value={selectedStatus} onValueChange={setSelectedStatus}>
                     <div className="grid grid-cols-2 gap-3">
-                      {statusOptions.map((option) => (
-                        <div key={option.value}>
-                          <Label
-                            htmlFor={option.value}
-                            className={cn(
-                              "flex flex-col gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all",
-                              selectedStatus === option.value
-                                ? cn(option.borderColor, option.bgColor, "shadow-md ring-2 ring-offset-2 ring-offset-background", option.borderColor.replace('border-', 'ring-'))
-                                : "border-border bg-card hover:border-muted-foreground/20",
-                              option.hoverBg
-                            )}
-                          >
-                            <div className="flex items-center justify-between">
-                              <option.icon className={cn(
-                                "w-5 h-5 transition-colors",
-                                selectedStatus === option.value ? option.color : "text-muted-foreground"
-                              )} />
-                              <RadioGroupItem 
-                                value={option.value} 
-                                id={option.value}
-                                className="data-[state=checked]:border-primary"
-                              />
-                            </div>
-                            <div>
-                              <p className={cn(
-                                "font-semibold text-sm leading-tight transition-colors",
-                                selectedStatus === option.value ? option.color : "text-foreground"
-                              )}>
-                                {option.label}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
-                                {option.description}
-                              </p>
-                            </div>
-                          </Label>
-                        </div>
-                      ))}
+                      {statusOptions.map((option) => {
+                        const isDisabled = option.value === 'in_use';
+                        
+                        return (
+                          <div key={option.value}>
+                            <Label
+                              htmlFor={isDisabled ? undefined : option.value}
+                              className={cn(
+                                "flex flex-col gap-3 p-3 rounded-lg border-2 transition-all",
+                                isDisabled 
+                                  ? "border-border/50 bg-muted/30 cursor-not-allowed opacity-50"
+                                  : "cursor-pointer",
+                                !isDisabled && selectedStatus === option.value
+                                  ? cn(option.borderColor, option.bgColor, "shadow-md ring-2 ring-offset-2 ring-offset-background", option.borderColor.replace('border-', 'ring-'))
+                                  : !isDisabled && "border-border bg-card hover:border-muted-foreground/20",
+                                !isDisabled && option.hoverBg
+                              )}
+                            >
+                              <div className="flex items-center justify-between">
+                                <option.icon className={cn(
+                                  "w-5 h-5 transition-colors",
+                                  isDisabled ? "text-muted-foreground/40" :
+                                  selectedStatus === option.value ? option.color : "text-muted-foreground"
+                                )} />
+                                <RadioGroupItem 
+                                  value={option.value} 
+                                  id={option.value}
+                                  disabled={isDisabled}
+                                  className={cn(
+                                    "data-[state=checked]:border-primary",
+                                    isDisabled && "cursor-not-allowed opacity-50"
+                                  )}
+                                />
+                              </div>
+                              <div>
+                                <p className={cn(
+                                  "font-semibold text-sm leading-tight transition-colors",
+                                  isDisabled ? "text-muted-foreground/50" :
+                                  selectedStatus === option.value ? option.color : "text-foreground"
+                                )}>
+                                  {option.label}
+                                </p>
+                                <p className={cn(
+                                  "text-[10px] mt-1 line-clamp-2",
+                                  isDisabled ? "text-muted-foreground/30" : "text-muted-foreground"
+                                )}>
+                                  {isDisabled ? "Não disponível para seleção manual" : option.description}
+                                </p>
+                              </div>
+                            </Label>
+                          </div>
+                        );
+                      })}
                     </div>
                   </RadioGroup>
                 </div>

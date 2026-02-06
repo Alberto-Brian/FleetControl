@@ -1,34 +1,41 @@
 // ========================================
-// FILE: src/components/vehicle-category/NewVehicleCategoryDialog.tsx (REDESENHADO)
+// FILE: src/components/vehicle/EditVehicleCategoryDialog.tsx (ATUALIZADO)
 // ========================================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useTranslation } from 'react-i18next';
-import { Plus, Tag } from 'lucide-react';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
-import { createVehicleCategory } from '@/helpers/vehicle-category-helpers';
-import { ICreateVehicleCategory } from '@/lib/types/vehicle-category';
+import { useTranslation } from 'react-i18next';
+import { Tag } from 'lucide-react';
+import { updateVehicleCategory } from '@/helpers/vehicle-category-helpers';
 import { useVehicles } from '@/contexts/VehiclesContext';
+import { IUpdateVehicleCategory } from '@/lib/types/vehicle-category';
 
-export default function NewVehicleCategoryDialog() { 
+interface EditVehicleCategoryDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export default function EditVehicleCategoryDialog({ 
+  open, 
+  onOpenChange 
+}: EditVehicleCategoryDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
-  const { addCategory } = useVehicles();
+  const { state: { selectedCategory }, updateCategory } = useVehicles();
   
-  const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState<ICreateVehicleCategory>({
+  const [formData, setFormData] = useState<IUpdateVehicleCategory>({
     name: '',
     description: '',
     color: '#3b82f6',
   });
 
-  // ✅ Paleta reduzida e discreta
+  // ✅ Paleta reduzida e discreta (mesma do NewVehicleCategoryDialog)
   const colorOptions = [
     { value: '#3b82f6', label: 'Azul' },
     { value: '#10b981', label: 'Verde' },
@@ -40,55 +47,56 @@ export default function NewVehicleCategoryDialog() {
     { value: '#f97316', label: 'Laranja' },
   ];
 
+  // ✅ SINCRONIZA COM A CATEGORIA QUANDO ABRE
+  useEffect(() => {
+    if (open && selectedCategory) {
+      setFormData({
+        name: selectedCategory.name,
+        description: selectedCategory.description || '',
+        color: selectedCategory.color,
+      });
+    }
+  }, [open, selectedCategory]);
+
+  // ✅ EARLY RETURN
+  if (!selectedCategory) {
+    return null;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const newCategory = await createVehicleCategory(formData);
-      
-      if (newCategory) {
-        addCategory(newCategory);
-        showSuccess(t('vehicles:toast.categoryCreateSuccess'));
-        setOpen(false);
-        resetForm();
+      const updated = await updateVehicleCategory(selectedCategory!.id, formData);
+
+      if (updated) {
+        updateCategory(updated); // ✨ Atualiza contexto
+        showSuccess('vehicles:toast.categoryUpdateSuccess');
+        onOpenChange(false);
       }
-    } catch (error: any) {
-      handleError(error, 'vehicles:errors.createVehicleCategory');
+    } catch (error) {
+      handleError(error, 'vehicles:toast.categoryUpdateError');
     } finally {
       setIsLoading(false);
     }
   }
 
-  function resetForm() {
-    setFormData({
-      name: '',
-      description: '',
-      color: '#3b82f6',
-    });
-  }
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button id="new-category-trigger">
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Categoria
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Tag className="w-5 h-5" />
-            Nova Categoria de Veículo
+            Editar Categoria
           </DialogTitle>
           <DialogDescription>
-            Crie uma nova categoria para organizar seus veículos
+            Atualize as informações da categoria de veículo
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* ✅ LAYOUT DE 2 COLUNAS */}
+          {/* ✅ LAYOUT DE 2 COLUNAS - Igual ao NewVehicleCategoryDialog */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
             {/* COLUNA ESQUERDA - Inputs */}
@@ -201,11 +209,16 @@ export default function NewVehicleCategoryDialog() {
 
           {/* Botões */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Criando...' : 'Criar Categoria'}
+              {isLoading ? 'Atualizando...' : 'Salvar Alterações'}
             </Button>
           </div>
         </form>

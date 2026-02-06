@@ -3,10 +3,14 @@ import { initReactI18next } from "react-i18next";
 import { vehicleTranslations } from "./vehicles_translations";
 import { authTranslations } from "./auth_translations";
 
+import { ptDrivers } from "./locales/pt/drivers";
+import { enDrivers } from "./locales/en/drivers";
+
 i18n.use(initReactI18next).init({
     fallbackLng: "en",
     resources: {
         en: {
+            drivers: enDrivers,
             vehicles: vehicleTranslations.en.vehicles,
             auth: authTranslations.en.auth,
             common: {
@@ -60,6 +64,7 @@ i18n.use(initReactI18next).init({
             }
         },
         "pt-BR": {
+            drivers: ptDrivers,
             vehicles: vehicleTranslations.pt.vehicles,
             auth: authTranslations.pt.auth,
             common: {

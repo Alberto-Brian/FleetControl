@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/contexts/VehiclesContext.tsx
+// FILE: src/contexts/VehiclesContext.tsx (EXPANDIDO)
 // ========================================
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 
@@ -29,23 +29,46 @@ export interface Vehicle {
   deleted_at: string | null;
 }
 
+export interface VehicleCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 interface VehiclesState {
   vehicles: Vehicle[];
   selectedVehicle: Vehicle | null;
   isLoading: boolean;
+  // ✨ NOVO: Categorias
+  categories: VehicleCategory[];
+  selectedCategory: VehicleCategory | null;
+  isCategoriesLoading: boolean;
 }
 
 type VehiclesAction =
+  // Veículos
   | { type: 'SET_VEHICLES'; payload: Vehicle[] }
   | { type: 'ADD_VEHICLE'; payload: Vehicle }
   | { type: 'UPDATE_VEHICLE'; payload: Vehicle }
   | { type: 'DELETE_VEHICLE'; payload: string }
   | { type: 'SELECT_VEHICLE'; payload: Vehicle | null }
-  | { type: 'SET_LOADING'; payload: boolean };
+  | { type: 'SET_LOADING'; payload: boolean }
+  // ✨ NOVO: Categorias
+  | { type: 'SET_CATEGORIES'; payload: VehicleCategory[] }
+  | { type: 'ADD_CATEGORY'; payload: VehicleCategory }
+  | { type: 'UPDATE_CATEGORY'; payload: VehicleCategory }
+  | { type: 'DELETE_CATEGORY'; payload: string }
+  | { type: 'SELECT_CATEGORY'; payload: VehicleCategory | null }
+  | { type: 'SET_CATEGORIES_LOADING'; payload: boolean };
 
 // ==================== REDUCER ====================
 function vehiclesReducer(state: VehiclesState, action: VehiclesAction): VehiclesState {
   switch (action.type) {
+    // ========== VEÍCULOS ==========
     case 'SET_VEHICLES':
       return {
         ...state,
@@ -64,7 +87,6 @@ function vehiclesReducer(state: VehiclesState, action: VehiclesAction): Vehicles
         v.id === action.payload.id ? action.payload : v
       );
       
-      // ✅ Se o veículo selecionado foi atualizado, atualiza também
       const updatedSelected = state.selectedVehicle?.id === action.payload.id
         ? action.payload
         : state.selectedVehicle;
@@ -97,6 +119,57 @@ function vehiclesReducer(state: VehiclesState, action: VehiclesAction): Vehicles
         isLoading: action.payload,
       };
 
+    // ========== ✨ CATEGORIAS ==========
+    case 'SET_CATEGORIES':
+      return {
+        ...state,
+        categories: action.payload,
+        isCategoriesLoading: false,
+      };
+
+    case 'ADD_CATEGORY':
+      return {
+        ...state,
+        categories: [action.payload, ...state.categories],
+      };
+
+    case 'UPDATE_CATEGORY': {
+      const updatedCategories = state.categories.map(c =>
+        c.id === action.payload.id ? action.payload : c
+      );
+      
+      const updatedSelectedCategory = state.selectedCategory?.id === action.payload.id
+        ? action.payload
+        : state.selectedCategory;
+
+      return {
+        ...state,
+        categories: updatedCategories,
+        selectedCategory: updatedSelectedCategory,
+      };
+    }
+
+    case 'DELETE_CATEGORY':
+      return {
+        ...state,
+        categories: state.categories.filter(c => c.id !== action.payload),
+        selectedCategory: state.selectedCategory?.id === action.payload
+          ? null
+          : state.selectedCategory,
+      };
+
+    case 'SELECT_CATEGORY':
+      return {
+        ...state,
+        selectedCategory: action.payload,
+      };
+
+    case 'SET_CATEGORIES_LOADING':
+      return {
+        ...state,
+        isCategoriesLoading: action.payload,
+      };
+
     default:
       return state;
   }
@@ -106,13 +179,20 @@ function vehiclesReducer(state: VehiclesState, action: VehiclesAction): Vehicles
 interface VehiclesContextType {
   state: VehiclesState;
   dispatch: React.Dispatch<VehiclesAction>;
-  // Helper functions
+  // Veículos
   setVehicles: (vehicles: Vehicle[]) => void;
   addVehicle: (vehicle: Vehicle) => void;
   updateVehicle: (vehicle: Vehicle) => void;
   deleteVehicle: (id: string) => void;
   selectVehicle: (vehicle: Vehicle | null) => void;
   setLoading: (loading: boolean) => void;
+  // ✨ NOVO: Categorias
+  setCategories: (categories: VehicleCategory[]) => void;
+  addCategory: (category: VehicleCategory) => void;
+  updateCategory: (category: VehicleCategory) => void;
+  deleteCategory: (id: string) => void;
+  selectCategory: (category: VehicleCategory | null) => void;
+  setCategoriesLoading: (loading: boolean) => void;
 }
 
 const VehiclesContext = createContext<VehiclesContextType | undefined>(undefined);
@@ -127,10 +207,14 @@ export function VehiclesProvider({ children }: VehiclesProviderProps) {
     vehicles: [],
     selectedVehicle: null,
     isLoading: true,
+    // ✨ NOVO: Estado inicial das categorias
+    categories: [],
+    selectedCategory: null,
+    isCategoriesLoading: true,
   });
 
-  // ✅ Helper functions para facilitar o uso
   const helpers = {
+    // Veículos
     setVehicles: (vehicles: Vehicle[]) => 
       dispatch({ type: 'SET_VEHICLES', payload: vehicles }),
     
@@ -148,6 +232,25 @@ export function VehiclesProvider({ children }: VehiclesProviderProps) {
     
     setLoading: (loading: boolean) => 
       dispatch({ type: 'SET_LOADING', payload: loading }),
+
+    // ✨ NOVO: Categorias
+    setCategories: (categories: VehicleCategory[]) => 
+      dispatch({ type: 'SET_CATEGORIES', payload: categories }),
+    
+    addCategory: (category: VehicleCategory) => 
+      dispatch({ type: 'ADD_CATEGORY', payload: category }),
+    
+    updateCategory: (category: VehicleCategory) => 
+      dispatch({ type: 'UPDATE_CATEGORY', payload: category }),
+    
+    deleteCategory: (id: string) => 
+      dispatch({ type: 'DELETE_CATEGORY', payload: id }),
+    
+    selectCategory: (category: VehicleCategory | null) => 
+      dispatch({ type: 'SELECT_CATEGORY', payload: category }),
+    
+    setCategoriesLoading: (loading: boolean) => 
+      dispatch({ type: 'SET_CATEGORIES_LOADING', payload: loading }),
   };
 
   return (

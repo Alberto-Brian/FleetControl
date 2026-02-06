@@ -21,6 +21,7 @@ import { useVehicles } from '@/contexts/VehiclesContext';
 import NewVehicleCategoryDialog from '@/components/vehicle/NewVehicleCategoryDialog';
 import NewVehicleDialog from '@/components/vehicle/NewVehicleDialog';
 import EditVehicleDialog from '@/components/vehicle/EditVehicleDialog';
+import EditVehicleCategoryDialog from '@/components/vehicle/EditVehicleCategoryDialog';
 import ViewVehicleDialog from '@/components/vehicle/ViewVehicleDialog';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 import { DropdownMenu, 
@@ -38,19 +39,31 @@ export default function VehiclesPageContent() {
 
     // ✨ USO DO CONTEXT
   const { 
-    state: { vehicles, selectedVehicle, isLoading },
+    state: { 
+      vehicles, 
+      selectedVehicle, 
+      isLoading, 
+      categories, 
+      selectedCategory,
+      isCategoriesLoading 
+    },
     setVehicles,
     addVehicle,
     updateVehicle: updateVehicleInContext,
     deleteVehicle: removeVehicleFromContext,
     selectVehicle,
     setLoading,
+    setCategories,
+    selectCategory,
+    deleteCategory: removeCategoryFromContext,
+    setCategoriesLoading,
   } = useVehicles();
 
   // ✅ Estados APENAS para UI (não mais para dados de veículos)
   const [activeTab, setActiveTab] = useState('vehicles');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
   
   // Dialogs
@@ -59,12 +72,10 @@ export default function VehiclesPageContent() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Categories (pode ser movido para outro Context depois)
-  const [categories, setCategories] = useState<any[]>([]);
+   // ✨ Dialogs de categorias
   const [categorySearch, setCategorySearch] = useState('');
-  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
+  const [editCategoryDialogOpen, setEditCategoryDialogOpen] = useState(false);
   const [categoryDeleteDialogOpen, setCategoryDeleteDialogOpen] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<any>(null);
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
 
   useEffect(() => {
@@ -91,15 +102,15 @@ export default function VehiclesPageContent() {
   /**
    * Carrega categorias
    */
-  async function loadCategories() {
-    setIsCategoriesLoading(true);
+ async function loadCategories() {
+    setCategoriesLoading(true);
     try {
       const data = await getAllVehicleCategories();
-      setCategories(data);
+      setCategories(data); // ✨ Atualiza contexto
     } catch (error) {
       handleError(error, 'vehicles:errors.errorLoadingCategories');
     } finally {
-      setIsCategoriesLoading(false);
+      setCategoriesLoading(false);
     }
   }
 
@@ -135,40 +146,32 @@ export default function VehiclesPageContent() {
     }
   }
 
+   function openCategoryEditDialog(category: any) {
+    selectCategory(category); // ✨ Define no contexto
+    setEditCategoryDialogOpen(true);
+  }
+
   function openCategoryDeleteDialog(category: any) {
-    setCategoryToDelete(category);
+    selectCategory(category); // ✨ Define no contexto
     setCategoryDeleteDialogOpen(true);
   }
 
- /**
-   * Deleta categoria
-   */
-  async function handleDeleteCategory() {
-    if (!categoryToDelete) return;
+ async function handleDeleteCategory() {
+    if (!selectedCategory) return; 
+    
     setIsDeletingCategory(true);
     
     try {
-      await deleteVehicleCategory(categoryToDelete.id);
+      await deleteVehicleCategory(selectedCategory.id);
       
-      // Sucesso
-      setCategories(categories.filter(c => c.id !== categoryToDelete.id));
+      removeCategoryFromContext(selectedCategory.id);
       showSuccess('vehicles:toast.categoryDeleteSuccess');
       
       setCategoryDeleteDialogOpen(false);
-      setCategoryToDelete(null);
+      selectCategory(null);
       
     } catch (error) {
-      // ✨ Tratamento automático
-      // Se for ConflictError vindo do IPC, exibirá: toast.error("Não é possível excluir...")
-      // Se for WarningError, exibirá: toast.warning("Esta categoria já existe mas...")
-      const appError = handleError(error, 'vehicles:toast.categoryDeleteError');
-      
-      // Pode fazer acções específicas baseado no tipo de erro
-      if (appError?.action === 'conflict') {
-        console.log('Conflito detectado:', appError.data);
-        // Exemplo: mostrar quais veículos estão vinculados
-        // const vehicleCount = appError.data?.vehicleCount;
-      }
+      handleError(error, 'vehicles:toast.categoryDeleteError');
     } finally {
       setIsDeletingCategory(false);
     }
@@ -214,12 +217,17 @@ export default function VehiclesPageContent() {
       v.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       v.model?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || v.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesCategory = categoryFilter === 'all' || v.category_id === categoryFilter;
+  return matchesSearch && matchesStatus && matchesCategory;
   });
 
   const filteredCategories = categories.filter(c =>
     c.name?.toLowerCase().includes(categorySearch.toLowerCase())
   );
+
+  function getVehicleCountByCategory(categoryId: string) {
+      return vehicles.filter(v => v.category_id === categoryId).length;
+  }
 
   function renderCompactView() {
     return (
@@ -342,7 +350,17 @@ export default function VehiclesPageContent() {
     return (
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {filteredVehicles.map((vehicle) => (
-          <Card key={vehicle.id} className="flex flex-col h-full group hover:shadow-lg transition-all duration-300 border-t-4 bg-card" style={{ borderTopColor: vehicle.category_color }}>
+          <Card 
+            key={vehicle.id} 
+            className="flex flex-col h-full group hover:shadow-lg transition-all duration-300 border-t-4 border-t-gray-200/50 dark:border-t-gray-700/50 bg-card relative"
+          >
+            {/* Indicador circular da categoria no canto superior direito */}
+            <div 
+              className="absolute top-5 left-12 w-3 h-3 rounded-full ring-2 ring-background shadow-sm opacity-45"
+              style={{ backgroundColor: vehicle.category_color }}
+              title={vehicle.category_name}
+            />
+            
             <CardHeader className="pb-3 pt-5 px-5">
               <div className="flex justify-between items-start mb-3">
                 <div className="p-2.5 rounded-xl bg-muted group-hover:bg-primary/5 group-hover:text-primary transition-colors">
@@ -426,7 +444,7 @@ export default function VehiclesPageContent() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <NewVehicleDialog onVehicleCreated={(vehicle) => setVehicles([vehicle, ...vehicles])} />
+            <NewVehicleDialog />
           </div>
         </div>
 
@@ -482,9 +500,11 @@ export default function VehiclesPageContent() {
                     className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
                   />
                 </div>
+                
+                {/* Filtro de Status */}
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
-                    <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
+                    <Filter className="w-4 h-4 text-muted-foreground" />
                     <SelectValue placeholder={t('vehicles:statusFilter')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -493,6 +513,38 @@ export default function VehiclesPageContent() {
                     <SelectItem value="in_use">{t('vehicles:inUse')}</SelectItem>
                     <SelectItem value="maintenance">{t('vehicles:maintenance')}</SelectItem>
                     <SelectItem value="inactive">{t('vehicles:inactive')}</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* ✨ NOVO: Filtro de Categoria com contadores */}
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-full sm:w-[220px] h-10 text-sm bg-muted/20 border-none">
+                    <Tag className="w-4 h-4 text-muted-foreground" />
+                    <SelectValue placeholder={t('vehicles:categoryFilter') || "Filtrar por categoria"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      <span className="flex items-center justify-between w-full">
+                        <span>Todas as categorias</span>
+                        <span className="ml-2 text-xs text-muted-foreground">({vehicles.length})</span>
+                      </span>
+                    </SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        <span className="flex items-center justify-between w-full gap-3">
+                          <span className="flex items-center gap-2">
+                            <div 
+                              className="w-2 h-2 rounded-full" 
+                              style={{ backgroundColor: category.color }} 
+                            />
+                            <span className="truncate">{category.name}</span>
+                          </span>
+                          <span className="text-xs text-muted-foreground ml-auto">
+                            ({getVehicleCountByCategory(category.id)})
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -543,99 +595,121 @@ export default function VehiclesPageContent() {
           </TabsContent>
 
           {/* TAB: CATEGORIAS */}
-          <TabsContent value="categories" className="space-y-6 mt-0 outline-none">
-            <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Pesquisar categoria..."
-                  value={categorySearch}
-                  onChange={(e) => setCategorySearch(e.target.value)}
-                  className="pl-10 h-10 text-sm bg-card border-muted/50"
-                />
-              </div>
-              <NewVehicleCategoryDialog onCategoryCreated={(category) => setCategories([category, ...categories])} />
+        <TabsContent value="categories" className="space-y-6 mt-0 outline-none">
+          <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Pesquisar categoria..."
+                value={categorySearch}
+                onChange={(e) => setCategorySearch(e.target.value)}
+                className="pl-10 h-10 text-sm bg-card border-muted/50"
+              />
             </div>
+            <NewVehicleCategoryDialog />
+          </div>
 
-            {isCategoriesLoading ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-32 rounded-2xl bg-muted animate-pulse" />
-                ))}
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filteredCategories.map((category) => (
-                  <Card key={category.id} className="overflow-hidden group hover:shadow-md transition-all border-muted/60 bg-card">
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-4">
-                          <div 
-                            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-inner"
-                            style={{ backgroundColor: `${category.color}15` }}
-                          >
-                            <Tag className="w-5 h-5" style={{ color: category.color }} />
-                          </div>
-                          <h3 className="font-bold text-base">{category.name}</h3>
-                        </div>
-                        <Badge variant={category.is_active ? "outline" : "secondary"} className={cn(
-                          "rounded-full text-[10px] font-bold px-2.5 py-0.5",
-                          category.is_active ? "border-emerald-200 text-emerald-700 bg-emerald-50" : ""
-                        )}>
-                          {category.is_active ? 'Ativa' : 'Inativa'}
-                        </Badge>
-                      </div>
-                      
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-4 min-h-[40px]">
-                        {category.description || "Sem descrição definida."}
-                      </p>
-
-                      <div className="flex items-center justify-between pt-4 border-t border-muted/60">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: category.color }} />
-                          <span className="text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-wider">{category.color}</span>
-                        </div>
-                        <div className="flex gap-1.5">
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-destructive hover:bg-destructive/5"
-                            onClick={() => openCategoryDeleteDialog(category)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-                
-                <button 
-                  onClick={() => document.getElementById('new-category-trigger')?.click()}
-                  className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-card/50 hover:border-primary/20 hover:bg-primary/5 transition-all group"
+          {isCategoriesLoading ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-40 rounded-2xl bg-muted animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredCategories.map((category) => (
+                <Card 
+                  key={category.id} 
+                  className="overflow-hidden group hover:shadow-lg transition-all border-muted/60 bg-card cursor-pointer"
+                  onClick={() => openCategoryEditDialog(category)}
                 >
-                  <div className="p-2.5 rounded-full bg-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                    <Plus className="w-5 h-5 text-muted-foreground group-hover:text-primary" />
-                  </div>
-                  <span className="text-sm font-bold text-muted-foreground group-hover:text-primary">Nova Categoria</span>
-                </button>
-              </div>
-            )}
-          </TabsContent>
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        <div 
+                          className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm transition-all group-hover:scale-110"
+                          style={{ backgroundColor: `${category.color}15` }}
+                        >
+                          <Tag className="w-7 h-7" style={{ color: category.color }} />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-lg mb-1">{category.name}</h3>
+                          <Badge variant={category.is_active ? "outline" : "secondary"} className={cn(
+                            "rounded-full text-[10px] font-bold px-2.5 py-0.5",
+                            category.is_active ? "border-emerald-200 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800" : ""
+                          )}>
+                            {category.is_active ? 'Ativa' : 'Inativa'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-5 min-h-[40px]">
+                      {category.description || "Sem descrição definida."}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-muted/40">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: category.color }} />
+                        <span className="text-[11px] font-mono font-bold text-muted-foreground uppercase tracking-wider">{category.color}</span>
+                      </div>
+                      <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-9 w-9 hover:bg-primary/10 hover:text-primary transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openCategoryEditDialog(category);
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-9 w-9 text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openCategoryDeleteDialog(category);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              
+              {/* Card "Adicionar" */}
+              <button 
+                onClick={() => document.getElementById('new-category-trigger')?.click()}
+                className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-card/50 hover:border-primary/40 hover:bg-primary/5 transition-all group min-h-[200px]"
+              >
+                <div className="p-4 rounded-2xl bg-muted group-hover:bg-primary/10 transition-colors">
+                  <Plus className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <span className="text-base font-bold text-muted-foreground group-hover:text-primary transition-colors">
+                  Nova Categoria
+                </span>
+              </button>
+            </div>
+          )}
+        </TabsContent>
         </Tabs>
 
         {/* Dialogs */}
         <EditVehicleDialog 
-          vehicle={selectedVehicle}
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
         />
+        <EditVehicleCategoryDialog 
+          open={editCategoryDialogOpen}
+          onOpenChange={setEditCategoryDialogOpen}
+        />
 
         <ViewVehicleDialog 
-          vehicle={selectedVehicle}
           open={viewDialogOpen}
           onOpenChange={setViewDialogOpen}
         />
@@ -654,7 +728,7 @@ export default function VehiclesPageContent() {
           onOpenChange={setCategoryDeleteDialogOpen}
           onConfirm={handleDeleteCategory}
           title="Excluir Categoria"
-          itemName={categoryToDelete?.name}
+          itemName={selectCategory?.name}
           isLoading={isDeletingCategory}
         />
       </div>
