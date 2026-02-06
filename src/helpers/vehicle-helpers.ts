@@ -1,5 +1,5 @@
 //// src/helpers/vehicles-helpers.ts
-import { ICreateVehicle, IUpdateVehicle, IVehicle } from '@/lib/types/vehicle';
+import { ICreateVehicle, IUpdateVehicle, IUpdateStatus, IVehicle } from '@/lib/types/vehicle';
 
 export async function getAllVehicles(): Promise<IVehicle[]> {
     try {
@@ -17,7 +17,7 @@ export async function getVehicleById(vehicleId: string): Promise<IVehicle | null
         return result;
     } catch (error) {
         console.error(error);
-        return null;
+        throw error;
     }
 }
 
@@ -27,7 +27,7 @@ export async function createVehicle(vehicleData: ICreateVehicle): Promise<IVehic
         return result;
     } catch (error) {
         console.error(error);
-        return null;
+        throw error;
     }
 }
 
@@ -37,7 +37,17 @@ export async function updateVehicle(vehicleId: string, vehicleData: IUpdateVehic
         return result;
     } catch (error) {
         console.error(error);
-        return null;
+        throw error;
+    }
+}
+
+export async function updateStatusVehicle(vehicleId: string, data: IUpdateStatus): Promise<IVehicle | null> {
+    try {
+        const result = await window._vehicles.updateStatus(vehicleId, data);
+        return result;
+    } catch (error) {
+        console.error(error);
+        throw error;
     }
 }
 
@@ -47,7 +57,7 @@ export async function deleteVehicle(vehicleId: string): Promise<string | null> {
         return result as string;
     } catch (error) {
         console.error(error);
-        return null;
+        throw error;
     }
 }
 
@@ -57,19 +67,10 @@ export async function getAvailableVehicles(): Promise<IVehicle[]> {
         return result;
     } catch (error) {
         console.error(error);
-        return [];
+        throw error;
     }
 }
 
-export async function updateVehicleStatus(vehicleId: string, status: string): Promise<IVehicle | null> {
-    try {
-        const result = await window._vehicles.updateStatus(vehicleId, status);
-        return result;
-    } catch (error) {
-        console.error(error);
-        return null;
-    }
-}
 
 export async function updateVehicleMileage(vehicleId: string, mileage: number): Promise<IVehicle | null> {
     try {
@@ -77,6 +78,6 @@ export async function updateVehicleMileage(vehicleId: string, mileage: number): 
         return result;
     } catch (error) {
         console.error(error);
-        return null;
+        throw error;
     }
 }

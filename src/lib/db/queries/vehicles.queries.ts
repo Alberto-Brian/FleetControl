@@ -4,7 +4,7 @@ import { vehicles, VehicleStatus, vehicleStatus } from '@/lib/db/schemas/vehicle
 import { vehicle_categories } from '@/lib/db/schemas/vehicle_categories';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull, desc } from 'drizzle-orm';
-import { ICreateVehicle, IUpdateVehicle, IVehicle } from '@/lib/types/vehicle';
+import { ICreateVehicle, IUpdateVehicle, IVehicle, IUpdateStatus } from '@/lib/types/vehicle';
 
 /**
  * Criar novo veículo
@@ -55,6 +55,7 @@ export async function createVehicle(vehicleData: ICreateVehicle): Promise<IVehic
             acquisition_value: vehicles.acquisition_value,
             updated_at: vehicles.updated_at,
             created_at: vehicles.created_at,
+            deleted_at: vehicles.deleted_at
         });
 
     return result[0];
@@ -82,7 +83,7 @@ export async function findVehicleByLicensePlate(license_plate: string) {
 }
 
 /**
- * Buscar todos os veículos (ativos)
+ * Buscar todos os veículos (activos)
  */
 export async function getAllVehicles() {
     const { db } = useDb();
@@ -97,10 +98,17 @@ export async function getAllVehicles() {
             model: vehicles.model,
             year: vehicles.year,
             color: vehicles.color,
-            current_mileage: vehicles.current_mileage,
             status: vehicles.status,
             photo: vehicles.photo,
             is_active: vehicles.is_active,
+            notes: vehicles.notes,
+            fuel_tank_capacity: vehicles.fuel_tank_capacity,
+            chassis_number: vehicles.chassis_number,
+            engine_number: vehicles.engine_number,
+            current_mileage: vehicles.current_mileage,
+            acquisition_date: vehicles.acquisition_date,
+            acquisition_value: vehicles.acquisition_value,
+            updated_at: vehicles.updated_at,
             created_at: vehicles.created_at,
         })
         .from(vehicles)
@@ -114,7 +122,7 @@ export async function getAllVehicles() {
 /**
  * Buscar veículo por ID
  */
-export async function getVehicleById(vehicleId: string) {
+export async function findVehicleById(vehicleId: string) {
     const { db } = useDb();
     const result = await db
         .select({
@@ -153,7 +161,7 @@ export async function getVehicleById(vehicleId: string) {
 }
 
 /**
- * Atualizar veículo
+ * Actualizar veículo
  */
 export async function updateVehicle(vehicleId: string, vehicleData: IUpdateVehicle) {
     const { db } = useDb();
@@ -164,17 +172,33 @@ export async function updateVehicle(vehicleId: string, vehicleData: IUpdateVehic
             updated_at: new Date().toISOString(),
         })
         .where(eq(vehicles.id, vehicleId))
-        .returning({
-            id: vehicles.id,
-            license_plate: vehicles.license_plate,
-            brand: vehicles.brand,
-            model: vehicles.model,
-            status: vehicles.status,
-            updated_at: vehicles.updated_at,
-        });
+        // .returning({
+        //     id: vehicles.id,
+        //     category_id: vehicles.category_id,
+        //     category_name: vehicle_categories.name,
+        //     category_color: vehicle_categories.color,
+        //     license_plate: vehicles.license_plate,
+        //     brand: vehicles.brand,
+        //     model: vehicles.model,
+        //     year: vehicles.year,
+        //     color: vehicles.color,
+        //     status: vehicles.status,
+        //     photo: vehicles.photo,
+        //     is_active: vehicles.is_active,
+        //     notes: vehicles.notes,
+        //     fuel_tank_capacity: vehicles.fuel_tank_capacity,
+        //     chassis_number: vehicles.chassis_number,
+        //     engine_number: vehicles.engine_number,
+        //     current_mileage: vehicles.current_mileage,
+        //     acquisition_date: vehicles.acquisition_date,
+        //     acquisition_value: vehicles.acquisition_value,
+        //     updated_at: vehicles.updated_at,
+        //     created_at: vehicles.created_at,
+        // });
 
-    return result[0];
+    return await findVehicleById(vehicleId);
 }
+
 
 /**
  * Deletar veículo (soft delete)
@@ -220,23 +244,21 @@ export async function getAvailableVehicles() {
 }
 
 /**
- * Atualizar status do veículo
+ * Actualizar status do veículo
  */
-export async function updateVehicleStatus(vehicleId: string, status: VehicleStatus) {
+export async function updateVehicleStatus(vehicleId: string, data: IUpdateStatus) {
     const { db } = useDb();
     const result = await db
         .update(vehicles)
         .set({
-            status: status,
+            status: data.status,
+            notes: data.notes,
             updated_at: new Date().toISOString(),
         })
         .where(eq(vehicles.id, vehicleId))
-        .returning({
-            id: vehicles.id,
-            status: vehicles.status,
-        });
 
-    return result[0];
+
+    return await findVehicleById(vehicleId);
 }
 
 /**

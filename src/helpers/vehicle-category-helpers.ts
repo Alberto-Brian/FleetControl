@@ -1,8 +1,8 @@
 // ========================================
-// FILE: src/helpers/vehicle-categories-helpers.ts
+// FILE: src/helpers/vehicle-category-helpers.ts
 // ========================================
 import { ICreateVehicleCategory, IUpdateVehicleCategory, IVehicleCategory } from '@/lib/types/vehicle-category';
-import { getIpcErrorKey } from '@/helpers/error-helpers';
+import { extractAppError } from '@/helpers/error-helpers';
 
 export async function getAllVehicleCategories(): Promise<IVehicleCategory[]> {
     try {
@@ -19,8 +19,7 @@ export async function createVehicleCategory(data: ICreateVehicleCategory): Promi
         const result = await window._vehicle_categories.create(data);
         return result;
     } catch (error: any) {
-        const key = getIpcErrorKey(error, 'vehicles:errors.createVehicleCategory');
-        throw new Error(key);
+        throw error
     }
 }
 
@@ -29,8 +28,7 @@ export async function updateVehicleCategory(id: string, data: IUpdateVehicleCate
         const result = await window._vehicle_categories.update(id, data);
         return result;
     } catch (error) {
-        console.error(error);
-        return null;
+        throw error
     }
 }
 
@@ -39,7 +37,6 @@ export async function deleteVehicleCategory(id: string): Promise<string | null> 
         const result = await window._vehicle_categories.delete(id);
         return result as string;
     } catch (error) {
-        console.error(error);
-        return null;
+        throw error
     }
 }

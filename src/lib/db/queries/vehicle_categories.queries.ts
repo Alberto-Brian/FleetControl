@@ -33,7 +33,7 @@ export async function createVehicleCategory(categoryData: ICreateVehicleCategory
     return result[0];
 }
 
-export async function findVehcleCategoryByName(name: string): Promise<IVehicleCategory>{
+export async function findVehicleCategoryByName(name: string): Promise<IVehicleCategory>{
     const { db } = useDb();
     const result  = await db    
         .select({
@@ -46,6 +46,23 @@ export async function findVehcleCategoryByName(name: string): Promise<IVehicleCa
         })
         .from(vehicle_categories)
         .where(eq(vehicle_categories.name, name))
+
+        return result[0];
+}
+
+export async function findVehicleCategoryById(category_id: string): Promise<IVehicleCategory>{
+    const { db } = useDb();
+    const result  = await db    
+        .select({
+            id: vehicle_categories.id,
+            name: vehicle_categories.name,
+            description: vehicle_categories.description,
+            color: vehicle_categories.color,
+            is_active: vehicle_categories.is_active,
+            created_at: vehicle_categories.created_at
+        })
+        .from(vehicle_categories)
+        .where(eq(vehicle_categories.id, category_id))
 
         return result[0];
 }
@@ -87,6 +104,7 @@ export async function deleteVehicleCategory(categoryId: string): Promise<string>
     await db
         .update(vehicle_categories)
         .set({
+            is_active: false,
             deleted_at: new Date().toISOString(),
         })
         .where(eq(vehicle_categories.id, categoryId));

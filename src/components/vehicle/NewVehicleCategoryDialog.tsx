@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { createVehicleCategory } from '@/helpers/vehicle-category-helpers';
 import { ICreateVehicleCategory, IVehicleCategory } from '@/lib/types/vehicle-category';
 
@@ -17,7 +17,7 @@ type NewVehicleCategoryDialogProps = {
 }
 export default function NewVehicleCategoryDialog({ onCategoryCreated }: NewVehicleCategoryDialogProps)  { 
   const { t } = useTranslation();
-  const { toast } = useToast();
+  const { showSuccess, handleError } = useErrorHandler();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<ICreateVehicleCategory>({
@@ -39,10 +39,7 @@ export default function NewVehicleCategoryDialog({ onCategoryCreated }: NewVehic
     try {
       const newVehicleCategory = await createVehicleCategory(formData);
       if (newVehicleCategory) {
-        toast({
-          title: 'Sucesso!',
-          description: 'Categoria de veículos criado com sucesso.',
-        });
+        showSuccess(t('vehicles:toast.categoryCreateSuccess'))
         if (onCategoryCreated) {
           onCategoryCreated(newVehicleCategory);
         }
@@ -50,11 +47,7 @@ export default function NewVehicleCategoryDialog({ onCategoryCreated }: NewVehic
         resetForm();
       }
     } catch (error: any) {
-      toast({
-        title: 'Erro',
-        description: t(error?.message || 'vehicles:errors.createVehicleCategory'),
-        variant: 'destructive',
-      });
+      handleError(error, 'vehicles.errors.createVehicleCategory');
     } finally {
       setIsLoading(false);
     }

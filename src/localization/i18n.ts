@@ -9,6 +9,31 @@ i18n.use(initReactI18next).init({
         en: {
             vehicles: vehicleTranslations.en.vehicles,
             auth: authTranslations.en.auth,
+            common: {
+                confirmDelete: {
+                    title: "Are you sure?",
+                    default: "This action cannot be undone. This record will be marked as deleted.",
+                    defaultWithItem: 'This action cannot be undone. The record "{{itemName}}" will be marked as deleted.'
+                },
+                actions: {
+                    cancel: "Cancel",
+                    delete: "Delete",
+                    deleting: "Deleting..."
+                },
+                warnigns: {
+                    categoryRequired: "Please select a category",
+                    licensePlateRequired: "Please enter a vehicle license plate",
+                },
+                errors: {
+                    errorLoading: "Error loading",
+                    errorLoadingCategories: "Error loading categories",
+                    notFound:{
+                        vehicle: "Vehicle not found",
+                        vehicleCategory: "Vehicle category not found"
+                    }
+                }
+
+            },
             homePage: {
                 registerNewClientButton: "Register new client",
                 idTableColumn: "ID",
@@ -37,6 +62,30 @@ i18n.use(initReactI18next).init({
         "pt-BR": {
             vehicles: vehicleTranslations.pt.vehicles,
             auth: authTranslations.pt.auth,
+            common: {
+                confirmDelete: {
+                    title: "Tem certeza?",
+                    default: "Esta acção não pode ser desfeita. Este registo será marcado como excluído.",
+                    defaultWithItem: 'Esta acção não pode ser desfeita. O registo "{{itemName}}" será marcado como excluído.'
+                },
+                actions: {
+                    cancel: "Cancelar",
+                    delete: "Excluir",
+                    deleting: "Excluindo..."
+                },
+                warnigns: {
+                    licensePlateRequired: "Por favor, insira uma placa de veículo",
+                    categoryRequired: "Por favor, selecione uma categoria",
+                },
+                errors: {
+                    errorLoading: "Erro ao carregar",
+                    errorLoadingCategories: "Erro ao carregar categorias",
+                    notFound:{
+                        vehicle: "Veículo não encontrado",
+                        vehicleCategory: "Categoria de veículo não encontrada"
+                    }
+                }
+            },
             homePage: {
                 registerNewClientButton: "Cadastrar novo cliente",
                 idTableColumn: "ID",

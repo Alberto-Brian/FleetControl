@@ -1,4 +1,6 @@
-// Sugestão de expansão para o seu i18n.ts
+// ========================================
+// FILE: Traduções atualizadas (i18n)
+// ========================================
 export const vehicleTranslations = {
   en: {
     vehicles: {
@@ -13,6 +15,38 @@ export const vehicleTranslations = {
       statusFilter: "Status",
       allStatus: "All Status",
       viewMode: "View",
+      status: {
+        available: {
+          label: 'Available',
+          description: 'Vehicle ready for use',
+        },
+        in_use: {
+          label: 'In use',
+          description: 'Vehicle assigned to an activity',
+        },
+        maintenance: {
+          label: 'Maintenance',
+          description: 'Vehicle under repair or maintenance',
+        },
+        inactive: {
+          label: 'Inactive',
+          description: 'Vehicle temporarily out of operation',
+        },
+      },
+      statusChange: {
+        title: 'Change Vehicle Status',
+        currentStatus: 'Current Status',
+        newStatus: 'New Status',
+        notesLabel: 'Reason / Notes',
+        notesPlaceholder: 'e.g., Vehicle sent for 50,000 km service. Expected return: 03/15/2024',
+        notesHelper: 'This note will be automatically added to the vehicle history with date and time',
+        notePrefix: 'Status changed to',
+        infoTitle: 'Status Change',
+        infoDescription: 'The complete history of changes will be recorded in the system for future audit.',
+        cancel: 'Cancel',
+        confirm: 'Confirm',
+        updating: 'Updating...',
+      },
       tabs: {
         vehicles: "Vehicles",
         categories: "Categories"
@@ -37,19 +71,36 @@ export const vehicleTranslations = {
         deleteError: "Error deleting vehicle",
         categoryDeleteSuccess: "Category deleted successfully",
         categoryDeleteError: "Error deleting category",
-        updateSuccess: "Vehicle updated successfully",
+        categoryUpdateSuccess: "Category updated successfully",
+        categoryCreateSuccess: "Category Created successfully",
+        mileageUpdateSuccess: "Mileage successfully updated",
+        statusUpdateSuccess: "Status updated successfully",
+        statusUpdateError: "Error updating status",
+        categoryUpdateError: "Error updating category",
+        updateSuccess: "Vehicle successfully updated",
         updateError: "Error updating vehicle",
         createSuccess: "Vehicle created successfully",
         createError: "Error creating vehicle",
       },
       errors: {
+        errorTitle: "Error",
+        errorUpdatingMileage: "Error updating Mileage",
         vehicleNotFound: "Vehicle not found",
         vehicleAlreadyExists: "This vehicle already exists",
+        vehicleWithTheSameLicensePlateAlreadyExists: "A vehicle with license plate {{plate}} already exists.",
         errorLoading: "Error loading vehicles",
         errorLoadingCategories: "Error loading categories",
+        categoryHasVehicles: "Cannot delete: category is linked to vehicles",
         vehicleCategoryAlreadyExists: "This vehicle category already exists",
         createVehicleCategory: "Error creating vehicle category",
       },
+      warnings: {
+        warningTitle: "Warning",
+        notAvailableVehicles: "There are no available vehicles",
+        vehicleCategoryAlreadyExistsWithStatusFalse: "This vehicle category already exists, but it was deactivated. You can restore it before using",
+        newMileageCannotBeLessThanCurrent: "The new mileage cannot be less than the current mileage.",
+        mileageDifferenceTooBig: "The mileage difference is too large. Please verify the value.",
+      }
     }
   },
   pt: {
@@ -65,6 +116,38 @@ export const vehicleTranslations = {
       statusFilter: "Status",
       allStatus: "Todos os Status",
       viewMode: "Visualização",
+      status: {
+        available: {
+          label: 'Disponível',
+          description: 'Veículo pronto para uso',
+        },
+        in_use: {
+          label: 'Em uso',
+          description: 'Veículo alocado para uma atividade',
+        },
+        maintenance: {
+          label: 'Manutenção',
+          description: 'Veículo em reparo ou manutenção',
+        },
+        inactive: {
+          label: 'Inactivo',
+          description: 'Veículo temporariamente fora de operação',
+        },
+      },
+      statusChange: {
+        title: 'Alterar Status do Veículo',
+        currentStatus: 'Status Actual',
+        newStatus: 'Novo Status',
+        notesLabel: 'Motivo / Observações',
+        notesPlaceholder: 'Ex: Veículo enviado para revisão dos 50.000 km. Previsão de retorno: 15/03/2024',
+        notesHelper: 'Esta observação será adicionada automaticamente ao histórico do veículo com data e hora',
+        notePrefix: 'Status alterado para',
+        infoTitle: 'Alteração de Status',
+        infoDescription: 'O histórico completo de alterações ficará registado no sistema para auditoria futura.',
+        cancel: 'Cancelar',
+        confirm: 'Confirmar',
+        updating: 'Actualizando...',
+      },
       tabs: {
         vehicles: "Veículos",
         categories: "Categorias"
@@ -83,25 +166,42 @@ export const vehicleTranslations = {
       newVehicle: "Novo Veículo",
       newCategory: "Nova Categoria",
       toast: {
+        mileageUpdateSuccess: "Quilometragem atualizada com sucesso.",
+        statusUpdateSuccess: "Status actualizado com sucesso",
+        statusUpdateError: "Erro ao actualizar status",
         errorTitle: "Erro",
         successTitle: "Sucesso!",
         deleteSuccess: "Veículo excluído com sucesso",
         deleteError: "Erro ao excluir veículo",
         categoryDeleteSuccess: "Categoria excluída com sucesso",
         categoryDeleteError: "Erro ao excluir categoria",
+        categoryUpdateSuccess: "Categoria actualizada com sucesso",
+        categoryCreateSuccess: "Categoria Criada com sucesso",
+        categoryUpdateError: "Err:o ao actualizar categoria",
         updateSuccess: "Veículo actualizado com sucesso",
         updateError: "Erro ao atualizar veículo",
         createSuccess: "Veículo criado com sucesso",
         createError: "Erro ao criar veículo",
       },
       errors: {
+        errorTitle: "Erro",
+        errorUpdatingMileage: "Erro ao actualizar quilometragem",
         vehicleNotFound: "Veículo não encontrado",
         vehicleAlreadyExists: "Este veículo já existe",
+        vehicleWithTheSameLicensePlateAlreadyExists: "Já existe um veículo com a matrícula {{plate}}.",
         errorLoading: "Erro ao carregar veículos",
         errorLoadingCategories: "Erro ao carregar categorias",
+        categoryHasVehicles: "Não é possível excluir: categoria vinculada a veículos",
         vehicleCategoryAlreadyExists: "Esta categoria de veículo já existe",
         createVehicleCategory: "Erro ao criar categoria de veículo",
       },
+      warnings: {
+        warningTitle: "Aviso",
+        notAvailableVehicles: "Sem veículos disponíveis",
+        vehicleCategoryAlreadyExistsWithStatusFalse: "Esta categoria de veículos já existe, mas já foi desactivada. Podes restaurá-lo antes de usar",
+        newMileageCannotBeLessThanCurrent: "A nova quilometragem não pode ser menor que a actual.",
+        mileageDifferenceTooBig: "Diferença muito grande na quilometragem. Verifique o valor.",
+      }
     }
   }
 };

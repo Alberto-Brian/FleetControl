@@ -10,7 +10,7 @@ import BaseLayout from "./layouts/BaseLayout";
 import { hasUsers as CheckIfHasUsers } from "./helpers/service-auth-helpers";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LicenseGuard } from "./components/LicenseGuard";
-import { Toaster } from "./components/ui/toaster";
+import { Toaster } from "./components/ui/sooner";
 import { syncThemeWithLocal } from "./helpers/theme-helpers";
 import { updateAppLanguage } from "./helpers/language-helpers";
 import { useTranslation } from "react-i18next";

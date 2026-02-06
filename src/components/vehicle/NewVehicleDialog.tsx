@@ -1,5 +1,5 @@
 // ========================================
-// FILE: /src/components/vehicle/NewVehicleDialog.tsx
+// FILE: src/components/vehicle/NewVehicleDialog.tsx
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -7,20 +7,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/components/ui/use-toast';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
 import { createVehicle } from '@/helpers/vehicle-helpers';
 import { getAllVehicleCategories } from '@/helpers/vehicle-category-helpers';
 import { ICreateVehicle } from '@/lib/types/vehicle';
+import { useVehicles } from '@/contexts/VehiclesContext';
 
-interface NewVehicleDialogProps {
-  onVehicleCreated: (vehicle: any) => void;
-}
-
-export default function NewVehicleDialog({ onVehicleCreated }: NewVehicleDialogProps) {
-  const { toast } = useToast();
+export default function NewVehicleDialog() {
+  const { showSuccess, handleError } = useErrorHandler();
   const { t } = useTranslation();
+  
+  // ✨ USA O CONTEXTO
+  const { addVehicle } = useVehicles();
+  
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
@@ -41,15 +42,15 @@ export default function NewVehicleDialog({ onVehicleCreated }: NewVehicleDialogP
   }, [open]);
 
   async function loadCategories() {
-    const cats = await getAllVehicleCategories();
-    setCategories(cats);
-    
-    // Mock temporário
-    // setCategories([
-    //   { id: '1', name: 'Passeio', color: '#3B82F6' },
-    //   { id: '2', name: 'Utilitário', color: '#10B981' },
-    //   { id: '3', name: 'Caminhão', color: '#F59E0B' },
-    // ]);
+    setIsLoading(true);
+    try {
+      const cats = await getAllVehicleCategories();
+      setCategories(cats);
+    } catch (error: any) {
+      handleError(error, t('common:errors.errorLoadingCategories'));
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -59,28 +60,16 @@ export default function NewVehicleDialog({ onVehicleCreated }: NewVehicleDialogP
     try {
       const newVehicle = await createVehicle(formData);
       
-      // Mock temporário
-      // const newVehicle = {
-      //   id: Math.random().toString(),
-      //   ...formData,
-      //   status: 'available',
-      //   created_at: new Date().toISOString(),
-      // };
       if (newVehicle) {
-        toast({
-          title: t('vehicles:toast.successTitle'),
-          description: t('vehicles:toast.createSuccess'),
-        });
-        onVehicleCreated(newVehicle);
+        // ✨ ADICIONA AO CONTEXTO GLOBAL
+        addVehicle(newVehicle);
+        
+        showSuccess(t('vehicles:toast.createSuccess'));
         setOpen(false);
         resetForm();
       }
     } catch (error: any) {
-      toast({
-        title: t('vehicles:toast.errorTitle'),
-        description: t(error?.message || 'vehicles:toast.createError'),
-        variant: 'destructive',
-      });
+      handleError(error, 'vehicles:toast.createError');
     } finally {
       setIsLoading(false);
     }

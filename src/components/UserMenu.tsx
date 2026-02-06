@@ -11,12 +11,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, LogOut, Settings, KeyRound } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
 export default function UserMenu() {
   const { user, logout } = useAuth();
-  const { toast } = useToast();
   const { t } = useTranslation();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -24,16 +23,9 @@ export default function UserMenu() {
     setIsLoggingOut(true);
     try {
       await logout();
-      toast({
-        title: t('auth:toast.logoutSuccessTitle'),
-        description: t('auth:toast.logoutSuccess'),
-      });
+      toast.success(t('auth:toast.logoutSuccess'))
     } catch (error: any) {
-      toast({
-        title: t('auth:toast.logoutErrorTitle'),
-        description: t(error?.message || 'auth:errors.logoutFailed'),
-        variant: 'destructive',
-      });
+      toast.success(t(error?.message || 'auth:errors.logoutFailed'))
     } finally {
       setIsLoggingOut(false);
     }

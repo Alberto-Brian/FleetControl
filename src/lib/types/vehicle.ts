@@ -2,6 +2,8 @@ import { IBase } from "./base";
 import { VehicleStatus } from "../db/schemas/vehicles";
 export interface IVehicle extends IBase {
     category_id: string;
+    category_name?: string;  // Não vem da tabela de veículos então em vez de null ficam com o undefined
+    category_color?: string;
     license_plate: string;
     brand: string;
     model: string;
@@ -13,10 +15,11 @@ export interface IVehicle extends IBase {
     current_mileage: number;
     acquisition_date: string | null;
     acquisition_value: number | null;
-    status: string;
+    status: VehicleStatus;
     photo: string | null;
     notes: string | null;
     is_active: boolean;
+    deleted_at: string | null;
 }
 
 export interface ICreateVehicle {
@@ -51,5 +54,10 @@ export interface IUpdateVehicle {
     acquisition_value?: number;
     status?: VehicleStatus;
     photo?: string;
+    notes?: string;
+}
+
+export interface IUpdateStatus{
+    status: VehicleStatus;
     notes?: string;
 }

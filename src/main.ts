@@ -27,7 +27,7 @@ async function createSplashWindow() {
     height: 370,
     transparent: true,
     frame: false,
-    alwaysOnTop: true,
+    alwaysOnTop: !inDevelopment,
     center: true,
     resizable: false,
     show: true,
@@ -54,7 +54,7 @@ async function createWindow() {
     const SPLASH_DELAY = 1500;
     const preload = path.join(__dirname, "preload.js");
     mainWindow = new BrowserWindow({
-        width: 800,
+        width: !inDevelopment ? 800 : 1200,
         height: 600,
         icon: path.join(app.getAppPath(), 'build', 'icons', 'icon.png'),
         show: false,
