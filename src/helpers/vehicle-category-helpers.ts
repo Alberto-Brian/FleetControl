@@ -14,7 +14,7 @@ export async function getAllVehicleCategories(): Promise<IVehicleCategory[]> {
     }
 }
 
-export async function createVehicleCategory(data: ICreateVehicleCategory): Promise<IVehicleCategory | null> {
+export async function createVehicleCategory(data: ICreateVehicleCategory): Promise<IVehicleCategory> {
     try {
         const result = await window._vehicle_categories.create(data);
         return result;
@@ -23,12 +23,28 @@ export async function createVehicleCategory(data: ICreateVehicleCategory): Promi
     }
 }
 
-export async function updateVehicleCategory(id: string, data: IUpdateVehicleCategory): Promise<IVehicleCategory | null> {
+export async function updateVehicleCategory(id: string, data: IUpdateVehicleCategory): Promise<IVehicleCategory | Error> {
     try {
         const result = await window._vehicle_categories.update(id, data);
         return result;
     } catch (error) {
         throw error
+    }
+}
+
+/**
+ * ✨ NOVO: Restaura (activa) uma categoria inactiva
+ */
+export async function restoreVehicleCategory(id: string): Promise<IVehicleCategory | null> {
+    try {
+        const result = await window._vehicle_categories.update(id, {
+            is_active: true,
+            deleted_at: null,
+            updated_at: new Date().toISOString()
+        });
+        return result;
+    } catch (error) {
+        throw error;
     }
 }
 

@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/trip/StartTripDialog.tsx
+// FILE: src/components/trip/StartTripDialog.tsx (ATUALIZADO)
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -8,27 +8,28 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { useTranslation } from 'react-i18next';
 import { Plus, Truck, User, MapPin, Gauge, Route as RouteIcon, ArrowRight } from 'lucide-react';
-import { createTrip } from '@/helpers/trip-helpers';
+import { createTrip as createTripHelper } from '@/helpers/trip-helpers';
 import { getAvailableVehicles } from '@/helpers/vehicle-helpers';
 import { getAvailableDrivers } from '@/helpers/driver-helpers';
 import { getActiveRoutes } from '@/helpers/route-helpers';
 import { ICreateTrip } from '@/lib/types/trip';
 import { Separator } from '@/components/ui/separator';
+import { useTrips } from '@/contexts/TripsContext';
 
-interface StartTripDialogProps {
-  onTripCreated: (trip: any) => void;
-}
-
-export default function StartTripDialog({ onTripCreated }: StartTripDialogProps) {
-  const { toast } = useToast();
+export default function StartTripDialog() {
+  const { t } = useTranslation();
+  const { showSuccess, handleError } = useErrorHandler();
+  const { addTrip } = useTrips(); // ✨ Usa contexto
+  
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [routes, setRoutes] = useState<any[]>([]);
-  const [useRoute, setUseRoute] = useState(true); // true = usar rota, false = manual
+  const [useRoute, setUseRoute] = useState(true);
   const [formData, setFormData] = useState<ICreateTrip>({
     vehicle_id: '',
     driver_id: '',
@@ -37,12 +38,12 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
     origin: '',
     destination: '',
     purpose: '',
+    notes: '',
   });
 
   useEffect(() => {
     if (open) {
       loadData();
-      console.log(vehicles)
     }
   }, [open]);
 
@@ -58,41 +59,26 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
       setDrivers(driversData);
       setRoutes(routesData);
     } catch (error) {
-      console.error(error);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao carregar dados',
-        variant: 'destructive',
-      });
+      handleError(error, 'common:errors.loadingData');
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    // Validação: se usar rota, route_id é obrigatório; senão, origin/destination
     if (useRoute && !formData.route_id) {
-      toast({
-        title: 'Erro',
-        description: 'Selecione uma rota',
-        variant: 'destructive',
-      });
+      handleError(new Error('trips:alerts.selectRoute'), 'trips:alerts.selectRoute');
       return;
     }
 
     if (!useRoute && (!formData.origin || !formData.destination)) {
-      toast({
-        title: 'Erro',
-        description: 'Informe origem e destino',
-        variant: 'destructive',
-      });
+      handleError(new Error('trips:alerts.selectOriginDestination'), 'trips:alerts.selectOriginDestination');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Preparar dados: se usar rota, limpar origin/destination manual
       const tripData: ICreateTrip = useRoute
         ? {
             vehicle_id: formData.vehicle_id,
@@ -112,23 +98,16 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
             notes: formData.notes,
           };
 
-      const newTrip = await createTrip(tripData);
+      const newTrip = await createTripHelper(tripData);
 
       if (newTrip) {
-        toast({
-          title: 'Sucesso!',
-          description: 'Viagem iniciada com sucesso.',
-        });
-        onTripCreated(newTrip);
+        addTrip(newTrip); // ✨ Adiciona ao contexto
+        showSuccess('trips:toast.createSuccess');
         setOpen(false);
         resetForm();
       }
     } catch (error: any) {
-      toast({
-        title: 'Erro',
-        description: error.message || 'Erro ao iniciar viagem',
-        variant: 'destructive',
-      });
+      handleError(error, 'trips:toast.createError');
     } finally {
       setIsLoading(false);
     }
@@ -143,6 +122,7 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
       origin: '',
       destination: '',
       purpose: '',
+      notes: '',
     });
     setUseRoute(true);
   }
@@ -165,24 +145,24 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
       <DialogTrigger asChild>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
-          Iniciar Viagem
+          {t('trips:newTrip')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Iniciar Nova Viagem</DialogTitle>
+          <DialogTitle className="text-2xl">{t('trips:dialogs.start.title')}</DialogTitle>
           <DialogDescription>
-            Selecione o veículo e motorista para iniciar uma viagem
+            {t('trips:dialogs.start.description')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Seleção de Veículo e Motorista */}
+          {/* Veículo e Motorista */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Truck className="w-4 h-4" />
-                Veículo *
+                {t('trips:fields.vehicle')} *
               </Label>
               <Select
                 value={formData.vehicle_id}
@@ -197,12 +177,12 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
                 required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o veículo" />
+                  <SelectValue placeholder={t('common:select')} />
                 </SelectTrigger>
                 <SelectContent>
                   {vehicles.length === 0 ? (
                     <div className="p-2 text-sm text-muted-foreground text-center">
-                      Nenhum veículo disponível
+                      {t('trips:dialogs.start.noVehicles')}
                     </div>
                   ) : (
                     vehicles.map((v) => (
@@ -220,7 +200,7 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
               {selectedVehicle && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Gauge className="w-3 h-3" />
-                  KM Actual: {selectedVehicle.current_mileage?.toLocaleString('pt-AO')}
+                  KM: {selectedVehicle.current_mileage?.toLocaleString('pt-PT')}
                 </p>
               )}
             </div>
@@ -228,7 +208,7 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <User className="w-4 h-4" />
-                Motorista *
+                {t('trips:fields.driver')} *
               </Label>
               <Select
                 value={formData.driver_id}
@@ -236,24 +216,17 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
                 required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o motorista" />
+                  <SelectValue placeholder={t('common:select')} />
                 </SelectTrigger>
                 <SelectContent>
                   {drivers.length === 0 ? (
                     <div className="p-2 text-sm text-muted-foreground text-center">
-                      Nenhum motorista disponível
+                      {t('trips:dialogs.start.noDrivers')}
                     </div>
                   ) : (
                     drivers.map((d) => (
                       <SelectItem key={d.id} value={d.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{d.name}</span>
-                          {d.license_category && (
-                            <span className="text-xs text-muted-foreground">
-                              (CNH {d.license_category})
-                            </span>
-                          )}
-                        </div>
+                        {d.name}
                       </SelectItem>
                     ))
                   )}
@@ -264,15 +237,15 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
 
           <Separator />
 
-          {/* Toggle: Usar Rota ou Manual */}
+          {/* Toggle: Rota ou Manual */}
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border">
               <div className="flex items-center gap-3">
                 <RouteIcon className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="font-medium">Tipo de Viagem</p>
+                  <p className="font-medium">{t('trips:dialogs.start.tripType')}</p>
                   <p className="text-xs text-muted-foreground">
-                    {useRoute ? 'Usar rota pré-cadastrada' : 'Definir origem/destino manualmente'}
+                    {useRoute ? t('trips:dialogs.start.useRoute') : t('trips:dialogs.start.useManual')}
                   </p>
                 </div>
               </div>
@@ -286,7 +259,7 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
                     setFormData({ ...formData, origin: '', destination: '' });
                   }}
                 >
-                  Rota Cadastrada
+                  {t('common:route')}
                 </Button>
                 <Button
                   type="button"
@@ -297,18 +270,17 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
                     setFormData({ ...formData, route_id: '' });
                   }}
                 >
-                  Manual
+                  {t('common:manual')}
                 </Button>
               </div>
             </div>
 
-            {/* Seleção de Rota OU Origem/Destino Manual */}
             {useRoute ? (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <RouteIcon className="w-4 h-4" />
-                    Rota *
+                    {t('trips:fields.route')} *
                   </Label>
                   <Select
                     value={formData.route_id}
@@ -316,12 +288,12 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
                     required={useRoute}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma rota cadastrada" />
+                      <SelectValue placeholder={t('trips:dialogs.start.selectRoute')} />
                     </SelectTrigger>
                     <SelectContent>
                       {routes.length === 0 ? (
                         <div className="p-2 text-sm text-muted-foreground text-center">
-                          Nenhuma rota cadastrada
+                          {t('trips:dialogs.start.noRoutes')}
                         </div>
                       ) : (
                         routes.map((r) => (
@@ -344,37 +316,36 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
                   </Select>
                 </div>
 
-                {/* Preview da Rota Selecionada */}
                 {selectedRoute && (
                   <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
                     <div className="flex items-center gap-3 mb-2">
                       <MapPin className="w-4 h-4 text-primary" />
-                      <p className="font-semibold text-sm">Detalhes da Rota</p>
+                      <p className="font-semibold text-sm">{t('trips:dialogs.start.routeDetails')}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">Origem</p>
+                        <p className="text-xs text-muted-foreground mb-1">{t('trips:fields.origin')}</p>
                         <p className="font-medium text-green-700 dark:text-green-400">
                           {selectedRoute.origin}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">Destino</p>
+                        <p className="text-xs text-muted-foreground mb-1">{t('trips:fields.destination')}</p>
                         <p className="font-medium text-red-700 dark:text-red-400">
                           {selectedRoute.destination}
                         </p>
                       </div>
                       {selectedRoute.estimated_distance && (
                         <div>
-                          <p className="text-xs text-muted-foreground mb-1">Distância Estimada</p>
+                          <p className="text-xs text-muted-foreground mb-1">{t('trips:dialogs.start.estimatedDistance')}</p>
                           <p className="font-medium">
-                            {selectedRoute.estimated_distance.toLocaleString('pt-AO')} km
+                            {selectedRoute.estimated_distance.toLocaleString('pt-PT')} km
                           </p>
                         </div>
                       )}
                       {selectedRoute.estimated_duration && (
                         <div>
-                          <p className="text-xs text-muted-foreground mb-1">Duração Estimada</p>
+                          <p className="text-xs text-muted-foreground mb-1">{t('trips:dialogs.start.estimatedDuration')}</p>
                           <p className="font-medium">{selectedRoute.estimated_duration}h</p>
                         </div>
                       )}
@@ -387,10 +358,10 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-green-600" />
-                    Origem *
+                    {t('trips:fields.origin')} *
                   </Label>
                   <Input
-                    placeholder="Ex: Luanda"
+                    placeholder={t('trips:placeholders.origin')}
                     value={formData.origin}
                     onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
                     required={!useRoute}
@@ -400,10 +371,10 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-red-600" />
-                    Destino *
+                    {t('trips:fields.destination')} *
                   </Label>
                   <Input
-                    placeholder="Ex: Benguela"
+                    placeholder={t('trips:placeholders.destination')}
                     value={formData.destination}
                     onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
                     required={!useRoute}
@@ -420,7 +391,7 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Gauge className="w-4 h-4" />
-                Quilometragem Inicial *
+                {t('trips:fields.startMileage')} *
               </Label>
               <Input
                 type="number"
@@ -430,14 +401,14 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Verifique o odômetro do veículo antes de partir
+                {t('trips:dialogs.start.verifyMileage')}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label>Finalidade</Label>
+              <Label>{t('trips:fields.purpose')}</Label>
               <Input
-                placeholder="Ex: Entrega de mercadorias"
+                placeholder={t('trips:placeholders.purpose')}
                 value={formData.purpose}
                 onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
               />
@@ -446,25 +417,26 @@ export default function StartTripDialog({ onTripCreated }: StartTripDialogProps)
 
           {/* Observações */}
           <div className="space-y-2">
-            <Label>Observações</Label>
+            <Label>{t('trips:fields.notes')}</Label>
             <Textarea
-              placeholder="Informações adicionais sobre a viagem..."
+              placeholder={t('trips:placeholders.notes')}
               value={formData.notes || ''}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
+              className="resize-none"
             />
           </div>
 
           {/* Botões */}
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
+              {t('common:cancel')}
             </Button>
             <Button 
               type="submit" 
               disabled={isLoading || vehicles.length === 0 || drivers.length === 0}
             >
-              {isLoading ? 'Iniciando...' : 'Iniciar Viagem'}
+              {isLoading ? t('trips:actions.starting') : t('trips:actions.start')}
             </Button>
           </div>
         </form>

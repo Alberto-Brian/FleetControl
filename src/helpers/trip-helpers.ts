@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/helpers/trips-helpers.ts
+// FILE: src/helpers/trip-helpers.ts (ATUALIZADO)
 // ========================================
 import { ICreateTrip, ICompleteTrip, ITrip } from '@/lib/types/trip';
 
@@ -8,8 +8,7 @@ export async function getAllTrips(): Promise<ITrip[]> {
         const result = await window._trips.getAll();
         return result;
     } catch (error) {
-        console.error(error);
-        return [];
+        throw error; // ✅ Propaga para useErrorHandler
     }
 }
 
@@ -18,8 +17,7 @@ export async function getTripById(id: string): Promise<ITrip | null> {
         const result = await window._trips.getById(id);
         return result;
     } catch (error) {
-        console.error(error);
-        return null;
+        throw error;
     }
 }
 
@@ -28,8 +26,7 @@ export async function createTrip(data: ICreateTrip): Promise<ITrip | null> {
         const result = await window._trips.create(data);
         return result;
     } catch (error) {
-        console.error(error);
-        return null;
+        throw error;
     }
 }
 
@@ -38,8 +35,7 @@ export async function completeTrip(id: string, data: ICompleteTrip): Promise<ITr
         const result = await window._trips.complete(id, data);
         return result;
     } catch (error) {
-        console.error(error);
-        return null;
+        throw error;
     }
 }
 
@@ -48,8 +44,7 @@ export async function cancelTrip(id: string): Promise<string | null> {
         const result = await window._trips.cancel(id);
         return result as string;
     } catch (error) {
-        console.error(error);
-        return null;
+        throw error;
     }
 }
 
@@ -58,7 +53,6 @@ export async function getActiveTrips(): Promise<ITrip[]> {
         const result = await window._trips.getActive();
         return result;
     } catch (error) {
-        console.error(error);
-        return [];
+        throw error;
     }
 }

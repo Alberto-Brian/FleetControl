@@ -11,14 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useTranslation } from 'react-i18next';
 import { Plus, Tag } from 'lucide-react';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
-import { createVehicleCategory } from '@/helpers/vehicle-category-helpers';
+import { createVehicleCategory, restoreVehicleCategory } from '@/helpers/vehicle-category-helpers';
 import { ICreateVehicleCategory } from '@/lib/types/vehicle-category';
 import { useVehicles } from '@/contexts/VehiclesContext';
 
 export default function NewVehicleCategoryDialog() { 
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
-  const { addCategory } = useVehicles();
+  const { addCategory, updateCategory } = useVehicles();
   
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,7 +54,27 @@ export default function NewVehicleCategoryDialog() {
         resetForm();
       }
     } catch (error: any) {
-      handleError(error, 'vehicles:errors.createVehicleCategory');
+      // ✨ Handler com callback que RETORNA PROMISE
+      handleError(
+        error, 
+        'vehicles:toast.categoryCreateError',
+        async (actionType, actionData) => {
+          // ⚠️ IMPORTANTE: Este callback DEVE retornar uma Promise
+          if (actionType === 'RESTORE_CATEGORY') {
+            // ✨ A função já retorna Promise, então o toast.promise funciona
+            const restored = await restoreVehicleCategory(actionData.categoryId);
+            
+            if (restored) {
+              updateCategory(restored); // Atualiza no contexto
+              setOpen(false);
+              resetForm();
+            }
+            
+            // ✨ Se chegar aqui, sucesso! O toast.promise mostra a mensagem de success
+            // ✨ Se der erro, o catch do toast.promise pega e mostra a mensagem de error
+          }
+        }
+      );
     } finally {
       setIsLoading(false);
     }

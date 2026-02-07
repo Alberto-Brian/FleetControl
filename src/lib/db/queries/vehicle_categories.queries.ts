@@ -27,7 +27,8 @@ export async function createVehicleCategory(categoryData: ICreateVehicleCategory
             description: vehicle_categories.description,
             color: vehicle_categories.color,
             is_active: vehicle_categories.is_active,
-            created_at: vehicle_categories.created_at
+            created_at: vehicle_categories.created_at,
+            updated_at: vehicle_categories.updated_at
         });
 
     return result[0];
@@ -42,7 +43,8 @@ export async function findVehicleCategoryByName(name: string): Promise<IVehicleC
             description: vehicle_categories.description,
             color: vehicle_categories.color,
             is_active: vehicle_categories.is_active,
-            created_at: vehicle_categories.created_at
+            created_at: vehicle_categories.created_at,
+            updated_at: vehicle_categories.updated_at
         })
         .from(vehicle_categories)
         .where(eq(vehicle_categories.name, name))
@@ -59,7 +61,8 @@ export async function findVehicleCategoryById(category_id: string): Promise<IVeh
             description: vehicle_categories.description,
             color: vehicle_categories.color,
             is_active: vehicle_categories.is_active,
-            created_at: vehicle_categories.created_at
+            created_at: vehicle_categories.created_at,
+            updated_at: vehicle_categories.updated_at
         })
         .from(vehicle_categories)
         .where(eq(vehicle_categories.id, category_id))
@@ -77,6 +80,7 @@ export async function getAllVehicleCategories(): Promise<IVehicleCategory[]> {
             color: vehicle_categories.color,
             is_active: vehicle_categories.is_active,
             created_at: vehicle_categories.created_at,
+            updated_at: vehicle_categories.updated_at
         })
         .from(vehicle_categories)
         .where(isNull(vehicle_categories.deleted_at))

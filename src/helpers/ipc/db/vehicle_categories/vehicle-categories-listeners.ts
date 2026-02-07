@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/helpers/ipc/db/vehicle_categories/vehicle-categories-listeners.ts
+// FILE: src/helpers/ipc/db/vehicle_categories/vehicle-categories-listeners.ts (ATUALIZADO)
 // ========================================
 import { ipcMain } from "electron";
 import {
@@ -22,78 +22,103 @@ import { getVehiclesByCategory } from '@/lib/db/queries/vehicles.queries';
 import { ICreateVehicleCategory, IUpdateVehicleCategory, IVehicleCategory } from '@/lib/types/vehicle-category';
 import { ConflictError, NotFoundError, WarningError } from '@/lib/errors/AppError';
 
+// Chaves de tradução para erros
+const T_ERRORS = {
+    CATEGORY_NOT_FOUND: 'vehicles:errors.categoryNotFound',
+    CATEGORY_EXISTS: 'vehicles:errors.categoryAlreadyExists', // Reutilizando padrão similar
+    CATEGORY_EXISTS_INACTIVE: 'vehicles:warnings.categoryExistsInactive',
+    CATEGORY_HAS_VEHICLES: 'vehicles:errors.categoryHasVehicles'
+} as const;
+
 export function addVehicleCategoriesEventListeners() {
-    ipcMain.handle(GET_ALL_VEHICLE_CATEGORIES, async (_) => await getAllVehicleCategories());
+    ipcMain.handle(GET_ALL_VEHICLE_CATEGORIES, async () => await getAllVehicleCategories());
     ipcMain.handle(CREATE_VEHICLE_CATEGORY, async (_, data: ICreateVehicleCategory) => await createVehicleCategoryEvent(data));
     ipcMain.handle(UPDATE_VEHICLE_CATEGORY, async (_, id: string, data: IUpdateVehicleCategory) => await updateVehicleCategoryEvent(id, data));
     ipcMain.handle(DELETE_VEHICLE_CATEGORY, async (_, id: string) => await deleteVehicleCategoryEvent(id));
 }
 
 async function createVehicleCategoryEvent(data: ICreateVehicleCategory): Promise<IVehicleCategory | Error> {
-    const categoryVehicleExists = await findVehicleCategoryByName(data.name);
+    const categoryExists = await findVehicleCategoryByName(data.name.trim());
     
-    if (categoryVehicleExists) {
-        if (categoryVehicleExists.is_active) {
-            // Categoria ativa já existe - erro vermelho
+    if (categoryExists) {
+        if (categoryExists.is_active) {
             throw new Error(
-                new ConflictError('vehicles:errors.vehicleCategoryAlreadyExists', {
-                    categoryName: data.name
+                new ConflictError(T_ERRORS.CATEGORY_EXISTS, {
+                    i18n: { name: data.name.trim() }
                 }).toIpcString()
             );
         }
         
-        // Categoria existe mas está inativa - warning amarelo
+        console.log("Chegamos até aqui")
+
         throw new Error(
-            new WarningError('vehicles:warnings.vehicleCategoryAlreadyExistsWithStatusFalse', {
-                categoryName: data.name,
-                categoryId: categoryVehicleExists.id
-            }).toIpcString()
-        );
+                new WarningError(
+                    'vehicles:warnings.categoryExistsInactive',
+                    {
+                        i18n: { name: data.name },
+                        duration: 10000, // 10 segundos
+                        // ✨ Configuração da acção COM LABELS
+                        action: {
+                            label: 'vehicles:actions.activate', // Label do botão
+                            type: 'RESTORE_CATEGORY', // Tipo da acção (para o callback)
+                            data: {
+                                categoryId: categoryExists.id,
+                                categoryName: categoryExists.name
+                            },
+                            // ✨ Labels para os estados do toast.promise
+                            loadingLabel: 'vehicles:actions.activating', // "A activar..."
+                            successLabel: 'vehicles:toast.categoryRestored', // "Categoria activada com sucesso!"
+                            errorLabel: 'vehicles:errors.restoreFailed' // "Erro ao activar categoria"
+                        },
+                        // Botão de cancelar
+                        cancel: {
+                            label: 'common:actions.cancel'
+                        }
+                    }).toIpcString()
+            );
     }
     
-    const category = await createVehicleCategory(data);
-    return category;
+    return await createVehicleCategory(data);
 }
 
 export async function updateVehicleCategoryEvent(id: string, data: IUpdateVehicleCategory): Promise<IVehicleCategory | Error> {
-    const categoryVehicleExists = await findVehicleCategoryById(id);
-    if(!categoryVehicleExists) {
+    const categoryExists = await findVehicleCategoryById(id);
+    
+    if (!categoryExists) {
         throw new Error(
-            new NotFoundError('categoryVehicle').toIpcString()
-        )
+            new NotFoundError(T_ERRORS.CATEGORY_NOT_FOUND).toIpcString()
+        );
     }
+    
     if (data.name) {
-        const categoryVehicleExists = await findVehicleCategoryByName(data.name);
+        const otherCategory = await findVehicleCategoryByName(data.name);
         
-        if (categoryVehicleExists && categoryVehicleExists.id !== id) {
-            throw new Error(
-                new ConflictError('vehicles:errors.vehicleCategoryAlreadyExists', {
-                    categoryName: data.name
-                }).toIpcString()
-            );
+        if (otherCategory && otherCategory.id !== id) {
+                new ConflictError(T_ERRORS.CATEGORY_EXISTS, {
+                    i18n: { name: data.name.trim() }
+                })
         }
     }
     
-    const category = await updateVehicleCategory(id, data);
-    return category;
+    return await updateVehicleCategory(id, data);
 }
 
 async function deleteVehicleCategoryEvent(id: string): Promise<string | Error> {
-    const categoryVehicleExists = await findVehicleCategoryById(id);
-    if(!categoryVehicleExists) {
+    const categoryExists = await findVehicleCategoryById(id);
+    
+    if (!categoryExists) {
         throw new Error(
-            new NotFoundError('categoryVehicle').toIpcString()
-        )
+            new NotFoundError(T_ERRORS.CATEGORY_NOT_FOUND).toIpcString()
+        );
     } 
     
     const linkedVehicles = await getVehiclesByCategory(id);
+    
     if (linkedVehicles && linkedVehicles.length > 0) {
         throw new Error(
-            new ConflictError('vehicles:errors.categoryHasVehicles', {
-                categoryId: id,
-                vehicleCount: linkedVehicles.length,
-                vehicleIds: linkedVehicles.map(v => v.id)
-            }).toIpcString() // --> toIpcString para serializar o erro no formato esperado pelo método handleError 
+            new ConflictError(T_ERRORS.CATEGORY_HAS_VEHICLES, {
+                i18n: { count: linkedVehicles.length }
+            }).toIpcString()
         );
     }
     

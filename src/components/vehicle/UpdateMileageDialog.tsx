@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { Gauge, TrendingUp } from 'lucide-react';
-import { updateVehicle as updateBdVehicle } from '@/helpers/vehicle-helpers';
+import { updateVehicleMileage } from '@/helpers/vehicle-helpers';
 import { useVehicles } from '@/contexts/VehiclesContext';
 
 interface UpdateMileageDialogProps {
@@ -54,7 +54,7 @@ export default function UpdateMileageDialog({
 
     // ✅ Aqui TypeScript já sabe que selectedVehicle não é null
     // Validação: novo valor deve ser maior que o atual
-    if (newMileage < selectedVehicle.current_mileage) {
+    if (newMileage < selectedVehicle!.current_mileage) {
       showWarning('vehicles:warnings.newMileageCannotBeLessThanCurrent');
       return;
     }
@@ -68,9 +68,7 @@ export default function UpdateMileageDialog({
     setIsLoading(true);
 
     try {
-      const updated = await updateBdVehicle(selectedVehicle!.id, {
-        current_mileage: newMileage
-      });
+      const updated = await updateVehicleMileage(selectedVehicle!.id, newMileage);
 
       if (updated) {
         updateVehicle(updated); // ✨ Atualiza contexto

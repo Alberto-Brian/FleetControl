@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/trip/CompleteTripDialog.tsx
+// FILE: src/components/trip/CompleteTripDialog.tsx (ATUALIZADO)
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -8,20 +8,23 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
-import { useToast } from '@/components/ui/use-toast';
-import { completeTrip } from '@/helpers/trip-helpers';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { useTranslation } from 'react-i18next';
+import { completeTrip as completeTripHelper } from '@/helpers/trip-helpers';
 import { ICompleteTrip } from '@/lib/types/trip';
 import { Gauge, MapPin, Calendar, TrendingUp, Flag, AlertCircle } from 'lucide-react';
+import { useTrips } from '@/contexts/TripsContext';
 
 interface CompleteTripDialogProps {
-  trip: any;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onTripCompleted: (trip: any) => void;
 }
 
-export default function CompleteTripDialog({ trip, open, onOpenChange, onTripCompleted }: CompleteTripDialogProps) {
-  const { toast } = useToast();
+export default function CompleteTripDialog({ open, onOpenChange }: CompleteTripDialogProps) {
+  const { t } = useTranslation();
+  const { showSuccess, handleError } = useErrorHandler();
+  const { state: { selectedTrip }, updateTrip } = useTrips();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<ICompleteTrip>({
     end_mileage: 0,
@@ -29,54 +32,46 @@ export default function CompleteTripDialog({ trip, open, onOpenChange, onTripCom
   });
 
   useEffect(() => {
-    if (open && trip) {
+    if (open && selectedTrip) {
       setFormData({
-        end_mileage: trip.start_mileage || 0,
+        end_mileage: selectedTrip.start_mileage || 0,
         notes: '',
       });
     }
-  }, [open, trip]);
+  }, [open, selectedTrip]);
+
+  // ✅ EARLY RETURN
+  if (!selectedTrip) {
+    return null;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (formData.end_mileage <= trip.start_mileage) {
-      toast({
-        title: 'Erro',
-        description: 'A quilometragem final deve ser maior que a inicial',
-        variant: 'destructive',
-      });
+    if (formData.end_mileage <= selectedTrip!.start_mileage) {
+      handleError(new Error('trips:alerts.endMileageError'), 'trips:alerts.endMileageError');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const completed = await completeTrip(trip.id, formData);
+      const completed = await completeTripHelper(selectedTrip!.id, formData);
 
       if (completed) {
-        toast({
-          title: 'Sucesso!',
-          description: 'Viagem finalizada com sucesso.',
-        });
-        onTripCompleted(completed);
+        updateTrip(completed); // ✨ Atualiza contexto
+        showSuccess('trips:toast.completeSuccess');
         onOpenChange(false);
       }
     } catch (error: any) {
-      toast({
-        title: 'Erro',
-        description: error.message || 'Erro ao finalizar viagem',
-        variant: 'destructive',
-      });
+      handleError(error, 'trips:toast.completeError');
     } finally {
       setIsLoading(false);
     }
   }
 
-  if (!trip) return null;
-
-  const distance = formData.end_mileage - (trip?.start_mileage || 0);
-  const hasError = formData.end_mileage > 0 && formData.end_mileage <= trip.start_mileage;
+  const distance = formData.end_mileage - selectedTrip.start_mileage;
+  const hasError = formData.end_mileage > 0 && formData.end_mileage <= selectedTrip.start_mileage;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -84,10 +79,10 @@ export default function CompleteTripDialog({ trip, open, onOpenChange, onTripCom
         <DialogHeader>
           <DialogTitle className="text-2xl flex items-center gap-2">
             <Flag className="w-6 h-6 text-primary" />
-            Finalizar Viagem
+            {t('trips:dialogs.complete.title')}
           </DialogTitle>
           <DialogDescription>
-            {trip?.trip_code}
+            {selectedTrip.trip_code}
           </DialogDescription>
         </DialogHeader>
 
@@ -97,26 +92,26 @@ export default function CompleteTripDialog({ trip, open, onOpenChange, onTripCom
             <div className="flex items-start gap-3">
               <MapPin className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-xs text-muted-foreground">Origem</p>
-                <p className="font-medium">{trip.origin}</p>
+                <p className="text-xs text-muted-foreground">{t('trips:fields.origin')}</p>
+                <p className="font-medium">{selectedTrip.origin}</p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
               <MapPin className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-xs text-muted-foreground">Destino</p>
-                <p className="font-medium">{trip.destination}</p>
+                <p className="text-xs text-muted-foreground">{t('trips:fields.destination')}</p>
+                <p className="font-medium">{selectedTrip.destination}</p>
               </div>
             </div>
 
-            {trip.start_date && (
+            {selectedTrip.start_date && (
               <div className="flex items-start gap-3">
                 <Calendar className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Início</p>
+                  <p className="text-xs text-muted-foreground">{t('trips:fields.startDate')}</p>
                   <p className="font-medium">
-                    {new Date(trip.start_date).toLocaleString('pt-AO', {
+                    {new Date(selectedTrip.start_date).toLocaleString('pt-PT', {
                       day: '2-digit',
                       month: 'short',
                       year: 'numeric',
@@ -128,12 +123,12 @@ export default function CompleteTripDialog({ trip, open, onOpenChange, onTripCom
               </div>
             )}
 
-            {trip.vehicle_license && (
+            {selectedTrip.vehicle_license && (
               <div className="flex items-start gap-3">
                 <Gauge className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Veículo</p>
-                  <p className="font-medium">{trip.vehicle_license}</p>
+                  <p className="text-xs text-muted-foreground">{t('trips:fields.vehicle')}</p>
+                  <p className="font-medium">{selectedTrip.vehicle_license}</p>
                 </div>
               </div>
             )}
@@ -146,10 +141,10 @@ export default function CompleteTripDialog({ trip, open, onOpenChange, onTripCom
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Gauge className="w-4 h-4 text-muted-foreground" />
-                KM Inicial
+                {t('trips:dialogs.view.initialKm')}
               </Label>
               <Input
-                value={trip?.start_mileage?.toLocaleString('pt-AO')}
+                value={selectedTrip.start_mileage?.toLocaleString('pt-PT')}
                 disabled
                 className="bg-muted"
               />
@@ -158,11 +153,11 @@ export default function CompleteTripDialog({ trip, open, onOpenChange, onTripCom
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Gauge className="w-4 h-4" />
-                KM Final *
+                {t('trips:dialogs.view.finalKm')} *
               </Label>
               <Input
                 type="number"
-                min={trip?.start_mileage + 1}
+                min={selectedTrip.start_mileage + 1}
                 value={formData.end_mileage || ''}
                 onChange={(e) => setFormData({ ...formData, end_mileage: parseInt(e.target.value) || 0 })}
                 className={hasError ? 'border-destructive' : ''}
@@ -171,7 +166,7 @@ export default function CompleteTripDialog({ trip, open, onOpenChange, onTripCom
               {hasError && (
                 <div className="flex items-center gap-1 text-xs text-destructive">
                   <AlertCircle className="w-3 h-3" />
-                  <span>KM final deve ser maior que KM inicial</span>
+                  <span>{t('trips:alerts.endMileageError')}</span>
                 </div>
               )}
             </div>
@@ -186,9 +181,9 @@ export default function CompleteTripDialog({ trip, open, onOpenChange, onTripCom
                     <TrendingUp className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Distância Percorrida</p>
+                    <p className="text-sm text-muted-foreground">{t('trips:dialogs.complete.distanceCalculated')}</p>
                     <p className="text-2xl font-bold text-primary">
-                      {distance.toLocaleString('pt-AO')} km
+                      {distance.toLocaleString('pt-PT')} km
                     </p>
                   </div>
                 </div>
@@ -198,22 +193,23 @@ export default function CompleteTripDialog({ trip, open, onOpenChange, onTripCom
 
           {/* Observações */}
           <div className="space-y-2">
-            <Label>Observações sobre a Viagem</Label>
+            <Label>{t('trips:fields.notes')}</Label>
             <Textarea
-              placeholder="Registre aqui qualquer informação relevante: condições da estrada, incidentes, gastos extras, etc..."
+              placeholder={t('trips:placeholders.endNotes')}
               value={formData.notes || ''}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={4}
+              className="resize-none"
             />
           </div>
 
           {/* Botões */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={isLoading || hasError || distance <= 0}>
-              {isLoading ? 'Finalizando...' : 'Finalizar Viagem'}
+              {isLoading ? t('trips:actions.completing') : t('trips:actions.complete')}
             </Button>
           </div>
         </form>

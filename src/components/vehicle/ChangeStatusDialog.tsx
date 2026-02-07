@@ -112,12 +112,12 @@ export default function ChangeStatusDialog({
           const newNote = `[${timestamp}] ${t('vehicles:statusChange.notePrefix')}: ${statusLabel}. ${notes}`;
           
           // ✅ Sem precisar de ? porque selectedVehicle não é null
-          updateData.notes = selectedVehicle.notes 
-            ? `${selectedVehicle.notes}\n${newNote}` 
+          updateData.notes = selectedVehicle!.notes 
+            ? `${selectedVehicle!.notes}\n${newNote}` 
             : newNote;
         }
 
-        const updated = await updateStatusVehicle(selectedVehicle.id, updateData);
+        const updated = await updateStatusVehicle(selectedVehicle!.id, updateData);
 
         if (updated) {
           // ✨ ATUALIZA O CONTEXTO GLOBAL

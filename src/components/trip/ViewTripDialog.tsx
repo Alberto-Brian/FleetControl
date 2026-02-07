@@ -1,60 +1,62 @@
 // ========================================
-// FILE: src/components/trip/ViewTripDialog.tsx
+// FILE: src/components/trip/ViewTripDialog.tsx (ATUALIZADO)
 // ========================================
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
 import { 
-  MapPin, 
-  Calendar, 
-  Truck, 
-  User, 
-  Gauge, 
-  TrendingUp,
-  Clock,
-  FileText,
-  Target,
-  Route
+  MapPin, Calendar, Truck, User, Gauge, TrendingUp, Clock, FileText, Target, Route, Flag, XCircle
 } from 'lucide-react';
+import { useTrips } from '@/contexts/TripsContext';
 
 interface ViewTripDialogProps {
-  trip: any;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export default function ViewTripDialog({ trip, open, onOpenChange }: ViewTripDialogProps) {
-  if (!trip) return null;
+export default function ViewTripDialog({ open, onOpenChange }: ViewTripDialogProps) {
+  const { t } = useTranslation();
+  const { state: { selectedTrip } } = useTrips();
 
-  const getStatusBadge = (status: string) => {
+  // ✅ EARLY RETURN
+  if (!selectedTrip || !open) return null;
+
+  function getStatusBadge(status: string) {
     const statusMap = {
       in_progress: { 
-        label: 'Em Andamento', 
-        className: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200'
+        label: t('trips:status.in_progress.label'),
+        icon: Clock,
+        className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800'
       },
       completed: { 
-        label: 'Concluída', 
-        className: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-200'
+        label: t('trips:status.completed.label'),
+        icon: Flag,
+        className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800'
       },
       cancelled: { 
-        label: 'Cancelada', 
-        className: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-200'
+        label: t('trips:status.cancelled.label'),
+        icon: XCircle,
+        className: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800'
       },
     };
     
     const statusInfo = statusMap[status as keyof typeof statusMap] || statusMap.in_progress;
+    const Icon = statusInfo.icon;
+
     return (
-      <Badge className={`${statusInfo.className} text-sm px-3 py-1`}>
+      <Badge className={cn("text-sm px-3 py-1 flex items-center gap-1.5", statusInfo.className)}>
+        <Icon className="w-3.5 h-3.5" />
         {statusInfo.label}
       </Badge>
     );
-  };
+  }
 
-  const distance = trip.end_mileage ? trip.end_mileage - trip.start_mileage : null;
-  const duration = trip.start_date && trip.end_date 
-    ? Math.ceil((new Date(trip.end_date).getTime() - new Date(trip.start_date).getTime()) / (1000 * 60 * 60))
+  const distance = selectedTrip.end_mileage ? selectedTrip.end_mileage - selectedTrip.start_mileage : null;
+  const duration = selectedTrip.start_date && selectedTrip.end_date 
+    ? Math.ceil((new Date(selectedTrip.end_date).getTime() - new Date(selectedTrip.start_date).getTime()) / (1000 * 60 * 60))
     : null;
 
   return (
@@ -64,23 +66,23 @@ export default function ViewTripDialog({ trip, open, onOpenChange }: ViewTripDia
         <DialogHeader className="space-y-3 pb-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <DialogTitle className="text-2xl font-bold mb-2">{trip.trip_code}</DialogTitle>
+              <DialogTitle className="text-2xl font-bold mb-2">{selectedTrip.trip_code}</DialogTitle>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Route className="w-4 h-4" />
                 <span className="text-sm">
-                  <span className="font-medium text-green-600 dark:text-green-400">{trip.origin}</span>
+                  <span className="font-medium text-green-600 dark:text-green-400">{selectedTrip.origin}</span>
                   <span className="mx-2">→</span>
-                  <span className="font-medium text-red-600 dark:text-red-400">{trip.destination}</span>
+                  <span className="font-medium text-red-600 dark:text-red-400">{selectedTrip.destination}</span>
                 </span>
               </div>
             </div>
-            {getStatusBadge(trip.status)}
+            {getStatusBadge(selectedTrip.status)}
           </div>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Estatísticas em Destaque (se completada) */}
-          {trip.status === 'completed' && distance !== null && (
+          {/* Estatísticas (se completada) */}
+          {selectedTrip.status === 'completed' && distance !== null && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
                 <div className="flex items-center gap-3">
@@ -88,9 +90,9 @@ export default function ViewTripDialog({ trip, open, onOpenChange }: ViewTripDia
                     <TrendingUp className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Distância Percorrida</p>
+                    <p className="text-sm text-muted-foreground">{t('trips:fields.distance')}</p>
                     <p className="text-2xl font-bold text-primary">
-                      {distance.toLocaleString('pt-AO')} km
+                      {distance.toLocaleString('pt-PT')} km
                     </p>
                   </div>
                 </div>
@@ -103,9 +105,9 @@ export default function ViewTripDialog({ trip, open, onOpenChange }: ViewTripDia
                       <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Duração</p>
+                      <p className="text-sm text-muted-foreground">{t('trips:fields.duration')}</p>
                       <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                        {duration}h
+                        {t('trips:info.hours', { count: duration })}
                       </p>
                     </div>
                   </div>
@@ -114,70 +116,70 @@ export default function ViewTripDialog({ trip, open, onOpenChange }: ViewTripDia
             </div>
           )}
 
-          {/* Informações do Veículo e Motorista */}
+          {/* Veículo e Motorista */}
           <Card className="p-5 bg-muted/30">
             <div className="flex items-center gap-2 mb-4">
               <div className="p-2 rounded-lg bg-primary/10">
                 <Truck className="w-4 h-4 text-primary" />
               </div>
-              <h3 className="font-semibold text-lg">Veículo e Motorista</h3>
+              <h3 className="font-semibold text-lg">{t('trips:dialogs.view.vehicleAndDriver')}</h3>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-3 rounded-lg bg-background">
                 <div className="flex items-center gap-2 mb-2">
                   <Truck className="w-4 h-4 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">Veículo</p>
+                  <p className="text-xs text-muted-foreground">{t('trips:fields.vehicle')}</p>
                 </div>
-                <p className="font-semibold text-lg mb-1">{trip.vehicle_license}</p>
+                <p className="font-semibold text-lg mb-1">{selectedTrip.vehicle_license}</p>
                 <p className="text-sm text-muted-foreground">
-                  {trip.vehicle_brand} {trip.vehicle_model}
+                  {selectedTrip.vehicle_brand} {selectedTrip.vehicle_model}
                 </p>
               </div>
 
               <div className="p-3 rounded-lg bg-background">
                 <div className="flex items-center gap-2 mb-2">
                   <User className="w-4 h-4 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">Motorista</p>
+                  <p className="text-xs text-muted-foreground">{t('trips:fields.driver')}</p>
                 </div>
-                <p className="font-semibold text-lg">{trip.driver_name}</p>
+                <p className="font-semibold text-lg">{selectedTrip.driver_name}</p>
               </div>
             </div>
           </Card>
 
-          {/* Informações da Viagem */}
+          {/* Detalhes da Viagem */}
           <Card className="p-5 bg-muted/30">
             <div className="flex items-center gap-2 mb-4">
               <div className="p-2 rounded-lg bg-blue-500/10">
                 <MapPin className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="font-semibold text-lg">Detalhes da Viagem</h3>
+              <h3 className="font-semibold text-lg">{t('trips:dialogs.view.tripDetails')}</h3>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-3 rounded-lg bg-background">
                 <div className="flex items-center gap-2 mb-2">
                   <MapPin className="w-4 h-4 text-green-600" />
-                  <p className="text-xs text-muted-foreground">Origem</p>
+                  <p className="text-xs text-muted-foreground">{t('trips:fields.origin')}</p>
                 </div>
-                <p className="font-medium text-green-700 dark:text-green-400">{trip.origin}</p>
+                <p className="font-medium text-green-700 dark:text-green-400">{selectedTrip.origin}</p>
               </div>
 
               <div className="p-3 rounded-lg bg-background">
                 <div className="flex items-center gap-2 mb-2">
                   <MapPin className="w-4 h-4 text-red-600" />
-                  <p className="text-xs text-muted-foreground">Destino</p>
+                  <p className="text-xs text-muted-foreground">{t('trips:fields.destination')}</p>
                 </div>
-                <p className="font-medium text-red-700 dark:text-red-400">{trip.destination}</p>
+                <p className="font-medium text-red-700 dark:text-red-400">{selectedTrip.destination}</p>
               </div>
 
               <div className="p-3 rounded-lg bg-background">
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">Data/Hora de Início</p>
+                  <p className="text-xs text-muted-foreground">{t('trips:fields.startDate')}</p>
                 </div>
                 <p className="font-medium">
-                  {new Date(trip.start_date).toLocaleString('pt-AO', {
+                  {new Date(selectedTrip.start_date).toLocaleString('pt-PT', {
                     day: '2-digit',
                     month: 'long',
                     year: 'numeric',
@@ -187,14 +189,14 @@ export default function ViewTripDialog({ trip, open, onOpenChange }: ViewTripDia
                 </p>
               </div>
 
-              {trip.end_date && (
+              {selectedTrip.end_date && (
                 <div className="p-3 rounded-lg bg-background">
                   <div className="flex items-center gap-2 mb-2">
                     <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground">Data/Hora de Conclusão</p>
+                    <p className="text-xs text-muted-foreground">{t('trips:fields.endDate')}</p>
                   </div>
                   <p className="font-medium">
-                    {new Date(trip.end_date).toLocaleString('pt-AO', {
+                    {new Date(selectedTrip.end_date).toLocaleString('pt-PT', {
                       day: '2-digit',
                       month: 'long',
                       year: 'numeric',
@@ -213,26 +215,26 @@ export default function ViewTripDialog({ trip, open, onOpenChange }: ViewTripDia
               <div className="p-2 rounded-lg bg-purple-500/10">
                 <Gauge className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               </div>
-              <h3 className="font-semibold text-lg">Quilometragem</h3>
+              <h3 className="font-semibold text-lg">{t('trips:dialogs.view.mileageInfo')}</h3>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-3 rounded-lg bg-background">
-                <p className="text-xs text-muted-foreground mb-1">KM Inicial</p>
-                <p className="text-xl font-bold">{trip.start_mileage?.toLocaleString('pt-AO')}</p>
+                <p className="text-xs text-muted-foreground mb-1">{t('trips:dialogs.view.initialKm')}</p>
+                <p className="text-xl font-bold">{selectedTrip.start_mileage?.toLocaleString('pt-PT')}</p>
               </div>
 
-              {trip.end_mileage && (
+              {selectedTrip.end_mileage && (
                 <>
                   <div className="p-3 rounded-lg bg-background">
-                    <p className="text-xs text-muted-foreground mb-1">KM Final</p>
-                    <p className="text-xl font-bold">{trip.end_mileage.toLocaleString('pt-AO')}</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('trips:dialogs.view.finalKm')}</p>
+                    <p className="text-xl font-bold">{selectedTrip.end_mileage.toLocaleString('pt-PT')}</p>
                   </div>
 
                   <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-                    <p className="text-xs text-muted-foreground mb-1">Distância</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('trips:fields.distance')}</p>
                     <p className="text-xl font-bold text-primary">
-                      {distance?.toLocaleString('pt-AO')} km
+                      {distance?.toLocaleString('pt-PT')} km
                     </p>
                   </div>
                 </>
@@ -241,35 +243,39 @@ export default function ViewTripDialog({ trip, open, onOpenChange }: ViewTripDia
           </Card>
 
           {/* Finalidade */}
-          {trip.purpose && (
+          {selectedTrip.purpose && (
             <Card className="p-5 bg-muted/30">
               <div className="flex items-center gap-2 mb-3">
                 <div className="p-2 rounded-lg bg-orange-500/10">
                   <Target className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                 </div>
-                <h3 className="font-semibold text-lg">Finalidade</h3>
+                <h3 className="font-semibold text-lg">{t('trips:fields.purpose')}</h3>
               </div>
               <div className="p-4 rounded-lg bg-background">
-                <p className="text-sm">{trip.purpose}</p>
+                <p className="text-sm">{selectedTrip.purpose}</p>
               </div>
             </Card>
           )}
 
           {/* Observações */}
-          {trip.notes && (
+          {selectedTrip.notes ? (
             <Card className="p-5 bg-muted/30">
               <div className="flex items-center gap-2 mb-3">
                 <div className="p-2 rounded-lg bg-green-500/10">
                   <FileText className="w-4 h-4 text-green-600 dark:text-green-400" />
                 </div>
-                <h3 className="font-semibold text-lg">Observações</h3>
+                <h3 className="font-semibold text-lg">{t('trips:fields.notes')}</h3>
               </div>
               <div className="p-4 rounded-lg bg-background">
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {trip.notes}
+                  {selectedTrip.notes}
                 </p>
               </div>
             </Card>
+          ) : (
+            <div className="text-center py-8 bg-muted/20 rounded-lg">
+              <p className="text-sm text-muted-foreground">{t('trips:info.noObservations')}</p>
+            </div>
           )}
         </div>
       </DialogContent>

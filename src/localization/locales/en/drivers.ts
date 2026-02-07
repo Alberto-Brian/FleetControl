@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/locales/en/drivers.ts
+// FILE: src/locales/en/drivers.ts (COMPLETO)
 // ========================================
 export const enDrivers = {
   title: "Driver Management",
@@ -91,7 +91,8 @@ export const enDrivers = {
     update: "Update",
     creating: "Creating...",
     updating: "Updating...",
-    deleting: "Deleting..."
+    deleting: "Deleting...",
+    confirm: "Confirm Change"
   },
 
   dialogs: {
@@ -110,12 +111,42 @@ export const enDrivers = {
       licenseInfo: "License Information",
       employmentInfo: "Employment Information",
       additionalInfo: "Additional Information",
-      registrationInfo: "Registration Records"
+      registrationInfo: "Registration Records",
+      quickActions: "Quick Updates",
+      onTripLocked: "On trip - Locked",
+      changeAvailability: "Change operational status",
+      changeStatus: "Change contractual status",
+      updateLicense: "Update information",
+      updateContact: "Update phone/email",
+      onTripInfoTitle: "Driver in service.",
+      onTripInfoDescription: "Availability will be updated automatically when the trip is completed.",
+      fullEditHint: "For full editing, use the \"Edit\" button in the main list"
     },
     delete: {
       title: "Delete Driver",
       description: "Are you sure you want to delete the driver",
       warning: "This action cannot be undone."
+    },
+    availability: {
+      title: "Change Availability",
+      description: "Set operational availability for {{name}}",
+      onTripDescription: "{{name}} is currently on a trip. Status will be updated automatically upon completion.",
+      onTripAlertTitle: "Driver in service",
+      onTripAlertDescription: "Cannot change availability manually while driver is on a trip.",
+      auto: "Auto",
+      viaTripSystem: "Via trip system"
+    },
+    contact: {
+      title: "Update Contacts",
+      description: "Update contact information for {{name}}"
+    },
+    license: {
+      title: "Update Driver's License",
+      description: "Renew or correct license information for {{name}}"
+    },
+    status: {
+      title: "Change Driver Status",
+      description: "Set contractual status for {{name}}"
     }
   },
 

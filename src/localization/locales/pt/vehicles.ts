@@ -1,0 +1,222 @@
+// ========================================
+// FILE: src/locales/pt/vehicles.ts (COMPLETO ATUALIZADO)
+// ========================================
+export const ptVehicles = {
+  title: "Frota de Veículos",
+  description: "Gerencie e monitore o estado de todos os veículos da organização.",
+  
+  stats: {
+    total: "Total",
+    available: "Disponíveis",
+    inUse: "Em Uso",
+    maintenance: "Manutenção",
+    inactive: "Inactivos"
+  },
+
+  status: {
+    available: {
+      label: "Disponível",
+      description: "Veículo pronto para uso"
+    },
+    in_use: {
+      label: "Em uso",
+      description: "Veículo alocado para uma atividade"
+    },
+    maintenance: {
+      label: "Manutenção",
+      description: "Veículo em reparo ou manutenção"
+    },
+    inactive: {
+      label: "Inactivo",
+      description: "Veículo temporariamente fora de operação"
+    }
+  },
+
+  fields: {
+    licensePlate: "Matrícula",
+    brand: "Marca",
+    model: "Modelo",
+    year: "Ano",
+    color: "Cor",
+    category: "Categoria",
+    mileage: "Quilometragem",
+    chassisNumber: "Número do Chassi",
+    engineNumber: "Número do Motor",
+    fuelTankCapacity: "Capacidade do Tanque",
+    acquisitionDate: "Data de Aquisição",
+    acquisitionValue: "Valor de Aquisição",
+    notes: "Observações",
+    status: "Estado",
+    createdAt: "Data de Cadastro",
+    updatedAt: "Última Actualização"
+  },
+
+  placeholders: {
+    search: "Pesquisar matrícula, marca ou modelo...",
+    licensePlate: "LD-00-00-AA",
+    brand: "Toyota",
+    model: "Hilux",
+    color: "Branco",
+    chassisNumber: "00000000000000000",
+    engineNumber: "0000000000",
+    notes: "Informações adicionais sobre o veículo..."
+  },
+
+  actions: {
+    view: "Ver Detalhes",
+    activate: "Activar",
+    activating: "A activar...",
+    edit: "Editar",
+    delete: "Excluir",
+    cancel: "Cancelar",
+    save: "Guardar",
+    create: "Criar Veículo",
+    update: "Actualizar",
+    creating: "A criar...",
+    updating: "A actualizar...",
+    deleting: "A excluir...",
+    updateMileage: "Actualizar Km",
+    changeStatus: "Alterar Estado",
+    editData: "Editar Dados"
+  },
+
+  dialogs: {
+    new: {
+      title: "Novo Veículo",
+      description: "Cadastrar um novo veículo na frota"
+    },
+    edit: {
+      title: "Editar Veículo",
+      description: "Edição completa de todas as informações do veículo"
+    },
+    view: {
+      title: "Detalhes do Veículo",
+      quickUpdates: "Actualizações Rápidas",
+      vehicleData: "Dados do Veículo",
+      technicalData: "Dados Técnicos",
+      acquisition: "Aquisição",
+      registrationInfo: "Registos",
+      noNotes: "Sem observações registadas",
+      fullEditHint: "Para edição completa, utilize o botão 'Editar' na lista principal"
+    },
+    delete: {
+      title: "Excluir Veículo",
+      description: "Tem a certeza que deseja excluir o veículo",
+      warning: "Esta acção não pode ser desfeita."
+    },
+    mileage: {
+      title: "Actualizar Quilometragem",
+      description: "Registar nova leitura do odómetro",
+      current: "Quilometragem Actual",
+      new: "Nova Quilometragem",
+      confirm: "Confirmar Actualização"
+    },
+    status: {
+      title: "Alterar Estado do Veículo",
+      currentStatus: "Estado Actual",
+      newStatus: "Novo Estado",
+      reason: "Motivo / Observações",
+      reasonPlaceholder: "Ex: Veículo enviado para revisão dos 50.000 km. Previsão de retorno: 15/03/2024",
+      reasonHelper: "Esta observação será adicionada automaticamente ao histórico do veículo",
+      infoTitle: "Alteração de Estado",
+      infoDescription: "O histórico completo de alterações ficará registado no sistema para auditoria futura.",
+      auto: "Via sistema de viagens",
+      inUseWarning: "Veículo em uso. O estado será actualizado automaticamente quando a viagem for finalizada.",
+      inUseBlocked: "Em uso - Bloqueado"
+    }
+  },
+
+  categories: {
+    title: "Categorias de Veículos",
+    new: "Nova Categoria",
+    edit: "Editar Categoria",
+    delete: "Excluir Categoria",
+    name: "Nome da Categoria",
+    description: "Descrição",
+    color: "Cor",
+    active: "Activa",
+    inactive: "Inactiva",
+    noDescription: "Sem descrição definida",
+    created: "Categoria criada com sucesso",
+    updated: "Categoria actualizada com sucesso",
+    deleted: "Categoria excluída com sucesso"
+  },
+
+  tabs: {
+    vehicles: "Veículos",
+    categories: "Categorias"
+  },
+
+  filters: {
+    all: "Todos os estados",
+    allCategories: "Todas as categorias",
+    status: "Filtrar por estado",
+    category: "Filtrar por categoria"
+  },
+
+  viewModes: {
+    compact: "Compacto",
+    normal: "Normal",
+    cards: "Cards"
+  },
+
+  table: {
+    plate: "Matrícula",
+    vehicle: "Veículo",
+    category: "Categoria",
+    status: "Estado",
+    actions: "Acções"
+  },
+
+  empty: {
+    noVehicles: "Nenhum veículo encontrado",
+    noCategories: "Nenhuma categoria encontrada",
+    adjustFilters: "Tente ajustar os seus filtros de pesquisa.",
+    noData: "Sem dados para mostrar"
+  },
+
+  loading: {
+    vehicles: "A carregar veículos...",
+    categories: "A carregar categorias...",
+    syncing: "A sincronizar frota..."
+  },
+
+  toast: {
+    createSuccess: "Veículo criado com sucesso",
+    createError: "Erro ao criar veículo",
+    updateSuccess: "Veículo actualizado com sucesso",
+    updateError: "Erro ao actualizar veículo",
+    deleteSuccess: "Veículo excluído com sucesso",
+    categoryRestored: "Categoria activada com sucesso!",
+    deleteError: "Erro ao excluir veículo",
+    mileageUpdateSuccess: "Quilometragem actualizada com sucesso",
+    mileageUpdateError: "Erro ao actualizar quilometragem",
+    statusUpdateSuccess: "Estado actualizado com sucesso",
+    statusUpdateError: "Erro ao actualizar estado",
+    categoryCreateSuccess: "Categoria criada com sucesso",
+    categoryCreateError: "Erro ao criar categoria",
+    categoryUpdateSuccess: "Categoria actualizada com sucesso",
+    categoryUpdateError: "Erro ao actualizar categoria",
+    categoryDeleteSuccess: "Categoria excluída com sucesso",
+    categoryDeleteError: "Erro ao excluir categoria"
+  },
+
+  errors: {
+    errorLoading: "Erro ao carregar veículos",
+    errorLoadingCategories: "Erro ao carregar categorias",
+    vehicleNotFound: "Veículo não encontrado",
+    vehicleAlreadyExists: "Este veículo já existe",
+    vehicleWithSamePlate: "Já existe um veículo com a matrícula {{plate}}",
+    categoryNotFound: "Categoria não encontrada",
+    categoryHasVehicles: "Não é possível excluir: categoria vinculada a {{count}} veículo(s)",
+    categoryAlreadyExists: "Já existe uma categoria com o nome {{name}}",
+    mileageLessThanCurrent: "A nova quilometragem não pode ser menor que a actual",
+    mileageDifferenceTooBig: "Diferença muito grande na quilometragem. Verifique o valor",
+    restoreFailed: "Erro ao activar categoria"
+  },
+
+  warnings: {
+    noAvailableVehicles: "Sem veículos disponíveis",
+    categoryExistsInactive: "A categoria '{{name}}' existe mas está inactiva. Deseja activá-la?"
+  }
+} as const;

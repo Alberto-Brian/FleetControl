@@ -164,6 +164,8 @@ export async function findVehicleById(vehicleId: string) {
  * Actualizar veículo
  */
 export async function updateVehicle(vehicleId: string, vehicleData: IUpdateVehicle) {
+
+    console.log("Update Vehicle: ", vehicleData);
     const { db } = useDb();
     const result = await db
         .update(vehicles)

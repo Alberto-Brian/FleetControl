@@ -3,15 +3,21 @@ import { initReactI18next } from "react-i18next";
 import { vehicleTranslations } from "./vehicles_translations";
 import { authTranslations } from "./auth_translations";
 
+import { ptVehicles } from "./locales/pt/vehicles";
+import { enVehicles } from "./locales/en/vehicles";
 import { ptDrivers } from "./locales/pt/drivers";
 import { enDrivers } from "./locales/en/drivers";
+import { ptTrips } from "./locales/pt/trips";
+import { enTrips } from "./locales/en/trips";
 
 i18n.use(initReactI18next).init({
     fallbackLng: "en",
     resources: {
         en: {
+            vehicles: enVehicles,
             drivers: enDrivers,
-            vehicles: vehicleTranslations.en.vehicles,
+            trips: enTrips,
+            // vehicles: vehicleTranslations.en.vehicles,
             auth: authTranslations.en.auth,
             common: {
                 confirmDelete: {
@@ -64,8 +70,10 @@ i18n.use(initReactI18next).init({
             }
         },
         "pt-BR": {
+            vehicles: ptVehicles,
             drivers: ptDrivers,
-            vehicles: vehicleTranslations.pt.vehicles,
+            trips: ptTrips,
+            // vehicles: vehicleTranslations.pt.vehicles,
             auth: authTranslations.pt.auth,
             common: {
                 confirmDelete: {

@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/pages/VehiclesPage.tsx (ou onde renderiza a rota)
+// FILE: src/pages/VehiclesPage.tsx
 // ========================================
 import React from 'react';
 import { VehiclesProvider } from '@/contexts/VehiclesContext';
