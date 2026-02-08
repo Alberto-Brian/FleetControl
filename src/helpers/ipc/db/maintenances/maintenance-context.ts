@@ -9,8 +9,6 @@ import {
     COMPLETE_MAINTENANCE,
     DELETE_MAINTENANCE,
     GET_ACTIVE_MAINTENANCES,
-    GET_MAINTENANCE_CATEGORIES,
-    GET_WORKSHOPS,
 } from "./maintenances-channels";
 
 import { ICreateMaintenance, IUpdateMaintenance } from '@/lib/types/maintenance';
@@ -26,7 +24,5 @@ export function exposeMaintenancesContext() {
         complete: (id: string, data: IUpdateMaintenance) => ipcRenderer.invoke(COMPLETE_MAINTENANCE, id, data),
         delete: (id: string) => ipcRenderer.invoke(DELETE_MAINTENANCE, id),
         getActive: () => ipcRenderer.invoke(GET_ACTIVE_MAINTENANCES),
-        getCategories: () => ipcRenderer.invoke(GET_MAINTENANCE_CATEGORIES),
-        getWorkshops: () => ipcRenderer.invoke(GET_WORKSHOPS),
     });
 }

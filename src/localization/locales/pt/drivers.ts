@@ -96,6 +96,14 @@ export const ptDrivers = {
   },
 
   dialogs: {
+    status: {
+      title: "Alterar Estado do Motorista",
+      description: "Defina o estado contratual de {{name}}",
+      onTripDescription: "{{name}} está em viagem. Não é possível alterar o estado.",
+      onTripAlertTitle: "Motorista em serviço",
+      onTripAlertDescription: "Não é possível alterar o estado contratual enquanto o motorista estiver em viagem.",
+      willSetOffline: "Ao definir este estado, a disponibilidade será automaticamente alterada para 'Indisponível'."
+    },
     new: {
       title: "Novo Motorista",
       description: "Cadastrar um novo motorista no sistema"
@@ -134,7 +142,10 @@ export const ptDrivers = {
       onTripAlertTitle: "Motorista em serviço",
       onTripAlertDescription: "Não é possível alterar a disponibilidade manualmente enquanto o motorista estiver em viagem.",
       auto: "Auto",
-      viaTripSystem: "Via sistema de viagens"
+      viaTripSystem: "Via sistema de viagens",
+      blockedDescription: "A disponibilidade de {{name}} não pode ser alterada neste momento.",
+      inactiveStatusTitle: "Motorista inactivo",
+      inactiveStatusDescription: "O motorista está {{status}}. A disponibilidade é automaticamente definida como 'Indisponível'.",
     },
     contact: {
       title: "Actualizar Contactos",
@@ -144,10 +155,6 @@ export const ptDrivers = {
       title: "Actualizar Carta de Condução",
       description: "Renove ou corrija informações da carta de {{name}}"
     },
-    status: {
-      title: "Alterar Estado do Motorista",
-      description: "Defina o estado contratual de {{name}}"
-    }
   },
 
   alerts: {

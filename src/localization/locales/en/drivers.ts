@@ -96,6 +96,14 @@ export const enDrivers = {
   },
 
   dialogs: {
+     status: {
+      title: "Change Driver Status",
+      description: "Set contractual status for {{name}}",
+      onTripDescription: "{{name}} is on a trip. Cannot change status.",
+      onTripAlertTitle: "Driver in service",
+      onTripAlertDescription: "Cannot change contractual status while driver is on a trip.",
+      willSetOffline: "Setting this status will automatically change availability to 'Offline'."
+    },
     new: {
       title: "New Driver",
       description: "Register a new driver in the system"
@@ -134,7 +142,10 @@ export const enDrivers = {
       onTripAlertTitle: "Driver in service",
       onTripAlertDescription: "Cannot change availability manually while driver is on a trip.",
       auto: "Auto",
-      viaTripSystem: "Via trip system"
+      viaTripSystem: "Via trip system",
+      inactiveStatusTitle: "Inactive driver",
+      inactiveStatusDescription: "Driver is {{status}}. Availability is automatically set to 'Offline'.",
+      blockedDescription: "{{name}}'s availability cannot be changed at this time."
     },
     contact: {
       title: "Update Contacts",
@@ -144,10 +155,6 @@ export const enDrivers = {
       title: "Update Driver's License",
       description: "Renew or correct license information for {{name}}"
     },
-    status: {
-      title: "Change Driver Status",
-      description: "Set contractual status for {{name}}"
-    }
   },
 
   alerts: {

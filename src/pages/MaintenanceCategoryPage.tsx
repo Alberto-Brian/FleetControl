@@ -71,9 +71,7 @@ export default function MaintenanceCategoriesPage() {
             {categories.length} categoria{categories.length !== 1 ? 's' : ''} registada{categories.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <NewMaintenanceCategoryDialog onCategoryCreated={(category) => {
-          setCategories([category, ...categories]);
-        }} />
+        <NewMaintenanceCategoryDialog />
       </div>
 
       {/* Stats */}

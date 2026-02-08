@@ -20,7 +20,35 @@ export interface IRefueling {
     invoice_number?: string;
     notes?: string;
     created_at: string;
+    
+    // Vehicle
+    vehicle_license: string | null;
+    vehicle_brand: string | null;
+    vehicle_model: string | null;
+    
+    // Driver
+    driver_name: string | null;
+    
+    // Fuel Station
+    station_name: string | null;
+    station_brand: string | null;
+    station_city: string | null;
+    
+    // Trip
+    trip_code: string | null;
+    trip_destination: string | null;
+    trip_origin: string | null;
+    trip_start_date: string | null;
+    trip_status: string | null;
+    trip_driver_id: string | null;
+    
+    // Route
+    route_name: string | null;
+    route_origin: string | null;
+    route_destination: string | null;
 }
+
+
 
 export interface ICreateRefueling {
     vehicle_id: string;

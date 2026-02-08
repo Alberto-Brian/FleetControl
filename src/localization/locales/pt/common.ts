@@ -2,26 +2,42 @@
 // FILE: src/locales/pt/common.ts (ou adicionar ao existente)
 // ========================================
 export const ptCommon = {
-  close: "Fechar",
-  cancel: "Cancelar",
-  save: "Guardar",
-  select: "Seleccionar",
-  route: "Rota",
-  manual: "Manual",
-  loading: "A carregar",
-  noResults: "Nenhum resultado encontrado",
-  noData: "Sem dados disponíveis",
+    status: {
+      active: "Activo",
+      inactive: "Inactivo",
+      none: "Nenhum"
+    },
   confirmDelete: {
-    titleDestructive: "Confirmar Exclusão",
-    titleWarning: "Atenção",
-    description: "Tem certeza que deseja realizar esta acção?",
-    descriptionWithItem: "Tem certeza que deseja excluir \"{{itemName}}\"?",
-    warning: "Esta acção não pode ser desfeita."
+      title: "Tem certeza?",
+      default: "Esta acção não pode ser desfeita. Este registo será marcado como excluído.",
+      defaultWithItem: 'Esta acção não pode ser desfeita. O registo "{{itemName}}" será marcado como excluído.'
   },
   actions: {
-    cancel: "Cancelar",
-    delete: "Excluir",
-    confirm: "Confirmar",
-    processing: "Processando..."
-  }
+      cancel: "Cancelar",
+      delete: "Excluir",
+      deleting: "Excluindo...",
+      edit: "Editar",
+      editing: "Editando...",
+      selected: "Selecionado",
+      clickToSelect: "Clique para selecionar",
+      yes: "Sim",
+      no: "Não"
+  },
+  warnigns: {
+      licensePlateRequired: "Por favor, insira uma placa de veículo",
+      categoryRequired: "Por favor, selecione uma categoria",
+  },
+  errors: {
+      errorLoading: "Erro ao carregar",
+      errorLoadingCategories: "Erro ao carregar categorias",
+      notFound:{
+          vehicle: "Veículo não encontrado",
+          vehicleCategory: "Categoria de veículo não encontrada"
+      }
+  },
+  viewModes: {
+  compact: 'Compacto',
+  normal: 'Normal', 
+  cards: 'Cards'
+}
 } as const;

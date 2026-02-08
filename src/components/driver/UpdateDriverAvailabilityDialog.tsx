@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/driver/UpdateDriverAvailabilityDialog.tsx (COMPLETO)
+// FILE: src/components/driver/UpdateDriverAvailabilityDialog.tsx (ATUALIZADO COM VALIDAÇÕES)
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { updateDriver as updateDriverHelper } from '@/helpers/driver-helpers';
 import { useDrivers } from '@/contexts/DriversContext';
 import { cn } from '@/lib/utils';
 import { CheckCircle2, Truck, Ban, Info, Lock, X } from 'lucide-react';
-import { DriverAvailability, driverAvailability } from '@/lib/db/schemas/drivers';
+import { DriverAvailability, driverAvailability, driverStatus } from '@/lib/db/schemas/drivers';
 
 interface UpdateDriverAvailabilityDialogProps {
   open: boolean;
@@ -34,6 +34,12 @@ export default function UpdateDriverAvailabilityDialog({ open, onOpenChange }: U
   }, [open, selectedDriver]);
 
   if (!selectedDriver) return null;
+
+  // Verificar se o motorista está em status que bloqueia alteração de disponibilidade
+  const isInactiveStatus = selectedDriver.status === driverStatus.ON_LEAVE || 
+                           selectedDriver.status === driverStatus.TERMINATED;
+  const isCurrentlyOnTrip = selectedDriver.availability === driverAvailability.ON_TRIP;
+  const isDisabled = isInactiveStatus || isCurrentlyOnTrip;
 
   const availabilityOptions = [
     { 
@@ -89,8 +95,27 @@ export default function UpdateDriverAvailabilityDialog({ open, onOpenChange }: U
     }
   }
 
-  const isCurrentlyOnTrip = selectedDriver.availability === 'on_trip';
-  const hasChanges = availability !== selectedDriver.availability && availability !== 'on_trip';
+  const hasChanges = availability !== selectedDriver.availability && availability !== driverAvailability.ON_TRIP;
+
+  // Mensagem apropriada baseada no motivo do bloqueio
+  const getBlockMessage = () => {
+    if (isInactiveStatus) {
+      return {
+        title: t('drivers:dialogs.availability.inactiveStatusTitle'),
+        description: t('drivers:dialogs.availability.inactiveStatusDescription', { 
+          status: selectedDriver.status === driverStatus.ON_LEAVE 
+            ? t('drivers:status.on_leave.label')
+            : t('drivers:status.terminated.label')
+        })
+      };
+    }
+    return {
+      title: t('drivers:dialogs.availability.onTripAlertTitle'),
+      description: t('drivers:dialogs.availability.onTripAlertDescription')
+    };
+  };
+
+  const blockMessage = getBlockMessage();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -98,19 +123,19 @@ export default function UpdateDriverAvailabilityDialog({ open, onOpenChange }: U
         <DialogHeader>
           <DialogTitle>{t('drivers:dialogs.availability.title')}</DialogTitle>
           <DialogDescription>
-            {isCurrentlyOnTrip 
-              ? t('drivers:dialogs.availability.onTripDescription', { name: selectedDriver.name })
+            {isDisabled 
+              ? t('drivers:dialogs.availability.blockedDescription', { name: selectedDriver.name })
               : t('drivers:dialogs.availability.description', { name: selectedDriver.name })
             }
           </DialogDescription>
         </DialogHeader>
 
-        {isCurrentlyOnTrip && (
+        {isDisabled && (
           <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 text-sm">
             <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold">{t('drivers:dialogs.availability.onTripAlertTitle')}</p>
-              <p className="text-blue-700">{t('drivers:dialogs.availability.onTripAlertDescription')}</p>
+              <p className="font-semibold">{blockMessage.title}</p>
+              <p className="text-blue-700">{blockMessage.description}</p>
             </div>
           </div>
         )}
@@ -120,29 +145,30 @@ export default function UpdateDriverAvailabilityDialog({ open, onOpenChange }: U
             value={availability} 
             onValueChange={setAvailability} 
             className="space-y-3"
-            disabled={isCurrentlyOnTrip}
+            disabled={isDisabled}
           >
             {availabilityOptions.map((option) => {
               const isSelected = availability === option.value;
-              const isOnTripOption = option.value === 'on_trip';
-              const isDisabled = isCurrentlyOnTrip || (isOnTripOption && !isCurrentlyOnTrip);
+              const isOnTripOption = option.value === driverAvailability.ON_TRIP;
+              const isOptionDisabled = isDisabled || (isOnTripOption && !isCurrentlyOnTrip);
               
               return (
-                <div
+                <Label
                   key={option.value}
+                  htmlFor={option.value}
                   className={cn(
-                    "relative flex items-start gap-4 p-4 rounded-xl border-2 transition-all",
+                    "relative flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all",
                     isSelected && option.selectable
                       ? cn(option.bg, option.border, "ring-2 ring-offset-2", option.ring)
                       : "border-border bg-card",
-                    isDisabled && "opacity-50 cursor-not-allowed",
-                    !isDisabled && !isSelected && "hover:border-muted-foreground/20 cursor-pointer"
+                    isOptionDisabled && "opacity-50 cursor-not-allowed",
+                    !isOptionDisabled && !isSelected && "hover:border-muted-foreground/20"
                   )}
                 >
                   <RadioGroupItem 
                     value={option.value} 
                     id={option.value}
-                    disabled={isDisabled}
+                    disabled={isOptionDisabled}
                     className="mt-1"
                   />
                   <div className="flex-1">
@@ -165,7 +191,7 @@ export default function UpdateDriverAvailabilityDialog({ open, onOpenChange }: U
                       </span>
                     </div>
                   )}
-                </div>
+                </Label>
               );
             })}
           </RadioGroup>
@@ -177,7 +203,7 @@ export default function UpdateDriverAvailabilityDialog({ open, onOpenChange }: U
               onClick={() => onOpenChange(false)} 
               disabled={isLoading}
             >
-              {isCurrentlyOnTrip ? (
+              {isDisabled ? (
                 <span className="flex items-center gap-2">
                   <X className="w-4 h-4" />
                   {t('common:close')}
@@ -186,7 +212,7 @@ export default function UpdateDriverAvailabilityDialog({ open, onOpenChange }: U
                 t('common:cancel')
               )}
             </Button>
-            {!isCurrentlyOnTrip && (
+            {!isDisabled && (
               <Button 
                 type="submit" 
                 disabled={isLoading || !hasChanges}

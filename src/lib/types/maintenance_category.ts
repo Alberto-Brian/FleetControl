@@ -5,7 +5,7 @@ export interface IMaintenanceCategory {
     id: string;
     name: string;
     type: MaintenanceType;
-    description?: string;
+    description: string | null;
     color: string;
     is_active: boolean;
     created_at: string;

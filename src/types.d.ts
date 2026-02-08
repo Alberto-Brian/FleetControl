@@ -119,7 +119,9 @@ interface IMaintenances {
     complete: (id: string, data: IUpdateMaintenance) => Promise<IMaintenance | null>;
     delete: (id: string) => Promise<string | null>;
     getCategories: () => Promise<IMaintenanceCategory[]>;
-    getWorkshops: () => Promise<IWorkshop>;
+    getWorkshops: () => Promise<IWorkshop[]>;
+    getActiveMaintenances: () => Promise<IMaintenance[]>;
+    getMaintenanceById: (id: string) => Promise<IMaintenance | null>;
 }
 
 interface IExpenses {

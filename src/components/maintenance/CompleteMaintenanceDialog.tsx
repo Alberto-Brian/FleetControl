@@ -1,134 +1,142 @@
-// src/components/maintenance/CompleteMaintenanceDialog.tsx
-import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+// ========================================
+// FILE: src/components/maintenance/CompleteMaintenanceDialog.tsx (ATUALIZADO)
+// ========================================
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { CheckCircle2 } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { useTranslation } from 'react-i18next';
 import { completeMaintenance } from '@/helpers/maintenance-helpers';
-import { useToast } from '@/components/ui/use-toast';
+import { IUpdateMaintenance } from '@/lib/types/maintenance';
+import { Gauge, MapPin, Calendar, TrendingUp, Flag, CheckCircle2 } from 'lucide-react';
+import { useMaintenances } from '@/contexts/MaintenancesContext';
 
-interface CompleteMaintenanceDialogProps {
-  maintenanceId: string;
-  vehicleLicense: string;
-  categoryName: string;
-  currentStatus: string;
-  currentPartsCost?: number;
-  currentLaborCost?: number;
-  onMaintenanceCompleted: () => void;
-}
-
-export default function CompleteMaintenanceDialog({
-  maintenanceId,
-  vehicleLicense,
-  categoryName,
-  currentStatus,
-  currentPartsCost = 0,
-  currentLaborCost = 0,
-  onMaintenanceCompleted,
-}: CompleteMaintenanceDialogProps) {
-  const { toast } = useToast();
+export default function CompleteMaintenanceDialog() {
+  const { t } = useTranslation();
+  const { showSuccess, handleError } = useErrorHandler();
+  const { state: { selectedMaintenance }, updateMaintenance: updateMaintenanceContext } = useMaintenances();
+  
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [diagnosis, setDiagnosis] = useState('');
-  const [solution, setSolution] = useState('');
-  const [partsCost, setPartsCost] = useState(currentPartsCost.toString());
-  const [laborCost, setLaborCost] = useState(currentLaborCost.toString());
+  const [formData, setFormData] = useState<IUpdateMaintenance>({
+    diagnosis: '',
+    solution: '',
+    parts_cost: 0,
+    labor_cost: 0,
+  });
+
+  useEffect(() => {
+    if (open && selectedMaintenance) {
+      setFormData({
+        diagnosis: selectedMaintenance.diagnosis || '',
+        solution: '',
+        parts_cost: selectedMaintenance.parts_cost || 0,
+        labor_cost: selectedMaintenance.labor_cost || 0,
+      });
+    }
+  }, [open, selectedMaintenance]);
+
+  // ✅ EARLY RETURN
+  if (!selectedMaintenance) {
+    return null;
+  }
 
   async function handleCompleteMaintenance() {
-    if (!solution.trim()) {
-      toast({
-        title: 'Erro',
-        description: 'Por favor, descreva a solução aplicada',
-        variant: 'destructive',
-      });
+    if (!formData.solution?.trim()) {
+      handleError(new Error('maintenances:alerts.solutionRequired'), 'maintenances:alerts.solutionRequired');
       return;
     }
 
-    // Se estiver agendada e não tiver diagnóstico, é necessário
-    if (currentStatus === 'scheduled' && !diagnosis.trim()) {
-      toast({
-        title: 'Erro',
-        description: 'Por favor, adicione o diagnóstico',
-        variant: 'destructive',
-      });
+    if (selectedMaintenance!.status === 'scheduled' && !formData.diagnosis?.trim()) {
+      handleError(new Error('maintenances:alerts.diagnosisRequired'), 'maintenances:alerts.diagnosisRequired');
       return;
     }
 
     setIsLoading(true);
+
     try {
-      await completeMaintenance(maintenanceId, {
-        diagnosis: diagnosis.trim() || undefined,
-        solution: solution.trim(),
-        parts_cost: parseFloat(partsCost) || 0,
-        labor_cost: parseFloat(laborCost) || 0,
+      const completed = await completeMaintenance(selectedMaintenance!.id, {
+        diagnosis: formData.diagnosis?.trim() || undefined,
+        solution: formData.solution.trim(),
+        parts_cost: formData.parts_cost || 0,
+        labor_cost: formData.labor_cost || 0,
       });
 
-      toast({
-        title: 'Sucesso',
-        description: 'Manutenção concluída com sucesso',
-      });
-
-      setOpen(false);
-      resetForm();
-      onMaintenanceCompleted();
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao concluir manutenção',
-        variant: 'destructive',
-      });
+      if (completed) {
+        updateMaintenanceContext(completed); // ✨ Atualiza contexto
+        showSuccess('maintenances:toast.completeSuccess');
+        setOpen(false);
+      }
+    } catch (error: any) {
+      handleError(error, 'maintenances:toast.completeError');
     } finally {
       setIsLoading(false);
     }
   }
 
-  function resetForm() {
-    setDiagnosis('');
-    setSolution('');
-    setPartsCost('0');
-    setLaborCost('0');
-  }
-
-  const totalCost = (parseFloat(partsCost) || 0) + (parseFloat(laborCost) || 0);
+  const totalCost = (formData.parts_cost || 0) + (formData.labor_cost || 0);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="default" size="sm">
           <CheckCircle2 className="w-4 h-4 mr-2" />
-          Concluir
+          {t('maintenances:actions.complete')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Concluir Manutenção</DialogTitle>
+          <DialogTitle className="text-2xl flex items-center gap-2">
+            <Flag className="w-6 h-6 text-primary" />
+            {t('maintenances:dialogs.complete.title')}
+          </DialogTitle>
           <DialogDescription>
-            Finalize a manutenção para {vehicleLicense} - {categoryName}
+            {selectedMaintenance.vehicle_license} - {selectedMaintenance.category_name}
           </DialogDescription>
         </DialogHeader>
 
+        {/* Informações da Manutenção */}
+        <Card className="p-4 bg-muted/30">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-start gap-3">
+              <MapPin className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">{t('maintenances:fields.vehicle')}</p>
+                <p className="font-medium">{selectedMaintenance.vehicle_license}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <Calendar className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">{t('maintenances:fields.entryDate')}</p>
+                <p className="font-medium">
+                  {new Date(selectedMaintenance.entry_date).toLocaleDateString('pt-PT', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
         <div className="space-y-4">
-          {currentStatus === 'scheduled' && (
+          {selectedMaintenance.status === 'scheduled' && (
             <div className="space-y-2">
               <Label htmlFor="diagnosis">
-                Diagnóstico <span className="text-destructive">*</span>
+                {t('maintenances:fields.diagnosis')} <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 id="diagnosis"
-                placeholder="Descreva o diagnóstico realizado..."
-                value={diagnosis}
-                onChange={(e) => setDiagnosis(e.target.value)}
+                placeholder={t('maintenances:placeholders.diagnosis')}
+                value={formData.diagnosis || ''}
+                onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
                 rows={3}
               />
             </div>
@@ -136,59 +144,59 @@ export default function CompleteMaintenanceDialog({
 
           <div className="space-y-2">
             <Label htmlFor="solution">
-              Solução Aplicada <span className="text-destructive">*</span>
+              {t('maintenances:fields.solution')} <span className="text-destructive">*</span>
             </Label>
             <Textarea
               id="solution"
-              placeholder="Descreva os trabalhos realizados e soluções aplicadas..."
-              value={solution}
-              onChange={(e) => setSolution(e.target.value)}
+              placeholder={t('maintenances:placeholders.solution')}
+              value={formData.solution || ''}
+              onChange={(e) => setFormData({ ...formData, solution: e.target.value })}
               rows={4}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="parts-cost">Custo de Peças (Kz)</Label>
+              <Label htmlFor="parts-cost">{t('maintenances:fields.partsCost')} (Kz)</Label>
               <Input
                 id="parts-cost"
                 type="number"
                 min="0"
                 step="0.01"
-                placeholder="0.00"
-                value={partsCost}
-                onChange={(e) => setPartsCost(e.target.value)}
+                placeholder={t('maintenances:placeholders.partsCost')}
+                value={formData.parts_cost || ''}
+                onChange={(e) => setFormData({ ...formData, parts_cost: parseFloat(e.target.value) || 0 })}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="labor-cost">Custo de Mão de Obra (Kz)</Label>
+              <Label htmlFor="labor-cost">{t('maintenances:fields.laborCost')} (Kz)</Label>
               <Input
                 id="labor-cost"
                 type="number"
                 min="0"
                 step="0.01"
-                placeholder="0.00"
-                value={laborCost}
-                onChange={(e) => setLaborCost(e.target.value)}
+                placeholder={t('maintenances:placeholders.laborCost')}
+                value={formData.labor_cost || ''}
+                onChange={(e) => setFormData({ ...formData, labor_cost: parseFloat(e.target.value) || 0 })}
               />
             </div>
           </div>
 
           <div className="p-4 bg-muted rounded-lg">
             <div className="flex items-center justify-between">
-              <span className="font-medium">Custo Total:</span>
-              <span className="text-2xl font-bold">{totalCost.toLocaleString('pt-AO')} Kz</span>
+              <span className="font-medium">{t('maintenances:fields.totalCost')}:</span>
+              <span className="text-2xl font-bold">{totalCost.toLocaleString('pt-PT')} Kz</span>
             </div>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
-            Cancelar
+          <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
+            {t('common:actions.cancel')}
           </Button>
           <Button onClick={handleCompleteMaintenance} disabled={isLoading}>
-            {isLoading ? 'Concluindo...' : 'Concluir Manutenção'}
+            {isLoading ? t('maintenances:actions.completing') : t('maintenances:actions.complete')}
           </Button>
         </DialogFooter>
       </DialogContent>

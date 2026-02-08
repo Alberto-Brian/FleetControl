@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/maintenance/NewMaintenanceDialog.tsx
+// FILE: src/components/maintenance/NewMaintenanceDialog.tsx (ATUALIZADO)
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -9,38 +9,35 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useToast } from '@/components/ui/use-toast';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { useTranslation } from 'react-i18next';
 import { Wrench, Plus, Truck, AlertCircle } from 'lucide-react';
 import { createMaintenance } from '@/helpers/maintenance-helpers';
 import { getAllVehicles } from '@/helpers/vehicle-helpers';
-import { getAllMaintenanceCategories } from '@/helpers/maintenance-category-helpers';
 import { getAllWorkshops } from '@/helpers/workshop-helpers';
 import { ICreateMaintenance } from '@/lib/types/maintenance';
-import { IVehicle } from '@/lib/types/vehicle';
-import { IWorkshop } from '@/lib/types/workshop';
-
-interface NewMaintenanceDialogProps {
-  onMaintenanceCreated?: (maintenance: any) => void;
-}
+import { useMaintenances } from '@/contexts/MaintenancesContext';
 
 const MAINTENANCE_TYPES = [
-  { value: 'preventive', label: 'Preventiva' },
-  { value: 'corrective', label: 'Corretiva' },
+  { value: 'preventive', label: 'maintenances:type.preventive.label' },
+  { value: 'corrective', label: 'maintenances:type.corrective.label' },
 ];
 
 const PRIORITIES = [
-  { value: 'low', label: 'Baixa', color: 'text-green-600' },
-  { value: 'normal', label: 'Normal', color: 'text-blue-600' },
-  { value: 'high', label: 'Alta', color: 'text-orange-600' },
-  { value: 'urgent', label: 'Urgente', color: 'text-red-600' },
+  { value: 'low', label: 'maintenances:priority.low.label', color: 'text-green-600' },
+  { value: 'normal', label: 'maintenances:priority.normal.label', color: 'text-blue-600' },
+  { value: 'high', label: 'maintenances:priority.high.label', color: 'text-orange-600' },
+  { value: 'urgent', label: 'maintenances:priority.urgent.label', color: 'text-red-600' },
 ];
 
-export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMaintenanceDialogProps) {
-  const { toast } = useToast();
+export default function NewMaintenanceDialog() {
+  const { t } = useTranslation();
+  const { showSuccess, handleError } = useErrorHandler();
+  const { state: { categories }, addMaintenance } = useMaintenances();
+  
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [vehicles, setVehicles] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
   const [workshops, setWorkshops] = useState<any[]>([]);
   const [startNow, setStartNow] = useState(false);
   const [formData, setFormData] = useState<ICreateMaintenance & { 
@@ -69,73 +66,19 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
 
   async function loadData() {
     try {
-      const [vehiclesData, categoriesData, workshopsData] = await Promise.all([
+      const [vehiclesData, workshopsData] = await Promise.all([
         getAllVehicles(),
-        getAllMaintenanceCategories(),
         getAllWorkshops(),
       ]);
-      setVehicles(vehiclesData.filter((v: IVehicle) => v.status !== 'inactive'));
-      setCategories(categoriesData);
-      setWorkshops(workshopsData.filter((w: IWorkshop) => w.is_active === true));
+      setVehicles(vehiclesData.filter((v: any) => v.status !== 'inactive'));
+      setWorkshops(workshopsData.filter((w: any) => w.is_active === true));
     } catch (error) {
-      console.error('Error loading data:', error);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao carregar dados',
-        variant: 'destructive',
-      });
+      handleError(error, 'common:errors.loadingData');
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    // Validação manual dos campos obrigatórios
-    if (!formData.vehicle_id) {
-      toast({
-        title: 'Campo obrigatório',
-        description: 'Por favor, selecione um veículo',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!formData.category_id) {
-      toast({
-        title: 'Campo obrigatório',
-        description: 'Por favor, selecione uma categoria',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!formData.type) {
-      toast({
-        title: 'Campo obrigatório',
-        description: 'Por favor, selecione o tipo de manutenção',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!formData.description || formData.description.trim() === '') {
-      toast({
-        title: 'Campo obrigatório',
-        description: 'Por favor, preencha a descrição do problema',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!formData.vehicle_mileage || formData.vehicle_mileage <= 0) {
-      toast({
-        title: 'Campo obrigatório',
-        description: 'Por favor, informe a quilometragem',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     setIsLoading(true);
 
     try {
@@ -156,26 +99,14 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
 
       const newMaintenance = await createMaintenance(maintenanceData);
       
-      toast({
-        title: 'Sucesso!',
-        description: startNow 
-          ? 'Manutenção iniciada com sucesso.' 
-          : 'Manutenção agendada com sucesso.',
-      });
-      
-      if (onMaintenanceCreated) {
-        onMaintenanceCreated(newMaintenance);
+      if (newMaintenance) {
+        addMaintenance(newMaintenance); // ✨ Adiciona ao contexto
+        showSuccess(startNow ? 'maintenances:toast.startSuccess' : 'maintenances:toast.createSuccess');
+        setOpen(false);
+        resetForm();
       }
-      
-      setOpen(false);
-      resetForm();
     } catch (error: any) {
-      console.error('Error creating maintenance:', error);
-      toast({
-        title: 'Erro',
-        description: error.message || 'Erro ao registar manutenção',
-        variant: 'destructive',
-      });
+      handleError(error, 'maintenances:toast.createError');
     } finally {
       setIsLoading(false);
     }
@@ -206,17 +137,17 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
       <DialogTrigger asChild>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
-          Nova Manutenção
+          {t('maintenances:newMaintenance')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wrench className="w-5 h-5" />
-            Registar Manutenção
+            {t('maintenances:dialogs.new.title')}
           </DialogTitle>
           <DialogDescription>
-            Preencha os dados da manutenção a ser realizada
+            {t('maintenances:dialogs.new.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -225,7 +156,7 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Truck className="w-4 h-4" />
-              Veículo *
+              {t('maintenances:fields.vehicle')} *
             </Label>
             <Select
               value={formData.vehicle_id}
@@ -237,15 +168,16 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
                   vehicle_mileage: vehicle?.current_mileage || 0
                 });
               }}
+              required
             >
-              <SelectTrigger className={!formData.vehicle_id ? 'border-muted-foreground' : ''}>
-                <SelectValue placeholder="Selecione o veículo" />
+              <SelectTrigger>
+                <SelectValue placeholder={t('maintenances:placeholders.vehicle')} />
               </SelectTrigger>
               <SelectContent>
                 {vehicles.length === 0 ? (
                   <div className="p-3 text-center text-sm text-muted-foreground">
                     <AlertCircle className="w-4 h-4 mx-auto mb-1" />
-                    Nenhum veículo disponível
+                    {t('maintenances:alerts.noVehicles')}
                   </div>
                 ) : (
                   vehicles.map((v) => (
@@ -260,7 +192,7 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
             </Select>
             {selectedVehicle && (
               <p className="text-xs text-muted-foreground">
-                KM Actual: {selectedVehicle.current_mileage?.toLocaleString('pt-AO')}
+                KM: {selectedVehicle.current_mileage?.toLocaleString('pt-PT')}
               </p>
             )}
           </div>
@@ -268,10 +200,11 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
           {/* Tipo e Categoria */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Tipo de Manutenção *</Label>
+              <Label>{t('maintenances:fields.type')} *</Label>
               <Select
                 value={formData.type}
                 onValueChange={(value: any) => setFormData({ ...formData, type: value })}
+                required
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -279,7 +212,7 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
                 <SelectContent>
                   {MAINTENANCE_TYPES.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
-                      {type.label}
+                      {t(type.label)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -287,19 +220,20 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
             </div>
 
             <div className="space-y-2">
-              <Label>Categoria *</Label>
+              <Label>{t('maintenances:fields.category')} *</Label>
               <Select
                 value={formData.category_id}
                 onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+                required
               >
-                <SelectTrigger className={!formData.category_id ? 'border-muted-foreground' : ''}>
-                  <SelectValue placeholder="Selecione a categoria" />
+                <SelectTrigger>
+                  <SelectValue placeholder={t('maintenances:placeholders.category')} />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.length === 0 ? (
                     <div className="p-3 text-center text-sm text-muted-foreground">
                       <AlertCircle className="w-4 h-4 mx-auto mb-1" />
-                      Nenhuma categoria disponível
+                      {t('maintenances:alerts.noCategories')}
                     </div>
                   ) : (
                     categories.map((c) => (
@@ -320,21 +254,23 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
           {/* Quilometragem, Prioridade e Ordem de Serviço */}
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Quilometragem *</Label>
+              <Label>{t('maintenances:fields.mileage')} *</Label>
               <Input
                 type="number"
                 min="0"
-                placeholder="Ex: 45000"
+                placeholder={t('maintenances:placeholders.mileage')}
                 value={formData.vehicle_mileage || ''}
                 onChange={(e) => setFormData({ ...formData, vehicle_mileage: parseInt(e.target.value) || 0 })}
+                required
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Prioridade *</Label>
+              <Label>{t('maintenances:fields.priority')} *</Label>
               <Select
                 value={formData.priority}
                 onValueChange={(value: any) => setFormData({ ...formData, priority: value })}
+                required
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -342,7 +278,7 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
                 <SelectContent>
                   {PRIORITIES.map((p) => (
                     <SelectItem key={p.value} value={p.value}>
-                      <span className={p.color}>{p.label}</span>
+                      <span className={p.color}>{t(p.label)}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -350,9 +286,9 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
             </div>
 
             <div className="space-y-2">
-              <Label>Nº Ordem de Serviço</Label>
+              <Label>{t('maintenances:fields.workOrderNumber')}</Label>
               <Input
-                placeholder="Ex: OS-2024-001"
+                placeholder={t('maintenances:placeholders.workOrderNumber')}
                 value={formData.work_order_number || ''}
                 onChange={(e) => setFormData({ ...formData, work_order_number: e.target.value })}
               />
@@ -361,16 +297,16 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
 
           {/* Oficina */}
           <div className="space-y-2">
-            <Label>Oficina (opcional)</Label>
+            <Label>{t('maintenances:fields.workshop')}</Label>
             <Select
               value={formData.workshop_id || 'none'}
               onValueChange={(value) => setFormData({ ...formData, workshop_id: value === 'none' ? undefined : value })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecione a oficina" />
+                <SelectValue placeholder={t('maintenances:placeholders.workshop')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Nenhuma</SelectItem>
+                <SelectItem value="none">{t('common:none')}</SelectItem>
                 {workshops.map((w) => (
                   <SelectItem key={w.id} value={w.id}>
                     {w.name} {w.city && `- ${w.city}`}
@@ -382,36 +318,36 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
 
           {/* Custos */}
           <div className="space-y-3">
-            <Label>Custos Estimados</Label>
+            <Label>{t('maintenances:info.estimatedCost')}</Label>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Peças (Kz)</Label>
+                <Label className="text-sm text-muted-foreground">{t('maintenances:fields.partsCost')} (Kz)</Label>
                 <Input
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder="0.00"
+                  placeholder={t('maintenances:placeholders.partsCost')}
                   value={formData.parts_cost || ''}
                   onChange={(e) => setFormData({ ...formData, parts_cost: parseFloat(e.target.value) || 0 })}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Mão de Obra (Kz)</Label>
+                <Label className="text-sm text-muted-foreground">{t('maintenances:fields.laborCost')} (Kz)</Label>
                 <Input
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder="0.00"
+                  placeholder={t('maintenances:placeholders.laborCost')}
                   value={formData.labor_cost || ''}
                   onChange={(e) => setFormData({ ...formData, labor_cost: parseFloat(e.target.value) || 0 })}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Total</Label>
+                <Label className="text-sm text-muted-foreground">{t('maintenances:fields.totalCost')}</Label>
                 <Input
-                  value={totalCost.toLocaleString('pt-AO', { minimumFractionDigits: 2 })}
+                  value={totalCost.toLocaleString('pt-PT', { minimumFractionDigits: 2 })}
                   disabled
                   className="bg-muted font-bold"
                 />
@@ -421,21 +357,21 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
 
           {/* Descrição */}
           <div className="space-y-2">
-            <Label>Descrição do Problema *</Label>
+            <Label>{t('maintenances:fields.description')} *</Label>
             <Textarea
-              placeholder="Descreva o problema ou serviço a ser realizado..."
+              placeholder={t('maintenances:placeholders.description')}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className={!formData.description ? 'border-muted-foreground' : ''}
+              required
             />
           </div>
 
           {/* Observações */}
           <div className="space-y-2">
-            <Label>Observações</Label>
+            <Label>{t('maintenances:fields.notes')}</Label>
             <Textarea
-              placeholder="Informações adicionais..."
+              placeholder={t('maintenances:placeholders.notes')}
               value={formData.notes || ''}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={2}
@@ -453,7 +389,7 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
               htmlFor="start_now"
               className="text-sm font-medium leading-none cursor-pointer"
             >
-              Iniciar manutenção imediatamente (alterar status do veículo para "Em Manutenção")
+              {t('maintenances:actions.startNowDescription')}
             </label>
           </div>
 
@@ -461,26 +397,31 @@ export default function NewMaintenanceDialog({ onMaintenanceCreated }: NewMainte
           {totalCost > 0 && (
             <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
               <p className="text-sm font-medium">
-                Custo Total Estimado: 
+                {t('maintenances:info.estimatedCost')}: 
                 <span className="text-lg ml-2 font-bold text-primary">
-                  {totalCost.toLocaleString('pt-AO', { minimumFractionDigits: 2 })} Kz
+                  {totalCost.toLocaleString('pt-PT', { minimumFractionDigits: 2 })} Kz
                 </span>
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Status: {startNow ? 'Em Andamento' : 'Agendada'}
+                {t('maintenances:fields.status')}: {startNow ? t('maintenances:status.in_progress.label') : t('maintenances:status.scheduled.label')}
               </p>
             </div>
           )}
 
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
+              {t('common:actions.cancel')}
             </Button>
             <Button 
               type="submit" 
               disabled={isLoading || vehicles.length === 0 || categories.length === 0}
             >
-              {isLoading ? 'Registando...' : startNow ? 'Iniciar Manutenção' : 'Agendar Manutenção'}
+              {isLoading 
+                ? t('maintenances:actions.creating')
+                : startNow 
+                ? t('maintenances:actions.startNow') 
+                : t('maintenances:actions.schedule')
+              }
             </Button>
           </div>
         </form>

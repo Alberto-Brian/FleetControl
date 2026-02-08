@@ -8,6 +8,7 @@ export interface IWorkshop {
     email?: string;
     address?: string;
     city?: string;
+    state?: string;
     specialties?: string;
     notes?: string;
     is_active: boolean;
@@ -20,6 +21,7 @@ export interface ICreateWorkshop {
     email?: string;
     address?: string;
     city?: string;
+    state?: string;
     specialties?: string;
     notes?: string;
 }

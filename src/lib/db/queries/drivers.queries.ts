@@ -175,19 +175,26 @@ export async function getDriverById(driverId: string): Promise<IDriver | null> {
  * Atualiza um motorista
  * ✅ Retorna o motorista completo atualizado
  */
-export async function updateDriver(driverId: string, driverData: IUpdateDriver): Promise<IDriver | null> {
-    const { db } = useDb();
+export async function updateDriver(driverId: string, driverData: IUpdateDriver): Promise<Driver | null> {
+  const { db } = useDb();
 
-    await db
-        .update(drivers)
-        .set({
-            ...driverData,
-            updated_at: new Date().toISOString(),
-        })
-        .where(eq(drivers.id, driverId));
+  // Se o status for alterado para on_leave ou terminated, forçar availability para offline
+  const updateData: any = { ...driverData };
+  
+  if (driverData.status === driverStatus.ON_LEAVE || driverData.status === driverStatus.TERMINATED) {
+    updateData.availability = driverAvailability.OFFLINE;
+  }
 
-    // ✅ Retorna motorista completo
-    return await getDriverById(driverId);
+  await db
+    .update(drivers)
+    .set({
+      ...updateData,
+      updated_at: new Date().toISOString(),
+    })
+    .where(eq(drivers.id, driverId));
+
+  // ✅ Retorna motorista completo
+  return await getDriverById(driverId);
 }
 
 /**

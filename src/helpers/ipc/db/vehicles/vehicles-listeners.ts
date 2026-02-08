@@ -90,7 +90,7 @@ async function createVehicleEvent(vehicleData: ICreateVehicle) {
     throw new Error(
       new ConflictError(T_ERRORS.VEHICLE_EXISTS, {
         plate: vehicleData.license_plate
-      }, 'vehicle_already_exists').toIpcString()
+      }).toIpcString()
     );
   }
 
@@ -116,7 +116,7 @@ async function updateVehicleEvent(vehicleId: string, vehicleData: IUpdateVehicle
       throw new Error(
         new ConflictError(T_ERRORS.VEHICLE_EXISTS, {
           plate: vehicleData.license_plate
-        }, 'vehicle_already_exists').toIpcString()
+        }).toIpcString()
       );
     }
   }

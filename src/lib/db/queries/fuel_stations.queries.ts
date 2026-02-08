@@ -23,6 +23,18 @@ export async function createFuelStation(stationData: ICreateFuelStation) {
     return result[0];
 }
 
+// ✨ Helper para buscar por nome
+export async function findStationByName(name: string) {
+    const { db } = useDb();
+    const result = await db
+        .select()
+        .from(fuel_stations)
+        .where(eq(fuel_stations.name, name))
+        .limit(1);
+    return result[0] || null;
+}
+
+// ✨ Helper para verificar abastecimentos vinculados
 export async function getAllFuelStations() {
     const { db } = useDb();
     const result = await db

@@ -1,75 +1,56 @@
-// src/components/maintenance/StartMaintenanceDialog.tsx
+// ========================================
+// FILE: src/components/maintenance/StartMaintenanceDialog.tsx (ATUALIZADO)
+// ========================================
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Play } from 'lucide-react';
 import { updateMaintenance } from '@/helpers/maintenance-helpers';
-import { useToast } from '@/components/ui/use-toast';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { useTranslation } from 'react-i18next';
+import { useMaintenances } from '@/contexts/MaintenancesContext';
 
-interface StartMaintenanceDialogProps {
-  maintenanceId: string;
-  vehicleLicense: string;
-  categoryName: string;
-  onMaintenanceStarted: () => void;
-}
-
-export default function StartMaintenanceDialog({
-  maintenanceId,
-  vehicleLicense,
-  categoryName,
-  onMaintenanceStarted,
-}: StartMaintenanceDialogProps) {
-  const { toast } = useToast();
+export default function StartMaintenanceDialog() {
+  const { t } = useTranslation();
+  const { showSuccess, handleError } = useErrorHandler();
+  const { state: { selectedMaintenance }, updateMaintenance: updateMaintenanceContext } = useMaintenances();
+  
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [diagnosis, setDiagnosis] = useState('');
   const [workOrderNumber, setWorkOrderNumber] = useState('');
 
+  // ✅ EARLY RETURN
+  if (!selectedMaintenance) {
+    return null;
+  }
+
   async function handleStartMaintenance() {
     if (!diagnosis.trim()) {
-      toast({
-        title: 'Erro',
-        description: 'Por favor, adicione um diagnóstico inicial',
-        variant: 'destructive',
-      });
+      handleError(new Error('maintenances:alerts.diagnosisRequired'), 'maintenances:alerts.diagnosisRequired');
       return;
     }
 
     setIsLoading(true);
     try {
-      await updateMaintenance(maintenanceId, {
+      const updated = await updateMaintenance(selectedMaintenance!.id, {
         status: 'in_progress',
         diagnosis: diagnosis.trim(),
         work_order_number: workOrderNumber.trim() || undefined,
       });
 
-      toast({
-        title: 'Sucesso',
-        description: 'Manutenção iniciada com sucesso',
-      });
-
-      setOpen(false);
-      setDiagnosis('');
-      setWorkOrderNumber('');
-      onMaintenanceStarted();
+      if (updated) {
+        updateMaintenanceContext(updated); // ✨ Atualiza contexto
+        showSuccess('maintenances:toast.startSuccess');
+        setOpen(false);
+        setDiagnosis('');
+        setWorkOrderNumber('');
+      }
     } catch (error) {
-      console.error(error);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao iniciar manutenção',
-        variant: 'destructive',
-      });
+      handleError(error, 'maintenances:toast.startError');
     } finally {
       setIsLoading(false);
     }
@@ -80,25 +61,25 @@ export default function StartMaintenanceDialog({
       <DialogTrigger asChild>
         <Button variant="default" size="sm">
           <Play className="w-4 h-4 mr-2" />
-          Iniciar
+          {t('maintenances:actions.start')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Iniciar Manutenção</DialogTitle>
+          <DialogTitle>{t('maintenances:dialogs.start.title')}</DialogTitle>
           <DialogDescription>
-            Inicie a manutenção para {vehicleLicense} - {categoryName}
+            {selectedMaintenance.vehicle_license} - {selectedMaintenance.category_name}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="work-order">
-              Número da Ordem de Serviço <span className="text-muted-foreground">(opcional)</span>
+              {t('maintenances:fields.workOrderNumber')} <span className="text-muted-foreground">({t('common:optional')})</span>
             </Label>
             <Input
               id="work-order"
-              placeholder="Ex: OS-2025-001"
+              placeholder={t('maintenances:placeholders.workOrderNumber')}
               value={workOrderNumber}
               onChange={(e) => setWorkOrderNumber(e.target.value)}
             />
@@ -106,11 +87,11 @@ export default function StartMaintenanceDialog({
 
           <div className="space-y-2">
             <Label htmlFor="diagnosis">
-              Diagnóstico Inicial <span className="text-destructive">*</span>
+              {t('maintenances:fields.diagnosis')} <span className="text-destructive">*</span>
             </Label>
             <Textarea
               id="diagnosis"
-              placeholder="Descreva o diagnóstico inicial e os trabalhos a serem realizados..."
+              placeholder={t('maintenances:placeholders.diagnosis')}
               value={diagnosis}
               onChange={(e) => setDiagnosis(e.target.value)}
               rows={4}
@@ -119,11 +100,11 @@ export default function StartMaintenanceDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
-            Cancelar
+          <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
+            {t('common:actions.cancel')}
           </Button>
           <Button onClick={handleStartMaintenance} disabled={isLoading}>
-            {isLoading ? 'Iniciando...' : 'Iniciar Manutenção'}
+            {isLoading ? t('maintenances:actions.starting') : t('maintenances:actions.start')}
           </Button>
         </DialogFooter>
       </DialogContent>

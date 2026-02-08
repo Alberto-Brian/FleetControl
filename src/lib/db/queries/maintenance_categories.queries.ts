@@ -1,11 +1,48 @@
-// src/lib/db/queries/maintenance_categories.queries.ts
+// ========================================
+// FILE: src/lib/db/queries/maintenance_categories.queries.ts (ATUALIZADO)
+// ========================================
 import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
-import { maintenance_categories } from '@/lib/db/schemas/maintenance_categories';
+import { maintenance_categories, maintenances } from '@/lib/db/schemas';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull } from 'drizzle-orm';
-import { ICreateMaintenanceCategory, IUpdateMaintenanceCategory } from '@/lib/types/maintenance_category';
+import { ICreateMaintenanceCategory, IUpdateMaintenanceCategory, IMaintenanceCategory } from '@/lib/types/maintenance_category';
 
-export async function createMaintenanceCategory(categoryData: ICreateMaintenanceCategory) {
+/**
+ * ✅ Busca categoria por nome
+ */
+export async function findMaintenanceCategoryByName(name: string): Promise<IMaintenanceCategory | null> {
+    const { db } = useDb();
+    const result = await db
+        .select()
+        .from(maintenance_categories)
+        .where(eq(maintenance_categories.name, name))
+        .limit(1);
+
+    return result[0] || null;
+}
+
+/**
+ * ✅ Verifica se categoria tem manutenções vinculadas
+ */
+export async function getMaintenancesByCategory(categoryId: string) {
+    const { db } = useDb();
+    const result = await db
+        .select()
+        .from(maintenances)
+        .where(
+            and(
+                eq(maintenances.category_id, categoryId),
+                isNull(maintenances.deleted_at)
+            )
+        );
+
+    return result;
+}
+
+/**
+ * Cria categoria
+ */
+export async function createMaintenanceCategory(categoryData: ICreateMaintenanceCategory): Promise<IMaintenanceCategory> {
     await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
@@ -14,7 +51,7 @@ export async function createMaintenanceCategory(categoryData: ICreateMaintenance
         .insert(maintenance_categories)
         .values({
             id,
-            color: '#F59E0B',
+            color: categoryData.color || '#F59E0B',
             ...categoryData,
         })
         .returning();
@@ -22,7 +59,10 @@ export async function createMaintenanceCategory(categoryData: ICreateMaintenance
     return result[0];
 }
 
-export async function getAllMaintenanceCategories() {
+/**
+ * Obtém todas as categorias
+ */
+export async function getAllMaintenanceCategories(): Promise<IMaintenanceCategory[]> {
     const { db } = useDb();
     const result = await db
         .select({
@@ -40,7 +80,10 @@ export async function getAllMaintenanceCategories() {
     return result;
 }
 
-export async function getMaintenanceCategoryById(categoryId: string) {
+/**
+ * Busca categoria por ID
+ */
+export async function getMaintenanceCategoryById(categoryId: string): Promise<IMaintenanceCategory | null> {
     const { db } = useDb();
     const result = await db
         .select()
@@ -56,7 +99,10 @@ export async function getMaintenanceCategoryById(categoryId: string) {
     return result[0] || null;
 }
 
-export async function updateMaintenanceCategory(categoryId: string, categoryData: IUpdateMaintenanceCategory) {
+/**
+ * Atualiza categoria
+ */
+export async function updateMaintenanceCategory(categoryId: string, categoryData: IUpdateMaintenanceCategory): Promise<IMaintenanceCategory> {
     const { db } = useDb();
     const result = await db
         .update(maintenance_categories)
@@ -70,8 +116,12 @@ export async function updateMaintenanceCategory(categoryId: string, categoryData
     return result[0];
 }
 
-export async function deleteMaintenanceCategory(categoryId: string) {
+/**
+ * Deleta categoria
+ */
+export async function deleteMaintenanceCategory(categoryId: string): Promise<string> {
     const { db } = useDb();
+    
     await db
         .update(maintenance_categories)
         .set({
@@ -82,7 +132,10 @@ export async function deleteMaintenanceCategory(categoryId: string) {
     return categoryId;
 }
 
-export async function getActiveMaintenanceCategories() {
+/**
+ * Obtém categorias activas
+ */
+export async function getActiveMaintenanceCategories(): Promise<IMaintenanceCategory[]> {
     const { db } = useDb();
     const result = await db
         .select()

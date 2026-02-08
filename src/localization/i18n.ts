@@ -3,12 +3,18 @@ import { initReactI18next } from "react-i18next";
 import { vehicleTranslations } from "./vehicles_translations";
 import { authTranslations } from "./auth_translations";
 
+import { ptCommon } from "./locales/pt/common";
+import { enCommon } from "./locales/en/common";
 import { ptVehicles } from "./locales/pt/vehicles";
 import { enVehicles } from "./locales/en/vehicles";
 import { ptDrivers } from "./locales/pt/drivers";
 import { enDrivers } from "./locales/en/drivers";
 import { ptTrips } from "./locales/pt/trips";
 import { enTrips } from "./locales/en/trips";
+import { ptMaintenances } from "./locales/pt/maintenances";
+import { enMaintenances } from "./locales/en/maintenances";
+import { ptRefuelings } from "./locales/pt/refuelings";
+import { enRefuelings } from "./locales/en/refuelings";
 
 i18n.use(initReactI18next).init({
     fallbackLng: "en",
@@ -17,33 +23,11 @@ i18n.use(initReactI18next).init({
             vehicles: enVehicles,
             drivers: enDrivers,
             trips: enTrips,
+            maintenances: enMaintenances,
+            refuelings: enRefuelings,
             // vehicles: vehicleTranslations.en.vehicles,
             auth: authTranslations.en.auth,
-            common: {
-                confirmDelete: {
-                    title: "Are you sure?",
-                    default: "This action cannot be undone. This record will be marked as deleted.",
-                    defaultWithItem: 'This action cannot be undone. The record "{{itemName}}" will be marked as deleted.'
-                },
-                actions: {
-                    cancel: "Cancel",
-                    delete: "Delete",
-                    deleting: "Deleting..."
-                },
-                warnigns: {
-                    categoryRequired: "Please select a category",
-                    licensePlateRequired: "Please enter a vehicle license plate",
-                },
-                errors: {
-                    errorLoading: "Error loading",
-                    errorLoadingCategories: "Error loading categories",
-                    notFound:{
-                        vehicle: "Vehicle not found",
-                        vehicleCategory: "Vehicle category not found"
-                    }
-                }
-
-            },
+            common: enCommon,
             homePage: {
                 registerNewClientButton: "Register new client",
                 idTableColumn: "ID",
@@ -73,32 +57,11 @@ i18n.use(initReactI18next).init({
             vehicles: ptVehicles,
             drivers: ptDrivers,
             trips: ptTrips,
+            maintenances: ptMaintenances,
+            refuelings: ptRefuelings,
             // vehicles: vehicleTranslations.pt.vehicles,
             auth: authTranslations.pt.auth,
-            common: {
-                confirmDelete: {
-                    title: "Tem certeza?",
-                    default: "Esta acção não pode ser desfeita. Este registo será marcado como excluído.",
-                    defaultWithItem: 'Esta acção não pode ser desfeita. O registo "{{itemName}}" será marcado como excluído.'
-                },
-                actions: {
-                    cancel: "Cancelar",
-                    delete: "Excluir",
-                    deleting: "Excluindo..."
-                },
-                warnigns: {
-                    licensePlateRequired: "Por favor, insira uma placa de veículo",
-                    categoryRequired: "Por favor, selecione uma categoria",
-                },
-                errors: {
-                    errorLoading: "Erro ao carregar",
-                    errorLoadingCategories: "Erro ao carregar categorias",
-                    notFound:{
-                        vehicle: "Veículo não encontrado",
-                        vehicleCategory: "Categoria de veículo não encontrada"
-                    }
-                }
-            },
+            common: ptCommon,
             homePage: {
                 registerNewClientButton: "Cadastrar novo cliente",
                 idTableColumn: "ID",

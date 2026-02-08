@@ -1,57 +1,51 @@
-// src/components/maintenance/ViewMaintenanceDialog.tsx
+// ========================================
+// FILE: src/components/maintenance/ViewMaintenanceDialog.tsx (ATUALIZADO)
+// ========================================
 import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Calendar, DollarSign, FileText, Wrench, Settings } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
+import { Calendar, DollarSign, FileText, Wrench, Settings, Eye, Flag, Clock, AlertCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { useMaintenances } from '@/contexts/MaintenancesContext';
 
 interface ViewMaintenanceDialogProps {
-  maintenance: any;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export default function ViewMaintenanceDialog({ maintenance }: ViewMaintenanceDialogProps) {
-  function getPriorityBadge(priority: string) {
-    const map = {
-      low: { label: 'Baixa', variant: 'outline' as const },
-      normal: { label: 'Normal', variant: 'secondary' as const },
-      high: { label: 'Alta', variant: 'destructive' as const },
-      urgent: { label: 'Urgente', variant: 'destructive' as const },
-    };
-    const p = map[priority as keyof typeof map] || map.normal;
-    return <Badge variant={p.variant}>{p.label}</Badge>;
-  }
+export default function ViewMaintenanceDialog({ open, onOpenChange }: ViewMaintenanceDialogProps) {
+  const { t } = useTranslation();
+  const { state: { selectedMaintenance } } = useMaintenances();
+
+  // ✅ EARLY RETURN
+  if (!selectedMaintenance || !open) return null;
 
   function getStatusBadge(status: string) {
     const map = {
-      scheduled: { label: 'Agendada', variant: 'outline' as const },
-      in_progress: { label: 'Em Andamento', variant: 'secondary' as const },
-      completed: { label: 'Concluída', variant: 'default' as const },
-      cancelled: { label: 'Cancelada', variant: 'outline' as const },
+      scheduled: { label: t('maintenances:status.scheduled.label'), icon: Clock, className: 'bg-slate-50 text-slate-700 border-slate-200' },
+      in_progress: { label: t('maintenances:status.in_progress.label'), icon: Settings, className: 'bg-blue-50 text-blue-700 border-blue-200' },
+      completed: { label: t('maintenances:status.completed.label'), icon: Flag, className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+      cancelled: { label: t('maintenances:status.cancelled.label'), icon: AlertCircle, className: 'bg-slate-50 text-slate-600 border-slate-200' },
     };
     const s = map[status as keyof typeof map] || map.scheduled;
-    return <Badge variant={s.variant}>{s.label}</Badge>;
+    const Icon = s.icon;
+    return (
+      <Badge className={cn("text-sm px-3 py-1 flex items-center gap-1.5", s.className)}>
+        <Icon className="w-3.5 h-3.5" />
+        {s.label}
+      </Badge>
+    );
   }
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm">
-          <Eye className="w-4 h-4" />
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Detalhes da Manutenção</DialogTitle>
+          <DialogTitle className="text-2xl">{t('maintenances:dialogs.view.title')}</DialogTitle>
           <DialogDescription>
-            Informações completas sobre a manutenção
+            {t('maintenances:dialogs.view.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -59,21 +53,20 @@ export default function ViewMaintenanceDialog({ maintenance }: ViewMaintenanceDi
           {/* Cabeçalho */}
           <div className="flex items-start justify-between p-4 bg-muted rounded-lg">
             <div> 
-              <h3 className="text-xl font-semibold mb-2">{maintenance.category_name}</h3>
+              <h3 className="text-xl font-semibold mb-2">{selectedMaintenance.category_name}</h3>
               <p className="text-sm text-muted-foreground">
-                {maintenance.vehicle_license} - {maintenance.vehicle_brand} {maintenance.vehicle_model}
+                {selectedMaintenance.vehicle_license} - {selectedMaintenance.vehicle_brand} {selectedMaintenance.vehicle_model}
               </p>
               <div className="flex gap-2 mt-3">
-                <Badge variant={maintenance.type === 'preventive' ? 'default' : 'secondary'}>
-                  {maintenance.type === 'preventive' ? 'Preventiva' : 'Correctiva'}
+                <Badge variant={selectedMaintenance.type === 'preventive' ? 'default' : 'secondary'}>
+                  {t(`maintenances:type.${selectedMaintenance.type}.label`)}
                 </Badge>
-                {getPriorityBadge(maintenance.priority)}
-                {getStatusBadge(maintenance.status)}
+                {getStatusBadge(selectedMaintenance.status)}
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm text-muted-foreground">Custo Total</p>
-              <p className="text-2xl font-bold">{maintenance.total_cost.toLocaleString('pt-AO')} Kz</p>
+              <p className="text-sm text-muted-foreground">{t('maintenances:fields.totalCost')}</p>
+              <p className="text-2xl font-bold">{selectedMaintenance.total_cost.toLocaleString('pt-PT')} Kz</p>
             </div>
           </div>
 
@@ -82,9 +75,9 @@ export default function ViewMaintenanceDialog({ maintenance }: ViewMaintenanceDi
             <div className="flex items-start gap-3 p-3 border rounded-lg">
               <Calendar className="w-5 h-5 text-muted-foreground mt-0.5" />
               <div>
-                <p className="text-sm font-medium">Data de Entrada</p>
+                <p className="text-sm font-medium">{t('maintenances:fields.entryDate')}</p>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(maintenance.entry_date).toLocaleDateString('pt-AO', {
+                  {new Date(selectedMaintenance.entry_date).toLocaleDateString('pt-PT', {
                     day: '2-digit',
                     month: 'long',
                     year: 'numeric'
@@ -92,13 +85,13 @@ export default function ViewMaintenanceDialog({ maintenance }: ViewMaintenanceDi
                 </p>
               </div>
             </div>
-            {maintenance.exit_date && (
+            {selectedMaintenance.exit_date && (
               <div className="flex items-start gap-3 p-3 border rounded-lg">
                 <Calendar className="w-5 h-5 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">Data de Saída</p>
+                  <p className="text-sm font-medium">{t('maintenances:fields.exitDate')}</p>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(maintenance.exit_date).toLocaleDateString('pt-AO', {
+                    {new Date(selectedMaintenance.exit_date).toLocaleDateString('pt-PT', {
                       day: '2-digit',
                       month: 'long',
                       year: 'numeric'
@@ -113,42 +106,42 @@ export default function ViewMaintenanceDialog({ maintenance }: ViewMaintenanceDi
           <div>
             <h4 className="font-semibold mb-3 flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
-              Custos
+              {t('maintenances:dialogs.view.costs')}
             </h4>
             <div className="grid grid-cols-3 gap-4">
               <div className="p-3 border rounded-lg">
-                <p className="text-xs text-muted-foreground">Peças</p>
-                <p className="text-lg font-semibold">{maintenance.parts_cost.toLocaleString('pt-AO')} Kz</p>
+                <p className="text-xs text-muted-foreground">{t('maintenances:fields.partsCost')}</p>
+                <p className="text-lg font-semibold">{selectedMaintenance.parts_cost.toLocaleString('pt-PT')} Kz</p>
               </div>
               <div className="p-3 border rounded-lg">
-                <p className="text-xs text-muted-foreground">Mão de Obra</p>
-                <p className="text-lg font-semibold">{maintenance.labor_cost.toLocaleString('pt-AO')} Kz</p>
+                <p className="text-xs text-muted-foreground">{t('maintenances:fields.laborCost')}</p>
+                <p className="text-lg font-semibold">{selectedMaintenance.labor_cost.toLocaleString('pt-PT')} Kz</p>
               </div>
               <div className="p-3 border rounded-lg bg-primary/5">
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="text-lg font-semibold">{maintenance.total_cost.toLocaleString('pt-AO')} Kz</p>
+                <p className="text-xs text-muted-foreground">{t('maintenances:fields.totalCost')}</p>
+                <p className="text-lg font-semibold">{selectedMaintenance.total_cost.toLocaleString('pt-PT')} Kz</p>
               </div>
             </div>
           </div>
 
           {/* Informações Adicionais */}
           <div className="space-y-4">
-            {maintenance.workshop_name && (
+            {selectedMaintenance.workshop_name && (
               <div className="flex items-start gap-3 p-3 border rounded-lg">
                 <Settings className="w-5 h-5 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">Oficina</p>
-                  <p className="text-sm text-muted-foreground">{maintenance.workshop_name}</p>
+                  <p className="text-sm font-medium">{t('maintenances:fields.workshop')}</p>
+                  <p className="text-sm text-muted-foreground">{selectedMaintenance.workshop_name}</p>
                 </div>
               </div>
             )}
 
-            {maintenance.work_order_number && (
+            {selectedMaintenance.work_order_number && (
               <div className="flex items-start gap-3 p-3 border rounded-lg">
                 <FileText className="w-5 h-5 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">Ordem de Serviço</p>
-                  <p className="text-sm text-muted-foreground">{maintenance.work_order_number}</p>
+                  <p className="text-sm font-medium">{t('maintenances:fields.workOrderNumber')}</p>
+                  <p className="text-sm text-muted-foreground">{selectedMaintenance.work_order_number}</p>
                 </div>
               </div>
             )}
@@ -156,8 +149,8 @@ export default function ViewMaintenanceDialog({ maintenance }: ViewMaintenanceDi
             <div className="flex items-start gap-3 p-3 border rounded-lg">
               <Wrench className="w-5 h-5 text-muted-foreground mt-0.5" />
               <div>
-                <p className="text-sm font-medium">Quilometragem</p>
-                <p className="text-sm text-muted-foreground">{maintenance.vehicle_mileage.toLocaleString('pt-AO')} km</p>
+                <p className="text-sm font-medium">{t('maintenances:fields.mileage')}</p>
+                <p className="text-sm text-muted-foreground">{selectedMaintenance.vehicle_mileage.toLocaleString('pt-PT')} km</p>
               </div>
             </div>
           </div>
@@ -167,35 +160,35 @@ export default function ViewMaintenanceDialog({ maintenance }: ViewMaintenanceDi
           {/* Descrições */}
           <div className="space-y-4">
             <div>
-              <h4 className="font-semibold mb-2">Descrição</h4>
+              <h4 className="font-semibold mb-2">{t('maintenances:fields.description')}</h4>
               <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-                {maintenance.description || 'Sem descrição'}
+                {selectedMaintenance.description || t('maintenances:info.noNotes')}
               </p>
             </div>
 
-            {maintenance.diagnosis && (
+            {selectedMaintenance.diagnosis && (
               <div>
-                <h4 className="font-semibold mb-2">Diagnóstico</h4>
+                <h4 className="font-semibold mb-2">{t('maintenances:fields.diagnosis')}</h4>
                 <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-                  {maintenance.diagnosis}
+                  {selectedMaintenance.diagnosis}
                 </p>
               </div>
             )}
 
-            {maintenance.solution && (
+            {selectedMaintenance.solution && (
               <div>
-                <h4 className="font-semibold mb-2">Solução Aplicada</h4>
+                <h4 className="font-semibold mb-2">{t('maintenances:fields.solution')}</h4>
                 <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-                  {maintenance.solution}
+                  {selectedMaintenance.solution}
                 </p>
               </div>
             )}
 
-            {maintenance.notes && (
+            {selectedMaintenance.notes && (
               <div>
-                <h4 className="font-semibold mb-2">Observações</h4>
-                <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-                  {maintenance.notes}
+                <h4 className="font-semibold mb-2">{t('maintenances:fields.notes')}</h4>
+                <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg whitespace-pre-wrap leading-relaxed">
+                  {selectedMaintenance.notes}
                 </p>
               </div>
             )}

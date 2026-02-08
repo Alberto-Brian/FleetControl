@@ -1,15 +1,23 @@
 // ========================================
-// FILE: src/helpers/maintenances-helpers.ts
+// FILE: src/helpers/maintenance-helpers.ts (ATUALIZADO)
 // ========================================
-import { ICreateMaintenance, IUpdateMaintenance, IMaintenance, IMaintenanceCategory, IWorkshop } from '@/lib/types/maintenance';
+import { ICreateMaintenance, IUpdateMaintenance, IMaintenance } from '@/lib/types/maintenance';
 
 export async function getAllMaintenances(): Promise<IMaintenance[]> {
     try {
         const result = await window._maintenances.getAll();
         return result;
     } catch (error) {
-        console.error(error);
-        return [];
+        throw error; // ✅ Propaga para useErrorHandler
+    }
+}
+
+export async function getMaintenanceById(id: string): Promise<IMaintenance | null> {
+    try {
+        const result = await window._maintenances.getMaintenanceById(id);
+        return result;
+    } catch (error) {
+        throw error;
     }
 }
 
@@ -18,8 +26,7 @@ export async function createMaintenance(data: ICreateMaintenance): Promise<IMain
         const result = await window._maintenances.create(data);
         return result;
     } catch (error) {
-        console.error(error);
-        return null;
+        throw error;
     }
 }
 
@@ -28,8 +35,7 @@ export async function updateMaintenance(id: string, data: IUpdateMaintenance): P
         const result = await window._maintenances.update(id, data);
         return result;
     } catch (error) {
-        console.error(error);
-        return null;
+        throw error;
     }
 }
 
@@ -38,8 +44,7 @@ export async function completeMaintenance(id: string, data: IUpdateMaintenance):
         const result = await window._maintenances.complete(id, data);
         return result;
     } catch (error) {
-        console.error(error);
-        return null;
+        throw error;
     }
 }
 
@@ -48,27 +53,15 @@ export async function deleteMaintenance(id: string): Promise<string | null> {
         const result = await window._maintenances.delete(id);
         return result as string;
     } catch (error) {
-        console.error(error);
-        return null;
+        throw error;
     }
 }
 
-export async function getMaintenanceCategories(): Promise<IMaintenanceCategory[]> {
+export async function getActiveMaintenances(): Promise<IMaintenance[]> {
     try {
-        const result = await window._maintenances.getCategories();
+        const result = await window._maintenances.getActiveMaintenances();
         return result;
     } catch (error) {
-        console.error(error);
-        return [];
-    }
-}
-
-export async function getWorkshops(): Promise<IWorkshop[]> {
-    try {
-        const result = await window._maintenances.getWorkshops();
-        return result;
-    } catch (error) {
-        console.error(error);
-        return [];
+        throw error;
     }
 }

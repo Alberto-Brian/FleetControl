@@ -6,22 +6,23 @@ export interface IMaintenance {
     id: string;
     vehicle_id: string;
     category_id: string;
-    workshop_id?: string;
+    workshop_id: string | null;
     type: MaintenanceType;
     entry_date: string;
-    exit_date?: string;
+    exit_date: string | null;
     vehicle_mileage: number;
     description: string;
-    diagnosis?: string;
-    solution?: string;
+    diagnosis: string | null;
+    solution: string | null;
     parts_cost: number;
     labor_cost: number;
     total_cost: number;
     status: MaintenanceStatus;
     priority: MaintenancePriority;
-    work_order_number?: string;
-    notes?: string;
+    work_order_number: string | null;
+    notes: string | null;
     created_at: string;
+    updated_at: string;
 }
 
 export interface ICreateMaintenance {

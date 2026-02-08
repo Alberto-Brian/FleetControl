@@ -1,4 +1,6 @@
-// src/helpers/maintenance-categories-helpers.ts
+// ========================================
+// FILE: src/helpers/maintenance-category-helpers.ts (ATUALIZADO)
+// ========================================
 import { ICreateMaintenanceCategory, IUpdateMaintenanceCategory, IMaintenanceCategory } from "@/lib/types/maintenance_category";
 
 export async function createMaintenanceCategory(data: ICreateMaintenanceCategory): Promise<IMaintenanceCategory> {
@@ -6,7 +8,6 @@ export async function createMaintenanceCategory(data: ICreateMaintenanceCategory
         const result = await window._maintenance_categories.create(data);
         return result;
     } catch (error) {
-        console.error("Error creating maintenance category:", error);
         throw error;
     }
 }
@@ -16,7 +17,6 @@ export async function getAllMaintenanceCategories(): Promise<IMaintenanceCategor
         const result = await window._maintenance_categories.getAll();
         return result;
     } catch (error) {
-        console.error("Error getting maintenance categories:", error);
         throw error;
     }
 }
@@ -26,7 +26,6 @@ export async function getMaintenanceCategoryById(id: string): Promise<IMaintenan
         const result = await window._maintenance_categories.getById(id);
         return result;
     } catch (error) {
-        console.error("Error getting maintenance category:", error);
         throw error;
     }
 }
@@ -36,7 +35,6 @@ export async function updateMaintenanceCategory(id: string, data: IUpdateMainten
         const result = await window._maintenance_categories.update(id, data);
         return result;
     } catch (error) {
-        console.error("Error updating maintenance category:", error);
         throw error;
     }
 }
@@ -46,7 +44,6 @@ export async function deleteMaintenanceCategory(id: string): Promise<string> {
         const result = await window._maintenance_categories.delete(id);
         return result;
     } catch (error) {
-        console.error("Error deleting maintenance category:", error);
         throw error;
     }
 }
@@ -56,7 +53,6 @@ export async function getActiveMaintenanceCategories(): Promise<IMaintenanceCate
         const result = await window._maintenance_categories.getActive();
         return result;
     } catch (error) {
-        console.error("Error getting active maintenance categories:", error);
         throw error;
     }
 }

@@ -59,6 +59,16 @@ export async function getWorkshopById(workshopId: string) {
     return result[0] || null;
 }
 
+export async function findWorkshopByName(name: string) {
+    const { db } = useDb();
+    const result = await db
+        .select()
+        .from(workshops)
+        .where(eq(workshops.name, name))
+        .limit(1);
+    return result[0] || null;
+}
+
 export async function updateWorkshop(workshopId: string, workshopData: IUpdateWorkshop) {
     const { db } = useDb();
     const result = await db
