@@ -26,8 +26,10 @@ import {
   updateVehicleMileage,
   getVehiclesByCategory,
   countVehiclesByStatus,
-  findVehicleByLicensePlate
+  findVehicleByLicensePlate,
 } from '@/lib/db/queries/vehicles.queries';
+
+import { IPaginationParams } from "@/lib/types/pagination";
 
 import {
   findVehicleCategoryById
@@ -47,7 +49,7 @@ const T_ERRORS = {
 } as const;
 
 export function addVehiclesEventListeners() {
-  ipcMain.handle(GET_ALL_VEHICLES, async () => await getAllVehiclesEvent());
+  ipcMain.handle(GET_ALL_VEHICLES, async (_, params?: IPaginationParams) => await getAllVehiclesEvent(params));
   ipcMain.handle(GET_VEHICLE_BY_ID, async (_, vehicleId: string) => await getVehicleByIdEvent(vehicleId));
   ipcMain.handle(CREATE_VEHICLE, async (_, vehicleData: ICreateVehicle) => await createVehicleEvent(vehicleData));
   ipcMain.handle(UPDATE_VEHICLE, async (_, vehicleId: string, vehicleData: IUpdateVehicle) => await updateVehicleEvent(vehicleId, vehicleData));
@@ -59,8 +61,8 @@ export function addVehiclesEventListeners() {
   ipcMain.handle(COUNT_VEHICLES_BY_STATUS, async () => await countVehiclesByStatusEvent());
 }
 
-async function getAllVehiclesEvent() {
-  return await getAllVehicles();
+async function getAllVehiclesEvent(params?: IPaginationParams) {
+  return await getAllVehicles(params || {});
 }
 
 async function getVehicleByIdEvent(vehicleId: string) {

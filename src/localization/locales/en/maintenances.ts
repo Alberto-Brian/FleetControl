@@ -65,10 +65,12 @@ export const enMaintenances = {
   type: {
     preventive: {
       label: 'Preventive',
+      short: 'Prev.',
       description: 'Preventive maintenance',
     },
     corrective: {
       label: 'Corrective',
+      short: 'Corr.',
       description: 'Corrective maintenance',
     },
   },

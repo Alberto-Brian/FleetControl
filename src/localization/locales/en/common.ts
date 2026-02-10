@@ -5,6 +5,16 @@ import { Edit } from "lucide-react";
 
 // ========================================
 export const enCommon = {
+    pagination: {
+    showing: "Showing {{start}} to {{end}} of {{total}} records",
+    itemsPerPage: "Items per page",
+    page: "Page",
+    of: "of",
+    first: "First",
+    previous: "Previous",
+    next: "Next",
+    last: "Last"
+    },
     status: {
       active: "Active",
       inactive: "Inactive",

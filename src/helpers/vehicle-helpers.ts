@@ -1,13 +1,19 @@
 //// src/helpers/vehicles-helpers.ts
 import { ICreateVehicle, IUpdateVehicle, IUpdateStatus, IVehicle } from '@/lib/types/vehicle';
+import { IPaginationParams, IPaginatedResult } from '@/lib/types/pagination';
 
-export async function getAllVehicles(): Promise<IVehicle[]> {
+
+export async function getAllVehicles(params?: IPaginationParams): Promise<IPaginatedResult<IVehicle>> {
     try {
-        const result = await window._vehicles.getAll();
+        const result = await window._vehicles.getAll(params);
         return result;
     } catch (error) {
         console.error(error);
-        return [];
+        throw error;
+        return {
+            data: [],
+            pagination: { total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false }
+        };
     }
 }
 

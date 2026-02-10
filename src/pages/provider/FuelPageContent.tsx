@@ -1,9 +1,9 @@
 // ========================================
-// FILE: src/components/refueling/FuelPageContent.tsx (ATUALIZADO - COMPLETO COM TODAS AS VIEWS)
+// FILE: src/components/refueling/FuelPageContent.tsx (CARDS ESTILIZADOS COMO VEHICLES)
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -275,101 +275,92 @@ export default function FuelPageContent() {
     );
   }
 
-  function renderCardsView() {
-    return (
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredRefuelings.map((refueling) => (
-          <Card 
-            key={refueling.id} 
-            className="flex flex-col h-full group hover:shadow-xl transition-all duration-300 bg-card relative overflow-hidden border-t-4 border-t-primary"
-          >
-            <CardContent className="p-0 flex flex-col h-full">
-              {/* Header */}
-              <div className="p-5 pb-3 border-b border-muted/50">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                      <Fuel className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-mono font-bold text-lg leading-tight">{refueling.vehicle_license}</h3>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(refueling.refueling_date).toLocaleDateString('pt-PT', {
-                          day: '2-digit',
-                          month: 'long',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                  {refueling.is_full_tank && (
-                    <Badge variant="outline" className="text-[10px] font-bold">
-                      {t('refuelings:info.fullTank')}
-                    </Badge>
-                  )}
-                </div>
+ // Cards estilizados com cores e hover aprimorado
+function renderCardsView() {
+  return (
+    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {filteredRefuelings.map((refueling) => (
+        <Card 
+          key={refueling.id} 
+          className={cn(
+            "overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60 cursor-pointer",
+            refueling.is_full_tank && "border-t-4 border-t-green-500"
+          )}
+          onClick={() => {
+            selectRefueling(refueling);
+            setViewDialogOpen(true);
+          }}
+        >
+          <CardHeader className="pb-3 pt-5 px-5">
+            <div className="flex justify-between items-start mb-3">
+              <div className={cn(
+                "p-2.5 rounded-xl transition-all duration-300",
+                refueling.is_full_tank 
+                  ? "bg-green-100 text-green-600 group-hover:bg-green-500 group-hover:text-white" 
+                  : "bg-amber-100 text-amber-600 group-hover:bg-amber-500 group-hover:text-white"
+              )}>
+                <Fuel className="w-5 h-5" />
               </div>
-
-              {/* Body */}
-              <div className="p-5 pt-4 flex-1 space-y-4">
-                {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-muted/40 border border-muted/50">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Droplets className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('refuelings:fields.liters')}</span>
-                    </div>
-                    <p className="font-bold text-lg">{refueling.liters} <span className="text-sm font-normal text-muted-foreground">L</span></p>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-muted/40 border border-muted/50">
-                    <div className="flex items-center gap-2 mb-1">
-                      <DollarSign className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('refuelings:fields.pricePerLiter')}</span>
-                    </div>
-                    <p className="font-bold text-lg">{refueling.price_per_liter.toFixed(2)} <span className="text-sm font-normal text-muted-foreground">Kz</span></p>
-                  </div>
-                </div>
-
-                {/* Station & Mileage */}
-                <div className="space-y-2">
-                  {refueling.station_name && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30">
-                      <MapPin className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium truncate">{refueling.station_name}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30">
-                    <Gauge className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">{refueling.current_mileage?.toLocaleString('pt-PT')} km</span>
-                  </div>
-                </div>
-
-                {/* Fuel Type */}
-                <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/10">
-                  <span className="text-[10px] uppercase font-bold text-primary/70 tracking-wider">{t('refuelings:fields.fuelType')}</span>
-                  <span className="text-sm font-bold text-primary capitalize">
-                    {t(`refuelings:fuelTypes.${refueling.fuel_type}`)}
-                  </span>
-                </div>
+              {refueling.is_full_tank && (
+                <Badge className="rounded-full text-[10px] font-bold px-2.5 py-0.5 border-0 bg-green-100 text-green-700 group-hover:bg-green-200">
+                  {t('refuelings:info.fullTank')}
+                </Badge>
+              )}
+            </div>
+            <CardTitle className="text-xl font-mono font-bold">{refueling.vehicle_license}</CardTitle>
+            <CardDescription className="text-sm font-bold text-foreground/70 flex items-center gap-2">
+              <Calendar className="w-3.5 h-3.5" />
+              {new Date(refueling.refueling_date).toLocaleDateString('pt-PT', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+              })}
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="flex-1 flex flex-col gap-4 p-5 pt-0">
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/50 border border-muted/50 group-hover:bg-muted/70 transition-colors">
+              <div className="space-y-0.5">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('refuelings:fields.liters')}</p>
+                <p className="text-lg font-bold tracking-tight">
+                  {refueling.liters}
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">L</span>
+                </p>
               </div>
+              <div className="h-8 w-px bg-muted-foreground/10" />
+              <div className="text-right space-y-0.5">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('refuelings:fields.pricePerLiter')}</p>
+                <p className="text-lg font-bold tracking-tight">
+                  {refueling.price_per_liter.toFixed(0)}
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">Kz</span>
+                </p>
+              </div>
+            </div>
 
-              {/* Footer */}
-              <div className="p-4 pt-0 mt-auto">
-                <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 mb-3">
-                  <div>
-                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">{t('refuelings:fields.totalCost')}</p>
-                    <p className="text-2xl font-black text-primary tracking-tight">
-                      {refueling.total_cost.toLocaleString('pt-PT')} <span className="text-sm font-bold">Kz</span>
-                    </p>
-                  </div>
-                </div>
-                
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="w-4 h-4 shrink-0" />
+                <span className="truncate">{refueling.station_name || t('refuelings:info.noStation')}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Gauge className="w-4 h-4 shrink-0" />
+                <span>{refueling.current_mileage?.toLocaleString('pt-PT')} km</span>
+              </div>
+            </div>
+
+            <div className="mt-auto pt-4 border-t border-muted/50">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider">{t('refuelings:fields.totalCost')}</span>
+                <span className="text-xl font-black text-primary">
+                  {refueling.total_cost.toLocaleString('pt-PT')} <span className="text-sm font-bold">Kz</span>
+                </span>
+              </div>
+              
+              <div className="flex gap-2">
                 <Button 
-                  variant="outline"
-                  className="w-full h-10 text-sm font-bold"
-                  onClick={() => {
+                  className="flex-1 h-10 text-sm font-bold shadow-sm" 
+                  onClick={(e) => {
+                    e.stopPropagation();
                     selectRefueling(refueling);
                     setViewDialogOpen(true);
                   }}
@@ -378,12 +369,13 @@ export default function FuelPageContent() {
                   {t('refuelings:actions.view')}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
@@ -397,7 +389,7 @@ export default function FuelPageContent() {
             <p className="text-muted-foreground text-base">
               {activeTab === 'refuelings'
                 ? t('refuelings:info.totalRefuelings', { count: refuelings.length, plural: refuelings.length === 1 ? '' : 's' })
-                : t('refuelings:info.activeCount', { count: activeStations, plural: activeStations.length === 1 ? '' : 's' })
+                : t('refuelings:info.activeCount', { count: activeStations, plural: activeStations === 1 ? '' : 's' })
               }
             </p>
           </div>
@@ -503,7 +495,7 @@ export default function FuelPageContent() {
             )}
           </TabsContent>
 
-          {/* TAB: POSTOS - VERSÃO MELHORADA */}
+          {/* TAB: POSTOS - ESTILIZADO COMO VEHICLES */}
           <TabsContent value="stations" className="space-y-6 mt-0 outline-none">
             {/* Stats */}
             <div className="grid gap-4 sm:grid-cols-3">
@@ -558,7 +550,7 @@ export default function FuelPageContent() {
               <NewFuelStationDialog />
             </div>
 
-            {/* Content - Cards Grid */}
+            {/* Content - Cards Grid Estilo Vehicles */}
             {isFuelStationsLoading ? (
               <div className="flex flex-col items-center justify-center py-24 space-y-4">
                 <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
@@ -575,86 +567,69 @@ export default function FuelPageContent() {
                 {filteredStations.map((station) => (
                   <Card 
                     key={station.id} 
-                    className="flex flex-col h-full group hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 bg-card relative overflow-hidden border border-border/50 hover:border-primary/20"
+                    className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60 cursor-pointer"
+                    onClick={() => {
+                      selectFuelStation(station);
+                      setEditStationDialogOpen(true);
+                    }}
                   >
-                    {/* Top accent line */}
-                    <div className={cn(
-                      "absolute top-0 left-0 right-0 h-1.5",
-                      station.is_active 
-                        ? "bg-gradient-to-r from-green-500 to-emerald-400" 
-                        : "bg-gradient-to-r from-slate-400 to-slate-300"
-                    )} />
-                    
-                    <CardContent className="p-5 flex flex-col h-full">
-                      {/* Header - Melhorado */}
-                      <div className="flex items-start justify-between mb-4 gap-3">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className={cn(
-                            "p-2.5 rounded-xl shrink-0 transition-colors duration-300",
-                            station.is_active 
-                              ? "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white" 
-                              : "bg-muted text-muted-foreground"
-                          )}>
-                            <MapPin className="w-5 h-5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-base leading-tight truncate" title={station.name}>
-                              {station.name}
-                            </h3>
-                            {station.brand && (
-                              <p className="text-xs text-muted-foreground font-medium truncate">
-                                {station.brand}
-                              </p>
-                            )}
-                          </div>
+                    <CardHeader className="pb-3 pt-5 px-5">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className={cn(
+                          "p-2.5 rounded-xl transition-colors",
+                          station.is_active 
+                            ? "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white" 
+                            : "bg-muted text-muted-foreground"
+                        )}>
+                          <MapPin className="w-5 h-5" />
                         </div>
-                        
-                        {/* Badge melhorado */}
                         <Badge 
-                          variant={station.is_active ? 'default' : 'secondary'} 
+                          variant={station.is_active ? 'outline' : 'secondary'} 
                           className={cn(
-                            "text-[10px] font-bold shrink-0 border-0",
+                            "rounded-full text-[10px] font-bold px-2.5 py-0.5",
                             station.is_active 
-                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100" 
-                              : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                              ? "border-green-200 text-green-700 bg-green-50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800" 
+                              : "border-slate-200 text-slate-600 bg-slate-50 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
                           )}
                         >
                           {station.is_active ? t('common:status.active') : t('common:status.inactive')}
                         </Badge>
                       </div>
-                      
-                      {/* Info Grid - Melhorado */}
-                      <div className="space-y-2.5 mb-4">
+                      <CardTitle className="text-lg font-bold leading-tight truncate" title={station.name}>
+                        {station.name}
+                      </CardTitle>
+                      {station.brand && (
+                        <CardDescription className="text-sm font-medium text-muted-foreground">
+                          {station.brand}
+                        </CardDescription>
+                      )}
+                    </CardHeader>
+                    
+                    <CardContent className="flex-1 flex flex-col gap-3 p-5 pt-0">
+                      <div className="space-y-2 min-h-[60px]">
                         {station.phone && (
-                          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40 border border-transparent hover:border-border/50 transition-colors">
-                            <div className="p-1.5 rounded-md bg-background shadow-sm">
-                              <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                            </div>
-                            <span className="text-sm font-medium truncate">{station.phone}</span>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Phone className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{station.phone}</span>
                           </div>
                         )}
                         {station.city && (
-                          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40 border border-transparent hover:border-border/50 transition-colors">
-                            <div className="p-1.5 rounded-md bg-background shadow-sm">
-                              <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-                            </div>
-                            <span className="text-sm font-medium truncate">{station.city}</span>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <MapPin className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{station.city}</span>
                           </div>
                         )}
                         {station.email && (
-                          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40 border border-transparent hover:border-border/50 transition-colors">
-                            <div className="p-1.5 rounded-md bg-background shadow-sm">
-                              <Mail className="w-3.5 h-3.5 text-muted-foreground" />
-                            </div>
-                            <span className="text-sm font-medium truncate">{station.email}</span>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Mail className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{station.email}</span>
                           </div>
                         )}
                       </div>
 
-                      {/* Footer Actions - Melhorado */}
-                      <div className="mt-auto pt-4 flex gap-2 border-t border-border/50">
+                      <div className="mt-auto pt-4 border-t border-muted/50 flex gap-2">
                         <Button 
-                          variant="outline" 
+                          variant="outline"
                           size="sm"
                           className="flex-1 h-9 text-xs font-bold bg-background hover:bg-muted"
                           onClick={(e) => {
@@ -667,7 +642,7 @@ export default function FuelPageContent() {
                           {t('common:actions.edit')}
                         </Button>
                         <Button 
-                          variant="outline" 
+                          variant="outline"
                           size="sm"
                           className="flex-1 h-9 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive bg-background"
                           onClick={(e) => {

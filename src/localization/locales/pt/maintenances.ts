@@ -65,10 +65,12 @@ export const ptMaintenances = {
   type: {
     preventive: {
       label: 'Preventiva',
+      short: 'Prev.',
       description: 'Manutenção preventiva',
     },
     corrective: {
       label: 'Correctiva',
+      short: 'Corr.',
       description: 'Manutenção correctiva',
     },
   },

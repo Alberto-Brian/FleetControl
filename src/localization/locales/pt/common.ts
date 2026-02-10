@@ -2,6 +2,16 @@
 // FILE: src/locales/pt/common.ts (ou adicionar ao existente)
 // ========================================
 export const ptCommon = {
+    pagination: {
+    showing: "Mostrando {{start}} a {{end}} de {{total}} registos",
+    itemsPerPage: "Itens por página",
+    page: "Página",
+    of: "de",
+    first: "Primeira",
+    previous: "Anterior",
+    next: "Próxima",
+    last: "Última"
+    },
     status: {
       active: "Activo",
       inactive: "Inactivo",

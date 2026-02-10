@@ -70,7 +70,7 @@ interface IClients {
 
 
 interface IVehicles {
-    getAll: () => Promise<IVehicle[]>;
+    getAll: (params?: IPaginationParams) => Promise<IPaginatedResult<IVehicle>>;
     getById: (vehicleId: string) => Promise<IVehicle | null>;
     create: (vehicleData: ICreateVehicle) => Promise<IVehicle | null>;
     update: (vehicleId: string, vehicleData: IUpdateVehicle) => Promise<IVehicle | null>;
@@ -124,6 +124,15 @@ interface IMaintenances {
     getMaintenanceById: (id: string) => Promise<IMaintenance | null>;
 }
 
+interface IMaintenanceCategories {
+    getAll: () => Promise<IExpenseCategory>;
+    create: (data: ICreateMaintenance) => Promise<IMaintenanceCategory>;
+    getById: (id: string) => Promise<IMaintenanceCategory | null>;
+    update: (id: string, data: IUpdateMaintenance) => Promise<IWorkshop>;
+    delete: (id: string) => Promise<string>;
+    getActive: () => Promise<IMaintenanceCategory[]>;
+}
+
 interface IExpenses {
     getAll: () => Promise<IExpense[]>;
     getById: (id: string) => Promise<IExpense | null>;
@@ -135,13 +144,13 @@ interface IExpenses {
     getCategories: () => Promise<IExpenseCategory[]>;
 }
 
-interface IMaintenanceCategories {
-    getAll: () => Promise<IMaintenaceCategory>;
-    create: (data: ICreateMaintenance) => Promise<IMaintenanceCategory>;
-    getById: (id: string) => Promise<IMaintenanceCategory | null>;
-    update: (id: string, data: IUpdateMaintenance) => Promise<IWorkshop>;
+interface IExpenseCategories {
+    getAll: () => Promise<IExpenseCategory>;
+    create: (data: ICreateExpense) => Promise<IExpenseCategory>;
+    getById: (id: string) => Promise<IExpenseCategory | null>;
+    update: (id: string, data: IUpdateExpense) => Promise<IWorkshop>;
     delete: (id: string) => Promise<string>;
-    getActive: () => Promise<IMaintenanceCategory[]>;
+    getActive: () => Promise<IExpenseCategory[]>;
 }
 
 interface IWorkshops {
@@ -193,8 +202,9 @@ declare interface Window {
     _trips: ITrips;
     _refuelings: IRefuelings;
     _maintenances: IMaintenances;
-    _expenses: IExpenses;
     _maintenance_categories: IMaintenanceCategories;
+    _expenses: IExpenses;
+    _expense_categories: IExpenseCategories;
     _workshops: IWorkshops;
     _fuel_stations: IFuelStations;
     _routes: IRoutes;

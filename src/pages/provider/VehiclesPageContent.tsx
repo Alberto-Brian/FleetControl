@@ -1,13 +1,14 @@
 // ========================================
-// FILE: src/pages/provider/VehiclesPageContent.tsx (SEM TEXTOS ESTÁTICOS)
+// FILE: src/pages/provider/VehiclesPageContent.tsx (COM PAGINAÇÃO)
 // ========================================
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Pagination } from '@/components/ui/pagination';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { 
@@ -58,6 +59,21 @@ export default function VehiclesPageContent() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
   
+  // Estados de paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [paginationInfo, setPaginationInfo] = useState({
+    total: 0,
+    page: 1,
+    limit: 20,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false
+  });
+
+  // Debounce para busca
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -68,22 +84,45 @@ export default function VehiclesPageContent() {
   const [categoryDeleteDialogOpen, setCategoryDeleteDialogOpen] = useState(false);
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
 
+  // Debounce effect para search
   useEffect(() => {
-    loadVehicles();
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1); // Reset para primeira página quando buscar
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Load inicial
+  useEffect(() => {
     loadCategories();
   }, []);
 
-  async function loadVehicles() {
+  // Carregar veículos quando filtros mudarem
+  useEffect(() => {
+    loadVehicles();
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter]);
+
+  const loadVehicles = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getAllVehicles();
-      setVehicles(data);
+      const result = await getAllVehicles({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: debouncedSearch,
+        status: statusFilter,
+        category_id: categoryFilter
+      });
+      
+      setVehicles(result.data);
+      setPaginationInfo(result.pagination);
     } catch (error) {
       handleError(error, 'vehicles:errors.errorLoading');
     } finally {
       setLoading(false);
     }
-  }
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter]);
 
   async function loadCategories() {
     setCategoriesLoading(true);
@@ -95,6 +134,15 @@ export default function VehiclesPageContent() {
     } finally {
       setCategoriesLoading(false);
     }
+  }
+
+  function handlePageChange(page: number) {
+    setCurrentPage(page);
+  }
+
+  function handleLimitChange(limit: number) {
+    setItemsPerPage(limit);
+    setCurrentPage(1); // Reset para primeira página
   }
 
   function openDeleteDialog(vehicle: any) {
@@ -114,6 +162,9 @@ export default function VehiclesPageContent() {
       showSuccess('vehicles:toast.deleteSuccess');
       setDeleteDialogOpen(false);
       selectVehicle(null);
+      
+      // Recarregar lista
+      loadVehicles();
     } catch (error) {
       handleError(error, 'vehicles:toast.deleteError');
     } finally {
@@ -184,15 +235,6 @@ export default function VehiclesPageContent() {
     );
   }
 
-  const filteredVehicles = vehicles.filter(v => {
-    const matchesSearch = v.license_plate?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.model?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || v.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || v.category_id === categoryFilter;
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
-
   const filteredCategories = categories.filter(c =>
     c.name?.toLowerCase().includes(categorySearch.toLowerCase())
   );
@@ -212,7 +254,7 @@ export default function VehiclesPageContent() {
           <div className="col-span-2 text-right">{t('vehicles:table.actions')}</div>
         </div>
         <div className="divide-y">
-          {filteredVehicles.map((vehicle) => (
+          {vehicles.map((vehicle) => (
             <div key={vehicle.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors duration-150">
               <div className="col-span-3">
                 <span className="font-mono font-bold text-sm bg-muted/50 px-2.5 py-1 rounded border border-muted-foreground/10">
@@ -270,7 +312,7 @@ export default function VehiclesPageContent() {
   function renderNormalView() {
     return (
       <div className="grid gap-4">
-        {filteredVehicles.map((vehicle) => (
+        {vehicles.map((vehicle) => (
           <Card key={vehicle.id} className="overflow-hidden border-l-4 group hover:shadow-md transition-all duration-200 bg-card" style={{ borderLeftColor: vehicle.category_color }}>
             <CardContent className="p-0">
               <div className="flex items-center p-5 gap-5">
@@ -321,7 +363,7 @@ export default function VehiclesPageContent() {
   function renderCardsView() {
     return (
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredVehicles.map((vehicle) => (
+        {vehicles.map((vehicle) => (
           <Card 
             key={vehicle.id} 
             className="flex flex-col h-full group hover:shadow-lg transition-all duration-300 border-t-4 border-t-gray-200/50 dark:border-t-gray-700/50 bg-card relative"
@@ -399,12 +441,13 @@ export default function VehiclesPageContent() {
     );
   }
 
+  // Stats calculados baseados na paginação total
   const availableCount = vehicles.filter(v => v.status === 'available').length;
   const inUseCount = vehicles.filter(v => v.status === 'in_use').length;
   const maintenanceCount = vehicles.filter(v => v.status === 'maintenance').length;
 
   const stats = [
-    { label: t('vehicles:stats.total'), value: vehicles.length, icon: Truck, color: 'text-slate-600', bg: 'bg-slate-100/60' },
+    { label: t('vehicles:stats.total'), value: paginationInfo.total, icon: Truck, color: 'text-slate-600', bg: 'bg-slate-100/60' },
     { label: t('vehicles:stats.available'), value: availableCount, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
     { label: t('vehicles:stats.inUse'), value: inUseCount, icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50/60' },
     { label: t('vehicles:stats.maintenance'), value: maintenanceCount, icon: Settings2, color: 'text-amber-600', bg: 'bg-amber-50/60' },
@@ -439,7 +482,7 @@ export default function VehiclesPageContent() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="vehicles" className="space-y-8 mt-0 outline-none">
+          <TabsContent value="vehicles" className="space-y-6 mt-0 outline-none">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {stats.map((stat, i) => (
                 <Card key={i} className="border-none shadow-sm bg-card">
@@ -491,7 +534,7 @@ export default function VehiclesPageContent() {
                     <SelectItem value="all">
                       <span className="flex items-center justify-between w-full">
                         <span>{t('vehicles:filters.allCategories')}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">({vehicles.length})</span>
+                        <span className="ml-2 text-xs text-muted-foreground">({paginationInfo.total})</span>
                       </span>
                     </SelectItem>
                     {categories.map((category) => (
@@ -536,18 +579,31 @@ export default function VehiclesPageContent() {
                 <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
                 <p className="text-sm text-muted-foreground font-bold animate-pulse">{t('vehicles:loading.syncing')}</p>
               </div>
-            ) : filteredVehicles.length === 0 ? (
+            ) : vehicles.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 bg-card rounded-3xl border-2 border-dashed border-muted/50">
                 <Truck className="w-12 h-12 text-muted-foreground/20 mb-4" />
                 <h3 className="text-lg font-bold">{t('vehicles:empty.noVehicles')}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{t('vehicles:empty.adjustFilters')}</p>
               </div>
             ) : (
-              <div className="animate-in fade-in duration-300">
-                {viewMode === 'compact' && renderCompactView()}
-                {viewMode === 'normal' && renderNormalView()}
-                {viewMode === 'cards' && renderCardsView()}
-              </div>
+              <>
+                <div className="animate-in fade-in duration-300">
+                  {viewMode === 'compact' && renderCompactView()}
+                  {viewMode === 'normal' && renderNormalView()}
+                  {viewMode === 'cards' && renderCardsView()}
+                </div>
+
+                {/* Paginação */}
+                {paginationInfo.totalPages > 1 && (
+                  <div className="mt-6">
+                    <Pagination
+                      pagination={paginationInfo}
+                      onPageChange={handlePageChange}
+                      onLimitChange={handleLimitChange}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </TabsContent>
 

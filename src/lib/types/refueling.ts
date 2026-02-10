@@ -7,9 +7,9 @@ import { FuelType } from "../db/schemas/refuelings";
 export interface IRefueling {
     id: string;
     vehicle_id: string;
-    driver_id?: string;
-    trip_id?: string;
-    station_id?: string;
+    driver_id: string | null;
+    trip_id: string | null;
+    station_id: string | null;
     refueling_date: string;
     fuel_type: string;
     liters: number;
@@ -17,35 +17,35 @@ export interface IRefueling {
     total_cost: number;
     current_mileage: number;
     is_full_tank: boolean;
-    invoice_number?: string;
-    notes?: string;
+    invoice_number: string | null;
+    notes: string | null;
     created_at: string;
     
     // Vehicle
-    vehicle_license: string | null;
-    vehicle_brand: string | null;
-    vehicle_model: string | null;
+    vehicle_license?: string;
+    vehicle_brand?: string;
+    vehicle_model?: string;
     
     // Driver
-    driver_name: string | null;
+    driver_name?: string;
     
     // Fuel Station
-    station_name: string | null;
-    station_brand: string | null;
-    station_city: string | null;
+    station_name?: string;
+    station_brand?: string;
+    station_city?: string;
     
     // Trip
-    trip_code: string | null;
-    trip_destination: string | null;
-    trip_origin: string | null;
-    trip_start_date: string | null;
-    trip_status: string | null;
-    trip_driver_id: string | null;
+    trip_code?: string;
+    trip_destination?: string;
+    trip_origin?: string;
+    trip_start_date?: string;
+    trip_status?: string;
+    trip_driver_id?: string;
     
     // Route
-    route_name: string | null;
-    route_origin: string | null;
-    route_destination: string | null;
+    route_name?: string;
+    route_origin?: string;
+    route_destination?: string;
 }
 
 

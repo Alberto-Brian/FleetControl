@@ -18,6 +18,8 @@ import { addWorkshopsEventListeners } from "./db/workshops/workshops-listeners";
 import { addRoutesEventListeners } from "./db/routes/route-listeners";
 import { addFinesEventListeners } from "./db/fines/fine-listeners";
 import { addFuelStationsEventListeners } from "./db/fuel_stations/fuel-stations-listeners";
+import { addExpensesEventListeners } from "./db/expenses/expense-listeners";
+import { addExpenseCategoriesEventListeners } from "./db/expense_categories/expense-categories-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
     addWindowEventListeners(mainWindow);
@@ -38,4 +40,6 @@ export default function registerListeners(mainWindow: BrowserWindow) {
     addRoutesEventListeners();
     addFinesEventListeners();
     addFuelStationsEventListeners();
+    addExpensesEventListeners();
+    addExpenseCategoriesEventListeners();
 }

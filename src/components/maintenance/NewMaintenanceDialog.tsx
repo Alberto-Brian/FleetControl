@@ -70,7 +70,7 @@ export default function NewMaintenanceDialog() {
         getAllVehicles(),
         getAllWorkshops(),
       ]);
-      setVehicles(vehiclesData.filter((v: any) => v.status !== 'inactive'));
+      setVehicles(vehiclesData.data.filter((v: any) => v.status !== 'inactive'));
       setWorkshops(workshopsData.filter((w: any) => w.is_active === true));
     } catch (error) {
       handleError(error, 'common:errors.loadingData');
