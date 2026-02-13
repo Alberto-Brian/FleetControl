@@ -1,8 +1,5 @@
 // ========================================
 // FILE: src/locales/en/common.ts (ou adicionar ao existente)
-
-import { Edit } from "lucide-react";
-
 // ========================================
 export const enCommon = {
     pagination: {
@@ -26,6 +23,8 @@ export const enCommon = {
         defaultWithItem: 'This action cannot be undone. The record "{{itemName}}" will be marked as deleted.'
     },
     actions: {
+        actions: "Actions",
+        close: "Close",
         cancel: "Cancel",
         delete: "Delete",
         deleting: "Deleting...",
@@ -45,13 +44,14 @@ export const enCommon = {
         errorLoadingCategories: "Error loading categories",
         notFound:{
             vehicle: "Vehicle not found",
-            vehicleCategory: "Vehicle category not found"
+            vehicleCategory: "Vehicle category not found",
+            expenseCategory: "Expense category not found",
         }
     },
 
   viewModes: {
   compact: 'Compact',
-  normal: 'Normal', 
+  normal: 'List', 
   cards: 'Cards'
 }
 } as const;

@@ -44,7 +44,7 @@ export const ptExpenses = {
     cash: 'Dinheiro',
     card: 'Cartão',
     transfer: 'Transferência',
-    check: 'Cheque',
+    other: 'Outro',
   },
 
   categoryTypes: {

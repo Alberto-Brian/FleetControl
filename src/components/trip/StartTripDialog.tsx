@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/trip/StartTripDialog.tsx (ATUALIZADO)
+// FILE: src/components/trip/StartTripDialog.tsx (ATUALIZADO COM AUTO-FILL)
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
-import { Plus, Truck, User, MapPin, Gauge, Route as RouteIcon, ArrowRight } from 'lucide-react';
+import { Plus, Truck, User, MapPin, Gauge, Route as RouteIcon, ArrowRight, Link2 } from 'lucide-react';
 import { createTrip as createTripHelper } from '@/helpers/trip-helpers';
 import { getAvailableVehicles } from '@/helpers/vehicle-helpers';
 import { getAvailableDrivers } from '@/helpers/driver-helpers';
@@ -18,11 +18,13 @@ import { getActiveRoutes } from '@/helpers/route-helpers';
 import { ICreateTrip } from '@/lib/types/trip';
 import { Separator } from '@/components/ui/separator';
 import { useTrips } from '@/contexts/TripsContext';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 export default function StartTripDialog() {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
-  const { addTrip } = useTrips(); // ✨ Usa contexto
+  const { addTrip } = useTrips();
   
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,6 +57,8 @@ export default function StartTripDialog() {
         getActiveRoutes()
       ]);
       
+      console.log("vehicles", vehiclesData);
+
       setVehicles(vehiclesData);
       setDrivers(driversData);
       setRoutes(routesData);
@@ -101,7 +105,7 @@ export default function StartTripDialog() {
       const newTrip = await createTripHelper(tripData);
 
       if (newTrip) {
-        addTrip(newTrip); // ✨ Adiciona ao contexto
+        addTrip(newTrip);
         showSuccess('trips:toast.createSuccess');
         setOpen(false);
         resetForm();
@@ -171,7 +175,7 @@ export default function StartTripDialog() {
                   setFormData({ 
                     ...formData, 
                     vehicle_id: value,
-                    start_mileage: vehicle?.current_mileage || 0
+                    start_mileage: vehicle?.current_mileage || 0 // ✨ AUTO-FILL quilometragem inicial
                   });
                 }}
                 required
@@ -387,32 +391,43 @@ export default function StartTripDialog() {
           <Separator />
 
           {/* KM Inicial e Finalidade */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
               <Label className="flex items-center gap-2">
                 <Gauge className="w-4 h-4" />
                 {t('trips:fields.startMileage')} *
               </Label>
-              <Input
-                type="number"
-                min="0"
-                value={formData.start_mileage}
-                onChange={(e) => setFormData({ ...formData, start_mileage: parseInt(e.target.value) || 0 })}
-                required
-              />
+              {/* Badge de auto-fill quando preenchido automaticamente */}
+              {selectedVehicle && formData.start_mileage === selectedVehicle.current_mileage && (
+                <Badge variant="secondary" className="text-[10px] h-5">
+                  <Link2 className="w-3 h-3 mr-1" />
+                  {t('trips:info.auto', { mileage: selectedVehicle.current_mileage?.toLocaleString('pt-PT') })}
+                </Badge>
+              )}
+            </div>
+            <Input
+              type="number"
+              min="0"
+              value={formData.start_mileage}
+              onChange={(e) => setFormData({ ...formData, start_mileage: parseInt(e.target.value) || 0 })}
+              className={cn(
+                selectedVehicle && formData.start_mileage === selectedVehicle.current_mileage && "border-primary/50 bg-primary/5"
+              )}
+              required
+            />
+            {/* Descrição de auto-fill */}
+            {selectedVehicle && formData.start_mileage === selectedVehicle.current_mileage && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Link2 className="w-3 h-3" />
+                {t('trips:info.mileageAutoFilled', { mileage: selectedVehicle.current_mileage })}
+              </p>
+            )}
+            {/* Mensagem padrão quando não está auto-filled */}
+            {(!selectedVehicle || formData.start_mileage !== selectedVehicle.current_mileage) && (
               <p className="text-xs text-muted-foreground">
                 {t('trips:dialogs.start.verifyMileage')}
               </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t('trips:fields.purpose')}</Label>
-              <Input
-                placeholder={t('trips:placeholders.purpose')}
-                value={formData.purpose}
-                onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-              />
-            </div>
+            )}
           </div>
 
           {/* Observações */}

@@ -17,6 +17,8 @@ import { ptRefuelings } from "./locales/pt/refuelings";
 import { enRefuelings } from "./locales/en/refuelings";
 import { ptExpenses } from "./locales/pt/expenses";
 import { enExpenses } from "./locales/en/expenses";
+import { ptFines } from "./locales/pt/fines";
+import { enFines } from "./locales/en/fines";
 
 i18n.use(initReactI18next).init({
     fallbackLng: "en",
@@ -28,6 +30,7 @@ i18n.use(initReactI18next).init({
             maintenances: enMaintenances,
             refuelings: enRefuelings,
             expenses: enExpenses,
+            fines: enFines,
             // vehicles: vehicleTranslations.en.vehicles,
             auth: authTranslations.en.auth,
             common: enCommon,
@@ -63,6 +66,7 @@ i18n.use(initReactI18next).init({
             maintenances: ptMaintenances,
             refuelings: ptRefuelings,
             expenses: ptExpenses,
+            fines: ptFines,
             // vehicles: vehicleTranslations.pt.vehicles,
             auth: authTranslations.pt.auth,
             common: ptCommon,

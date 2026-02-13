@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/locales/en/vehicles.ts (COMPLETO ATUALIZADO)
+// FILE: src/locales/en/vehicles.ts
 // ========================================
 export const enVehicles = {
   title: "Vehicle Fleet",
@@ -30,6 +30,21 @@ export const enVehicles = {
       label: "Inactive",
       description: "Vehicle temporarily out of operation"
     }
+  },
+
+  statusChange: {
+    title: 'Change Vehicle Status',
+    currentStatus: 'Current Status',
+    newStatus: 'New Status',
+    notesLabel: 'Reason / Notes',
+    notesPlaceholder: 'e.g., Vehicle sent for 50,000 km service. Expected return: 03/15/2024',
+    notesHelper: 'This note will be automatically added to the vehicle history with date and time',
+    notePrefix: 'Status changed to',
+    infoTitle: 'Status Change',
+    infoDescription: 'The complete history of changes will be recorded in the system for future audit.',
+    cancel: 'Cancel',
+    confirm: 'Confirm',
+    updating: 'Updating...',
   },
 
   fields: {

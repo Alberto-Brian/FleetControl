@@ -11,12 +11,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
-import { Wrench, Plus, Truck, AlertCircle } from 'lucide-react';
+import { Wrench, Plus, Truck, AlertCircle, Link2 } from 'lucide-react';
 import { createMaintenance } from '@/helpers/maintenance-helpers';
 import { getAllVehicles } from '@/helpers/vehicle-helpers';
 import { getAllWorkshops } from '@/helpers/workshop-helpers';
 import { ICreateMaintenance } from '@/lib/types/maintenance';
 import { useMaintenances } from '@/contexts/MaintenancesContext';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 const MAINTENANCE_TYPES = [
   { value: 'preventive', label: 'maintenances:type.preventive.label' },
@@ -198,102 +200,121 @@ export default function NewMaintenanceDialog() {
           </div>
 
           {/* Tipo e Categoria */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>{t('maintenances:fields.type')} *</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(value: any) => setFormData({ ...formData, type: value })}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MAINTENANCE_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {t(type.label)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t('maintenances:fields.category')} *</Label>
-              <Select
-                value={formData.category_id}
-                onValueChange={(value) => setFormData({ ...formData, category_id: value })}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('maintenances:placeholders.category')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.length === 0 ? (
-                    <div className="p-3 text-center text-sm text-muted-foreground">
-                      <AlertCircle className="w-4 h-4 mx-auto mb-1" />
-                      {t('maintenances:alerts.noCategories')}
+         <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>{t('maintenances:fields.category')} *</Label>
+          <Select
+            value={formData.category_id}
+            onValueChange={(value) => {
+              const selectedCategory = categories.find(c => c.id === value);
+              setFormData({ 
+                ...formData, 
+                category_id: value,
+                type: selectedCategory?.type || 'corrective' // ✨ Auto-fill do tipo
+              });
+            }}
+            required
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={t('maintenances:placeholders.category')} />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.length === 0 ? (
+                <div className="p-3 text-center text-sm text-muted-foreground">
+                  <AlertCircle className="w-4 h-4 mx-auto mb-1" />
+                  {t('maintenances:alerts.noCategories')}
+                </div>
+              ) : (
+                categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full inline-block" 
+                        style={{ backgroundColor: c.color }}
+                      />
+                      <span>{c.name}</span>
+                      <span className="text-xs text-muted-foreground ml-1">
+                        ({t(`maintenances:type.${c.type}.short`)})
+                      </span>
                     </div>
-                  ) : (
-                    categories.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        <div 
-                          className="w-3 h-3 rounded-full inline-block mr-2" 
-                          style={{ backgroundColor: c.color }}
-                        />
-                        {c.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>{t('maintenances:fields.type')} *</Label>
+              {/* Badge de auto-fill quando preenchido pela categoria */}
+              {formData.category_id && (
+                <Badge variant="secondary" className="text-[10px] h-5">
+                  <Link2 className="w-3 h-3 mr-1" />
+                  {t('maintenances:info.auto')}
+                </Badge>
+              )}
             </div>
+            <Select
+              value={formData.type}
+              onValueChange={(value: any) => setFormData({ ...formData, type: value })}
+              // disabled={!!formData.category_id} // ✨ Desabilitado quando categoria selecionada
+              required
+            >
+              <SelectTrigger className={cn(
+                formData.category_id && "border-primary/50 bg-primary/5 opacity-75"
+              )}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MAINTENANCE_TYPES.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {t(type.label)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* Descrição de auto-fill */}
+            {formData.category_id && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Link2 className="w-3 h-3" />
+                {t('maintenances:info.typeAutoFilled')}
+              </p>
+            )}
           </div>
+        </div>
 
           {/* Quilometragem, Prioridade e Ordem de Serviço */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>{t('maintenances:fields.mileage')} *</Label>
-              <Input
-                type="number"
-                min="0"
-                placeholder={t('maintenances:placeholders.mileage')}
-                value={formData.vehicle_mileage || ''}
-                onChange={(e) => setFormData({ ...formData, vehicle_mileage: parseInt(e.target.value) || 0 })}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t('maintenances:fields.priority')} *</Label>
-              <Select
-                value={formData.priority}
-                onValueChange={(value: any) => setFormData({ ...formData, priority: value })}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITIES.map((p) => (
-                    <SelectItem key={p.value} value={p.value}>
-                      <span className={p.color}>{t(p.label)}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t('maintenances:fields.workOrderNumber')}</Label>
-              <Input
-                placeholder={t('maintenances:placeholders.workOrderNumber')}
-                value={formData.work_order_number || ''}
-                onChange={(e) => setFormData({ ...formData, work_order_number: e.target.value })}
-              />
-            </div>
+         <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>{t('maintenances:fields.mileage')} *</Label>
+            {/* Badge de auto-fill quando preenchido automaticamente */}
+            {selectedVehicle && formData.vehicle_mileage === selectedVehicle.current_mileage && (
+              <Badge variant="secondary" className="text-[10px] h-5">
+                <Link2 className="w-3 h-3 mr-1" />
+                {t('maintenances:info.auto')}
+              </Badge>
+            )}
           </div>
+          <Input
+            type="number"
+            min="0"
+            placeholder={t('maintenances:placeholders.mileage')}
+            value={formData.vehicle_mileage || ''}
+            onChange={(e) => setFormData({ ...formData, vehicle_mileage: parseInt(e.target.value) || 0 })}
+            className={cn(
+              selectedVehicle && formData.vehicle_mileage === selectedVehicle.current_mileage && "border-primary/50 bg-primary/5"
+            )}
+            required
+          />
+          {/* Descrição de auto-fill */}
+          {selectedVehicle && formData.vehicle_mileage === selectedVehicle.current_mileage && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Link2 className="w-3 h-3" />
+              {t('maintenances:info.mileageAutoFilled', { mileage: selectedVehicle.current_mileage?.toLocaleString('pt-PT') })}
+            </p>
+          )}
+        </div>
 
           {/* Oficina */}
           <div className="space-y-2">

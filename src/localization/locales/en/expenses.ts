@@ -44,7 +44,7 @@ export const enExpenses = {
     cash: 'Cash',
     card: 'Card',
     transfer: 'Transfer',
-    check: 'Check',
+    other: 'Other',
   },
 
   categoryTypes: {

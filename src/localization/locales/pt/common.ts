@@ -23,6 +23,8 @@ export const ptCommon = {
       defaultWithItem: 'Esta acção não pode ser desfeita. O registo "{{itemName}}" será marcado como excluído.'
   },
   actions: {
+      actions: "Acções",
+      close: "Fechar",
       cancel: "Cancelar",
       delete: "Excluir",
       deleting: "Excluindo...",
@@ -42,12 +44,13 @@ export const ptCommon = {
       errorLoadingCategories: "Erro ao carregar categorias",
       notFound:{
           vehicle: "Veículo não encontrado",
-          vehicleCategory: "Categoria de veículo não encontrada"
+          vehicleCategory: "Categoria de veículo não encontrada",
+          expenseCategory: "Categoria de despesa não encontrada",
       }
   },
   viewModes: {
   compact: 'Compacto',
-  normal: 'Normal', 
+  normal: 'Lista', 
   cards: 'Cards'
 }
 } as const;

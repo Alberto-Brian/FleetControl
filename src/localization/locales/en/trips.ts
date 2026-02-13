@@ -146,6 +146,8 @@ export const enTrips = {
   },
 
   info: {
+    auto: 'Auto',
+    mileageAutoFilled: 'Mileage automatically filled - ({{mileage}} km)',
     startedAt: 'Started at',
     completedAt: 'Completed at',
     currentlyInProgress: 'Currently in progress',

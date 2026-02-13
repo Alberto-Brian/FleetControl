@@ -38,14 +38,14 @@ export interface ICreateFine {
 }
 
 export interface IUpdateFine {
-    vehicle_id: string;
+    vehicle_id?: string;
     driver_id?: string;
-    fine_number: string;
-    fine_date: string;
-    infraction_type: string;
-    description: string;
+    fine_number?: string;
+    fine_date?: string;
+    infraction_type?: string;
+    description?: string;
     location?: string;
-    fine_amount: number;
+    fine_amount?: number;
     due_date?: string;
     payment_date?: string;
     status?: FineStatus;

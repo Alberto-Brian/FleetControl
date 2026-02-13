@@ -3,6 +3,7 @@
 // ========================================
 import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { maintenances, vehicles, maintenance_categories, workshops } from '@/lib/db/schemas';
+import { maintenanceStatus } from '../schemas/maintenances'; 
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull, desc } from 'drizzle-orm';
 import { ICreateMaintenance, IUpdateMaintenance, IMaintenance } from '@/lib/types/maintenance';
@@ -262,6 +263,7 @@ export async function deleteMaintenance(maintenanceId: string): Promise<string> 
         .update(maintenances)
         .set({
             deleted_at: new Date().toISOString(),
+            status: maintenanceStatus.CANCELLED,
             updated_at: new Date().toISOString(),
         })
         .where(eq(maintenances.id, maintenanceId));

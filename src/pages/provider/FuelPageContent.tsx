@@ -393,6 +393,9 @@ function renderCardsView() {
               }
             </p>
           </div>
+           <div className="flex items-center gap-3">
+              <NewRefuelingDialog />
+            </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -470,7 +473,6 @@ function renderCardsView() {
                     </Button>
                   ))}
                 </div>
-                <NewRefuelingDialog />
               </div>
             </div>
 

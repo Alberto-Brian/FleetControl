@@ -32,6 +32,21 @@ export const ptVehicles = {
     }
   },
 
+  statusChange: {
+    title: 'Alterar Status do Veículo',
+    currentStatus: 'Status Actual',
+    newStatus: 'Novo Status',
+    notesLabel: 'Motivo / Observações',
+    notesPlaceholder: 'Ex: Veículo enviado para revisão dos 50.000 km. Previsão de retorno: 15/03/2024',
+    notesHelper: 'Esta observação será adicionada automaticamente ao histórico do veículo com data e hora',
+    notePrefix: 'Status alterado para',
+    infoTitle: 'Alteração de Status',
+    infoDescription: 'O histórico completo de alterações ficará registado no sistema para auditoria futura.',
+    cancel: 'Cancelar',
+    confirm: 'Confirmar',
+    updating: 'Actualizando...',
+  },
+
   fields: {
     licensePlate: "Matrícula",
     brand: "Marca",

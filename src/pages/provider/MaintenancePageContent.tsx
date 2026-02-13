@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/maintenance/MaintenancePageContent.tsx (MELHORADO - CARDS ESTILIZADOS)
+// FILE: src/components/maintenance/MaintenancePageContent.tsx (CORRIGIDO - BOTÕES START/COMPLETE VISÍVEIS)
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
+import { maintenanceStatus } from '@/lib/db/schemas/maintenances';
 import { cn } from '@/lib/utils';
 import { 
   Wrench, Search, Tag, Edit, Trash2, LayoutGrid, List, Rows, 
-  Building2, AlertCircle, Clock, Flag, Settings, Phone, Mail, MapPin, Plus, Eye
+  Building2, AlertCircle, Clock, Flag, Settings, Phone, Mail, MapPin, Plus, Eye, Play, CheckCircle2
 } from 'lucide-react';
 
 // Context
@@ -88,6 +89,10 @@ export default function MaintenancePageContent() {
 
   // Edit dialogs
   const [editWorkshopDialogOpen, setEditWorkshopDialogOpen] = useState(false);
+  
+  // ✅ Start/Complete dialogs
+  const [startDialogOpen, setStartDialogOpen] = useState(false);
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
 
   // ✨ Escuta eventos de categorias e workshops restaurados
   useEffect(() => {
@@ -279,24 +284,73 @@ export default function MaintenancePageContent() {
                 <span className="text-sm font-bold">{m.total_cost.toLocaleString('pt-PT')} Kz</span>
               </div>
               <div className="col-span-2 flex gap-1 justify-end items-center">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => selectMaintenance(m)}>
-                  <Eye className="w-4 h-4" />
-                </Button>
-                {m.status === 'scheduled' && (
+                {m.status === maintenanceStatus.SCHEDULED && (
                   <>
-                    <StartMaintenanceDialog />
-                    <CompleteMaintenanceDialog />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        selectMaintenance(m);
+                        setStartDialogOpen(true);
+                      }}
+                      title={t('maintenances:actions.start')}
+                    >
+                      <Play className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-green-600 hover:bg-green-50 hover:text-green-700"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        selectMaintenance(m);
+                        setCompleteDialogOpen(true);
+                      }}
+                      title={t('maintenances:actions.complete')}
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                    </Button>
                   </>
                 )}
-                {m.status === 'in_progress' && <CompleteMaintenanceDialog />}
+                {m.status === maintenanceStatus.IN_PROGRESS && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-green-600 hover:bg-green-50 hover:text-green-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      selectMaintenance(m);
+                      setCompleteDialogOpen(true);
+                    }}
+                    title={t('maintenances:actions.complete')}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                  </Button>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    selectMaintenance(m);
+                  }}
+                  title={t('maintenances:actions.view')}
+                >
+                  <Eye className="w-4 h-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     selectMaintenance(m);
                     setDeleteDialogOpen(true);
                   }}
+                  title={t('common:actions.delete')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -314,21 +368,22 @@ export default function MaintenancePageContent() {
         {filteredMaintenances.map((maintenance) => (
           <Card 
             key={maintenance.id} 
-            className="overflow-hidden border-l-4 group hover:shadow-md transition-all duration-200 bg-card cursor-pointer"
+            className="overflow-hidden border-l-4 group hover:shadow-md transition-all duration-200 bg-card"
             style={{ borderLeftColor: maintenance.type === 'preventive' ? '#3b82f6' : '#f97316' }}
-            onClick={() => selectMaintenance(maintenance)}
           >
             <CardContent className="p-0">
               <div className="flex items-center p-5 gap-5">
                 <div className={cn(
-                  "hidden sm:flex h-12 w-12 items-center justify-center rounded-xl transition-colors",
+                  "hidden sm:flex h-12 w-12 items-center justify-center rounded-xl transition-colors cursor-pointer",
                   maintenance.type === 'preventive' 
                     ? 'bg-blue-100 text-blue-600 group-hover:bg-blue-200' 
                     : 'bg-orange-100 text-orange-600 group-hover:bg-orange-200'
-                )}>
+                )}
+                onClick={() => selectMaintenance(maintenance)}
+                >
                   <Wrench className="w-6 h-6" />
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => selectMaintenance(maintenance)}>
                   <div className="flex items-center gap-3 mb-1">
                     <h3 className="font-bold text-lg tracking-tight">{maintenance.category_name}</h3>
                     {getStatusBadge(maintenance.status)}
@@ -359,7 +414,61 @@ export default function MaintenancePageContent() {
                     <p className="text-xs text-muted-foreground">{t('maintenances:fields.totalCost')}</p>
                     <p className="text-xl font-bold text-primary">{maintenance.total_cost.toLocaleString('pt-PT')} Kz</p>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); }}>
+                  {maintenance.status === maintenanceStatus.SCHEDULED && (
+                    <>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="h-9 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          selectMaintenance(maintenance);
+                          setStartDialogOpen(true);
+                        }}
+                      >
+                        <Play className="w-4 h-4 mr-1.5" />
+                        {t('maintenances:actions.start')}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="h-9 text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          selectMaintenance(maintenance);
+                          setCompleteDialogOpen(true);
+                        }}
+                      >
+                        <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                        {t('maintenances:actions.complete')}
+                      </Button>
+                    </>
+                  )}
+                  {maintenance.status === maintenanceStatus.IN_PROGRESS && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="h-9 text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        selectMaintenance(maintenance);
+                        setCompleteDialogOpen(true);
+                      }}
+                    >
+                      <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                      {t('maintenances:actions.complete')}
+                    </Button>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-10 w-10" 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      selectMaintenance(maintenance); 
+                    }}
+                    title={t('maintenances:actions.view')}
+                  >
                     <Eye className="w-5 h-5" />
                   </Button>
                   <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:bg-destructive/10" onClick={(e) => { 
@@ -385,17 +494,18 @@ export default function MaintenancePageContent() {
         {filteredMaintenances.map((maintenance) => (
           <Card 
             key={maintenance.id} 
-            className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60 cursor-pointer"
-            onClick={() => selectMaintenance(maintenance)}
+            className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60"
           >
-            <CardHeader className="pb-3 pt-5 px-5">
+            <CardHeader className="pb-3 pt-5 px-5 cursor-pointer" onClick={() => selectMaintenance(maintenance)}>
               <div className="flex justify-between items-start mb-3">
-                <div className={cn(
-                  "p-2.5 rounded-xl transition-colors",
-                  maintenance.type === 'preventive' 
-                    ? 'bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white' 
-                    : 'bg-orange-100 text-orange-600 group-hover:bg-orange-600 group-hover:text-white'
-                )}>
+                <div 
+                  className={cn(
+                    "p-2.5 rounded-xl transition-colors",
+                    maintenance.type === 'preventive' 
+                      ? 'bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white' 
+                      : 'bg-orange-100 text-orange-600 group-hover:bg-orange-600 group-hover:text-white'
+                  )}
+                >
                   <Wrench className="w-5 h-5" />
                 </div>
                 {getStatusBadge(maintenance.status)}
@@ -454,23 +564,79 @@ export default function MaintenancePageContent() {
                 </div>
                 
                 <div className="flex gap-2">
-                  <Button 
-                    className="flex-1 h-10 text-sm font-bold shadow-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      selectMaintenance(maintenance);
-                    }}
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    {t('maintenances:actions.view')}
-                  </Button>
-                  {maintenance.status === 'scheduled' && (
+                  {maintenance.status === maintenanceStatus.SCHEDULED && (
                     <>
-                      <StartMaintenanceDialog />
-                      <CompleteMaintenanceDialog />
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-9 text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          selectMaintenance(maintenance);
+                          setStartDialogOpen(true);
+                        }}
+                      >
+                        <Play className="w-3.5 h-3.5 mr-1.5" />
+                        {t('maintenances:actions.start')}
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-9 text-xs font-bold text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          selectMaintenance(maintenance);
+                          setCompleteDialogOpen(true);
+                        }}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                        {t('maintenances:actions.complete')}
+                      </Button>
                     </>
                   )}
-                  {maintenance.status === 'in_progress' && <CompleteMaintenanceDialog />}
+                  {maintenance.status === maintenanceStatus.IN_PROGRESS && (
+                    <Button 
+                      variant="default"
+                      size="sm"
+                      className="flex-1 h-9 text-xs font-bold bg-green-600 hover:bg-green-700"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        selectMaintenance(maintenance);
+                        setCompleteDialogOpen(true);
+                      }}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                      {t('maintenances:actions.complete')}
+                    </Button>
+                  )}
+                  {(maintenance.status === maintenanceStatus.COMPLETED || maintenance.status === maintenanceStatus.CANCELLED) && (
+                    <Button 
+                      variant="default"
+                      size="sm"
+                      className="flex-1 h-9 text-xs font-bold"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        selectMaintenance(maintenance);
+                      }}
+                    >
+                      <Eye className="w-3.5 h-3.5 mr-1.5" />
+                      {t('maintenances:actions.view')}
+                    </Button>
+                  )}
+                  {(maintenance.status === maintenanceStatus.SCHEDULED || maintenance.status === maintenanceStatus.IN_PROGRESS) && (
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      className="h-9 px-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        selectMaintenance(maintenance);
+                      }}
+                      title={t('maintenances:actions.view')}
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -502,6 +668,9 @@ export default function MaintenancePageContent() {
                 : t('maintenances:workshops.info.activeCount', { count: activeWorkshops, plural: activeWorkshops !== 1 ? 's' : '' })
               }
             </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <NewMaintenanceDialog />
           </div>
         </div>
 
@@ -579,7 +748,7 @@ export default function MaintenancePageContent() {
                     <SelectItem value="cancelled">{t('maintenances:filters.cancelled')}</SelectItem>
                   </SelectContent>
                 </Select>
-                
+              </div>
                 {/* View modes com labels */}
                 <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50">
                   {viewModes.map((item) => (
@@ -599,10 +768,6 @@ export default function MaintenancePageContent() {
                     </Button>
                   ))}
                 </div>
-              </div>
-              <div className="flex gap-2 w-full lg:w-auto">
-                <NewMaintenanceDialog />
-              </div>
             </div>
 
             {/* Content */}
@@ -941,6 +1106,16 @@ export default function MaintenancePageContent() {
         <ViewMaintenanceDialog
           open={!!selectedMaintenance}
           onOpenChange={(open) => !open && selectMaintenance(null)}
+        />
+
+        <StartMaintenanceDialog 
+          open={startDialogOpen}
+          onOpenChange={setStartDialogOpen}
+        />
+
+        <CompleteMaintenanceDialog 
+          open={completeDialogOpen}
+          onOpenChange={setCompleteDialogOpen}
         />
 
         <EditWorkshopDialog 

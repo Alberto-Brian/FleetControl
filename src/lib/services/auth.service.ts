@@ -80,7 +80,7 @@ export class AuthService {
     const allUsers = await db.query.users.findMany({
       where: isNull(users.deleted_at)
     });
-    console.log("AQUI", allUsers)
+    // console.log("AQUI", allUsers)
     return allUsers.length > 0;
   }
 

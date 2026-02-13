@@ -262,6 +262,7 @@ export async function getAvailableVehicles() {
             id: vehicles.id,
             license_plate: vehicles.license_plate,
             brand: vehicles.brand,
+            current_mileage: vehicles.current_mileage,
             model: vehicles.model,
             year: vehicles.year,
             category_name: vehicle_categories.name,

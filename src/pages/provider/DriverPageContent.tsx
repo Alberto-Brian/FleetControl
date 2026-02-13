@@ -493,8 +493,8 @@ return (
           <div className="flex items-center gap-3 self-center lg:self-auto">
             <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50">
               {[
-                { mode: 'list', icon: List },
-                { mode: 'cards', icon: LayoutGrid },
+                { mode: 'list', icon: List, label: t('common:viewModes.normal') },
+                { mode: 'cards', icon: LayoutGrid, label: t('common:viewModes.cards') },
               ].map((item) => (
                 <Button
                   key={item.mode}
@@ -502,11 +502,13 @@ return (
                   size="sm"
                   onClick={() => setViewMode(item.mode as ViewMode)}
                   className={cn(
-                    "h-8 w-10 p-0 rounded-lg transition-all",
-                    viewMode === item.mode ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    "h-9 px-3 rounded-lg transition-all flex items-center gap-2",
+                    viewMode === item.mode ? "bg-background shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
                   )}
+                  title={item.label}
                 >
                   <item.icon className="w-4 h-4" />
+                  <span className="hidden sm:inline text-xs">{item.label}</span>
                 </Button>
               ))}
             </div>

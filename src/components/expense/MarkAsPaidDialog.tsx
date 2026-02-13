@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
-import { 
+import {
   CheckCircle2, 
   CreditCard, 
   Banknote, 
@@ -29,7 +29,7 @@ const PAYMENT_METHODS = [
   { value: 'cash', label: 'expenses:paymentMethods.cash', icon: Banknote, color: 'text-green-600' },
   { value: 'card', label: 'expenses:paymentMethods.card', icon: CreditCard, color: 'text-blue-600' },
   { value: 'transfer', label: 'expenses:paymentMethods.transfer', icon: Landmark, color: 'text-purple-600' },
-  { value: 'check', label: 'expenses:paymentMethods.check', icon: FileText, color: 'text-orange-600' },
+  { value: 'other', label: 'expenses:paymentMethods.other', icon: FileText, color: 'text-pink-600' },
 ];
 
 export default function MarkAsPaidDialog({ open, onOpenChange }: MarkAsPaidDialogProps) {

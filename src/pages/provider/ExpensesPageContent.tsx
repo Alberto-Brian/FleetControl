@@ -443,6 +443,9 @@ export default function ExpensesPageContent() {
               }
             </p>
           </div>
+          <div className="flex items-center gap-3">
+            <NewExpenseDialog />
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -579,7 +582,6 @@ export default function ExpensesPageContent() {
                     </Button>
                   ))}
                 </div>
-                <NewExpenseDialog />
               </div>
             </div>
 

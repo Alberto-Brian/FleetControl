@@ -243,6 +243,9 @@ export const enMaintenances = {
     scheduledCount: '{{count}} scheduled',
     preventiveCount: '{{count}} preventive',
     correctiveCount: '{{count}} corrective',
+    auto: 'Auto',
+    typeAutoFilled: 'Type defined by selected category',
+    mileageAutoFilled: 'Mileage filled automatically ({{mileage}} km)',
   },
 
   filters: {

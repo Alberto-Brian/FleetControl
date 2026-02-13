@@ -146,6 +146,8 @@ export const ptTrips = {
   },
 
   info: {
+    auto: 'Auto',
+    mileageAutoFilled: 'Quilometragem preenchida automaticamente - ({{mileage}} km)',
     startedAt: 'Iniciada a',
     completedAt: 'Concluída a',
     currentlyInProgress: 'Actualmente em curso',

@@ -243,6 +243,9 @@ export const ptMaintenances = {
     scheduledCount: '{{count}} agendada{{plural}}',
     preventiveCount: '{{count}} preventiva{{plural}}',
     correctiveCount: '{{count}} correctiva{{plural}}',
+    auto: 'Auto',
+    typeAutoFilled: 'Tipo definido pela categoria seleccionada',
+    mileageAutoFilled: 'Quilometragem preenchida automaticamente ({{mileage}} km)',
   },
 
   filters: {

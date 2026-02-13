@@ -1,20 +1,20 @@
 // ========================================
-// FILE: src/components/fine/NewFineDialog.tsx (ATUALIZADO)
+// FILE: src/components/fine/EditFineDialog.tsx
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
-import { Plus, AlertCircle, Car, User, FileText, MapPin, DollarSign, Calendar } from 'lucide-react';
-import { createFine } from '@/helpers/fine-helpers';
+import { Edit, AlertCircle, Car, User, FileText, MapPin, DollarSign, Calendar } from 'lucide-react';
+import { updateFine } from '@/helpers/fine-helpers';
 import { getAllVehicles } from '@/helpers/vehicle-helpers';
 import { getAllDrivers } from '@/helpers/driver-helpers';
-import { ICreateFine } from '@/lib/types/fine';
+import { IUpdateFine } from '@/lib/types/fine';
 import { useFines } from '@/contexts/FinesContext';
 
 const INFRACTION_TYPES = [
@@ -27,20 +27,24 @@ const INFRACTION_TYPES = [
   { value: 'other', label: 'fines:infractionTypes.other' },
 ];
 
-export default function NewFineDialog() {
+interface EditFineDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export default function EditFineDialog({ open, onOpenChange }: EditFineDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
-  const { addFine } = useFines();
+  const { state: { selectedFine }, updateFine: updateFineContext } = useFines();
   
-  const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
-  const [formData, setFormData] = useState<ICreateFine>({
+  const [formData, setFormData] = useState<IUpdateFine>({
     vehicle_id: '',
     driver_id: undefined,
     fine_number: '',
-    fine_date: new Date().toISOString().split('T')[0],
+    fine_date: '',
     infraction_type: '',
     description: '',
     location: '',
@@ -51,11 +55,35 @@ export default function NewFineDialog() {
     notes: '',
   });
 
+  // ✅ useEffect para carregar dados
   useEffect(() => {
     if (open) {
       loadData();
     }
   }, [open]);
+
+  // ✅ useEffect para preencher formulário
+  useEffect(() => {
+    if (open && selectedFine) {
+      setFormData({
+        vehicle_id: selectedFine.vehicle_id,
+        driver_id: selectedFine.driver_id || undefined,
+        fine_number: selectedFine.fine_number,
+        fine_date: selectedFine.fine_date,
+        infraction_type: selectedFine.infraction_type,
+        description: selectedFine.description,
+        location: selectedFine.location || '',
+        fine_amount: selectedFine.fine_amount,
+        due_date: selectedFine.due_date || '',
+        points: selectedFine.points || 0,
+        authority: selectedFine.authority || '',
+        notes: selectedFine.notes || '',
+      });
+    }
+  }, [open, selectedFine]);
+
+  // ✅ Early return DEPOIS dos useEffects
+  if (!selectedFine) return null;
 
   async function loadData() {
     try {
@@ -75,56 +103,30 @@ export default function NewFineDialog() {
     setIsLoading(true);
 
     try {
-      const newFine = await createFine(formData);
+      const updated = await updateFine(selectedFine!.id, formData);
       
-      if (newFine) {
-        addFine(newFine);
-        showSuccess('fines:toast.createSuccess');
-        setOpen(false);
-        resetForm();
+      if (updated) {
+        updateFineContext(updated);
+        showSuccess('fines:toast.updateSuccess');
+        onOpenChange(false);
       }
     } catch (error: any) {
-      handleError(error, 'fines:toast.createError');
+      handleError(error, 'fines:toast.updateError');
     } finally {
       setIsLoading(false);
     }
   }
 
-  function resetForm() {
-    setFormData({
-      vehicle_id: '',
-      driver_id: undefined,
-      fine_number: '',
-      fine_date: new Date().toISOString().split('T')[0],
-      infraction_type: '',
-      description: '',
-      location: '',
-      fine_amount: 0,
-      due_date: '',
-      points: 0,
-      authority: '',
-      notes: '',
-    });
-  }
-
-  const totalAmount = formData.fine_amount || 0;
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          {t('fines:newFine')}
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <AlertCircle className="w-6 h-6 text-red-600" />
-            {t('fines:dialogs.new.title')}
+            <Edit className="w-6 h-6 text-primary" />
+            {t('fines:dialogs.edit.title')}
           </DialogTitle>
           <DialogDescription>
-            {t('fines:dialogs.new.description')}
+            {t('fines:dialogs.edit.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -152,22 +154,15 @@ export default function NewFineDialog() {
                     <SelectValue placeholder={t('fines:placeholders.selectVehicle')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {vehicles.length === 0 ? (
-                      <div className="p-3 text-center text-sm text-muted-foreground">
-                        <AlertCircle className="w-4 h-4 mx-auto mb-1" />
-                        Nenhum veículo disponível
-                      </div>
-                    ) : (
-                      vehicles.map((v) => (
-                        <SelectItem key={v.id} value={v.id}>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold">{v.license_plate}</span>
-                            <span className="text-muted-foreground">-</span>
-                            <span>{v.brand} {v.model}</span>
-                          </div>
-                        </SelectItem>
-                      ))
-                    )}
+                    {vehicles.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold">{v.license_plate}</span>
+                          <span className="text-muted-foreground">-</span>
+                          <span>{v.brand} {v.model}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -216,7 +211,6 @@ export default function NewFineDialog() {
                   value={formData.fine_number}
                   onChange={(e) => setFormData({ ...formData, fine_number: e.target.value })}
                   required
-                  autoFocus
                   className="font-mono"
                 />
               </div>
@@ -374,32 +368,23 @@ export default function NewFineDialog() {
             </div>
           </div>
 
-          {/* Resumo */}
-          {totalAmount > 0 && (
-            <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-red-700 dark:text-red-400">
-                  {t('fines:fields.fineAmount')}
-                </span>
-                <span className="text-2xl font-bold text-red-600 dark:text-red-400 font-mono">
-                  {totalAmount.toLocaleString('pt-PT')} Kz
-                </span>
-              </div>
-              {formData.points && formData.points > 0 && (
-                <p className="text-xs text-red-600 dark:text-red-500 mt-2">
-                  {t('fines:info.totalPoints', { points: formData.points })}
-                </p>
-              )}
+          {/* Alerta */}
+          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-700 dark:text-blue-400">
+                O status da multa não pode ser alterado aqui. Use as ações específicas (Marcar como Paga, Contestar).
+              </p>
             </div>
-          )}
+          </div>
 
           {/* Botões */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
               {t('common:actions.cancel')}
             </Button>
-            <Button type="submit" disabled={isLoading || vehicles.length === 0} className="bg-red-600 hover:bg-red-700">
-              {isLoading ? t('fines:actions.register') + '...' : t('fines:actions.register')}
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? t('fines:actions.edit') + '...' : t('fines:actions.edit')}
             </Button>
           </div>
         </form>
