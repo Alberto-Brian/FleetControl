@@ -113,7 +113,7 @@ export default function MarkAsPaidDialog({ open, onOpenChange }: MarkAsPaidDialo
             <div className="flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-green-700 dark:text-green-400">
-                Ao confirmar, a multa será marcada como paga e o status será atualizado automaticamente.
+                {t('fines:info.markAsPaidInfo')}
               </p>
             </div>
           </div>

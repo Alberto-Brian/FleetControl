@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/vehicle/UpdateMileageDialog.tsx
+// FILE: src/components/vehicle/UpdateMileageDialog.tsx (ATUALIZADO)
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -29,14 +29,12 @@ export default function UpdateMileageDialog({
   const [newMileage, setNewMileage] = useState<number>(0);
   const [difference, setDifference] = useState<number>(0);
 
-  // ✅ SINCRONIZA COM O VEÍCULO QUANDO ABRE
   useEffect(() => {
     if (open && selectedVehicle) {
       setNewMileage(selectedVehicle.current_mileage || 0);
     }
   }, [open, selectedVehicle]);
 
-  // ✅ CALCULA DIFERENÇA
   useEffect(() => {
     if (selectedVehicle) {
       const diff = newMileage - selectedVehicle.current_mileage;
@@ -44,7 +42,6 @@ export default function UpdateMileageDialog({
     }
   }, [newMileage, selectedVehicle]);
 
-  // ✅ EARLY RETURN - RESOLVE TODOS OS PROBLEMAS DE NULL
   if (!selectedVehicle) {
     return null;
   }
@@ -52,16 +49,13 @@ export default function UpdateMileageDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    // ✅ Aqui TypeScript já sabe que selectedVehicle não é null
-    // Validação: novo valor deve ser maior que o atual
     if (newMileage < selectedVehicle!.current_mileage) {
-      showWarning('vehicles:warnings.newMileageCannotBeLessThanCurrent');
+      showWarning(t('vehicles:errors.mileageLessThanCurrent'));
       return;
     }
 
-    // Validação: diferença muito grande (alerta)
     if (difference > 10000) {
-      showWarning('vehicles:warnings.mileageDifferenceTooBig');
+      showWarning(t('vehicles:errors.mileageDifferenceTooBig'));
       return;
     }
 
@@ -71,12 +65,12 @@ export default function UpdateMileageDialog({
       const updated = await updateVehicleMileage(selectedVehicle!.id, newMileage);
 
       if (updated) {
-        updateVehicle(updated); // ✨ Atualiza contexto
-        showSuccess('vehicles:toast.mileageUpdateSuccess');
+        updateVehicle(updated);
+        showSuccess(t('vehicles:toast.mileageUpdateSuccess'));
         onOpenChange(false);
       }
     } catch (error) {
-      handleError(error, 'vehicles:errors.errorUpdatingMileage');
+      handleError(error, t('vehicles:toast.mileageUpdateError'));
     } finally {
       setIsLoading(false);
     }
@@ -88,7 +82,7 @@ export default function UpdateMileageDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gauge className="w-5 h-5" />
-            Actualizar Quilometragem
+            {t('vehicles:dialogs.mileage.title')}
           </DialogTitle>
           <DialogDescription>
             {selectedVehicle.brand} {selectedVehicle.model} - {selectedVehicle.license_plate}
@@ -96,10 +90,9 @@ export default function UpdateMileageDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Km Actual */}
           <div className="p-4 bg-muted/50 rounded-lg border">
             <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">
-              Quilometragem Actual
+              {t('vehicles:dialogs.mileage.current')}
             </p>
             <p className="text-2xl font-bold">
               {selectedVehicle.current_mileage.toLocaleString('pt-AO')} 
@@ -107,10 +100,9 @@ export default function UpdateMileageDialog({
             </p>
           </div>
 
-          {/* Nova Km */}
           <div className="space-y-2">
             <Label htmlFor="mileage" className="text-base font-semibold">
-              Nova Quilometragem *
+              {t('vehicles:dialogs.mileage.new')} *
             </Label>
             <div className="relative">
               <Input
@@ -129,7 +121,6 @@ export default function UpdateMileageDialog({
             </div>
           </div>
 
-          {/* Diferença */}
           {difference !== 0 && (
             <div className={`p-4 rounded-lg border ${
               difference > 0 
@@ -142,7 +133,7 @@ export default function UpdateMileageDialog({
                 }`} />
                 <div className="flex-1">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Diferença
+                    {t('vehicles:dialogs.mileage.difference')}
                   </p>
                   <p className={`text-xl font-bold ${
                     difference > 0 ? 'text-blue-700 dark:text-blue-400' : 'text-red-700 dark:text-red-400'
@@ -161,10 +152,10 @@ export default function UpdateMileageDialog({
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
-              Cancelar
+              {t('vehicles:actions.cancel')}
             </Button>
             <Button type="submit" disabled={isLoading || difference === 0}>
-              {isLoading ? 'Actualizando...' : 'Actualizar'}
+              {isLoading ? t('vehicles:actions.updating') : t('vehicles:actions.update')}
             </Button>
           </div>
         </form>

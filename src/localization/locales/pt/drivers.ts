@@ -92,7 +92,8 @@ export const ptDrivers = {
     creating: "A criar...",
     updating: "A actualizar...",
     deleting: "A excluir...",
-    confirm: "Confirmar Alteração"
+    confirm: "Confirmar Alteração",
+    assignTrip: "Atribuir Viagem"
   },
 
   dialogs: {

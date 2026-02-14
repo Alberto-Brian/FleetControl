@@ -306,9 +306,9 @@ const filteredDrivers = drivers.filter(d => {
                     {driver.availability === 'available' && <CheckCircle2 className="w-3.5 h-3.5" />}
                     {driver.availability === 'on_trip' && <Truck className="w-3.5 h-3.5" />}
                     {driver.availability === 'offline' && <Ban className="w-3.5 h-3.5" />}
-                    {driver.availability === 'available' && 'Disponível'}
-                    {driver.availability === 'on_trip' && 'Em Viagem'}
-                    {driver.availability === 'offline' && 'Offline'}
+                    {driver.availability === 'available' && t('drivers:availability.available.label')}
+                    {driver.availability === 'on_trip' && t('drivers:availability.on_trip.label')}
+                    {driver.availability === 'offline' && t('drivers:availability.offline.label')}
                 </Badge>
                 </div>
 
@@ -375,14 +375,14 @@ const filteredDrivers = drivers.filter(d => {
                     }}
                 >
                     {driver.availability === 'available' && driver.status === 'active' 
-                    ? 'Atribuir Viagem' 
+                    ? t('drivers:actions.assignTrip') 
                     : driver.availability === 'on_trip' 
-                        ? 'Em Viagem' 
+                        ? t('drivers:availability.on_trip.label') 
                         : driver.status === 'on_leave'
-                        ? 'De Licença'
+                        ? t('drivers:status.on_leave.label')
                         : driver.status === 'terminated'
-                            ? 'Desligado'
-                            : 'Indisponível'}
+                            ? t('drivers:status.terminated.label')
+                            : t('drivers:availability.offline.label')}
                 </Button>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>

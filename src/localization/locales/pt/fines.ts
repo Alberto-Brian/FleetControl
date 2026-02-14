@@ -136,7 +136,8 @@ export const ptFines = {
     dueIn: "Vence em {{days}} dias",
     overdueBy: "Vencida há {{days}} dias",
     paidOn: "Paga em {{date}}",
-    unknownDriver: "Motorista desconhecido"
+    unknownDriver: "Motorista desconhecido",
+     markAsPaidInfo: "Ao confirmar, a multa será marcada como paga e o status será atualizado automaticamente."
   }
 } as const;
 

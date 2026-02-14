@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/vehicle/ViewVehicleDialog.tsx (REDESENHADO)
+// FILE: src/components/vehicle/ViewVehicleDialog.tsx (REDESENHADO - SEM TEXTO ESTÁTICO)
 // ========================================
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -7,8 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { 
   Edit, Gauge, RefreshCw, CheckCircle2, Clock, Settings2, Ban, 
-  Truck, Tag, Calendar, DollarSign, FileText, RotateCcw, Fuel,
-  Palette, Hash
+  Truck, Tag, Calendar, DollarSign, FileText, RotateCcw, Hash
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useVehicles } from '@/contexts/VehiclesContext';
@@ -43,7 +42,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
         bg: 'bg-emerald-50',
         border: 'border-emerald-200',
         ring: 'ring-emerald-500',
-        desc: 'Pronto para uso'
+        desc: t('vehicles:status.available.description')
       },
       in_use: { 
         label: t('vehicles:status.in_use.label'),
@@ -52,7 +51,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
         bg: 'bg-blue-50',
         border: 'border-blue-200',
         ring: 'ring-blue-500',
-        desc: 'Em serviço'
+        desc: t('vehicles:status.in_use.description')
       },
       maintenance: { 
         label: t('vehicles:status.maintenance.label'), 
@@ -61,7 +60,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
         bg: 'bg-amber-50',
         border: 'border-amber-200',
         ring: 'ring-amber-500',
-        desc: 'Em manutenção'
+        desc: t('vehicles:status.maintenance.description')
       },
       inactive: { 
         label: t('vehicles:status.inactive.label'), 
@@ -70,7 +69,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
         bg: 'bg-slate-50',
         border: 'border-slate-200',
         ring: 'ring-slate-500',
-        desc: 'Fora de uso'
+        desc: t('vehicles:status.inactive.description')
       },
     };
     return configs[status as keyof typeof configs] || configs.available;
@@ -112,7 +111,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
             {/* AÇÕES RÁPIDAS - Cards clicáveis */}
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
-                <RotateCcw className="w-3 h-3" /> Actualizações Rápidas
+                <RotateCcw className="w-3 h-3" /> {t('vehicles:dialogs.view.quickUpdates')}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 {/* Atualizar Km */}
@@ -124,8 +123,8 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
                     <Gauge className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Quilometragem</p>
-                    <p className="font-bold text-sm mt-0.5">Actualizar km atual</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{t('vehicles:fields.mileage')}</p>
+                    <p className="font-bold text-sm mt-0.5">{t('vehicles:actions.updateMileage')}</p>
                   </div>
                 </button>
 
@@ -139,9 +138,9 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
                     <RefreshCw className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Estado</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{t('vehicles:fields.status')}</p>
                     <p className="font-bold text-sm mt-0.5">
-                      {selectedVehicle.status === 'in_use' ? 'Em uso - bloqueado' : 'Alterar status'}
+                      {selectedVehicle.status === 'in_use' ? t('vehicles:dialogs.status.inUseBlocked') : t('vehicles:actions.changeStatus')}
                     </p>
                   </div>
                 </button>
@@ -155,8 +154,8 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
                     <Edit className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Dados do Veículo</p>
-                    <p className="font-bold text-sm mt-0.5">Editar informações</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{t('vehicles:dialogs.view.vehicleData')}</p>
+                    <p className="font-bold text-sm mt-0.5">{t('vehicles:actions.editData')}</p>
                   </div>
                 </button>
 
@@ -172,7 +171,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
                     <Tag className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Categoria</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{t('vehicles:fields.category')}</p>
                     <p className="font-bold text-sm mt-0.5">{selectedVehicle.category_name}</p>
                   </div>
                 </div>
@@ -186,19 +185,19 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
               {/* Dados Principais */}
               <div className="p-4 bg-muted/30 rounded-xl">
                 <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
-                  <Truck className="w-3 h-3" /> Dados do Veículo
+                  <Truck className="w-3 h-3" /> {t('vehicles:dialogs.view.vehicleData')}
                 </h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-muted-foreground text-xs">Marca / Modelo</p>
+                    <p className="text-muted-foreground text-xs">{t('vehicles:fields.brand')} / {t('vehicles:fields.model')}</p>
                     <p className="font-medium">{selectedVehicle.brand} {selectedVehicle.model}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground text-xs">Ano</p>
+                    <p className="text-muted-foreground text-xs">{t('vehicles:fields.year')}</p>
                     <p className="font-medium">{selectedVehicle.year}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground text-xs">Cor</p>
+                    <p className="text-muted-foreground text-xs">{t('vehicles:fields.color')}</p>
                     <div className="flex items-center gap-2">
                       {selectedVehicle.color && (
                         <div 
@@ -210,7 +209,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
                     </div>
                   </div>
                   <div>
-                    <p className="text-muted-foreground text-xs">Quilometragem</p>
+                    <p className="text-muted-foreground text-xs">{t('vehicles:fields.mileage')}</p>
                     <p className="font-medium font-mono">
                       {selectedVehicle.current_mileage?.toLocaleString('pt-AO') || '0'} km
                     </p>
@@ -222,24 +221,24 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
               {(selectedVehicle.chassis_number || selectedVehicle.engine_number || selectedVehicle.fuel_tank_capacity) && (
                 <div className="p-4 bg-muted/30 rounded-xl">
                   <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
-                    <Hash className="w-3 h-3" /> Dados Técnicos
+                    <Hash className="w-3 h-3" /> {t('vehicles:dialogs.view.technicalData')}
                   </h3>
                   <div className="space-y-2 text-sm">
                     {selectedVehicle.chassis_number && (
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground text-xs">Chassi</span>
+                        <span className="text-muted-foreground text-xs">{t('vehicles:fields.chassisNumber')}</span>
                         <span className="font-mono font-medium text-xs">{selectedVehicle.chassis_number}</span>
                       </div>
                     )}
                     {selectedVehicle.engine_number && (
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground text-xs">Motor</span>
+                        <span className="text-muted-foreground text-xs">{t('vehicles:fields.engineNumber')}</span>
                         <span className="font-mono font-medium text-xs">{selectedVehicle.engine_number}</span>
                       </div>
                     )}
                     {selectedVehicle.fuel_tank_capacity && (
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground text-xs">Capacidade Tanque</span>
+                        <span className="text-muted-foreground text-xs">{t('vehicles:fields.fuelTankCapacity')}</span>
                         <span className="font-medium">{selectedVehicle.fuel_tank_capacity} L</span>
                       </div>
                     )}
@@ -251,12 +250,12 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
               {(selectedVehicle.acquisition_date || selectedVehicle.acquisition_value) && (
                 <div className="p-4 bg-muted/30 rounded-xl">
                   <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
-                    <DollarSign className="w-3 h-3" /> Aquisição
+                    <DollarSign className="w-3 h-3" /> {t('vehicles:dialogs.view.acquisition')}
                   </h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     {selectedVehicle.acquisition_date && (
                       <div>
-                        <p className="text-muted-foreground text-xs">Data</p>
+                        <p className="text-muted-foreground text-xs">{t('vehicles:fields.acquisitionDate')}</p>
                         <p className="font-medium">
                           {new Date(selectedVehicle.acquisition_date).toLocaleDateString('pt-AO')}
                         </p>
@@ -264,7 +263,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
                     )}
                     {selectedVehicle.acquisition_value && (
                       <div>
-                        <p className="text-muted-foreground text-xs">Valor</p>
+                        <p className="text-muted-foreground text-xs">{t('vehicles:fields.acquisitionValue')}</p>
                         <p className="font-medium">
                           {(selectedVehicle.acquisition_value / 100).toLocaleString('pt-AO', {
                             style: 'currency',
@@ -280,11 +279,11 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
               {/* Registos */}
               <div className="p-4 bg-muted/30 rounded-xl">
                 <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
-                  <Calendar className="w-3 h-3" /> Registos
+                  <Calendar className="w-3 h-3" /> {t('vehicles:dialogs.view.registrationInfo')}
                 </h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-muted-foreground text-xs">Cadastro</p>
+                    <p className="text-muted-foreground text-xs">{t('vehicles:fields.createdAt')}</p>
                     <p className="font-medium">
                       {selectedVehicle.created_at 
                         ? new Date(selectedVehicle.created_at).toLocaleDateString('pt-AO')
@@ -294,7 +293,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
                   </div>
                   {selectedVehicle.updated_at && selectedVehicle.updated_at !== selectedVehicle.created_at && (
                     <div>
-                      <p className="text-muted-foreground text-xs">Última Actualização</p>
+                      <p className="text-muted-foreground text-xs">{t('vehicles:fields.updatedAt')}</p>
                       <p className="font-medium">
                         {new Date(selectedVehicle.updated_at).toLocaleDateString('pt-AO')}
                       </p>
@@ -307,7 +306,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
               {selectedVehicle.notes && (
                 <div className="p-4 bg-muted/30 rounded-xl">
                   <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2 flex items-center gap-2">
-                    <FileText className="w-3 h-3" /> Observações
+                    <FileText className="w-3 h-3" /> {t('vehicles:fields.notes')}
                   </h3>
                   <p className="text-sm whitespace-pre-wrap">{selectedVehicle.notes}</p>
                 </div>
@@ -315,7 +314,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
             </div>
 
             <div className="text-center text-xs text-muted-foreground pt-4">
-              <p>Para edição completa, utilize o botão "Editar" na lista principal</p>
+               <p>{t('vehicles:dialogs.view.fullEditHint')}</p>
             </div>
           </div>
         </DialogContent>

@@ -9,6 +9,7 @@ export const enVehicles = {
     total: "Total",
     available: "Available",
     inUse: "In Use",
+    inMaintenance: "In Maintenance",
     maintenance: "Maintenance",
     inactive: "Inactive"
   },
@@ -74,7 +75,10 @@ export const enVehicles = {
     color: "White",
     chassisNumber: "00000000000000000",
     engineNumber: "0000000000",
-    notes: "Additional information about the vehicle..."
+    notes: "Additional information about the vehicle...",
+    selectCategory: "Select category",
+    categoryName: "Ex: Utility, Passenger, Cargo...",
+    categoryDescription: "Ex: Vehicles for light cargo transport...",
   },
 
   actions: {
@@ -102,7 +106,13 @@ export const enVehicles = {
     },
     edit: {
       title: "Edit Vehicle",
-      description: "Complete editing of all vehicle information"
+      description: "Complete editing of all vehicle information",
+      technicalHint: "These data are useful for",
+      technicalHint1: "Unique vehicle identification",
+      technicalHint2: "Fuel consumption calculation",
+      technicalHint3: "Documentation and insurance",
+      valueInCents: "Value stored in cents",
+      notesInfo: "Status changes are automatically recorded here",
     },
     view: {
       title: "Vehicle Details",
@@ -124,7 +134,8 @@ export const enVehicles = {
       description: "Record new odometer reading",
       current: "Current Mileage",
       new: "New Mileage",
-      confirm: "Confirm Update"
+      confirm: "Confirm Update",
+      difference: "Diference",
     },
     status: {
       title: "Change Vehicle Status",
@@ -154,12 +165,22 @@ export const enVehicles = {
     noDescription: "No description defined",
     created: "Category created successfully",
     updated: "Category updated successfully",
-    deleted: "Category deleted successfully"
+    deleted: "Category deleted successfully",
+    newDescription: "Create a new category to organize your vehicles",
+    editDescription: "Update vehicle category information",
+    namePlaceholder: "Category Name",
+    descriptionPlaceholder: "Category description",
+    colorHint: "The color helps visually identify the category",
+    colorTip: "Choose different colors for each category to make it easier to visually identify vehicles",
   },
 
   tabs: {
     vehicles: "Vehicles",
-    categories: "Categories"
+    categories: "Categories",
+    basic: "Basic",
+    technical: "Technical",
+    acquisition: "Acquisition",
+    notes: "Notes",
   },
 
   filters: {

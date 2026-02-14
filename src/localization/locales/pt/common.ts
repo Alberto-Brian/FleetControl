@@ -2,6 +2,15 @@
 // FILE: src/locales/pt/common.ts (ou adicionar ao existente)
 // ========================================
 export const ptCommon = {
+    preview: "Pré-visualização",
+    tip: "Dica",
+    optional: "opcional",
+    loading: "Carregando...",
+    characters: "caracteres",
+    info: "Informação",
+    export: "Exportar",
+    today: "Hoje",
+
     pagination: {
     showing: "Mostrando {{start}} a {{end}} de {{total}} registos",
     itemsPerPage: "Itens por página",
@@ -12,6 +21,18 @@ export const ptCommon = {
     next: "Próxima",
     last: "Última"
     },
+
+    colors: {
+    blue: "Azul",
+    green: "Verde",
+    amber: "Âmbar",
+    red: "Vermelho",
+    purple: "Roxo",
+    pink: "Rosa",
+    cyan: "Ciano",
+    orange: "Laranja",
+    },
+
     status: {
       active: "Activo",
       inactive: "Inactivo",

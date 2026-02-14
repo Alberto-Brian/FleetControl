@@ -188,6 +188,12 @@ interface IFines {
     getPending: () => Promise<IFine[]>;
 }
 
+interface IDashboard {
+    getStats: () => Promise<any>;
+    getActivities: (limit: number) => Promise<any>;
+    getChartData: () => Promise<any>;
+}
+
 declare interface Window {
     system: System;
     license: License;
@@ -209,4 +215,5 @@ declare interface Window {
     _fuel_stations: IFuelStations;
     _routes: IRoutes;
     _fines: IFines;
+    _dashboard: IDashboard;
 }

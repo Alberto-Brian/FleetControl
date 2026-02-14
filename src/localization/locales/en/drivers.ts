@@ -92,7 +92,8 @@ export const enDrivers = {
     creating: "Creating...",
     updating: "Updating...",
     deleting: "Deleting...",
-    confirm: "Confirm Change"
+    confirm: "Confirm Change",
+    assignTrip: "Assign Trip"
   },
 
   dialogs: {

@@ -2,16 +2,36 @@
 // FILE: src/locales/en/common.ts (ou adicionar ao existente)
 // ========================================
 export const enCommon = {
+    preview: "Preview",
+    tip: "Tip",
+    optional: "optional",
+    loading: "Loading...",
+    characters: "characters",
+    export: "Export",
+    today: "Today",
+    info: "Information",
     pagination: {
-    showing: "Showing {{start}} to {{end}} of {{total}} records",
-    itemsPerPage: "Items per page",
-    page: "Page",
-    of: "of",
-    first: "First",
-    previous: "Previous",
-    next: "Next",
-    last: "Last"
+        showing: "Showing {{start}} to {{end}} of {{total}} records",
+        itemsPerPage: "Items per page",
+        page: "Page",
+        of: "of",
+        first: "First",
+        previous: "Previous",
+        next: "Next",
+        last: "Last"
     },
+
+    colors: {
+        blue: "Blue",
+        green: "Green",
+        amber: "Amber",
+        red: "Red",
+        purple: "Purple",
+        pink: "Pink",
+        cyan: "Cyan",
+        orange: "Orange",
+  },
+  info: "Information",
     status: {
       active: "Active",
       inactive: "Inactive",

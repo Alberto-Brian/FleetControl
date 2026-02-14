@@ -1,4 +1,6 @@
-// src/pages/HomePage.tsx
+// ========================================
+// FILE: src/pages/HomePage.tsx (ATUALIZADO COM i18n)
+// ========================================
 import React, { useState, useEffect } from 'react';
 import { 
   Truck, Fuel, Wrench, Users, MapPin, Route as RouteIcon, DollarSign, 
@@ -7,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import UserMenu from '@/components/UserMenu';
 import SettingsDialog from '@/components/SettingsDialog';
 
@@ -23,23 +26,25 @@ import ReportsPage from '@/pages/ReportsPage';
 import AnalyticsPage from '@/pages/AnalyticsPage';
 
 export default function HomePage() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
+  // ✅ Menu items com traduções dinâmicas
   const menuItems = [
-    { id: 'dashboard', icon: Home, label: 'Dashboard' },
-    { id: 'vehicles', icon: Truck, label: 'Veículos' },
-    { id: 'drivers', icon: Users, label: 'Motoristas' },
-    { id: 'trips', icon: RouteIcon, label: 'Viagens' },
-    { id: 'fuel', icon: Fuel, label: 'Abastecimentos' },
-    { id: 'maintenance', icon: Wrench, label: 'Manutenções' },
-    { id: 'expenses', icon: DollarSign, label: 'Despesas' },
-    { id: 'fines', icon: AlertTriangle, label: 'Multas' },
-    { id: 'reports', icon: FileText, label: 'Relatórios' },
-    { id: 'analytics', icon: BarChart3, label: 'Análises' },
+    { id: 'dashboard', icon: Home, label: t('navigation:menu.dashboard') },
+    { id: 'vehicles', icon: Truck, label: t('navigation:menu.vehicles') },
+    { id: 'drivers', icon: Users, label: t('navigation:menu.drivers') },
+    { id: 'trips', icon: RouteIcon, label: t('navigation:menu.trips') },
+    { id: 'fuel', icon: Fuel, label: t('navigation:menu.fuel') },
+    { id: 'maintenance', icon: Wrench, label: t('navigation:menu.maintenance') },
+    { id: 'expenses', icon: DollarSign, label: t('navigation:menu.expenses') },
+    { id: 'fines', icon: AlertTriangle, label: t('navigation:menu.fines') },
+    { id: 'reports', icon: FileText, label: t('navigation:menu.reports') },
+    { id: 'analytics', icon: BarChart3, label: t('navigation:menu.analytics') },
   ];
 
   useEffect(() => {
@@ -123,8 +128,8 @@ export default function HomePage() {
           </div>
           {!showCompactSidebar && (
             <div className="mt-2 text-center">
-              <h2 className="font-bold text-sm">FleetControl</h2>
-              <p className="text-xs text-muted-foreground">Gestão de Frotas</p>
+              <h2 className="font-bold text-sm">{t('navigation:app.name')}</h2>
+              <p className="text-xs text-muted-foreground">{t('navigation:app.tagline')}</p>
             </div>
           )}
         </div>
@@ -145,6 +150,7 @@ export default function HomePage() {
                       ? "bg-primary/10 text-primary"
                       : "hover:bg-muted text-muted-foreground"
                   } ${showCompactSidebar ? 'justify-center' : ''}`}
+                  title={showCompactSidebar ? item.label : undefined}
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
                   {!showCompactSidebar && <span>{item.label}</span>}
@@ -158,9 +164,10 @@ export default function HomePage() {
           <button 
             onClick={handleSettingsClick}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-muted-foreground transition-colors ${showCompactSidebar ? 'justify-center' : ''}`}
+            title={showCompactSidebar ? t('navigation:header.settings') : undefined}
           >
             <Settings className="w-5 h-5 flex-shrink-0" />
-            {!showCompactSidebar && <span>Definições</span>}
+            {!showCompactSidebar && <span>{t('navigation:header.settings')}</span>}
           </button>
         </div>
       </aside>
@@ -176,6 +183,7 @@ export default function HomePage() {
                 size="icon"
                 className="h-9 w-9 flex-shrink-0"
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                title={isSidebarOpen ? t('navigation:sidebar.collapse') : t('navigation:sidebar.expand')}
               >
                 <Menu className="w-5 h-5" />
               </Button>

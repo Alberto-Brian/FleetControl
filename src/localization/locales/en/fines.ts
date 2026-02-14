@@ -3,6 +3,8 @@
 // FILE: src/i18n/locales/en/fines.ts
 // ========================================
 
+import { markAsPaid } from "@/helpers/expense-helpers";
+
 export const enFines = {
   title: "Traffic Fines",
   description: "Fines and violations management",
@@ -137,7 +139,8 @@ export const enFines = {
     dueIn: "Due in {{days}} days",
     overdueBy: "Overdue by {{days}} days",
     paidOn: "Paid on {{date}}",
-    unknownDriver: "Unknown driver"
+    unknownDriver: "Unknown driver",
+    markAsPaidInfo: "By confirming, the fine will be marked as paid and the status will be updated automatically."
   }
 } as const;
 

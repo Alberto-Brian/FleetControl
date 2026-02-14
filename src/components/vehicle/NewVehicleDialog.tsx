@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/vehicle/NewVehicleDialog.tsx
+// FILE: src/components/vehicle/NewVehicleDialog.tsx (ATUALIZADO)
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,6 @@ export default function NewVehicleDialog() {
   const { showSuccess, handleError } = useErrorHandler();
   const { t } = useTranslation();
   
-  // ✨ USA O CONTEXTO
   const { addVehicle } = useVehicles();
   
   const [open, setOpen] = useState(false);
@@ -47,7 +46,7 @@ export default function NewVehicleDialog() {
       const cats = await getAllVehicleCategories();
       setCategories(cats);
     } catch (error: any) {
-      handleError(error, t('common:errors.errorLoadingCategories'));
+      handleError(error, t('vehicles:errors.errorLoadingCategories'));
     } finally {
       setIsLoading(false);
     }
@@ -61,15 +60,13 @@ export default function NewVehicleDialog() {
       const newVehicle = await createVehicle(formData);
       
       if (newVehicle) {
-        // ✨ ADICIONA AO CONTEXTO GLOBAL
         addVehicle(newVehicle);
-        
         showSuccess(t('vehicles:toast.createSuccess'));
         setOpen(false);
         resetForm();
       }
     } catch (error: any) {
-      handleError(error, 'vehicles:toast.createError');
+      handleError(error, t('vehicles:toast.createError'));
     } finally {
       setIsLoading(false);
     }
@@ -92,28 +89,28 @@ export default function NewVehicleDialog() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
-          Novo Veículo
+          {t('vehicles:actions.create')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Cadastrar Novo Veículo</DialogTitle>
+          <DialogTitle>{t('vehicles:dialogs.new.title')}</DialogTitle>
           <DialogDescription>
-            Preencha os dados do veículo abaixo
+            {t('vehicles:dialogs.new.description')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="category">Categoria *</Label>
+              <Label htmlFor="category">{t('vehicles:fields.category')} *</Label>
               <Select
                 value={formData.category_id}
                 onValueChange={(value: string) => setFormData({ ...formData, category_id: value })}
                 required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione a categoria" />
+                  <SelectValue placeholder={t('vehicles:placeholders.selectCategory')} />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((cat) => (
@@ -126,10 +123,10 @@ export default function NewVehicleDialog() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="license_plate">Matrícula *</Label>
+              <Label htmlFor="license_plate">{t('vehicles:fields.licensePlate')} *</Label>
               <Input
                 id="license_plate"
-                placeholder="LD-12-34-AB"
+                placeholder={t('vehicles:placeholders.licensePlate')}
                 value={formData.license_plate}
                 onChange={(e) => setFormData({ ...formData, license_plate: e.target.value.toUpperCase() })}
                 required
@@ -137,10 +134,10 @@ export default function NewVehicleDialog() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="brand">Marca *</Label>
+              <Label htmlFor="brand">{t('vehicles:fields.brand')} *</Label>
               <Input
                 id="brand"
-                placeholder="Toyota"
+                placeholder={t('vehicles:placeholders.brand')}
                 value={formData.brand}
                 onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                 required
@@ -148,10 +145,10 @@ export default function NewVehicleDialog() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="model">Modelo *</Label>
+              <Label htmlFor="model">{t('vehicles:fields.model')} *</Label>
               <Input
                 id="model"
-                placeholder="Hilux"
+                placeholder={t('vehicles:placeholders.model')}
                 value={formData.model}
                 onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                 required
@@ -159,7 +156,7 @@ export default function NewVehicleDialog() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="year">Ano *</Label>
+              <Label htmlFor="year">{t('vehicles:fields.year')} *</Label>
               <Input
                 id="year"
                 type="number"
@@ -172,17 +169,17 @@ export default function NewVehicleDialog() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="color">Cor</Label>
+              <Label htmlFor="color">{t('vehicles:fields.color')}</Label>
               <Input
                 id="color"
-                placeholder="Branco"
+                placeholder={t('vehicles:placeholders.color')}
                 value={formData.color}
                 onChange={(e) => setFormData({ ...formData, color: e.target.value })}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="mileage">Quilometragem Atual</Label>
+              <Label htmlFor="mileage">{t('vehicles:fields.mileage')}</Label>
               <Input
                 id="mileage"
                 type="number"
@@ -195,10 +192,10 @@ export default function NewVehicleDialog() {
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
+              {t('vehicles:actions.cancel')}
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Criando...' : 'Criar Veículo'}
+              {isLoading ? t('vehicles:actions.creating') : t('vehicles:actions.create')}
             </Button>
           </div>
         </form>

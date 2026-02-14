@@ -352,7 +352,7 @@ export default function FinesPageContent() {
                         onClick={() => { selectFine(fine); setMarkAsPaidDialogOpen(true); }}
                       >
                         <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                        Pagar
+                        {t('fines:actions.pay')}
                       </Button>
                       <Button 
                         size="sm" 
@@ -361,7 +361,7 @@ export default function FinesPageContent() {
                         onClick={() => { selectFine(fine); setContestDialogOpen(true); }}
                       >
                         <Scale className="w-3.5 h-3.5 mr-1" />
-                        Contestar
+                        {t('fines:actions.contest')}
                       </Button>
                     </>
                   )}
@@ -373,7 +373,7 @@ export default function FinesPageContent() {
                       onClick={() => { selectFine(fine); setViewDialogOpen(true); }}
                     >
                       <Eye className="w-3.5 h-3.5 mr-1" />
-                      Ver Detalhes
+                      {t('fines:actions.view')}
                     </Button>
                   )}
                 </div>

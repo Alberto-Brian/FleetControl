@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/vehicle/EditVehicleDialog.tsx (REFATORADO)
+// FILE: src/components/vehicle/EditVehicleDialog.tsx (ATUALIZADO)
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -51,7 +51,7 @@ export default function EditVehicleDialog({
   useEffect(() => {
     if (open) {
       loadCategories();
-      setActiveTab('basic'); // Reset para primeira aba
+      setActiveTab('basic');
     }
   }, [open]);
 
@@ -79,7 +79,7 @@ export default function EditVehicleDialog({
       const cats = await getAllVehicleCategories();
       setCategories(cats);
     } catch (error: any) {
-      handleError(error, 'common:errors.errorLoadingCategories');
+      handleError(error, t('vehicles:errors.errorLoadingCategories'));
     }
   }
 
@@ -91,12 +91,12 @@ export default function EditVehicleDialog({
       const updated = await updateBdVehicle(selectedVehicle!.id, formData);
       
       if (updated) {
-        updateVehicle(updated); // actualiza o context
-        showSuccess('vehicles:toast.updateSuccess');
+        updateVehicle(updated);
+        showSuccess(t('vehicles:toast.updateSuccess'));
         onOpenChange(false);
       }
     } catch (error: any) {
-      handleError(error, 'vehicles:toast.updateError');
+      handleError(error, t('vehicles:toast.updateError'));
     } finally {
       setIsLoading(false);
     }
@@ -106,7 +106,7 @@ export default function EditVehicleDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Editar Dados do Veículo</DialogTitle>
+          <DialogTitle>{t('vehicles:dialogs.edit.title')}</DialogTitle>
           <DialogDescription>
             {selectedVehicle?.license_plate} - {selectedVehicle?.brand} {selectedVehicle?.model}
           </DialogDescription>
@@ -117,28 +117,27 @@ export default function EditVehicleDialog({
             <TabsList className="grid w-full grid-cols-4 mb-4">
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <FileText className="w-4 h-4" />
-                <span className="hidden sm:inline">Básico</span>
+                <span className="hidden sm:inline">{t('vehicles:tabs.basic')}</span>
               </TabsTrigger>
               <TabsTrigger value="technical" className="flex items-center gap-2">
                 <Wrench className="w-4 h-4" />
-                <span className="hidden sm:inline">Técnico</span>
+                <span className="hidden sm:inline">{t('vehicles:tabs.technical')}</span>
               </TabsTrigger>
               <TabsTrigger value="acquisition" className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
-                <span className="hidden sm:inline">Aquisição</span>
+                <span className="hidden sm:inline">{t('vehicles:tabs.acquisition')}</span>
               </TabsTrigger>
               <TabsTrigger value="notes" className="flex items-center gap-2">
                 <StickyNote className="w-4 h-4" />
-                <span className="hidden sm:inline">Observações</span>
+                <span className="hidden sm:inline">{t('vehicles:tabs.notes')}</span>
               </TabsTrigger>
             </TabsList>
 
             <div className="flex-1 overflow-y-auto pr-2">
-              {/* ABA 1: INFORMAÇÕES BÁSICAS */}
               <TabsContent value="basic" className="space-y-4 mt-0">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="category">Categoria *</Label>
+                    <Label htmlFor="category">{t('vehicles:fields.category')} *</Label>
                     <Select
                       value={formData.category_id}
                       onValueChange={(value) => setFormData({ ...formData, category_id: value })}
@@ -147,8 +146,8 @@ export default function EditVehicleDialog({
                       <SelectTrigger>
                         <SelectValue placeholder={
                           categories.length === 0 
-                            ? "Carregando..." 
-                            : "Selecione a categoria"
+                            ? t('common:loading') 
+                            : t('vehicles:placeholders.selectCategory')
                         } />
                       </SelectTrigger>
                       <SelectContent>
@@ -168,40 +167,40 @@ export default function EditVehicleDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="license_plate">Matrícula *</Label>
+                    <Label htmlFor="license_plate">{t('vehicles:fields.licensePlate')} *</Label>
                     <Input
                       id="license_plate"
                       value={formData.license_plate}
                       onChange={(e) => setFormData({ ...formData, license_plate: e.target.value.toUpperCase() })}
-                      placeholder="LD-12-34-AB"
+                      placeholder={t('vehicles:placeholders.licensePlate')}
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="brand">Marca *</Label>
+                    <Label htmlFor="brand">{t('vehicles:fields.brand')} *</Label>
                     <Input
                       id="brand"
                       value={formData.brand}
                       onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                      placeholder="Toyota"
+                      placeholder={t('vehicles:placeholders.brand')}
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="model">Modelo *</Label>
+                    <Label htmlFor="model">{t('vehicles:fields.model')} *</Label>
                     <Input
                       id="model"
                       value={formData.model}
                       onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                      placeholder="Hilux"
+                      placeholder={t('vehicles:placeholders.model')}
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="year">Ano *</Label>
+                    <Label htmlFor="year">{t('vehicles:fields.year')} *</Label>
                     <Input
                       id="year"
                       type="number"
@@ -214,72 +213,70 @@ export default function EditVehicleDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="color">Cor</Label>
+                    <Label htmlFor="color">{t('vehicles:fields.color')}</Label>
                     <Input
                       id="color"
                       value={formData.color}
                       onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      placeholder="Branca"
+                      placeholder={t('vehicles:placeholders.color')}
                     />
                   </div>
                 </div>
               </TabsContent>
 
-              {/* ABA 2: DADOS TÉCNICOS */}
               <TabsContent value="technical" className="space-y-4 mt-0">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2 col-span-2">
-                    <Label htmlFor="chassis_number">Número do Chassi</Label>
+                    <Label htmlFor="chassis_number">{t('vehicles:fields.chassisNumber')}</Label>
                     <Input
                       id="chassis_number"
                       value={formData.chassis_number}
                       onChange={(e) => setFormData({ ...formData, chassis_number: e.target.value.toUpperCase() })}
-                      placeholder="Ex: 9BWZZZ377VT004251"
+                      placeholder={t('vehicles:placeholders.chassisNumber')}
                       className="font-mono"
                     />
                   </div>
 
                   <div className="space-y-2 col-span-2">
-                    <Label htmlFor="engine_number">Número do Motor</Label>
+                    <Label htmlFor="engine_number">{t('vehicles:fields.engineNumber')}</Label>
                     <Input
                       id="engine_number"
                       value={formData.engine_number}
                       onChange={(e) => setFormData({ ...formData, engine_number: e.target.value.toUpperCase() })}
-                      placeholder="Ex: 2GD1234567"
+                      placeholder={t('vehicles:placeholders.engineNumber')}
                       className="font-mono"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="fuel_capacity">Capacidade do Tanque (L)</Label>
+                    <Label htmlFor="fuel_capacity">{t('vehicles:fields.fuelTankCapacity')} (L)</Label>
                     <Input
                       id="fuel_capacity"
                       type="number"
                       min="0"
                       value={formData.fuel_tank_capacity}
                       onChange={(e) => setFormData({ ...formData, fuel_tank_capacity: parseInt(e.target.value) || 0 })}
-                      placeholder="Ex: 80"
+                      placeholder={t('vehicles:placeholders.fuelTankCapacity')}
                     />
                   </div>
                 </div>
 
                 <div className="p-4 bg-muted/50 rounded-lg border border-muted">
                   <p className="text-sm text-muted-foreground">
-                    💡 <strong>Dica:</strong> Estes dados são úteis para:
+                    💡 <strong>{t('common:tip')}:</strong> {t('vehicles:dialogs.edit.technicalHint')}
                   </p>
                   <ul className="text-sm text-muted-foreground mt-2 space-y-1 ml-4">
-                    <li>• Identificação única do veículo</li>
-                    <li>• Cálculo de consumo de combustível</li>
-                    <li>• Documentação e seguros</li>
+                    <li>• {t('vehicles:dialogs.edit.technicalHint1')}</li>
+                    <li>• {t('vehicles:dialogs.edit.technicalHint2')}</li>
+                    <li>• {t('vehicles:dialogs.edit.technicalHint3')}</li>
                   </ul>
                 </div>
               </TabsContent>
 
-              {/* ABA 3: AQUISIÇÃO */}
               <TabsContent value="acquisition" className="space-y-4 mt-0">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="acquisition_date">Data de Aquisição</Label>
+                    <Label htmlFor="acquisition_date">{t('vehicles:fields.acquisitionDate')}</Label>
                     <Input
                       id="acquisition_date"
                       type="date"
@@ -289,7 +286,7 @@ export default function EditVehicleDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="acquisition_value">Valor de Aquisição (Kz)</Label>
+                    <Label htmlFor="acquisition_value">{t('vehicles:fields.acquisitionValue')} (Kz)</Label>
                     <Input
                       id="acquisition_value"
                       type="number"
@@ -303,7 +300,7 @@ export default function EditVehicleDialog({
                       placeholder="0.00"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Valor armazenado em centavos
+                      {t('vehicles:dialogs.edit.valueInCents')}
                     </p>
                   </div>
                 </div>
@@ -312,13 +309,13 @@ export default function EditVehicleDialog({
                   <div className="p-4 bg-muted/50 rounded-lg border border-muted">
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <p className="text-muted-foreground">Data de Aquisição:</p>
+                        <p className="text-muted-foreground">{t('vehicles:fields.acquisitionDate')}:</p>
                         <p className="font-semibold">
                           {new Date(formData.acquisition_date).toLocaleDateString('pt-AO')}
                         </p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Valor:</p>
+                        <p className="text-muted-foreground">{t('vehicles:fields.acquisitionValue')}:</p>
                         <p className="font-semibold">
                           {(formData?.acquisition_value / 100).toLocaleString('pt-AO', {
                             minimumFractionDigits: 2,
@@ -331,26 +328,25 @@ export default function EditVehicleDialog({
                 )}
               </TabsContent>
 
-              {/* ABA 4: OBSERVAÇÕES */}
               <TabsContent value="notes" className="space-y-4 mt-0">
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Observações Gerais</Label>
+                  <Label htmlFor="notes">{t('vehicles:fields.notes')}</Label>
                   <Textarea
                     id="notes"
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Adicione observações, histórico de reparos, ou qualquer informação relevante sobre o veículo..."
+                    placeholder={t('vehicles:placeholders.notes')}
                     rows={10}
                     className="resize-none"
                   />
                   <p className="text-xs text-muted-foreground">
-                    {formData.notes?.length || 0} caracteres
+                    {formData.notes?.length || 0} {t('common:characters')}
                   </p>
                 </div>
 
                 <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
                   <p className="text-sm text-blue-900 dark:text-blue-200">
-                    ℹ️ <strong>Histórico de Status:</strong> Alterações de status são automaticamente registadas aqui.
+                    ℹ️ <strong>{t('common:info')}:</strong> {t('vehicles:dialogs.edit.notesInfo')}
                   </p>
                 </div>
               </TabsContent>
@@ -364,10 +360,10 @@ export default function EditVehicleDialog({
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
-              Cancelar
+              {t('vehicles:actions.cancel')}
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Salvando...' : 'Salvar Alterações'}
+              {isLoading ? t('vehicles:actions.updating') : t('vehicles:actions.save')}
             </Button>
           </div>
         </form>

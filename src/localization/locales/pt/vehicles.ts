@@ -9,6 +9,7 @@ export const ptVehicles = {
     total: "Total",
     available: "Disponíveis",
     inUse: "Em Uso",
+    inMaintenance: "Em Manutenção",
     maintenance: "Manutenção",
     inactive: "Inactivos"
   },
@@ -74,7 +75,10 @@ export const ptVehicles = {
     color: "Branco",
     chassisNumber: "00000000000000000",
     engineNumber: "0000000000",
-    notes: "Informações adicionais sobre o veículo..."
+    notes: "Informações adicionais sobre o veículo...",
+    selectCategory: "Selecione a categoria",
+    categoryName: "Ex: Utilitário, Passeio, Carga...",
+    categoryDescription: "Ex: Veículos para transporte de carga leve...",
   },
 
   actions: {
@@ -102,7 +106,13 @@ export const ptVehicles = {
     },
     edit: {
       title: "Editar Veículo",
-      description: "Edição completa de todas as informações do veículo"
+      description: "Edição completa de todas as informações do veículo",
+      technicalHint: "Estes dados são úteis para",
+      technicalHint1: "Identificação única do veículo",
+      technicalHint2: "Cálculo de consumo de combustível",
+      technicalHint3: "Documentação e seguros",
+      valueInCents: "Valor armazenado em centavos",
+      notesInfo: "Alterações de status são automaticamente registadas aqui", // ❌
     },
     view: {
       title: "Detalhes do Veículo",
@@ -124,7 +134,8 @@ export const ptVehicles = {
       description: "Registar nova leitura do odómetro",
       current: "Quilometragem Actual",
       new: "Nova Quilometragem",
-      confirm: "Confirmar Actualização"
+      confirm: "Confirmar Actualização",
+      difference: "Diferença"
     },
     status: {
       title: "Alterar Estado do Veículo",
@@ -154,12 +165,22 @@ export const ptVehicles = {
     noDescription: "Sem descrição definida",
     created: "Categoria criada com sucesso",
     updated: "Categoria actualizada com sucesso",
-    deleted: "Categoria excluída com sucesso"
+    deleted: "Categoria excluída com sucesso",
+    newDescription: "Crie uma nova categoria para organizar seus veículos",
+    editDescription: "Atualize as informações da categoria de veículo",
+    namePlaceholder: "Nome da Categoria",
+    descriptionPlaceholder: "Descrição da categoria",
+    colorHint: "A cor ajuda a identificar visualmente a categoria",
+    colorTip: "Escolha cores diferentes para cada categoria para facilitar a identificação visual dos veículos",
   },
 
   tabs: {
     vehicles: "Veículos",
-    categories: "Categorias"
+    categories: "Categorias",
+    basic: "Básico",
+    technical: "Técnico",
+    acquisition: "Aquisição",
+    notes: "Observações",
   },
 
   filters: {
