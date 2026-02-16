@@ -104,25 +104,25 @@ export default function VehiclesPageContent() {
     loadVehicles();
   }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter]);
 
-  const loadVehicles = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await getAllVehicles({
-        page: currentPage,
-        limit: itemsPerPage,
-        search: debouncedSearch,
-        status: statusFilter,
-        category_id: categoryFilter
-      });
-      
-      setVehicles(result.data);
-      setPaginationInfo(result.pagination);
-    } catch (error) {
-      handleError(error, 'vehicles:errors.errorLoading');
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter]);
+const loadVehicles = useCallback(async () => {
+  setLoading(true);
+  try {
+    const result = await getAllVehicles({
+      page: currentPage,
+      limit: itemsPerPage,
+      search: debouncedSearch,
+      status: statusFilter === 'all' ? undefined : statusFilter,        // ✅ CORRIGIDO
+      category_id: categoryFilter === 'all' ? undefined : categoryFilter // ✅ CORRIGIDO
+    });
+    
+    setVehicles(result.data);
+    setPaginationInfo(result.pagination);
+  } catch (error) {
+    handleError(error, 'vehicles:errors.errorLoading');
+  } finally {
+    setLoading(false);
+  }
+}, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter]);
 
   async function loadCategories() {
     setCategoriesLoading(true);
@@ -243,6 +243,17 @@ export default function VehiclesPageContent() {
     return vehicles.filter(v => v.category_id === categoryId).length;
   }
 
+  // FILTER TEMPORÁRIO ... 
+
+  const filteredVehicles = vehicles.filter(v => {
+  const matchesSearch = v.license_plate?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    v.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    v.brand?.toLowerCase().includes(searchTerm.toLowerCase());
+  const matchesCategoryFilter = categoryFilter === 'all' || v.category_id === categoryFilter;
+  const matchesStatusFilter = statusFilter === 'all' || v.status === statusFilter;
+  return matchesSearch && matchesCategoryFilter && matchesStatusFilter;
+});
+
   function renderCompactView() {
     return (
       <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
@@ -254,7 +265,7 @@ export default function VehiclesPageContent() {
           <div className="col-span-2 text-right">{t('vehicles:table.actions')}</div>
         </div>
         <div className="divide-y">
-          {vehicles.map((vehicle) => (
+          {filteredVehicles.map((vehicle) => (
             <div key={vehicle.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors duration-150">
               <div className="col-span-3">
                 <span className="font-mono font-bold text-sm bg-muted/50 px-2.5 py-1 rounded border border-muted-foreground/10">
@@ -312,7 +323,7 @@ export default function VehiclesPageContent() {
   function renderNormalView() {
     return (
       <div className="grid gap-4">
-        {vehicles.map((vehicle) => (
+        {filteredVehicles.map((vehicle) => (
           <Card key={vehicle.id} className="overflow-hidden border-l-4 group hover:shadow-md transition-all duration-200 bg-card" style={{ borderLeftColor: vehicle.category_color }}>
             <CardContent className="p-0">
               <div className="flex items-center p-5 gap-5">
@@ -363,7 +374,7 @@ export default function VehiclesPageContent() {
   function renderCardsView() {
     return (
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {vehicles.map((vehicle) => (
+        {filteredVehicles.map((vehicle) => (
           <Card 
             key={vehicle.id} 
             className="flex flex-col h-full group hover:shadow-lg transition-all duration-300 border-t-4 border-t-gray-200/50 dark:border-t-gray-700/50 bg-card relative"

@@ -1,3 +1,5 @@
+// vite.main.config.ts
+
 import type { ConfigEnv, UserConfig } from "vite";
 import { defineConfig, mergeConfig } from "vite";
 import { getBuildConfig, getBuildDefine, external, pluginHotRestart } from "./vite.base.config";

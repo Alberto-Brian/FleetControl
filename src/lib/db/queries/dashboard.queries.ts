@@ -150,14 +150,14 @@ export async function getRecentActivities(limit: number = 10) {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  // Viagens recentes
+  // 1. Viagens recentes
   const recentTrips = await db
     .select({
       id: trips.id,
-      type: sql<string>`'dashboard:recentActivities.trip'`,
-      title: sql<string> `'dashboard:recentActivities.newTripStarted'`,
+      type: sql<string>`'trip'`,
+      title: sql<string>`'dashboard:recentActivities.newTripStarted'`,
       description: sql<string>`${trips.origin} || ' → ' || ${trips.destination}`,
-      date: trips.start_date,
+      date: trips.created_at,
       status: trips.status,
       vehicle: vehicles.license_plate,
       driver: drivers.name,
@@ -167,19 +167,19 @@ export async function getRecentActivities(limit: number = 10) {
     .leftJoin(drivers, eq(trips.driver_id, drivers.id))
     .where(and(
       isNull(trips.deleted_at),
-      gte(trips.start_date, thirtyDaysAgo.toISOString())
+      gte(trips.created_at, thirtyDaysAgo.toISOString())
     ))
-    .orderBy(desc(trips.start_date))
+    .orderBy(desc(trips.created_at))
     .limit(limit);
 
-  // Abastecimentos recentes
+  // 2. Abastecimentos recentes
   const recentRefuelings = await db
     .select({
       id: refuelings.id,
-      type: sql<string>`'dashboard:recentActivities.refueling'`,
+      type: sql<string>`'refueling'`,
       title: sql<string>`'dashboard:recentActivities.refuelingDone'`,
       description: sql<string>`cast(${refuelings.liters} as text) || ' L'`,
-      date: refuelings.refueling_date,
+      date: refuelings.created_at,
       amount: refuelings.total_cost,
       vehicle: vehicles.license_plate,
     })
@@ -187,19 +187,19 @@ export async function getRecentActivities(limit: number = 10) {
     .leftJoin(vehicles, eq(refuelings.vehicle_id, vehicles.id))
     .where(and(
       isNull(refuelings.deleted_at),
-      gte(refuelings.refueling_date, thirtyDaysAgo.toISOString())
+      gte(refuelings.created_at, thirtyDaysAgo.toISOString())
     ))
-    .orderBy(desc(refuelings.refueling_date))
+    .orderBy(desc(refuelings.created_at))
     .limit(limit);
 
-  // Manutenções recentes
+  // 3. Manutenções recentes
   const recentMaintenances = await db
     .select({
       id: maintenances.id,
-      type: sql<string>`'dashboard:recentActivities.maintenance'`,
+      type: sql<string>`'maintenance'`,
       title: sql<string>`'dashboard:recentActivities.maintenanceScheduled'`,
       description: maintenances.description,
-      date: maintenances.entry_date,
+      date: maintenances.created_at,
       amount: maintenances.total_cost,
       status: maintenances.status,
       vehicle: vehicles.license_plate,
@@ -208,9 +208,90 @@ export async function getRecentActivities(limit: number = 10) {
     .leftJoin(vehicles, eq(maintenances.vehicle_id, vehicles.id))
     .where(and(
       isNull(maintenances.deleted_at),
-      gte(maintenances.entry_date, thirtyDaysAgo.toISOString())
+      gte(maintenances.created_at, thirtyDaysAgo.toISOString())
     ))
-    .orderBy(desc(maintenances.entry_date))
+    .orderBy(desc(maintenances.created_at))
+    .limit(limit);
+
+  // 4. Despesas recentes ✅ NOVO
+  const recentExpenses = await db
+    .select({
+      id: expenses.id,
+      type: sql<string>`'expense'`,
+      title: sql<string>`'dashboard:recentActivities.newExpense'`,
+      description: sql<string>`${expense_categories.name} || ': ' || ${expenses.description}`,
+      date: expenses.created_at,
+      amount: expenses.amount,
+      status: expenses.status,
+      vehicle: vehicles.license_plate,
+    })
+    .from(expenses)
+    .leftJoin(expense_categories, eq(expenses.category_id, expense_categories.id))
+    .leftJoin(vehicles, eq(expenses.vehicle_id, vehicles.id))
+    .where(and(
+      isNull(expenses.deleted_at),
+      gte(expenses.created_at, thirtyDaysAgo.toISOString())
+    ))
+    .orderBy(desc(expenses.created_at))
+    .limit(limit);
+
+  // 5. Multas recentes ✅ NOVO
+  const recentFines = await db
+    .select({
+      id: fines.id,
+      type: sql<string>`'fine'`,
+      title: sql<string>`'dashboard:recentActivities.newFine'`,
+      description: sql<string>`${fines.infraction_type} || ' - ' || ${fines.location}`,
+      date: fines.created_at,
+      amount: fines.fine_amount,
+      status: fines.status,
+      vehicle: vehicles.license_plate,
+      driver: drivers.name,
+    })
+    .from(fines)
+    .leftJoin(vehicles, eq(fines.vehicle_id, vehicles.id))
+    .leftJoin(drivers, eq(fines.driver_id, drivers.id))
+    .where(and(
+      isNull(fines.deleted_at),
+      gte(fines.created_at, thirtyDaysAgo.toISOString())
+    ))
+    .orderBy(desc(fines.created_at))
+    .limit(limit);
+
+  // 6. Veículos recentes ✅ NOVO
+  const recentVehicles = await db
+    .select({
+      id: vehicles.id,
+      type: sql<string>`'vehicle'`,
+      title: sql<string>`'dashboard:recentActivities.newVehicle'`,
+      description: sql<string>`${vehicles.brand} || ' ' || ${vehicles.model} || ' (' || ${vehicles.year} || ')'`,
+      date: vehicles.created_at,
+      vehicle: vehicles.license_plate,
+    })
+    .from(vehicles)
+    .where(and(
+      isNull(vehicles.deleted_at),
+      gte(vehicles.created_at, thirtyDaysAgo.toISOString())
+    ))
+    .orderBy(desc(vehicles.created_at))
+    .limit(limit);
+
+  // 7. Motoristas recentes ✅ NOVO
+  const recentDrivers = await db
+    .select({
+      id: drivers.id,
+      type: sql<string>`'driver'`,
+      title: sql<string>`'dashboard:recentActivities.newDriver'`,
+      description: sql<string>`'CNH: ' || ${drivers.license_number} || ' - Cat. ' || ${drivers.license_category}`,
+      date: drivers.created_at,
+      driver: drivers.name,
+    })
+    .from(drivers)
+    .where(and(
+      isNull(drivers.deleted_at),
+      gte(drivers.created_at, thirtyDaysAgo.toISOString())
+    ))
+    .orderBy(desc(drivers.created_at))
     .limit(limit);
 
   // Combinar e ordenar todas as atividades
@@ -244,9 +325,45 @@ export async function getRecentActivities(limit: number = 10) {
       status: m.status,
       vehicle: m.vehicle || '',
     })),
+    ...recentExpenses.map(e => ({
+      id: e.id,
+      type: 'expense' as const,
+      title: e.title,
+      description: e.description || '',
+      date: e.date,
+      amount: e.amount,
+      status: e.status,
+      vehicle: e.vehicle || '',
+    })),
+    ...recentFines.map(f => ({
+      id: f.id,
+      type: 'fine' as const,
+      title: f.title,
+      description: f.description || '',
+      date: f.date,
+      amount: f.amount,
+      status: f.status,
+      vehicle: f.vehicle || '',
+      driver: f.driver || '',
+    })),
+    ...recentVehicles.map(v => ({
+      id: v.id,
+      type: 'vehicle' as const,
+      title: v.title,
+      description: v.description || '',
+      date: v.date,
+      vehicle: v.vehicle || '',
+    })),
+    ...recentDrivers.map(d => ({
+      id: d.id,
+      type: 'driver' as const,
+      title: d.title,
+      description: d.description || '',
+      date: d.date,
+      driver: d.driver || '',
+    })),
   ];
 
-  // Ordenar por data (mais recente primeiro)
   return allActivities
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, limit);

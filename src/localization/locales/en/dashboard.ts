@@ -7,6 +7,17 @@ export const enDashboard = {
   welcome: "Welcome back",
   lastUpdated: "Last updated",
   refresh: "Refresh",
+
+  filters: {
+    all: 'All',
+    trips: 'Trips',
+    refuelings: 'Refuelings',
+    maintenances: 'Maintenances',
+    expenses: 'Expenses',
+    fines: 'Fines',
+    vehicles: 'Vehicles',
+    drivers: 'Drivers',
+  },
   
   stats: {
     vehicles: {
@@ -94,7 +105,17 @@ export const enDashboard = {
     maintenanceScheduled: "Maintenance Scheduled",
     expense: "Expense",
     fine: "Fine",
-    description: "Technical details and real-time status"
+    description: "Technical details and real-time status",
+    newExpense: 'New expense registered',
+    newFine: 'New fine registered',     
+    newVehicle: 'New vehicle registered',
+    newDriver: 'New driver registered',
+    allActivities: 'All Activities',
+    allActivitiesDescription: 'Complete operation history for the last 30 days',
+    searchPlaceholder: 'Search by vehicle, driver, description...',
+    noResults: 'No results found',
+    tryDifferentSearch: 'Try searching with different terms',
+    showingActivities: 'Showing {{count}} of {{total}} activities',
   },
   
   alerts: {

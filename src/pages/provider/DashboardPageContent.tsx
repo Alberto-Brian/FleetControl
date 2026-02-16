@@ -30,6 +30,7 @@ import {
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import StatCard from '@/components/StatCard';
+import AllActivitiesDialog from '@/components/dashboard/AllActivitiesDialog';
 
 // Context & Helpers
 import { useDashboard } from '@/contexts/DashboardContext';
@@ -39,7 +40,7 @@ export function DashboardPageContent() {
   const { t } = useTranslation();
   const { handleError } = useErrorHandler();
   const { state, setStats, setActivities, setChartData, setLoading } = useDashboard();
-
+  const [showAllActivities, setShowAllActivities] = useState(false);
   useEffect(() => {
     loadData();
   }, []);
@@ -75,7 +76,7 @@ export function DashboardPageContent() {
   const fleetStatusData = [
   { name: t('vehicles:stats.available'), value: stats.activeVehicles, color: '#10b981' },     // Verde
   { name: t('vehicles:stats.inUse'), value: stats.inUseVehicles, color: '#3b82f6' },          // Azul ✅ NOVO!
-  { name: t('vehicles:stats.inMainenance'), value: stats.maintenanceVehicles, color: '#f59e0b' }, // Laranja
+  { name: t('vehicles:stats.inMaintenance'), value: stats.maintenanceVehicles, color: '#f59e0b' }, // Laranja
   { name: t('vehicles:stats.inactive'), value: stats.inactiveVehicles, color: '#ef4444' },     // Vermelho
 ].filter(item => item.value > 0); // Remove zeros
 
@@ -243,7 +244,12 @@ export function DashboardPageContent() {
               <CardTitle>{t('dashboard:recentActivities.title')}</CardTitle>
               <CardDescription>{t('dashboard:recentActivities.description')}</CardDescription>
             </div>
-            <Button variant="ghost" size="sm" className="text-blue-600">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-blue-600"
+              onClick={() => setShowAllActivities(true)}
+            >
               {t('dashboard:recentActivities.viewAll')} <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </CardHeader>
@@ -267,16 +273,22 @@ export function DashboardPageContent() {
                 <TableBody>
                   {recentActivities.slice(0, 5).map((activity) => {
                     const Icon = activity.type === 'trip' ? MapPin :
-                                activity.type === 'refueling' ? Fuel :
-                                activity.type === 'maintenance' ? Wrench :
-                                activity.type === 'expense' ? DollarSign :
-                                AlertTriangle;
+                      activity.type === 'refueling' ? Fuel :
+                      activity.type === 'maintenance' ? Wrench :
+                      activity.type === 'expense' ? DollarSign :
+                      activity.type === 'fine' ? AlertTriangle :
+                      activity.type === 'vehicle' ? Truck :
+                      activity.type === 'driver' ? Users :
+                      Activity; // fallback
 
                     const colorClass = activity.type === 'trip' ? 'text-blue-600 bg-blue-50' :
-                                      activity.type === 'refueling' ? 'text-green-600 bg-green-50' :
-                                      activity.type === 'maintenance' ? 'text-orange-600 bg-orange-50' :
-                                      activity.type === 'expense' ? 'text-purple-600 bg-purple-50' :
-                                      'text-red-600 bg-red-50';
+                        activity.type === 'refueling' ? 'text-green-600 bg-green-50' :
+                        activity.type === 'maintenance' ? 'text-orange-600 bg-orange-50' :
+                        activity.type === 'expense' ? 'text-purple-600 bg-purple-50' :
+                        activity.type === 'fine' ? 'text-red-600 bg-red-50' :
+                        activity.type === 'vehicle' ? 'text-blue-600 bg-blue-50' :
+                        activity.type === 'driver' ? 'text-emerald-600 bg-emerald-50' :
+                        'text-gray-600 bg-gray-50';
 
                     return (
                       <TableRow key={activity.id} className="group">
@@ -415,6 +427,13 @@ export function DashboardPageContent() {
           </div>
         </CardContent>
       </Card>
+
+      {/* All Activities Dialog */}
+      <AllActivitiesDialog
+        open={showAllActivities}
+        onOpenChange={setShowAllActivities}
+        activities={recentActivities}
+      />
     </div>
   );
 }

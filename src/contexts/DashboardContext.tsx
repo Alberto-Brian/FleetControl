@@ -56,7 +56,7 @@ export interface DashboardStats {
 
 export interface RecentActivity {
   id: string;
-  type: 'trip' | 'refueling' | 'maintenance' | 'expense' | 'fine';
+  type: 'trip' | 'refueling' | 'maintenance' | 'expense' | 'fine' | 'vehicle' | 'driver';
   title: string;
   description: string;
   date: string;

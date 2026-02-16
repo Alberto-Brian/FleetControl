@@ -7,6 +7,17 @@ export const ptDashboard = {
   welcome: "Bem-vindo de volta",
   lastUpdated: "Última actualização",
   refresh: "Actualizar",
+
+  filters: {
+  all: 'Todas',
+  trips: 'Viagens',
+  refuelings: 'Abastecimentos',
+  maintenances: 'Manutenções',
+  expenses: 'Despesas',
+  fines: 'Multas',
+  vehicles: 'Veículos',
+  drivers: 'Motoristas',
+},
   
   stats: {
     vehicles: {
@@ -96,6 +107,16 @@ export const ptDashboard = {
     expense: "Despesa",
     fine: "Multa",
     description: "Detalhes técnicos e status em tempo real",
+    newExpense: 'Nova despesa registrada',
+    newFine: 'Nova multa registrada',     
+    newVehicle: 'Novo veículo cadastrado',
+    newDriver: 'Novo motorista cadastrado',
+    allActivities: 'Todas as Atividades',
+    allActivitiesDescription: 'Histórico completo de operações dos últimos 30 dias',
+    searchPlaceholder: 'Buscar por veículo, motorista, descrição...',
+    noResults: 'Nenhum resultado encontrado',
+    tryDifferentSearch: 'Tente buscar com termos diferentes',
+    showingActivities: 'Mostrando {{count}} de {{total}} atividades',
   },
   
   alerts: {

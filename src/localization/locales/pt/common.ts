@@ -10,7 +10,14 @@ export const ptCommon = {
     info: "Informação",
     export: "Exportar",
     today: "Hoje",
-
+    close: 'Fechar',
+    save: 'Guardar',
+    cancel: 'Cancelar',
+    delete: 'Eliminar',
+    edit: 'Editar',
+    view: 'Ver',
+    search: 'Buscar',
+    filter: 'Filtrar',
     pagination: {
     showing: "Mostrando {{start}} a {{end}} de {{total}} registos",
     itemsPerPage: "Itens por página",
@@ -36,7 +43,15 @@ export const ptCommon = {
     status: {
       active: "Activo",
       inactive: "Inactivo",
-      none: "Nenhum"
+      none: "Nenhum",
+      inProgress: 'Em Andamento',
+      completed: 'Concluído',
+      scheduled: 'Agendado',
+      pending: 'Pendente',
+      paid: 'Pago',
+      cancelled: 'Cancelado',
+      available: 'Disponível',
+      unavailable: 'Indisponível',
     },
   confirmDelete: {
       title: "Tem certeza?",
