@@ -2,7 +2,7 @@
 // FILE: src/locales/en/reports.ts
 // ========================================
 
-export const reportsEN = {
+export const enReport = {
   title: 'Reports',
   description: 'Generate detailed fleet reports in PDF',
   
@@ -47,6 +47,7 @@ export const reportsEN = {
     title: 'Report Period',
     from: 'From',
     to: 'To',
+    period: 'Period',
     presets: {
       today: 'Today',
       thisWeek: 'This Week',
@@ -93,11 +94,14 @@ export const reportsEN = {
     avgDistance: 'Average Distance',
     preventive: 'Preventive',
     corrective: 'Corrective',
+    totalVehicles: 'Total Vehicles',
+    totalMileage: 'Total Mileage',
   },
   
   empty: {
     noData: 'No data found for selected period',
     adjustFilters: 'Try adjusting the period or selecting another report',
+    noVehicles: 'No vehicles found for the selected period',
   },
   
   errors: {
@@ -114,5 +118,30 @@ export const reportsEN = {
     error: 'Error generating report',
     downloading: 'Downloading report...',
     printing: 'Preparing to print...',
+  },
+
+  table: {
+    licensePlate: 'License Plate',
+    vehicle: 'Vehicle',
+    category: 'Category',
+    year: 'Year',
+    mileage: 'Mileage',
+    status: 'Status',
+  },
+  
+  generatedAt: 'Generated at',
+  summary: 'Summary',
+  vehicleList: 'Vehicle List',
+
+  pagination: {
+    page: 'Page',
+    of: 'of',
+  },
+  
+  status: {
+    available: 'Available',
+    inUse: 'In Use',
+    maintenance: 'Maintenance',
+    inactive: 'Inactive',
   },
 };

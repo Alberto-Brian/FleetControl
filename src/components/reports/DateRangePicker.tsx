@@ -9,7 +9,7 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import type { DateRange } from '@/helpers/report-helpers';
+import type { DateRange } from '@/lib/types/reports';
 
 interface DateRangePickerProps {
   value: DateRange;

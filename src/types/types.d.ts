@@ -194,6 +194,20 @@ interface IDashboard {
     getChartData: () => Promise<any>;
 }
 
+
+ interface IReports {
+  // Buscar dados dos relatórios
+  getVehiclesData: (dateRange: DateRange) => Promise<any>;
+  getTripsData: (dateRange: DateRange) => Promise<any>;
+  getFuelData: (dateRange: DateRange) => Promise<any>;
+  getMaintenanceData: (dateRange: DateRange) => Promise<any>;
+  getFinancialData: (dateRange: DateRange) => Promise<any>;
+  getGeneralData: (dateRange: DateRange) => Promise<any>;
+  
+  // Salvar PDF no sistema de arquivos
+  savePdf: (params: { base64: string; fileName: string }) => Promise<{ success: boolean; path?: string }>;
+}
+
 declare interface Window {
     system: System;
     license: License;
@@ -216,4 +230,5 @@ declare interface Window {
     _routes: IRoutes;
     _fines: IFines;
     _dashboard: IDashboard;
+    _reports: IReports;
 }

@@ -21,6 +21,7 @@ import { addFuelStationsEventListeners } from "./db/fuel_stations/fuel-stations-
 import { addExpensesEventListeners } from "./db/expenses/expense-listeners";
 import { addExpenseCategoriesEventListeners } from "./db/expense_categories/expense-categories-listeners";
 import { addDashboardEventListeners } from "./db/dashboard/dashboard-listeners";
+import { addReportsEventListeners } from "./reports/reports-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
     addWindowEventListeners(mainWindow);
@@ -44,4 +45,5 @@ export default function registerListeners(mainWindow: BrowserWindow) {
     addExpensesEventListeners();
     addExpenseCategoriesEventListeners();
     addDashboardEventListeners();
+    addReportsEventListeners();
 }

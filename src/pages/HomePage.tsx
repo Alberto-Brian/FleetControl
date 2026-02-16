@@ -44,7 +44,7 @@ export default function HomePage() {
     { id: 'expenses', icon: DollarSign, label: t('navigation:menu.expenses') },
     { id: 'fines', icon: AlertTriangle, label: t('navigation:menu.fines') },
     { id: 'reports', icon: FileText, label: t('navigation:menu.reports') },
-    { id: 'analytics', icon: BarChart3, label: t('navigation:menu.analytics') },
+    // { id: 'analytics', icon: BarChart3, label: t('navigation:menu.analytics') },
   ];
 
   useEffect(() => {

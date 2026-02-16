@@ -2,7 +2,7 @@
 // FILE: src/locales/pt/reports.ts
 // ========================================
 
-export default {
+export const ptReport = {
   title: 'Relatórios',
   description: 'Gere relatórios detalhados da sua frota em PDF',
   
@@ -50,6 +50,7 @@ export default {
     title: 'Período do Relatório',
     from: 'De',
     to: 'Até',
+    period: 'Período',
     presets: {
       today: 'Hoje',
       thisWeek: 'Esta Semana',
@@ -99,12 +100,15 @@ export default {
     avgDistance: 'Distância Média',
     preventive: 'Preventivas',
     corrective: 'Corretivas',
+    totalVehicles: 'Total de Veículos',
+    totalMileage: 'Quilometragem Total',
   },
   
   // Empty states
   empty: {
     noData: 'Nenhum dado encontrado para o período selecionado',
     adjustFilters: 'Tente ajustar o período ou selecionar outro relatório',
+    noVehicles: 'Nenhum veículo encontrado no período selecionado',
   },
   
   // Erros
@@ -123,5 +127,30 @@ export default {
     error: 'Erro ao gerar relatório',
     downloading: 'Baixando relatório...',
     printing: 'Preparando impressão...',
+  },
+
+  table: {
+    licensePlate: 'Matrícula',
+    vehicle: 'Veículo',
+    category: 'Categoria',
+    year: 'Ano',
+    mileage: 'Quilometragem',
+    status: 'Status',
+  },
+  
+  generatedAt: 'Gerado em',
+  summary: 'Resumo',
+  vehicleList: 'Lista de Veículos',
+  
+  pagination: {
+    page: 'Página',
+    of: 'de',
+  },
+  
+  status: {
+    available: 'Disponível',
+    inUse: 'Em Uso',
+    maintenance: 'Manutenção',
+    inactive: 'Inativo',
   },
 };

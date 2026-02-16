@@ -20,6 +20,7 @@ import { exposeFuelStationsContext } from "./db/fuel_stations/fuel-stations-cont
 import { exposeExpensesContext } from "./db/expenses/expense-context";
 import { exposeExpenseCategoriesContext } from "./db/expense_categories/expense_categories-context";
 import { exposeDashboardContext } from "./db/dashboard/dashboard-context";
+import { exposeReportsContext } from "./reports/reports-context";
 
 export default function exposeContexts() {
     exposeWindowContext();
@@ -43,4 +44,5 @@ export default function exposeContexts() {
     exposeExpensesContext();
     exposeExpenseCategoriesContext();
     exposeDashboardContext();
+    exposeReportsContext();
 }

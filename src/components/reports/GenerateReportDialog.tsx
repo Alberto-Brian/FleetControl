@@ -19,8 +19,7 @@ import { generateReport, getPresetDateRanges, validateDateRange } from '@/helper
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { Download, Eye, Printer, Calendar as CalendarIcon } from 'lucide-react';
 import type { ReportType } from '@/lib/pdf/pdf-generator-react';
-import type { DateRange } from '@/helpers/report-helpers';
-
+import type { DateRange } from '@/lib/types/reports'
 interface GenerateReportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;

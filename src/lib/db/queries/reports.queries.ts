@@ -9,7 +9,7 @@ import { eq, and, gte, lte, isNull, sql, count, sum } from 'drizzle-orm';
 
 export async function getVehiclesReportData(startDate: string, endDate: string) {
   
-   await checkAndRotate();
+  //  await checkAndRotate();
    const { db } = useDb();
     // Lista de veículos
   const vehiclesList = await db
@@ -121,6 +121,8 @@ export async function getTripsReportData(startDate: string, endDate: string) {
     totalDistance,
     avgDistance: tripsList.length > 0 ? totalDistance / tripsList.length : 0,
   };
+
+  console.log( tripsWithDistance, stats )
 
   return {
     trips: tripsWithDistance,
@@ -273,8 +275,8 @@ export async function getFinancialReportData(startDate: string, endDate: string)
     .where(
       and(
         isNull(fines.deleted_at),
-        gte(fines.issue_date, startDate),
-        lte(fines.issue_date, endDate)
+        gte(fines.fine_date, startDate),
+        lte(fines.fine_date, endDate)
       )
     );
 

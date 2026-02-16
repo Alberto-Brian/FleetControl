@@ -3,19 +3,7 @@
 // ========================================
 import { reactPdfGenerator } from '@/lib/pdf/pdf-generator-react';
 import type { ReportType } from '@/lib/pdf/pdf-generator-react';
-import {
-  getVehiclesReportData,
-  getTripsReportData,
-  getFuelReportData,
-  getMaintenanceReportData,
-  getFinancialReportData,
-  getGeneralReportData,
-} from '@/lib/db/queries/reports.queries';
-
-export interface DateRange {
-  start: string;
-  end: string;
-}
+import type { DateRange } from '@/lib/types/reports';
 
 // ==================== GERAR RELATÓRIOS ====================
 
@@ -23,21 +11,25 @@ export async function generateVehiclesReport(
   dateRange: DateRange, 
   action: 'download' | 'preview' | 'print' = 'download'
 ) {
-  const data = await getVehiclesReportData(dateRange.start, dateRange.end);
-  
-  const options = {
-    type: 'vehicles' as ReportType,
-    dateRange,
-    data,
-    fileName: `relatorio-veiculos-${dateRange.start}.pdf`,
-  };
+  try {
+    const data = await window._reports.getVehiclesData(dateRange);
+    const options = {
+      type: 'vehicles' as ReportType,
+      dateRange,
+      data,
+      fileName: `relatorio-veiculos-${dateRange.start}.pdf`,
+    };
 
-  if (action === 'preview') {
-    return await reactPdfGenerator.previewReport(options);
-  } else if (action === 'print') {
-    return await reactPdfGenerator.printReport(options);
-  } else {
-    return await reactPdfGenerator.generateReport(options);
+    if (action === 'preview') {
+      return await reactPdfGenerator.previewReport(options);
+    } else if (action === 'print') {
+      return await reactPdfGenerator.printReport(options);
+    } else {
+      return await reactPdfGenerator.generateReport(options);
+    }
+  } catch (error) {
+    console.log(error);
+    throw error
   }
 }
 
@@ -45,7 +37,7 @@ export async function generateTripsReport(
   dateRange: DateRange, 
   action: 'download' | 'preview' | 'print' = 'download'
 ) {
-  const data = await getTripsReportData(dateRange.start, dateRange.end);
+  const data = await window._reports.getTripsData(dateRange);
   
   const options = {
     type: 'trips' as ReportType,
@@ -67,7 +59,7 @@ export async function generateFuelReport(
   dateRange: DateRange, 
   action: 'download' | 'preview' | 'print' = 'download'
 ) {
-  const data = await getFuelReportData(dateRange.start, dateRange.end);
+  const data = await window._reports.getFuelData(dateRange);
   
   const options = {
     type: 'fuel' as ReportType,
@@ -89,7 +81,7 @@ export async function generateMaintenanceReport(
   dateRange: DateRange, 
   action: 'download' | 'preview' | 'print' = 'download'
 ) {
-  const data = await getMaintenanceReportData(dateRange.start, dateRange.end);
+  const data = await window._reports.getMaintenanceData(dateRange);
   
   const options = {
     type: 'maintenance' as ReportType,
@@ -111,7 +103,7 @@ export async function generateFinancialReport(
   dateRange: DateRange, 
   action: 'download' | 'preview' | 'print' = 'download'
 ) {
-  const data = await getFinancialReportData(dateRange.start, dateRange.end);
+  const data = await window._reports.getFinancialData(dateRange);
   
   const options = {
     type: 'financial' as ReportType,
@@ -133,7 +125,7 @@ export async function generateGeneralReport(
   dateRange: DateRange, 
   action: 'download' | 'preview' | 'print' = 'download'
 ) {
-  const data = await getGeneralReportData(dateRange.start, dateRange.end);
+  const data = await window._reports.getGeneralData(dateRange);
   
   const options = {
     type: 'general' as ReportType,
