@@ -96,7 +96,7 @@ export const MaintenanceReportPDF: React.FC<MaintenanceReportProps> = ({ mainten
           )}
         </View>
 
-        <Footer pageNumber={1} totalPages={1} />
+        <Footer />
       </Page>
     </Document>
   );

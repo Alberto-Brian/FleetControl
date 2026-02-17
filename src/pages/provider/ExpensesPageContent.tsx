@@ -438,8 +438,8 @@ export default function ExpensesPageContent() {
             </h1>
             <p className="text-muted-foreground text-base">
               {activeTab === 'expenses' 
-                ? t('expenses:info.totalExpenses', { count: expenses.length })
-                : t('expenses:info.totalCategories', { count: categories.length })
+                ? t('expenses:info.totalExpenses', { count: expenses.length, plural: expenses.length > 1 ? 's' : '' })
+                : t('expenses:info.totalCategories', { count: categories.length, plural: categories.length > 1 ? 's' : '' })
               }
             </p>
           </div>

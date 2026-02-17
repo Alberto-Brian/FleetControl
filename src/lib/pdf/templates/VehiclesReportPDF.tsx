@@ -147,7 +147,7 @@ export const VehiclesReportPDF: React.FC<VehiclesReportProps> = ({ vehicles, sta
           </View>
         )}
 
-        <Footer pageNumber={1} totalPages={1} />
+        <Footer />
       </Page>
     </Document>
   );

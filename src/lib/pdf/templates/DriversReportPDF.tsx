@@ -26,26 +26,26 @@ export const DriversReportPDF: React.FC<DriversReportProps> = ({ drivers, stats,
   return (
     <Document>
       <Page size="A4" style={commonStyles.page}>
-        <Header 
-          title={t.reports.drivers} 
+        <Header
+          title={t.reports.drivers}
           subtitle={`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`}
         />
 
         <InfoSection items={[
-          { label: t.period, value: `${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}` },
+          { label: t.period,             value: `${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}` },
           { label: t.stats.totalDrivers, value: drivers?.length || 0 },
-          { label: t.generatedAt, value: formatDate(new Date()) },
+          { label: t.generatedAt,        value: formatDate(new Date()) },
         ]} />
 
         {stats && (
           <View style={commonStyles.section}>
             <SectionTitle>{t.summary}</SectionTitle>
             <SummaryBox items={[
-              { label: t.stats.totalDrivers, value: stats.total || 0 },
-              { label: t.stats.active, value: stats.active || 0 },
-              { label: t.stats.inactive, value: stats.inactive || 0 },
-              { label: t.stats.onLeave, value: stats.onLeave || 0 },
-              { label: t.stats.totalTrips, value: stats.totalTrips || 0 },
+              { label: t.stats.totalDrivers, value: stats.total         || 0 },
+              { label: t.stats.active,       value: stats.active        || 0 },
+              { label: t.stats.inactive,     value: stats.inactive      || 0 },
+              { label: t.stats.onLeave,      value: stats.onLeave       || 0 },
+              { label: t.stats.totalTrips,   value: stats.totalTrips    || 0 },
               { label: t.stats.totalDistance, value: formatDistance(stats.totalDistance || 0), highlight: true },
             ]} />
           </View>
@@ -53,7 +53,7 @@ export const DriversReportPDF: React.FC<DriversReportProps> = ({ drivers, stats,
 
         <View style={commonStyles.section}>
           <SectionTitle>{t.sections.driverList}</SectionTitle>
-          
+
           {!drivers || drivers.length === 0 ? (
             <EmptyState message={t.empty.noData} />
           ) : (
@@ -68,25 +68,15 @@ export const DriversReportPDF: React.FC<DriversReportProps> = ({ drivers, stats,
               </View>
 
               {drivers.map((driver, index) => (
-                <View 
-                  key={driver.id} 
+                <View
+                  key={driver.id}
                   style={index === drivers.length - 1 ? commonStyles.tableRowLast : commonStyles.tableRow}
                 >
-                  <Text style={[commonStyles.tableCellBold, { flex: 2 }]}>
-                    {driver.name}
-                  </Text>
-                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
-                    {driver.license_number || '-'}
-                  </Text>
-                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
-                    {driver.phone || '-'}
-                  </Text>
-                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
-                    {driver.total_trips || 0}
-                  </Text>
-                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
-                    {formatDistance(driver.total_distance || 0)}
-                  </Text>
+                  <Text style={[commonStyles.tableCellBold, { flex: 2 }]}>{driver.name}</Text>
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>{driver.license_number || '-'}</Text>
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>{driver.phone || '-'}</Text>
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>{driver.total_trips || 0}</Text>
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>{formatDistance(driver.total_distance || 0)}</Text>
                   <View style={styles.tableCell}>
                     <StatusBadge status={driver.status} />
                   </View>
@@ -96,7 +86,6 @@ export const DriversReportPDF: React.FC<DriversReportProps> = ({ drivers, stats,
           )}
         </View>
 
-        {/* Top 5 Motoristas por Distância */}
         {stats?.topDrivers && stats.topDrivers.length > 0 && (
           <View style={commonStyles.section}>
             <SectionTitle>{t.sections.topDrivers}</SectionTitle>
@@ -108,22 +97,19 @@ export const DriversReportPDF: React.FC<DriversReportProps> = ({ drivers, stats,
               </View>
 
               {stats.topDrivers.slice(0, 5).map((driver: any, index: number) => (
-                <View 
-                  key={index} 
-                  style={index === 4 ? commonStyles.tableRowLast : commonStyles.tableRow}
+                <View
+                  key={index}
+                  style={index === stats.topDrivers.slice(0, 5).length - 1 ? commonStyles.tableRowLast : commonStyles.tableRow}
                 >
                   <Text style={[commonStyles.tableCellBold, { flex: 2 }]}>{driver.name}</Text>
                   <Text style={[commonStyles.tableCell, styles.tableCell]}>{driver.totalTrips}</Text>
-                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
-                    {formatDistance(driver.totalDistance)}
-                  </Text>
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>{formatDistance(driver.totalDistance)}</Text>
                 </View>
               ))}
             </View>
           </View>
         )}
 
-        {/* Distribuição por Status */}
         {stats?.byStatus && stats.byStatus.length > 0 && (
           <View style={commonStyles.section}>
             <SectionTitle>{t.sections.distributionByStatus}</SectionTitle>
@@ -135,8 +121,8 @@ export const DriversReportPDF: React.FC<DriversReportProps> = ({ drivers, stats,
               </View>
 
               {stats.byStatus.map((s: any, index: number) => (
-                <View 
-                  key={index} 
+                <View
+                  key={index}
                   style={index === stats.byStatus.length - 1 ? commonStyles.tableRowLast : commonStyles.tableRow}
                 >
                   <View style={{ flex: 2 }}>
@@ -150,7 +136,8 @@ export const DriversReportPDF: React.FC<DriversReportProps> = ({ drivers, stats,
           </View>
         )}
 
-        <Footer pageNumber={1} totalPages={1} />
+        {/* ✅ Footer sem props — paginação dinâmica via render prop interno */}
+        <Footer />
       </Page>
     </Document>
   );

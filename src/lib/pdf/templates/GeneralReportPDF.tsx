@@ -154,7 +154,7 @@ export const GeneralReportPDF: React.FC<GeneralReportProps> = ({ dashboard, date
           </>
         )}
 
-        <Footer pageNumber={1} totalPages={1} />
+        <Footer />
       </Page>
     </Document>
   );

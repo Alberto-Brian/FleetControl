@@ -117,7 +117,7 @@ export const FinancialReportPDF: React.FC<FinancialReportProps> = ({ expenses, s
           )}
         </View>
 
-        <Footer pageNumber={1} totalPages={1} />
+        <Footer />
       </Page>
     </Document>
   );

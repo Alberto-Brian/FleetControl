@@ -114,7 +114,7 @@ export function ReportsPageContent() {
   const [activeTab,      setActiveTab]      = useState<ActiveTab>('reports');
   const [searchTerm,     setSearchTerm]     = useState('');
   const [categoryFilter, setCategoryFilter] = useState<ReportCategory>('all');
-  const [viewMode,       setViewMode]       = useState<ViewMode>('grid');
+  const [viewMode,       setViewMode]       = useState<ViewMode>('list');
   const [datePreset,     setDatePreset]     = useState('thisMonth');
   const [generating,     setGenerating]     = useState<ReportType | null>(null);
   const [historySearch,  setHistorySearch]  = useState('');

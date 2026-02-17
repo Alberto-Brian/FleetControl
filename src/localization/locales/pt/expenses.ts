@@ -206,6 +206,7 @@ export const ptExpenses = {
     noDriver: 'Sem motorista',
     daysOverdue: '{{days}} dia{{plural}} de atraso',
     totalExpenses: '{{count}} despesa{{plural}}',
+    totalCategories: '{{count}} categoria{{plural}}',
     noDescription: 'Sem descrição',
     activeCount: '{{count}} categoria{{plural}} activa{{plural}}',
   },

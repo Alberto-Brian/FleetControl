@@ -190,7 +190,7 @@ export default function CompleteMaintenanceDialog({ open, onOpenChange }: Comple
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-wider">
               <DollarSign className="w-4 h-4" />
-              {t('maintenances:sections.costs')}
+              {t('maintenances:dialogs.view.costs')}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

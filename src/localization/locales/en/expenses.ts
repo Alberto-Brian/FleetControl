@@ -206,6 +206,7 @@ export const enExpenses = {
     noDriver: 'No driver',
     daysOverdue: '{{days}} day{{plural}} overdue',
     totalExpenses: '{{count}} expense{{plural}}',
+    totalCategories: '{{count}} categories',
     noDescription: 'No description',
     activeCount: '{{count}} active categor{{plural}}',
   },

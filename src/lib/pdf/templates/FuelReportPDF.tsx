@@ -119,7 +119,7 @@ export const FuelReportPDF: React.FC<FuelReportProps> = ({ refuelings, stats, da
           </View>
         )}
 
-        <Footer pageNumber={1} totalPages={1} />
+        <Footer />
       </Page>
     </Document>
   );

@@ -96,7 +96,7 @@ export const TripsReportPDF: React.FC<TripsReportProps> = ({ trips, stats, dateR
           )}
         </View>
 
-        <Footer pageNumber={1} totalPages={1} />
+        <Footer />
       </Page>
     </Document>
   );

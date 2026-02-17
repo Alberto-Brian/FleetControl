@@ -1,9 +1,9 @@
 // ========================================
-// FILE: src/lib/pdf/components/PDFComponents.tsx (COM TRADUÇÕES)
+// FILE: src/lib/pdf/components/PDFComponents.tsx
 // ========================================
 import React from 'react';
 import { Text, View } from '@react-pdf/renderer';
-import { commonStyles, PDF_CONFIG, formatDateTime } from '@/lib/pdf/pdf-config-react';
+import { commonStyles, formatDateTime } from '@/lib/pdf/pdf-config-react';
 import { pdfT } from '@/lib/pdf/pdf-translations';
 
 // ==================== HEADER ====================
@@ -15,7 +15,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
   const t = pdfT();
-  
+
   return (
     <View style={commonStyles.header} fixed>
       <View style={commonStyles.headerLeft}>
@@ -30,21 +30,22 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
   );
 };
 
-// ==================== FOOTER ====================
+// ==================== FOOTER (PAGINAÇÃO DINÂMICA) ====================
 
-interface FooterProps {
-  pageNumber: number;
-  totalPages: number;
-}
-
-export const Footer: React.FC<FooterProps> = ({ pageNumber, totalPages }) => {
+export const Footer: React.FC = () => {
   const t = pdfT();
-  
+
   return (
     <View style={commonStyles.footer} fixed>
       <Text>{t.companyName} - {t.companyTagline}</Text>
       <Text>{t.generatedAt}: {formatDateTime(new Date())}</Text>
-      <Text>{t.page} {pageNumber} {t.of} {totalPages}</Text>
+
+      {/* ✅ render prop do React-PDF para paginação dinâmica */}
+      <Text
+        render={({ pageNumber, totalPages }) =>
+          `${t.page} ${pageNumber} ${t.of} ${totalPages}`
+        }
+      />
     </View>
   );
 };
@@ -89,21 +90,24 @@ interface StatusBadgeProps {
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const t = pdfT();
-  
+
   const statusMap: Record<string, { label: string; style: any }> = {
-    available: { label: t.status.available, style: commonStyles.statusAvailable },
-    in_use: { label: t.status.in_use, style: commonStyles.statusInUse },
+    available:   { label: t.status.available,   style: commonStyles.statusAvailable   },
+    in_use:      { label: t.status.in_use,      style: commonStyles.statusInUse       },
     maintenance: { label: t.status.maintenance, style: commonStyles.statusMaintenance },
-    inactive: { label: t.status.inactive, style: commonStyles.statusInactive },
-    pending: { label: t.status.pending, style: commonStyles.statusMaintenance },
-    completed: { label: t.status.completed, style: commonStyles.statusAvailable },
-    cancelled: { label: t.status.cancelled, style: commonStyles.statusInactive },
-    paid: { label: t.status.paid, style: commonStyles.statusAvailable },
-    scheduled: { label: t.status.scheduled, style: commonStyles.statusInUse },
-    in_progress: { label: t.status.in_progress, style: commonStyles.statusInUse },
+    inactive:    { label: t.status.inactive,    style: commonStyles.statusInactive    },
+    active:      { label: t.status.active,      style: commonStyles.statusAvailable   },
+    on_leave:    { label: t.status.on_leave,    style: commonStyles.statusMaintenance },
+    terminated:  { label: t.status.terminated,  style: commonStyles.statusInactive    },
+    pending:     { label: t.status.pending,     style: commonStyles.statusMaintenance },
+    completed:   { label: t.status.completed,   style: commonStyles.statusAvailable   },
+    cancelled:   { label: t.status.cancelled,   style: commonStyles.statusInactive    },
+    paid:        { label: t.status.paid,        style: commonStyles.statusAvailable   },
+    scheduled:   { label: t.status.scheduled,   style: commonStyles.statusInUse       },
+    in_progress: { label: t.status.in_progress, style: commonStyles.statusInUse       },
   };
 
-  const statusInfo = statusMap[status] || { label: status.toUpperCase(), style: {} };
+  const statusInfo = statusMap[status] ?? { label: status.toUpperCase(), style: {} };
 
   return (
     <View style={[commonStyles.statusBadge, statusInfo.style]}>
