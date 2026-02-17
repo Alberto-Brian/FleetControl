@@ -198,14 +198,31 @@ interface IDashboard {
  interface IReports {
   // Buscar dados dos relatórios
   getVehiclesData: (dateRange: DateRange) => Promise<any>;
+  getDriversData: (dateRange: DateRange) => Promise<any>;
   getTripsData: (dateRange: DateRange) => Promise<any>;
   getFuelData: (dateRange: DateRange) => Promise<any>;
   getMaintenanceData: (dateRange: DateRange) => Promise<any>;
   getFinancialData: (dateRange: DateRange) => Promise<any>;
   getGeneralData: (dateRange: DateRange) => Promise<any>;
+
+   listGenerated:   (filters?: { type?: string; startDate?: string; endDate?: string; search?: string }) => Promise<any[]>;
+    getGenerated:    (id: string) => Promise<any>;
+    deleteGenerated: (id: string) => Promise<void>;
+    statsGenerated:  () => Promise<{ total: number; thisMonth: number; byType: Record<string, number> }>;
+    redownload:      (id: string) => Promise<any>; //{ success: boolean; path?: string }
   
-  // Salvar PDF no sistema de arquivos
-  savePdf: (params: { base64: string; fileName: string }) => Promise<{ success: boolean; path?: string }>;
+ // Guardar PDF + registo no histórico
+      savePdf: (params: {
+        base64:      string;
+        fileName:    string;
+        reportType:  string;
+        title:       string;
+        periodStart: string;
+        periodEnd:   string;
+        language:    string;
+        data:        any;
+        stats:       any;
+      }) => Promise<{ success: boolean; path?: string; id?: string }>;
 }
 
 declare interface Window {

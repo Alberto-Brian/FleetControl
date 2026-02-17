@@ -8,7 +8,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { ICreateFuelStation, IUpdateFuelStation } from '@/lib/types/fuel-station';
 
 export async function createFuelStation(stationData: ICreateFuelStation) {
-    await checkAndRotate();
+    // await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
 

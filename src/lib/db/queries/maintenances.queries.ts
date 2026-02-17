@@ -63,7 +63,7 @@ export async function getMaintenanceById(maintenanceId: string): Promise<IMainte
  * Cria nova manutenção
  */
 export async function createMaintenance(maintenanceData: ICreateMaintenance): Promise<IMaintenance> {
-    await checkAndRotate();
+    // await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
 

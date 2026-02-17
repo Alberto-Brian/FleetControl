@@ -8,7 +8,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { ICreateWorkshop, IUpdateWorkshop } from '@/lib/types/workshop';
 
 export async function createWorkshop(workshopData: ICreateWorkshop) {
-    await checkAndRotate();
+    // await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
 

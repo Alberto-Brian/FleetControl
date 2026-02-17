@@ -92,7 +92,7 @@ export function invalidateDbCache(): void {
  * 
  * @example
  * export async function createDriver(data: ICreateDriver) {
- *   await checkAndRotate(); // ✅ Verifica antes de inserir
+ *   // await checkAndRotate(); // ✅ Verifica antes de inserir
  *   
  *   const { db } = useDb(); // Sempre instância atualizada
  *   return await db.insert(drivers).values(data).returning();

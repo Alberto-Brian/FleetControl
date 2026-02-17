@@ -2,14 +2,23 @@
 // FILE: src/lib/db/queries/reports.queries.ts
 // ========================================
 import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
-import { vehicles, vehicle_categories, trips, drivers, refuelings, maintenances, expenses, expense_categories, fines } from '@/lib/db/schemas';
-import { eq, and, gte, lte, isNull, sql, count, sum } from 'drizzle-orm';
+import { 
+  vehicles, 
+  vehicle_categories, 
+  trips, 
+  drivers, 
+  refuelings, 
+  maintenances, 
+  expenses, 
+  expense_categories, 
+  fines } from '@/lib/db/schemas';
+import { eq, and, gte, lte, isNull, isNotNull, sql, count, desc, sum } from 'drizzle-orm';
 
 // ==================== VEHICLES REPORT ====================
 
 export async function getVehiclesReportData(startDate: string, endDate: string) {
   
-  //  await checkAndRotate();
+  //  // await checkAndRotate();
    const { db } = useDb();
     // Lista de veículos
   const vehiclesList = await db
@@ -73,11 +82,134 @@ export async function getVehiclesReportData(startDate: string, endDate: string) 
   };
 }
 
+export async function getDriversReportData(startDate: string, endDate: string) {
+  try {
+    const { db } = useDb();
+
+    // Buscar todos os motoristas activos
+    const allDrivers = await db
+      .select()
+      .from(drivers)
+      .where(eq(drivers.is_active, true));
+
+    // Buscar viagens do período agrupadas por motorista
+    // CORREÇÃO: Remover ::integer, SQLite não suporta essa sintaxe
+    const tripsByDriver = await db
+      .select({
+        driver_id: trips.driver_id,
+        trip_count: count(trips.id),
+        total_km: sql<number>`COALESCE(SUM(${trips.end_mileage} - ${trips.start_mileage}), 0)`,
+      })
+      .from(trips)
+      .where(
+        and(
+          gte(trips.start_date, startDate),
+          lte(trips.start_date, endDate),
+          isNotNull(trips.driver_id)
+        )
+      )
+      .groupBy(trips.driver_id);
+
+    // Criar mapa de viagens por motorista
+    const tripsMap = new Map(
+      tripsByDriver.map(t => [
+        t.driver_id,
+        {
+          total_trips: Number(t.trip_count) || 0,
+          total_distance: Number(t.total_km) || 0,
+        }
+      ])
+    );
+
+    // Combinar dados
+    const driversList = allDrivers.map(driver => ({
+      id: String(driver.id),
+      name: String(driver.name || ''),
+      license_number: String(driver.license_number || ''),
+      phone: String(driver.phone || ''),
+      status: String(driver.status || 'inactive'),
+      availability: String(driver.availability || 'unavailable'),
+      total_trips: Number(tripsMap.get(driver.id)?.total_trips || 0),
+      total_distance: Number(tripsMap.get(driver.id)?.total_distance || 0),
+    }))
+    .sort((a, b) => b.total_distance - a.total_distance);
+
+    // Estatísticas gerais
+    const totalDrivers = Number(allDrivers.length);
+    const activeCount = Number(allDrivers.filter(d => d.status === 'active').length);
+    const onLeaveCount = Number(allDrivers.filter(d => d.status === 'on_leave').length);
+    const terminatedCount = Number(allDrivers.filter(d => d.status === 'terminated').length);
+
+    // Total de viagens no período - CORREÇÃO: Remover ::integer
+    const totalTripsResult = await db
+      .select({
+        count: count(),
+        distance: sql<number>`COALESCE(SUM(${trips.end_mileage} - ${trips.start_mileage}), 0)`,
+      })
+      .from(trips)
+      .where(
+        and(
+          gte(trips.start_date, startDate),
+          lte(trips.start_date, endDate)
+        )
+      );
+
+    const totalTrips = Number(totalTripsResult[0]?.count || 0);
+    const totalDistance = Number(totalTripsResult[0]?.distance || 0);
+
+    // Top 5 motoristas
+    const topDrivers = driversList
+      .filter(d => d.total_trips > 0)
+      .slice(0, 5)
+      .map(d => ({
+        name: String(d.name),
+        totalTrips: Number(d.total_trips),
+        totalDistance: Number(d.total_distance),
+      }));
+
+    // Distribuição por status
+    const byStatus = [
+      {
+        status: 'active',
+        count: activeCount,
+        percentage: Math.round((activeCount / (totalDrivers || 1)) * 100 * 10) / 10,
+      },
+      {
+        status: 'on_leave',
+        count: onLeaveCount,
+        percentage: Math.round((onLeaveCount / (totalDrivers || 1)) * 100 * 10) / 10,
+      },
+      {
+        status: 'terminated',
+        count: terminatedCount,
+        percentage: Math.round((terminatedCount / (totalDrivers || 1)) * 100 * 10) / 10,
+      },
+    ].filter(s => s.count > 0);
+
+    return {
+      drivers: driversList,
+      stats: {
+        total: totalDrivers,
+        active: activeCount,
+        inactive: terminatedCount,
+        onLeave: onLeaveCount,
+        totalTrips: totalTrips,
+        totalDistance: totalDistance,
+        topDrivers: topDrivers,
+        byStatus: byStatus,
+      },
+    };
+  } catch (error) {
+    console.error('Erro ao buscar dados de motoristas:', error);
+    throw error;
+  }
+}
+
 // ==================== TRIPS REPORT ====================
 
 export async function getTripsReportData(startDate: string, endDate: string) {
   
-     await checkAndRotate();
+     // await checkAndRotate();
      const { db } = useDb();
 
     const tripsList = await db
@@ -134,7 +266,7 @@ export async function getTripsReportData(startDate: string, endDate: string) {
 
 export async function getFuelReportData(startDate: string, endDate: string) {
   
-     await checkAndRotate();
+     // await checkAndRotate();
      const { db } = useDb();
 
     const refuelingsList = await db
@@ -191,7 +323,7 @@ export async function getFuelReportData(startDate: string, endDate: string) {
 
 export async function getMaintenanceReportData(startDate: string, endDate: string) {
   
-     await checkAndRotate();
+     // await checkAndRotate();
      const { db } = useDb();
   
     const maintenancesList = await db
@@ -236,7 +368,7 @@ export async function getMaintenanceReportData(startDate: string, endDate: strin
 
 export async function getFinancialReportData(startDate: string, endDate: string) {
   
-   await checkAndRotate();
+   // await checkAndRotate();
     const { db } = useDb();
 
     // Despesas

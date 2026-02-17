@@ -103,7 +103,7 @@ export async function hasDriverWithTaxId(taxId: string, excludeId?: string) {
  * Cria um novo motorista
  */
 export async function createDriver(driverData: ICreateDriver): Promise<IDriver> {
-    await checkAndRotate();
+    // await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
 
@@ -175,7 +175,7 @@ export async function getDriverById(driverId: string): Promise<IDriver | null> {
  * Atualiza um motorista
  * ✅ Retorna o motorista completo atualizado
  */
-export async function updateDriver(driverId: string, driverData: IUpdateDriver): Promise<Driver | null> {
+export async function updateDriver(driverId: string, driverData: IUpdateDriver): Promise<IDriver | null> {
   const { db } = useDb();
 
   // Se o status for alterado para on_leave ou terminated, forçar availability para offline

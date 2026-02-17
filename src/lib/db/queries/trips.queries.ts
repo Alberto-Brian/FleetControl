@@ -89,7 +89,7 @@ export async function isDriverAvailable(driverId: string): Promise<boolean> {
  * Cria nova viagem
  */
 export async function createTrip(tripData: ICreateTrip): Promise<ITrip> {
-    await checkAndRotate();
+    // await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
     const tripCode = `VIA-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;

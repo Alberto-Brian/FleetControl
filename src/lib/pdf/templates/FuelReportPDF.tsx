@@ -1,12 +1,13 @@
 // ========================================
-// FILE: src/lib/pdf/templates/FuelReportPDF.tsx
+// FILE: src/lib/pdf/templates/FuelReportPDF.tsx (COM TRADUÇÕES)
 // ========================================
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { Header, Footer, InfoSection, SectionTitle, SummaryBox, EmptyState } from '@/components/PDFComponents';
-import { commonStyles, formatDate, formatCurrency, formatDistance, PDF_CONFIG } from '../pdf-config-react';
+import { commonStyles, formatDate, formatCurrency, formatDistance } from '../pdf-config-react';
+import { pdfT } from '../pdf-translations';
 
-const fuelStyles = StyleSheet.create({
+const styles = StyleSheet.create({
   tableCell: {
     ...commonStyles.tableCell,
     flex: 1,
@@ -19,103 +20,107 @@ interface FuelReportProps {
   dateRange: { start: string; end: string };
 }
 
-export const FuelReportPDF: React.FC<FuelReportProps> = ({ refuelings, stats, dateRange }) => (
-  <Document>
-    <Page size="A4" style={commonStyles.page}>
-      <Header 
-        title="RELATÓRIO DE COMBUSTÍVEL" 
-        subtitle={`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`}
-      />
+export const FuelReportPDF: React.FC<FuelReportProps> = ({ refuelings, stats, dateRange }) => {
+  const t = pdfT();
 
-      <InfoSection items={[
-        { label: 'Período', value: `${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}` },
-        { label: 'Total de Abastecimentos', value: refuelings?.length || 0 },
-        { label: 'Gerado em', value: formatDate(new Date()) },
-      ]} />
+  return (
+    <Document>
+      <Page size="A4" style={commonStyles.page}>
+        <Header 
+          title={t.reports.fuel} 
+          subtitle={`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`}
+        />
 
-      {stats && (
-        <View style={commonStyles.section}>
-          <SectionTitle>Resumo</SectionTitle>
-          <SummaryBox items={[
-            { label: 'Total de Abastecimentos', value: stats.total || 0 },
-            { label: 'Litros Totais', value: `${(stats.totalLiters || 0).toFixed(2)} L` },
-            { label: 'Custo Total', value: formatCurrency(stats.totalCost || 0), highlight: true },
-            { label: 'Preço Médio/Litro', value: formatCurrency((stats.totalCost || 0) / (stats.totalLiters || 1)) },
-            { label: 'Média por Abastecimento', value: `${((stats.totalLiters || 0) / (stats.total || 1)).toFixed(2)} L` },
-          ]} />
-        </View>
-      )}
+        <InfoSection items={[
+          { label: t.period, value: `${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}` },
+          { label: t.stats.totalRefuelings, value: refuelings?.length || 0 },
+          { label: t.generatedAt, value: formatDate(new Date()) },
+        ]} />
 
-      <View style={commonStyles.section}>
-        <SectionTitle>Histórico de Abastecimentos</SectionTitle>
-        
-        {!refuelings || refuelings.length === 0 ? (
-          <EmptyState message="Nenhum abastecimento encontrado no período selecionado" />
-        ) : (
-          <View style={commonStyles.table}>
-            <View style={commonStyles.tableHeader}>
-              <Text style={[commonStyles.tableCellHeader, fuelStyles.tableCell]}>Data</Text>
-              <Text style={[commonStyles.tableCellHeader, fuelStyles.tableCell]}>Veículo</Text>
-              <Text style={[commonStyles.tableCellHeader, fuelStyles.tableCell]}>Litros</Text>
-              <Text style={[commonStyles.tableCellHeader, fuelStyles.tableCell]}>Preço/L</Text>
-              <Text style={[commonStyles.tableCellHeader, fuelStyles.tableCell]}>Total</Text>
-              <Text style={[commonStyles.tableCellHeader, fuelStyles.tableCell]}>Km</Text>
-            </View>
-
-            {refuelings.map((fuel, index) => (
-              <View 
-                key={fuel.id} 
-                style={index === refuelings.length - 1 ? commonStyles.tableRowLast : commonStyles.tableRow}
-              >
-                <Text style={[commonStyles.tableCell, fuelStyles.tableCell]}>
-                  {formatDate(fuel.refueling_date)}
-                </Text>
-                <Text style={[commonStyles.tableCellBold, fuelStyles.tableCell]}>
-                  {fuel.vehicle_plate || '-'}
-                </Text>
-                <Text style={[commonStyles.tableCell, fuelStyles.tableCell]}>
-                  {fuel.liters.toFixed(2)} L
-                </Text>
-                <Text style={[commonStyles.tableCell, fuelStyles.tableCell]}>
-                  {formatCurrency(fuel.price_per_liter)}
-                </Text>
-                <Text style={[commonStyles.tableCellBold, fuelStyles.tableCell]}>
-                  {formatCurrency(fuel.total_cost)}
-                </Text>
-                <Text style={[commonStyles.tableCell, fuelStyles.tableCell]}>
-                  {formatDistance(fuel.mileage || 0)}
-                </Text>
-              </View>
-            ))}
+        {stats && (
+          <View style={commonStyles.section}>
+            <SectionTitle>{t.summary}</SectionTitle>
+            <SummaryBox items={[
+              { label: t.stats.totalRefuelings, value: stats.total || 0 },
+              { label: t.stats.totalLiters, value: `${(stats.totalLiters || 0).toFixed(2)} L` },
+              { label: t.stats.totalCost, value: formatCurrency(stats.totalCost || 0), highlight: true },
+              { label: t.stats.avgPricePerLiter, value: formatCurrency((stats.totalCost || 0) / (stats.totalLiters || 1)) },
+              { label: t.stats.avgPerRefueling, value: `${((stats.totalLiters || 0) / (stats.total || 1)).toFixed(2)} L` },
+            ]} />
           </View>
         )}
-      </View>
 
-      {stats?.topVehicles && stats.topVehicles.length > 0 && (
         <View style={commonStyles.section}>
-          <SectionTitle>Top 5 Veículos por Consumo</SectionTitle>
-          <View style={commonStyles.table}>
-            <View style={commonStyles.tableHeader}>
-              <Text style={[commonStyles.tableCellHeader, { flex: 2 }]}>Veículo</Text>
-              <Text style={[commonStyles.tableCellHeader, { flex: 1 }]}>Litros</Text>
-              <Text style={[commonStyles.tableCellHeader, { flex: 1 }]}>Custo</Text>
-            </View>
-
-            {stats.topVehicles.slice(0, 5).map((v: any, index: number) => (
-              <View 
-                key={index} 
-                style={index === 4 ? commonStyles.tableRowLast : commonStyles.tableRow}
-              >
-                <Text style={[commonStyles.tableCellBold, { flex: 2 }]}>{v.vehicle_plate}</Text>
-                <Text style={[commonStyles.tableCell, { flex: 1 }]}>{v.totalLiters.toFixed(2)} L</Text>
-                <Text style={[commonStyles.tableCell, { flex: 1 }]}>{formatCurrency(v.totalCost)}</Text>
+          <SectionTitle>{t.sections.refuelingHistory}</SectionTitle>
+          
+          {!refuelings || refuelings.length === 0 ? (
+            <EmptyState message={t.empty.noData} />
+          ) : (
+            <View style={commonStyles.table}>
+              <View style={commonStyles.tableHeader}>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.date}</Text>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.vehicle}</Text>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.liters}</Text>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.pricePerLiter}</Text>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.total}</Text>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.mileage}</Text>
               </View>
-            ))}
-          </View>
-        </View>
-      )}
 
-      <Footer pageNumber={1} totalPages={1} />
-    </Page>
-  </Document>
-);
+              {refuelings.map((fuel, index) => (
+                <View 
+                  key={fuel.id} 
+                  style={index === refuelings.length - 1 ? commonStyles.tableRowLast : commonStyles.tableRow}
+                >
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
+                    {formatDate(fuel.refueling_date)}
+                  </Text>
+                  <Text style={[commonStyles.tableCellBold, styles.tableCell]}>
+                    {fuel.vehicle_plate || '-'}
+                  </Text>
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
+                    {fuel.liters.toFixed(2)} L
+                  </Text>
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
+                    {formatCurrency(fuel.price_per_liter)}
+                  </Text>
+                  <Text style={[commonStyles.tableCellBold, styles.tableCell]}>
+                    {formatCurrency(fuel.total_cost)}
+                  </Text>
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
+                    {formatDistance(fuel.mileage || 0)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {stats?.topVehicles && stats.topVehicles.length > 0 && (
+          <View style={commonStyles.section}>
+            <SectionTitle>{t.sections.topVehicles}</SectionTitle>
+            <View style={commonStyles.table}>
+              <View style={commonStyles.tableHeader}>
+                <Text style={[commonStyles.tableCellHeader, { flex: 2 }]}>{t.table.vehicle}</Text>
+                <Text style={[commonStyles.tableCellHeader, { flex: 1 }]}>{t.table.liters}</Text>
+                <Text style={[commonStyles.tableCellHeader, { flex: 1 }]}>{t.table.cost}</Text>
+              </View>
+
+              {stats.topVehicles.slice(0, 5).map((v: any, index: number) => (
+                <View 
+                  key={index} 
+                  style={index === 4 ? commonStyles.tableRowLast : commonStyles.tableRow}
+                >
+                  <Text style={[commonStyles.tableCellBold, { flex: 2 }]}>{v.vehicle_plate}</Text>
+                  <Text style={[commonStyles.tableCell, { flex: 1 }]}>{v.totalLiters.toFixed(2)} L</Text>
+                  <Text style={[commonStyles.tableCell, { flex: 1 }]}>{formatCurrency(v.totalCost)}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        <Footer pageNumber={1} totalPages={1} />
+      </Page>
+    </Document>
+  );
+};

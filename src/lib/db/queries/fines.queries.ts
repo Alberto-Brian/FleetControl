@@ -43,7 +43,7 @@ async function getFineWithDetails(fineId: string) {
 }
 
 export async function createFine(fineData: ICreateFine) {
-    await checkAndRotate();
+    // await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
 

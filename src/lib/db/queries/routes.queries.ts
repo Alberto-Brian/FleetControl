@@ -8,7 +8,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { ICreateRoute, IUpdateRoute } from '@/lib/types/route';
 
 export async function createRoute(routeData: ICreateRoute) {
-    await checkAndRotate();
+    // await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
 

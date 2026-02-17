@@ -8,7 +8,7 @@ import { eq, and, isNull, desc, gte, lte } from 'drizzle-orm';
 import { ICreateExpense, IUpdateExpense, PaymentData } from '@/lib/types/expense';
 
 export async function createExpense(expenseData: ICreateExpense) {
-    await checkAndRotate();
+    // await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
 

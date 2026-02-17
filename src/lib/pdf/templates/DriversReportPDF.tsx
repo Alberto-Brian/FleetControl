@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/lib/pdf/templates/VehiclesReportPDF.tsx (COM TRADUÇÕES)
+// FILE: src/lib/pdf/templates/DriversReportPDF.tsx
 // ========================================
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
@@ -14,80 +14,81 @@ const styles = StyleSheet.create({
   },
 });
 
-interface VehiclesReportProps {
-  vehicles: any[];
+interface DriversReportProps {
+  drivers: any[];
   stats: any;
   dateRange: { start: string; end: string };
 }
 
-export const VehiclesReportPDF: React.FC<VehiclesReportProps> = ({ vehicles, stats, dateRange }) => {
-  const t = pdfT(); // ✅ Obter traduções
+export const DriversReportPDF: React.FC<DriversReportProps> = ({ drivers, stats, dateRange }) => {
+  const t = pdfT();
 
   return (
     <Document>
       <Page size="A4" style={commonStyles.page}>
         <Header 
-          title={t.reports.vehicles} 
+          title={t.reports.drivers} 
           subtitle={`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`}
         />
 
-        {/* Info Section */}
         <InfoSection items={[
           { label: t.period, value: `${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}` },
-          { label: t.stats.totalVehicles, value: vehicles?.length || 0 },
+          { label: t.stats.totalDrivers, value: drivers?.length || 0 },
           { label: t.generatedAt, value: formatDate(new Date()) },
         ]} />
 
-        {/* Resumo */}
         {stats && (
           <View style={commonStyles.section}>
             <SectionTitle>{t.summary}</SectionTitle>
             <SummaryBox items={[
-              { label: t.stats.totalVehicles, value: stats.total || 0 },
-              { label: t.stats.available, value: stats.available || 0 },
-              { label: t.stats.inUse, value: stats.inUse || 0 },
-              { label: t.stats.maintenance, value: stats.maintenance || 0 },
+              { label: t.stats.totalDrivers, value: stats.total || 0 },
+              { label: t.stats.active, value: stats.active || 0 },
               { label: t.stats.inactive, value: stats.inactive || 0 },
-              { label: t.stats.totalMileage, value: formatDistance(stats.totalMileage || 0), highlight: true },
+              { label: t.stats.onLeave, value: stats.onLeave || 0 },
+              { label: t.stats.totalTrips, value: stats.totalTrips || 0 },
+              { label: t.stats.totalDistance, value: formatDistance(stats.totalDistance || 0), highlight: true },
             ]} />
           </View>
         )}
 
-        {/* Lista de Veículos */}
         <View style={commonStyles.section}>
-          <SectionTitle>{t.sections.vehicleList}</SectionTitle>
+          <SectionTitle>{t.sections.driverList}</SectionTitle>
           
-          {!vehicles || vehicles.length === 0 ? (
+          {!drivers || drivers.length === 0 ? (
             <EmptyState message={t.empty.noData} />
           ) : (
             <View style={commonStyles.table}>
-              {/* Header */}
               <View style={commonStyles.tableHeader}>
-                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.licensePlate}</Text>
-                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.vehicle}</Text>
-                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.category}</Text>
-                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.year}</Text>
-                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.mileage}</Text>
+                <Text style={[commonStyles.tableCellHeader, { flex: 2 }]}>{t.table.name}</Text>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.license}</Text>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.phone}</Text>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.trips}</Text>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.distance}</Text>
                 <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.status}</Text>
               </View>
 
-              {/* Rows */}
-              {vehicles.map((vehicle, index) => (
+              {drivers.map((driver, index) => (
                 <View 
-                  key={vehicle.id} 
-                  style={index === vehicles.length - 1 ? commonStyles.tableRowLast : commonStyles.tableRow}
+                  key={driver.id} 
+                  style={index === drivers.length - 1 ? commonStyles.tableRowLast : commonStyles.tableRow}
                 >
-                  <Text style={[commonStyles.tableCellBold, styles.tableCell]}>{vehicle.license_plate}</Text>
-                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
-                    {vehicle.brand} {vehicle.model}
+                  <Text style={[commonStyles.tableCellBold, { flex: 2 }]}>
+                    {driver.name}
                   </Text>
-                  <Text style={[commonStyles.tableCell, styles.tableCell]}>{vehicle.category_name || '-'}</Text>
-                  <Text style={[commonStyles.tableCell, styles.tableCell]}>{vehicle.year || '-'}</Text>
                   <Text style={[commonStyles.tableCell, styles.tableCell]}>
-                    {formatDistance(vehicle.current_mileage || 0)}
+                    {driver.license_number || '-'}
+                  </Text>
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
+                    {driver.phone || '-'}
+                  </Text>
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
+                    {driver.total_trips || 0}
+                  </Text>
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
+                    {formatDistance(driver.total_distance || 0)}
                   </Text>
                   <View style={styles.tableCell}>
-                    <StatusBadge status={vehicle.status} />
+                    <StatusBadge status={driver.status} />
                   </View>
                 </View>
               ))}
@@ -95,25 +96,27 @@ export const VehiclesReportPDF: React.FC<VehiclesReportProps> = ({ vehicles, sta
           )}
         </View>
 
-        {/* Distribuição por Categoria */}
-        {stats?.byCategory && stats.byCategory.length > 0 && (
+        {/* Top 5 Motoristas por Distância */}
+        {stats?.topDrivers && stats.topDrivers.length > 0 && (
           <View style={commonStyles.section}>
-            <SectionTitle>{t.sections.distributionByCategory}</SectionTitle>
+            <SectionTitle>{t.sections.topDrivers}</SectionTitle>
             <View style={commonStyles.table}>
               <View style={commonStyles.tableHeader}>
-                <Text style={[commonStyles.tableCellHeader, { flex: 2 }]}>{t.table.category}</Text>
-                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.quantity}</Text>
-                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.percentage}</Text>
+                <Text style={[commonStyles.tableCellHeader, { flex: 2 }]}>{t.table.name}</Text>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.trips}</Text>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.distance}</Text>
               </View>
 
-              {stats.byCategory.map((cat: any, index: number) => (
+              {stats.topDrivers.slice(0, 5).map((driver: any, index: number) => (
                 <View 
                   key={index} 
-                  style={index === stats.byCategory.length - 1 ? commonStyles.tableRowLast : commonStyles.tableRow}
+                  style={index === 4 ? commonStyles.tableRowLast : commonStyles.tableRow}
                 >
-                  <Text style={[commonStyles.tableCellBold, { flex: 2 }]}>{cat.name}</Text>
-                  <Text style={[commonStyles.tableCell, styles.tableCell]}>{cat.count}</Text>
-                  <Text style={[commonStyles.tableCell, styles.tableCell]}>{cat.percentage.toFixed(1)}%</Text>
+                  <Text style={[commonStyles.tableCellBold, { flex: 2 }]}>{driver.name}</Text>
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>{driver.totalTrips}</Text>
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
+                    {formatDistance(driver.totalDistance)}
+                  </Text>
                 </View>
               ))}
             </View>

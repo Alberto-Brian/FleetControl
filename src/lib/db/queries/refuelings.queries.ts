@@ -8,7 +8,7 @@ import { eq, and, isNull, desc } from 'drizzle-orm';
 import { ICreateRefueling } from '@/lib/types/refueling';
 
 export async function createRefueling(refuelingData: ICreateRefueling) {
-    await checkAndRotate();
+    // await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
 

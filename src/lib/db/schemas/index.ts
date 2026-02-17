@@ -19,6 +19,7 @@ import { maintenance_items } from "./maintenance_items";
 import { refuelings } from "./refuelings";
 import { workshops } from "./workshops";
 import { vehicle_categories } from "./vehicle_categories";
+import { generatedReports } from "./generated-reports";
 
 
 export {
@@ -41,5 +42,6 @@ export {
     fines,
     fuel_stations,
     refuelings,
-    workshops
+    workshops,
+    generatedReports
 }

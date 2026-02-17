@@ -1,12 +1,13 @@
 // ========================================
-// FILE: src/lib/pdf/templates/MaintenanceReportPDF.tsx
+// FILE: src/lib/pdf/templates/MaintenanceReportPDF.tsx (COM TRADUÇÕES)
 // ========================================
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { Header, Footer, InfoSection, SectionTitle, StatusBadge, SummaryBox, EmptyState } from '@/components/PDFComponents';
-import { commonStyles, formatDate, formatCurrency, PDF_CONFIG } from '../pdf-config-react';
+import { commonStyles, formatDate, formatCurrency } from '../pdf-config-react';
+import { pdfT } from '../pdf-translations';
 
-const maintStyles = StyleSheet.create({
+const styles = StyleSheet.create({
   tableCell: {
     ...commonStyles.tableCell,
     flex: 1,
@@ -19,80 +20,84 @@ interface MaintenanceReportProps {
   dateRange: { start: string; end: string };
 }
 
-export const MaintenanceReportPDF: React.FC<MaintenanceReportProps> = ({ maintenances, stats, dateRange }) => (
-  <Document>
-    <Page size="A4" style={commonStyles.page}>
-      <Header 
-        title="RELATÓRIO DE MANUTENÇÕES" 
-        subtitle={`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`}
-      />
+export const MaintenanceReportPDF: React.FC<MaintenanceReportProps> = ({ maintenances, stats, dateRange }) => {
+  const t = pdfT();
 
-      <InfoSection items={[
-        { label: 'Período', value: `${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}` },
-        { label: 'Total de Manutenções', value: maintenances?.length || 0 },
-        { label: 'Gerado em', value: formatDate(new Date()) },
-      ]} />
+  return (
+    <Document>
+      <Page size="A4" style={commonStyles.page}>
+        <Header 
+          title={t.reports.maintenance} 
+          subtitle={`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`}
+        />
 
-      {stats && (
-        <View style={commonStyles.section}>
-          <SectionTitle>Resumo</SectionTitle>
-          <SummaryBox items={[
-            { label: 'Total de Manutenções', value: stats.total || 0 },
-            { label: 'Preventivas', value: stats.preventive || 0 },
-            { label: 'Corretivas', value: stats.corrective || 0 },
-            { label: 'Concluídas', value: stats.completed || 0 },
-            { label: 'Em Andamento', value: stats.inProgress || 0 },
-            { label: 'Custo Total', value: formatCurrency(stats.totalCost || 0), highlight: true },
-          ]} />
-        </View>
-      )}
+        <InfoSection items={[
+          { label: t.period, value: `${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}` },
+          { label: t.stats.totalMaintenances, value: maintenances?.length || 0 },
+          { label: t.generatedAt, value: formatDate(new Date()) },
+        ]} />
 
-      <View style={commonStyles.section}>
-        <SectionTitle>Histórico de Manutenções</SectionTitle>
-        
-        {!maintenances || maintenances.length === 0 ? (
-          <EmptyState message="Nenhuma manutenção encontrada no período selecionado" />
-        ) : (
-          <View style={commonStyles.table}>
-            <View style={commonStyles.tableHeader}>
-              <Text style={[commonStyles.tableCellHeader, maintStyles.tableCell]}>Data</Text>
-              <Text style={[commonStyles.tableCellHeader, maintStyles.tableCell]}>Veículo</Text>
-              <Text style={[commonStyles.tableCellHeader, { flex: 2 }]}>Descrição</Text>
-              <Text style={[commonStyles.tableCellHeader, maintStyles.tableCell]}>Tipo</Text>
-              <Text style={[commonStyles.tableCellHeader, maintStyles.tableCell]}>Custo</Text>
-              <Text style={[commonStyles.tableCellHeader, maintStyles.tableCell]}>Status</Text>
-            </View>
-
-            {maintenances.map((m, index) => (
-              <View 
-                key={m.id} 
-                style={index === maintenances.length - 1 ? commonStyles.tableRowLast : commonStyles.tableRow}
-              >
-                <Text style={[commonStyles.tableCell, maintStyles.tableCell]}>
-                  {formatDate(m.entry_date)}
-                </Text>
-                <Text style={[commonStyles.tableCellBold, maintStyles.tableCell]}>
-                  {m.vehicle_plate || '-'}
-                </Text>
-                <Text style={[commonStyles.tableCell, { flex: 2 }]}>
-                  {m.description || '-'}
-                </Text>
-                <Text style={[commonStyles.tableCell, maintStyles.tableCell]}>
-                  {m.type === 'preventive' ? 'Preventiva' : 'Corretiva'}
-                </Text>
-                <Text style={[commonStyles.tableCell, maintStyles.tableCell]}>
-                  {formatCurrency(m.total_cost || 0)}
-                </Text>
-                <View style={maintStyles.tableCell}>
-                  <StatusBadge status={m.status} />
-                </View>
-              </View>
-            ))}
+        {stats && (
+          <View style={commonStyles.section}>
+            <SectionTitle>{t.summary}</SectionTitle>
+            <SummaryBox items={[
+              { label: t.stats.totalMaintenances, value: stats.total || 0 },
+              { label: t.stats.preventive, value: stats.preventive || 0 },
+              { label: t.stats.corrective, value: stats.corrective || 0 },
+              { label: t.stats.completed, value: stats.completed || 0 },
+              { label: t.stats.inProgress, value: stats.inProgress || 0 },
+              { label: t.stats.totalCost, value: formatCurrency(stats.totalCost || 0), highlight: true },
+            ]} />
           </View>
         )}
-      </View>
 
-      <Footer pageNumber={1} totalPages={1} />
-    </Page>
-  </Document>
-);
+        <View style={commonStyles.section}>
+          <SectionTitle>{t.sections.maintenanceHistory}</SectionTitle>
+          
+          {!maintenances || maintenances.length === 0 ? (
+            <EmptyState message={t.empty.noData} />
+          ) : (
+            <View style={commonStyles.table}>
+              <View style={commonStyles.tableHeader}>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.date}</Text>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.vehicle}</Text>
+                <Text style={[commonStyles.tableCellHeader, { flex: 2 }]}>{t.table.description}</Text>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.type}</Text>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.cost}</Text>
+                <Text style={[commonStyles.tableCellHeader, styles.tableCell]}>{t.table.status}</Text>
+              </View>
+
+              {maintenances.map((m, index) => (
+                <View 
+                  key={m.id} 
+                  style={index === maintenances.length - 1 ? commonStyles.tableRowLast : commonStyles.tableRow}
+                >
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
+                    {formatDate(m.entry_date)}
+                  </Text>
+                  <Text style={[commonStyles.tableCellBold, styles.tableCell]}>
+                    {m.vehicle_plate || '-'}
+                  </Text>
+                  <Text style={[commonStyles.tableCell, { flex: 2 }]}>
+                    {m.description || '-'}
+                  </Text>
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
+                    {m.type === 'preventive' ? t.maintenanceTypes.preventive : t.maintenanceTypes.corrective}
+                  </Text>
+                  <Text style={[commonStyles.tableCell, styles.tableCell]}>
+                    {formatCurrency(m.total_cost || 0)}
+                  </Text>
+                  <View style={styles.tableCell}>
+                    <StatusBadge status={m.status} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        <Footer pageNumber={1} totalPages={1} />
+      </Page>
+    </Document>
+  );
+};

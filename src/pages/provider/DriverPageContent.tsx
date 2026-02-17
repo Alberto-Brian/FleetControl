@@ -375,7 +375,7 @@ const filteredDrivers = drivers.filter(d => {
                     }}
                 >
                     {driver.availability === 'available' && driver.status === 'active' 
-                    ? t('drivers:actions.assignTrip') 
+                    ? t('drivers:actions.view') 
                     : driver.availability === 'on_trip' 
                         ? t('drivers:availability.on_trip.label') 
                         : driver.status === 'on_leave'

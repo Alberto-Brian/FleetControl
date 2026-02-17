@@ -8,7 +8,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { ICreateExpenseCategory, IUpdateExpenseCategory } from '@/lib/types/expense-category';
 
 export async function createExpenseCategory(categoryData: ICreateExpenseCategory) {
-    await checkAndRotate();
+    // await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
 

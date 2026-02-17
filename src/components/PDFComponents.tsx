@@ -1,9 +1,10 @@
 // ========================================
-// FILE: src/lib/pdf/components/PDFComponents.tsx
+// FILE: src/lib/pdf/components/PDFComponents.tsx (COM TRADUÇÕES)
 // ========================================
 import React from 'react';
 import { Text, View } from '@react-pdf/renderer';
 import { commonStyles, PDF_CONFIG, formatDateTime } from '@/lib/pdf/pdf-config-react';
+import { pdfT } from '@/lib/pdf/pdf-translations';
 
 // ==================== HEADER ====================
 
@@ -12,18 +13,22 @@ interface HeaderProps {
   subtitle?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, subtitle }) => (
-  <View style={commonStyles.header} fixed>
-    <View style={commonStyles.headerLeft}>
-      <Text style={commonStyles.companyName}>{PDF_CONFIG.company.name}</Text>
-      <Text style={commonStyles.companyTagline}>{PDF_CONFIG.company.tagline}</Text>
+export const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
+  const t = pdfT();
+  
+  return (
+    <View style={commonStyles.header} fixed>
+      <View style={commonStyles.headerLeft}>
+        <Text style={commonStyles.companyName}>{t.companyName}</Text>
+        <Text style={commonStyles.companyTagline}>{t.companyTagline}</Text>
+      </View>
+      <View style={commonStyles.headerRight}>
+        <Text style={commonStyles.title}>{title}</Text>
+        {subtitle && <Text style={commonStyles.subtitle}>{subtitle}</Text>}
+      </View>
     </View>
-    <View style={commonStyles.headerRight}>
-      <Text style={commonStyles.title}>{title}</Text>
-      {subtitle && <Text style={commonStyles.subtitle}>{subtitle}</Text>}
-    </View>
-  </View>
-);
+  );
+};
 
 // ==================== FOOTER ====================
 
@@ -32,13 +37,17 @@ interface FooterProps {
   totalPages: number;
 }
 
-export const Footer: React.FC<FooterProps> = ({ pageNumber, totalPages }) => (
-  <View style={commonStyles.footer} fixed>
-    <Text>{PDF_CONFIG.company.name} - {PDF_CONFIG.company.tagline}</Text>
-    <Text>Gerado em: {formatDateTime(new Date())}</Text>
-    <Text>Página {pageNumber} de {totalPages}</Text>
-  </View>
-);
+export const Footer: React.FC<FooterProps> = ({ pageNumber, totalPages }) => {
+  const t = pdfT();
+  
+  return (
+    <View style={commonStyles.footer} fixed>
+      <Text>{t.companyName} - {t.companyTagline}</Text>
+      <Text>{t.generatedAt}: {formatDateTime(new Date())}</Text>
+      <Text>{t.page} {pageNumber} {t.of} {totalPages}</Text>
+    </View>
+  );
+};
 
 // ==================== INFO SECTION ====================
 
@@ -79,17 +88,19 @@ interface StatusBadgeProps {
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
+  const t = pdfT();
+  
   const statusMap: Record<string, { label: string; style: any }> = {
-    available: { label: 'DISPONÍVEL', style: commonStyles.statusAvailable },
-    in_use: { label: 'EM USO', style: commonStyles.statusInUse },
-    maintenance: { label: 'MANUTENÇÃO', style: commonStyles.statusMaintenance },
-    inactive: { label: 'INATIVO', style: commonStyles.statusInactive },
-    pending: { label: 'PENDENTE', style: commonStyles.statusMaintenance },
-    completed: { label: 'CONCLUÍDO', style: commonStyles.statusAvailable },
-    cancelled: { label: 'CANCELADO', style: commonStyles.statusInactive },
-    paid: { label: 'PAGO', style: commonStyles.statusAvailable },
-    scheduled: { label: 'AGENDADO', style: commonStyles.statusInUse },
-    in_progress: { label: 'EM ANDAMENTO', style: commonStyles.statusInUse },
+    available: { label: t.status.available, style: commonStyles.statusAvailable },
+    in_use: { label: t.status.in_use, style: commonStyles.statusInUse },
+    maintenance: { label: t.status.maintenance, style: commonStyles.statusMaintenance },
+    inactive: { label: t.status.inactive, style: commonStyles.statusInactive },
+    pending: { label: t.status.pending, style: commonStyles.statusMaintenance },
+    completed: { label: t.status.completed, style: commonStyles.statusAvailable },
+    cancelled: { label: t.status.cancelled, style: commonStyles.statusInactive },
+    paid: { label: t.status.paid, style: commonStyles.statusAvailable },
+    scheduled: { label: t.status.scheduled, style: commonStyles.statusInUse },
+    in_progress: { label: t.status.in_progress, style: commonStyles.statusInUse },
   };
 
   const statusInfo = statusMap[status] || { label: status.toUpperCase(), style: {} };

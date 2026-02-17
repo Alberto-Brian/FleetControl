@@ -13,11 +13,19 @@ export const REPORTS_CHANNELS = {
   
   // Buscar dados
   GET_VEHICLES_DATA: 'reports:getVehiclesData',
+  GET_DRIVERS_DATA: 'reports:getDriversData',
   GET_TRIPS_DATA: 'reports:getTripsData',
   GET_FUEL_DATA: 'reports:getFuelData',
   GET_MAINTENANCE_DATA: 'reports:getMaintenanceData',
   GET_FINANCIAL_DATA: 'reports:getFinancialData',
   GET_GENERAL_DATA: 'reports:getGeneralData',
+
+  // Relatórios gerados (histórico)
+  LIST_GENERATED:   'reports:listGenerated',
+  GET_GENERATED:    'reports:getGenerated',
+  DELETE_GENERATED: 'reports:deleteGenerated',
+  STATS_GENERATED:  'reports:statsGenerated',
+  REDOWNLOAD:       'reports:redownload',
   
   // Salvar PDF
   SAVE_PDF: 'reports:savePdf',

@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/helpers/fines-helpers.ts (ATUALIZADO)
+// FILE: src/helpers/fines-helpers.ts (CORRIGIDO)
 // ========================================
 import { ICreateFine, IUpdateFine, IFine, PayFineData } from "@/lib/types/fine";
 
@@ -8,7 +8,7 @@ export async function createFine(data: ICreateFine): Promise<IFine> {
         const result = await window._fines.create(data);
         return result;
     } catch (error) {
-        throw error; // ✅ Propaga para useErrorHandler
+        throw error;
     }
 }
 
@@ -66,9 +66,9 @@ export async function getPendingFines(): Promise<any[]> {
     }
 }
 
-// ✨ Helper functions
 export function isOverdue(fine: { due_date?: string | null; status: string }): boolean {
-  if (fine.status === 'paid' || fine.status === 'cancelled' || !fine.due_date) {
+  // CORREÇÃO: Contestada também não é vencida (está em análise)
+  if (fine.status === 'paid' || fine.status === 'cancelled' || fine.status === 'contested' || !fine.due_date) {
     return false;
   }
   return new Date(fine.due_date) < new Date();

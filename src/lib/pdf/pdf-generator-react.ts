@@ -1,19 +1,21 @@
 // ========================================
-// FILE: src/lib/pdf/pdf-generator-react.ts (TIPAGEM CORRIGIDA)
+// FILE: src/lib/pdf/pdf-generator-react.ts (COM DETECÇÃO DE IDIOMA)
 // ========================================
 import React from 'react';
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
+import { setPDFLanguage, Language } from './pdf-translations';
 
 // Import templates
 import { VehiclesReportPDF } from './templates/VehiclesReportPDF';
+import { DriversReportPDF } from './templates/DriversReportPDF';
 import { TripsReportPDF } from './templates/TripsReportPDF';
 import { FuelReportPDF } from './templates/FuelReportPDF';
 import { MaintenanceReportPDF } from './templates/MaintenanceReportPDF';
 import { FinancialReportPDF } from './templates/FinancialReportPDF';
 import { GeneralReportPDF } from './templates/GeneralReportPDF';
 
-export type ReportType = 'vehicles' | 'trips' | 'fuel' | 'maintenance' | 'financial' | 'general';
+export type ReportType = 'vehicles' | 'drivers' | 'trips' | 'fuel' | 'maintenance' | 'financial' | 'general';
 
 export interface ReportOptions {
   type: ReportType;
@@ -23,10 +25,12 @@ export interface ReportOptions {
   };
   data: any;
   fileName?: string;
+  language?: Language; // ✅ ADICIONAR: idioma opcional
 }
 
 // ==================== GERADOR PRINCIPAL ====================
 
+import { languageLocalStorageKey } from "@/helpers/language-helpers";
 export class ReactPDFGenerator {
   private static instance: ReactPDFGenerator;
 
@@ -40,15 +44,44 @@ export class ReactPDFGenerator {
   }
 
   /**
+   * Detecta o idioma do i18n ou usa o padrão
+   */
+  private getLanguage(options: ReportOptions): Language {
+    if (options.language) {
+      return options.language;
+    }
+
+    // Tentar detectar do i18n
+    try {
+      const i18nLang = localStorage.getItem(languageLocalStorageKey);
+      if (i18nLang?.startsWith('en')) return 'en';
+      return 'pt';
+    } catch {
+      return 'pt';
+    }
+  }
+
+  /**
    * Gera o componente React-PDF baseado no tipo de relatório
    */
   private getReportComponent(options: ReportOptions): React.ReactElement {
     const { type, dateRange, data } = options;
 
+    // ✅ Definir idioma antes de gerar o PDF
+    const language = this.getLanguage(options);
+    setPDFLanguage(language);
+
     switch (type) {
       case 'vehicles':
         return React.createElement(VehiclesReportPDF, {
           vehicles: data.vehicles,
+          stats: data.stats,
+          dateRange: dateRange,
+        });
+
+      case 'drivers':
+        return React.createElement(DriversReportPDF, {
+          drivers: data.drivers,
           stats: data.stats,
           dateRange: dateRange,
         });

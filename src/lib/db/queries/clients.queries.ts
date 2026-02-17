@@ -11,7 +11,7 @@ export interface ICreateClient {
 
 export async function createClient(clientData: ICreateClient) {
     const id = generateUuid();
-    await checkAndRotate();
+    // await checkAndRotate();
     const { db } = useDb();
     const result = await db
         .insert(clients)

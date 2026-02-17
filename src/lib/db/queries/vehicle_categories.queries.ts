@@ -8,7 +8,7 @@ import { eq, isNull, desc } from 'drizzle-orm';
 import { ICreateVehicleCategory, IUpdateVehicleCategory, IVehicleCategory } from '@/lib/types/vehicle-category';
 
 export async function createVehicleCategory(categoryData: ICreateVehicleCategory): Promise<IVehicleCategory> {
-    await checkAndRotate();
+    // await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
 

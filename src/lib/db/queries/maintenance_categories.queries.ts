@@ -43,7 +43,7 @@ export async function getMaintenancesByCategory(categoryId: string) {
  * Cria categoria
  */
 export async function createMaintenanceCategory(categoryData: ICreateMaintenanceCategory): Promise<IMaintenanceCategory> {
-    await checkAndRotate();
+    // await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
 

@@ -82,7 +82,7 @@ async function createWindow() {
 
     let shown = false;
     mainWindow.once('ready-to-show', () => {
-      console.log("📺 Evento ready-to-show disparado");
+      console.log("Evento ready-to-show disparado");
         setTimeout(() => {
             if (splashWindow && !splashWindow.isDestroyed()) {
                 splashWindow.close();
@@ -113,7 +113,7 @@ async function createWindow() {
 
     setTimeout(() => {
       if (!shown) {
-        console.log("📺 Timeout final disparado (fallback)");
+        console.log("Timeout final disparado (fallback)");
         if (splashWindow && !splashWindow.isDestroyed()) {
           splashWindow.close();
           splashWindow = null;
@@ -173,9 +173,9 @@ app.whenReady().then(async () => {
     console.log('== ETAPA 2: Database == == == == == == == == == == == ==');
     console.log(' -- Inicializando DatabaseManager --');
     const db = initializeDatabase(
-        100, // 100,  // maxSizeInMB: 100MB - tamanho da base de dados em MBs
-        30, // 30,   // maxAgeInDays: Rotação mensal - idade da base de dados em dias 
-        30 // 30    // transitionPeriodDays: Copiar último mês
+        256, // 100,  // maxSizeInMB: 100MB - tamanho da base de dados em MBs
+        365, // 30,   // maxAgeInDays: Rotação mensal - idade da base de dados em dias 
+        60 // 30    // transitionPeriodDays: Copiar último mês
       );
     console.log(' __ DatabaseManager inicializado');
     console.log('________________________________________________________');

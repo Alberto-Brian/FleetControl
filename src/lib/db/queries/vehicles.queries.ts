@@ -11,7 +11,7 @@ import { IPaginatedResult, IPaginationParams } from '@/lib/types/pagination';
  * Criar novo veículo
  */
 export async function createVehicle(vehicleData: ICreateVehicle): Promise<IVehicle> {
-    await checkAndRotate();
+    // await checkAndRotate();
     const { db } = useDb();
     const id = generateUuid();
 
