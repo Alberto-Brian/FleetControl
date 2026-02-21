@@ -37,7 +37,6 @@ export default function DriversPageContent() {
   const { t } = useTranslation();
   const { handleError, showSuccess } = useErrorHandler();
 
-  // ✨ CONTEXT
   const { 
     state: { drivers, selectedDriver, isLoading },
     setDrivers,
@@ -46,13 +45,11 @@ export default function DriversPageContent() {
     setLoading,
   } = useDrivers();
 
-  // Estados UI
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
 
-  // Dialogs
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -84,16 +81,12 @@ export default function DriversPageContent() {
   async function handleDeleteDriver() {
     if (!selectedDriver) return;
     setIsDeleting(true);
-    
     try {
       await deleteDriverHelper(selectedDriver.id);
-      
       removeDriverFromContext(selectedDriver.id);
       showSuccess('drivers:toast.deleteSuccess');
-      
       setDeleteDialogOpen(false);
       selectDriver(null);
-      
     } catch (error) {
       handleError(error, 'drivers:toast.deleteError');
     } finally {
@@ -119,10 +112,8 @@ export default function DriversPageContent() {
         className: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800'
       },
     };
-    
     const statusInfo = statusMap[status as keyof typeof statusMap] || statusMap.active;
     const Icon = statusInfo.icon;
-
     return (
       <Badge variant="outline" className={cn("flex items-center gap-1.5 font-bold px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider", statusInfo.className)}>
         <Icon className="w-3.5 h-3.5" />
@@ -148,14 +139,14 @@ export default function DriversPageContent() {
     return Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   }
 
-const filteredDrivers = drivers.filter(d => {
-  const matchesSearch = d.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    d.license_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    d.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    d.email?.toLowerCase().includes(searchTerm.toLowerCase());
-  const matchesAvailability = availabilityFilter === 'all' || d.availability === availabilityFilter;
-  return matchesSearch && matchesAvailability;
-});
+  const filteredDrivers = drivers.filter(d => {
+    const matchesSearch = d.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      d.license_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      d.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      d.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesAvailability = availabilityFilter === 'all' || d.availability === availabilityFilter;
+    return matchesSearch && matchesAvailability;
+  });
 
   function renderListView() {
     return (
@@ -169,7 +160,6 @@ const filteredDrivers = drivers.filter(d => {
                     {driver.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-4 mb-2">
                     <div className="flex-1 min-w-0">
@@ -180,7 +170,6 @@ const filteredDrivers = drivers.filter(d => {
                     </div>
                     {getStatusBadge(driver.status)}
                   </div>
-
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                     {driver.phone && (
                       <div className="flex items-center gap-2 text-sm">
@@ -209,7 +198,6 @@ const filteredDrivers = drivers.filter(d => {
                       </span>
                     </div>
                   </div>
-
                   {(isLicenseExpiring(driver.license_expiry_date) || isLicenseExpired(driver.license_expiry_date)) && (
                     <div className={cn(
                       "flex items-center gap-2 p-2.5 rounded-lg text-sm mb-3 font-semibold",
@@ -225,36 +213,14 @@ const filteredDrivers = drivers.filter(d => {
                       </span>
                     </div>
                   )}
-
                   <div className="flex gap-2">
-                    <Button 
-                      size="sm"
-                      variant="outline"
-                      onClick={() => { 
-                        selectDriver(driver); 
-                        setViewDialogOpen(true); 
-                      }}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      {t('drivers:actions.view')}
+                    <Button size="sm" variant="outline" onClick={() => { selectDriver(driver); setViewDialogOpen(true); }}>
+                      <Eye className="w-4 h-4 mr-2" />{t('drivers:actions.view')}
                     </Button>
-                    <Button 
-                      size="sm"
-                      variant="outline"
-                      onClick={() => { 
-                        selectDriver(driver); 
-                        setEditDialogOpen(true); 
-                      }}
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      {t('drivers:actions.edit')}
+                    <Button size="sm" variant="outline" onClick={() => { selectDriver(driver); setEditDialogOpen(true); }}>
+                      <Edit className="w-4 h-4 mr-2" />{t('drivers:actions.edit')}
                     </Button>
-                    <Button 
-                      size="sm"
-                      variant="outline"
-                      className="text-destructive hover:bg-destructive/10"
-                      onClick={() => openDeleteDialog(driver)}
-                    >
+                    <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog(driver)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
@@ -267,201 +233,192 @@ const filteredDrivers = drivers.filter(d => {
     );
   }
 
-    function renderCardsView() {
+  function renderCardsView() {
     return (
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {filteredDrivers.map((driver) => (
-            <Card 
-            key={driver.id} 
-            className={cn("flex flex-col h-full group hover:shadow-lg transition-all duration-300 bg-card relative overflow-hidden")}>
-            {/* Indicador de Status (Administrativo) - Canto superior direito, discreto */}
+          <Card key={driver.id} className={cn("flex flex-col h-full group hover:shadow-lg transition-all duration-300 bg-card relative overflow-hidden")}>
             <div 
-                className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full ring-2 ring-background shadow-sm"
-                style={{
+              className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full ring-2 ring-background shadow-sm"
+              style={{
                 backgroundColor: driver.status === 'active' ? '#10b981' : 
                                 driver.status === 'on_leave' ? '#f59e0b' : '#64748b'
-                }}
-                title={`Status: ${driver.status}`}
+              }}
+              title={`Status: ${driver.status}`}
             />
-
             <CardContent className="flex flex-col gap-4 p-6">
-                {/* Avatar e Availability Badge */}
-                <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between">
                 <Avatar className="w-16 h-16 ring-2 ring-muted group-hover:ring-primary transition-all">
-                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-xl">
+                  <AvatarFallback className="bg-primary/10 text-primary font-bold text-xl">
                     {driver.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
+                  </AvatarFallback>
                 </Avatar>
-                
-                {/* AVAILABILITY - Badge destacado */}
                 <Badge 
-                    variant="outline" 
-                    className={cn(
+                  variant="outline" 
+                  className={cn(
                     "flex items-center gap-1.5 font-bold px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider",
                     driver.availability === 'available' && "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800",
                     driver.availability === 'on_trip' && "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800",
                     driver.availability === 'offline' && "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
-                    )}
+                  )}
                 >
-                    {driver.availability === 'available' && <CheckCircle2 className="w-3.5 h-3.5" />}
-                    {driver.availability === 'on_trip' && <Truck className="w-3.5 h-3.5" />}
-                    {driver.availability === 'offline' && <Ban className="w-3.5 h-3.5" />}
-                    {driver.availability === 'available' && t('drivers:availability.available.label')}
-                    {driver.availability === 'on_trip' && t('drivers:availability.on_trip.label')}
-                    {driver.availability === 'offline' && t('drivers:availability.offline.label')}
+                  {driver.availability === 'available' && <CheckCircle2 className="w-3.5 h-3.5" />}
+                  {driver.availability === 'on_trip' && <Truck className="w-3.5 h-3.5" />}
+                  {driver.availability === 'offline' && <Ban className="w-3.5 h-3.5" />}
+                  {driver.availability === 'available' && t('drivers:availability.available.label')}
+                  {driver.availability === 'on_trip' && t('drivers:availability.on_trip.label')}
+                  {driver.availability === 'offline' && t('drivers:availability.offline.label')}
                 </Badge>
-                </div>
-
-                {/* Nome e Carta */}
-                <div>
+              </div>
+              <div>
                 <h3 className="font-bold text-lg tracking-tight mb-1">{driver.name}</h3>
                 <p className="text-xs text-muted-foreground">
-                    {driver.license_number} - {t('drivers:categories.' + driver.license_category)}
+                  {driver.license_number} - {t('drivers:categories.' + driver.license_category)}
                 </p>
-                </div>
-
-                {/* Alerta de Carta */}
-                {(isLicenseExpiring(driver.license_expiry_date) || isLicenseExpired(driver.license_expiry_date)) && (
+              </div>
+              {(isLicenseExpiring(driver.license_expiry_date) || isLicenseExpired(driver.license_expiry_date)) && (
                 <div className={cn(
-                    "flex items-center gap-2 p-2 rounded-lg text-xs font-semibold",
-                    isLicenseExpired(driver.license_expiry_date)
+                  "flex items-center gap-2 p-2 rounded-lg text-xs font-semibold",
+                  isLicenseExpired(driver.license_expiry_date)
                     ? 'bg-destructive/10 text-destructive'
                     : 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
                 )}>
-                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span className="truncate">
+                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="truncate">
                     {isLicenseExpired(driver.license_expiry_date)
-                        ? t('drivers:alerts.licenseExpired')
-                        : t('drivers:alerts.licenseExpiring')}
-                    </span>
+                      ? t('drivers:alerts.licenseExpired')
+                      : t('drivers:alerts.licenseExpiring')}
+                  </span>
                 </div>
-                )}
-
-                {/* Info de Contacto */}
-                <div className="space-y-2 text-sm">
+              )}
+              <div className="space-y-2 text-sm">
                 {driver.phone && (
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                     <span className="truncate">{driver.phone}</span>
-                    </div>
+                  </div>
                 )}
                 {driver.email && (
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                     <span className="truncate">{driver.email}</span>
-                    </div>
+                  </div>
                 )}
                 <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-xs truncate">
+                  <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs truncate">
                     {t('drivers:info.validUntil')}: {new Date(driver.license_expiry_date).toLocaleDateString('pt-PT')}
-                    </span>
+                  </span>
                 </div>
-                </div>
-
-                {/* Acções */}
-                <div className="mt-auto pt-4 flex gap-2 border-t">
+              </div>
+              <div className="mt-auto pt-4 flex gap-2 border-t">
                 <Button 
-                    className={cn(
+                  className={cn(
                     "flex-1 h-9 text-sm font-bold shadow-sm",
                     driver.availability === 'available' && driver.status === 'active'
-                        ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                        : "bg-slate-100 text-slate-500"
-                    )}
-                    disabled={driver.availability !== 'available' || driver.status !== 'active'}
-                    onClick={() => {
-                    selectDriver(driver);
-                    setViewDialogOpen(true);
-                    }}
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-slate-100 text-slate-500"
+                  )}
+                  disabled={driver.availability !== 'available' || driver.status !== 'active'}
+                  onClick={() => { selectDriver(driver); setViewDialogOpen(true); }}
                 >
-                    {driver.availability === 'available' && driver.status === 'active' 
+                  {driver.availability === 'available' && driver.status === 'active' 
                     ? t('drivers:actions.view') 
                     : driver.availability === 'on_trip' 
-                        ? t('drivers:availability.on_trip.label') 
-                        : driver.status === 'on_leave'
-                        ? t('drivers:status.on_leave.label')
-                        : driver.status === 'terminated'
-                            ? t('drivers:status.terminated.label')
-                            : t('drivers:availability.offline.label')}
+                      ? t('drivers:availability.on_trip.label') 
+                      : driver.status === 'on_leave'
+                      ? t('drivers:status.on_leave.label')
+                      : driver.status === 'terminated'
+                        ? t('drivers:status.terminated.label')
+                        : t('drivers:availability.offline.label')}
                 </Button>
                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                  <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="icon" className="shrink-0 h-9 w-9 border-muted-foreground/20">
-                        <MoreHorizontal className="w-4 h-4" />
+                      <MoreHorizontal className="w-4 h-4" />
                     </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => {
-                        closeDropdownsAndOpenDialog(() => {
-                        selectDriver(driver);
-                        setViewDialogOpen(true);
-                        });
-                    }}>
-                        <Eye className="w-4 h-4 mr-2" /> {t('drivers:actions.view')}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => { closeDropdownsAndOpenDialog(() => { selectDriver(driver); setViewDialogOpen(true); }); }}>
+                      <Eye className="w-4 h-4 mr-2" /> {t('drivers:actions.view')}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => {
-                        closeDropdownsAndOpenDialog(() => {
-                        selectDriver(driver);
-                        setEditDialogOpen(true);
-                        });
-                    }}>
-                        <Edit className="w-4 h-4 mr-2" /> {t('drivers:actions.edit')}
+                    <DropdownMenuItem onClick={() => { closeDropdownsAndOpenDialog(() => { selectDriver(driver); setEditDialogOpen(true); }); }}>
+                      <Edit className="w-4 h-4 mr-2" /> {t('drivers:actions.edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => openDeleteDialog(driver)}>
-                        <Trash2 className="w-4 h-4 mr-2" /> {t('drivers:actions.delete')}
+                      <Trash2 className="w-4 h-4 mr-2" /> {t('drivers:actions.delete')}
                     </DropdownMenuItem>
-                    </DropdownMenuContent>
+                  </DropdownMenuContent>
                 </DropdownMenu>
-                </div>
+              </div>
             </CardContent>
-            </Card>
+          </Card>
         ))}
-        </div>
+      </div>
     );
-    }
+  }
 
-const availableCount = drivers.filter(d => d.availability === 'available').length;
-const onTripCount = drivers.filter(d => d.availability === 'on_trip').length;
-const offlineCount = drivers.filter(d => d.availability === 'offline').length;
-const expiringLicenses = drivers.filter(d => isLicenseExpiring(d.license_expiry_date) || isLicenseExpired(d.license_expiry_date)).length;
-  
-return (
+  // --- Stats ---
+  const availableCount   = drivers.filter(d => d.availability === 'available').length;
+  const onTripCount      = drivers.filter(d => d.availability === 'on_trip').length;
+  const offlineCount     = drivers.filter(d => d.availability === 'offline').length;
+  const onLeaveCount     = drivers.filter(d => d.status === 'on_leave').length;
+  const terminatedCount  = drivers.filter(d => d.status === 'terminated').length;
+  const expiringLicenses = drivers.filter(d => isLicenseExpiring(d.license_expiry_date) || isLicenseExpired(d.license_expiry_date)).length;
+
+  return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
       <div className="max-w-[1500px] mx-auto space-y-8 pb-10">
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('drivers:title')}</h1>
-            <p className="text-muted-foreground text-base">
-              {t('drivers:description')}
-            </p>
+            <p className="text-muted-foreground text-base">{t('drivers:description')}</p>
           </div>
           <div className="flex items-center gap-3">
             <NewDriverDialog />
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-                { label: t('drivers:stats.total'), value: drivers.length, icon: Users, color: 'text-slate-600', bg: 'bg-slate-100/60' },
-                { label: t('drivers:stats.available'), value: availableCount, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
-                { label: t('drivers:stats.onTrip'), value: onTripCount, icon: Truck, color: 'text-blue-600', bg: 'bg-blue-50/60' },
-                { label: t('drivers:tabs.expiringLicenses'), value: expiringLicenses, icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-50/60' },
-            ].map((stat, i) => (
-                <Card key={i} className="border-none shadow-sm bg-card">
-                <CardContent className="p-5 flex items-center gap-4">
-                    <div className={cn("p-3 rounded-xl", stat.bg, stat.color)}>
-                    <stat.icon className="w-5 h-5" />
-                    </div>
-                    <div>
-                    <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
-                    <p className="text-2xl font-black tracking-tight">{stat.value}</p>
-                    </div>
-                </CardContent>
-                </Card>
-            ))}
+        {/* Stats — 5 cards numa linha a partir de sm */}
+        <div className="grid gap-4 grid-cols-2 sm:grid-cols-5">
+          {[
+            { label: t('drivers:stats.total'),                    value: drivers.length, icon: Users,        color: 'text-slate-600',  bg: 'bg-slate-100/60'  },
+            { label: t('drivers:stats.available'),                value: availableCount, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
+            { label: t('drivers:stats.onTrip'),                   value: onTripCount,    icon: Truck,        color: 'text-blue-600',   bg: 'bg-blue-50/60'    },
+            { label: t('drivers:status.on_leave.label'),          value: onLeaveCount,   icon: Clock,        color: 'text-amber-600',  bg: 'bg-amber-50/60'   },
+            { label: t('drivers:availability.offline.label'),     value: offlineCount,   icon: Ban,          color: 'text-slate-500',  bg: 'bg-slate-50/60'   },
+          ].map((stat, i) => (
+            <Card key={i} className="border-none shadow-sm bg-card">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className={cn("p-2.5 rounded-xl shrink-0", stat.bg, stat.color)}>
+                  <stat.icon className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">
+                    {stat.label}
+                  </p>
+                  <p className="text-2xl font-black tracking-tight leading-tight">
+                    {stat.value}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
+
+        {/* Banner de cartas a expirar — só aparece quando relevante
+        {expiringLicenses > 0 && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 dark:bg-red-950/30 dark:border-red-800 dark:text-red-400">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span className="text-sm font-bold">
+              {expiringLicenses === 1
+                ? t('drivers:alerts.licenseExpiringSoon', { count: 1 })
+                : `${expiringLicenses} ${t('drivers:tabs.expiringLicenses', 'cartas a vencer ou expiradas')}`}
+            </span>
+          </div>
+        )} */}
 
         {/* Toolbar */}
         <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between bg-card p-4 rounded-2xl border border-muted/50 shadow-sm">
@@ -475,26 +432,24 @@ return (
                 className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
               />
             </div>
-            
             <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
-                <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
-                    <Filter className="w-4 h-4 text-muted-foreground" />
-                    <SelectValue placeholder={t('drivers:filters.all')} />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">{t('drivers:filters.all')}</SelectItem>
-                    <SelectItem value="available">{t('drivers:availability.available.label')}</SelectItem>
-                    <SelectItem value="on_trip">{t('drivers:availability.on_trip.label')}</SelectItem>
-                    <SelectItem value="offline">{t('drivers:availability.offline.label')}</SelectItem>
-                </SelectContent>
+              <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <SelectValue placeholder={t('drivers:filters.all')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('drivers:filters.all')}</SelectItem>
+                <SelectItem value="available">{t('drivers:availability.available.label')}</SelectItem>
+                <SelectItem value="on_trip">{t('drivers:availability.on_trip.label')}</SelectItem>
+                <SelectItem value="offline">{t('drivers:availability.offline.label')}</SelectItem>
+              </SelectContent>
             </Select>
           </div>
-
           <div className="flex items-center gap-3 self-center lg:self-auto">
             <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50">
               {[
-                { mode: 'list', icon: List, label: t('common:viewModes.normal') },
-                { mode: 'cards', icon: LayoutGrid, label: t('common:viewModes.cards') },
+                { mode: 'list',  icon: List,       label: t('common:viewModes.normal') },
+                { mode: 'cards', icon: LayoutGrid, label: t('common:viewModes.cards')  },
               ].map((item) => (
                 <Button
                   key={item.mode}
@@ -519,9 +474,7 @@ return (
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-24 space-y-4">
             <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
-            <p className="text-sm text-muted-foreground font-bold animate-pulse">
-              {t('common:loading')}...
-            </p>
+            <p className="text-sm text-muted-foreground font-bold animate-pulse">{t('common:loading')}...</p>
           </div>
         ) : filteredDrivers.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 bg-card rounded-3xl border-2 border-dashed border-muted/50">
@@ -539,16 +492,8 @@ return (
         )}
 
         {/* Dialogs */}
-        <EditDriverDialog 
-          open={editDialogOpen}
-          onOpenChange={setEditDialogOpen}
-        />
-
-        <ViewDriverDialog 
-          open={viewDialogOpen}
-          onOpenChange={setViewDialogOpen}
-        />
-
+        <EditDriverDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} />
+        <ViewDriverDialog open={viewDialogOpen} onOpenChange={setViewDialogOpen} />
         <ConfirmDeleteDialog
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}

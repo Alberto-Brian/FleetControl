@@ -68,7 +68,9 @@ export const enCommon = {
         selected: "Selected",
         clickToSelect: "Click to select",
         yes: "Yes",
-        no: "No"
+        no: "No",
+        saving: 'Saving ...',
+        save: 'Save',
     },
     warnigns: {
         categoryRequired: "Please select a category",

@@ -3,7 +3,7 @@
 // ========================================
 import React from 'react';
 import { MaintenancesProvider } from '@/contexts/MaintenancesContext';
-import MaintenancePageContent from '@/pages/provider/MaintenancePageContent';
+import { MaintenancePageContent } from '@/pages/provider/MaintenancePageContent';
 
 export default function MaintenancePage() {
   return (

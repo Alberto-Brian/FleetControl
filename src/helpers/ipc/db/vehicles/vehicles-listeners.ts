@@ -37,12 +37,14 @@ import {
 
 import { ICreateVehicle, IUpdateStatus, IUpdateVehicle } from '@/lib/types/vehicle';
 import { ConflictError, NotFoundError, WarningError } from "@/lib/errors/AppError";
+import { vehicleStatus } from "@/lib/db/schemas/vehicles";
 
 // Chaves de tradução para erros
 const T_ERRORS = {
   VEHICLE_NOT_FOUND: 'vehicles:errors.vehicleNotFound',
   CATEGORY_NOT_FOUND: 'vehicles:errors.categoryNotFound',
   VEHICLE_EXISTS: 'vehicles:errors.vehicleWithSamePlate',
+  VEHICLE_IN_USE: 'vehicles:errors.vehicleInUse',
   CATEGORY_REQUIRED: 'common:warnings.categoryRequired',
   LICENSE_PLATE_REQUIRED: 'common:warnings.licensePlateRequired',
   NO_AVAILABLE_VEHICLES: 'vehicles:warnings.noAvailableVehicles'
@@ -91,7 +93,7 @@ async function createVehicleEvent(vehicleData: ICreateVehicle) {
   if (vehicleExists) {
     throw new Error(
       new ConflictError(T_ERRORS.VEHICLE_EXISTS, {
-        plate: vehicleData.license_plate
+        i18n: { plate: vehicleData.license_plate }
       }).toIpcString()
     );
   }
@@ -117,7 +119,7 @@ async function updateVehicleEvent(vehicleId: string, vehicleData: IUpdateVehicle
     if (other && other.id !== vehicleId) {
       throw new Error(
         new ConflictError(T_ERRORS.VEHICLE_EXISTS, {
-          plate: vehicleData.license_plate
+          i18n: { plate: vehicleData.license_plate }
         }).toIpcString()
       );
     }
@@ -131,6 +133,15 @@ async function deleteVehicleEvent(vehicleId: string) {
   if (!vehicleExists) {
     throw new Error(new NotFoundError(T_ERRORS.VEHICLE_NOT_FOUND).toIpcString());
   }
+
+  if(vehicleExists.status === vehicleStatus.IN_USE) {
+    throw new Error(
+      new ConflictError(T_ERRORS.VEHICLE_IN_USE, {
+        i18n: { plate: vehicleExists.license_plate }
+      }).toIpcString()
+    );
+  }
+
   return await deleteVehicle(vehicleId);
 }
 

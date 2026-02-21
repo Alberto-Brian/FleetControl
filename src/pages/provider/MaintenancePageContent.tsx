@@ -1,6 +1,3 @@
-// ========================================
-// FILE: src/components/maintenance/MaintenancePageContent.tsx (CORRIGIDO - BOTÕES START/COMPLETE VISÍVEIS)
-// ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -31,6 +28,7 @@ import StartMaintenanceDialog from '@/components/maintenance/StartMaintenanceDia
 import CompleteMaintenanceDialog from '@/components/maintenance/CompleteMaintenanceDialog';
 import ViewMaintenanceDialog from '@/components/maintenance/ViewMaintenanceDialog';
 import NewMaintenanceCategoryDialog from '@/components/maintenance/NewMaintenanceCategoryDialog';
+import EditMaintenanceCategoryDialog from '@/components/maintenance/EditMaintenanceCategoryDialog';
 import NewWorkshopDialog from '@/components/maintenance/NewWorkshopDialog';
 import EditWorkshopDialog from '@/components/maintenance/EditWorkshopDialog';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
@@ -38,11 +36,11 @@ import { RESTORE_MAINTENANCE_CATEGORY } from '@/helpers/ipc/db/maintenance_categ
 
 type ViewMode = 'compact' | 'normal' | 'cards';
 
-export default function MaintenancePageContent() {
+export function MaintenancePageContent() {
   const { t } = useTranslation();
   const { handleError, showSuccess } = useErrorHandler();
 
-  // ✨ CONTEXT
+  // Context
   const {
     state: { 
       maintenances, 
@@ -71,7 +69,7 @@ export default function MaintenancePageContent() {
     updateWorkshop,
   } = useMaintenances();
 
-  // Estados UI
+  // UI States
   const [activeTab, setActiveTab] = useState('maintenances');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -88,13 +86,14 @@ export default function MaintenancePageContent() {
   const [isDeletingWorkshop, setIsDeletingWorkshop] = useState(false);
 
   // Edit dialogs
+  const [editCategoryDialogOpen, setEditCategoryDialogOpen] = useState(false);
   const [editWorkshopDialogOpen, setEditWorkshopDialogOpen] = useState(false);
   
-  // ✅ Start/Complete dialogs
+  // Start/Complete dialogs
   const [startDialogOpen, setStartDialogOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
 
-  // ✨ Escuta eventos de categorias e workshops restaurados
+  // Listen for restored categories and workshops events
   useEffect(() => {
     const handleActionCompleted = (event: any) => {
       const { handler, result } = event.detail;
@@ -204,7 +203,7 @@ export default function MaintenancePageContent() {
     }
   }
 
-  // Filtros
+  // Filters
   const filteredMaintenances = maintenances.filter((m) => {
     const matchesSearch = 
       m.vehicle_license?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -251,7 +250,7 @@ export default function MaintenancePageContent() {
     );
   }
 
-  // View modes com labels
+  // View modes with labels
   const viewModes = [
     { mode: 'compact', icon: Rows, label: t('common:viewModes.compact') },
     { mode: 'normal', icon: List, label: t('common:viewModes.normal') },
@@ -487,7 +486,6 @@ export default function MaintenancePageContent() {
     );
   }
 
-  // Cards estilizados como VehiclesPageContent
   function renderCardsView() {
     return (
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -521,7 +519,6 @@ export default function MaintenancePageContent() {
             </CardHeader>
             
             <CardContent className="flex-1 flex flex-col gap-3 p-5 pt-0">
-              {/* Info Grid */}
               <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/50 border border-muted/50">
                 <div className="space-y-0.5">
                   <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('maintenances:fields.entryDate')}</p>
@@ -541,7 +538,6 @@ export default function MaintenancePageContent() {
                 </div>
               </div>
 
-              {/* Workshop & Priority */}
               <div className="space-y-2">
                 {maintenance.workshop_name && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -554,7 +550,6 @@ export default function MaintenancePageContent() {
                 </div>
               </div>
 
-              {/* Footer */}
               <div className="mt-auto pt-4 border-t border-muted/50">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider">{t('maintenances:fields.totalCost')}</span>
@@ -656,7 +651,6 @@ export default function MaintenancePageContent() {
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
       <div className="max-w-[1500px] mx-auto space-y-8 pb-10">
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('maintenances:title')}</h1>
@@ -699,9 +693,7 @@ export default function MaintenancePageContent() {
             </TabsTrigger>
           </TabsList>
 
-          {/* TAB: MANUTENÇÕES */}
           <TabsContent value="maintenances" className="space-y-8 mt-0 outline-none">
-            {/* Stats */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 { label: t('maintenances:stats.total'), value: maintenances.length, icon: Wrench, color: 'text-slate-600', bg: 'bg-slate-100/60' },
@@ -723,7 +715,6 @@ export default function MaintenancePageContent() {
               ))}
             </div>
 
-            {/* Toolbar */}
             <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between bg-card p-4 rounded-2xl border border-muted/50 shadow-sm">
               <div className="flex flex-col sm:flex-row gap-3 flex-1">
                 <div className="relative flex-1 max-w-md">
@@ -749,7 +740,6 @@ export default function MaintenancePageContent() {
                   </SelectContent>
                 </Select>
               </div>
-                {/* View modes com labels */}
                 <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50">
                   {viewModes.map((item) => (
                     <Button
@@ -770,7 +760,6 @@ export default function MaintenancePageContent() {
                 </div>
             </div>
 
-            {/* Content */}
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-24 space-y-4">
                 <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
@@ -795,9 +784,7 @@ export default function MaintenancePageContent() {
             )}
           </TabsContent>
 
-          {/* TAB: CATEGORIAS - ESTILIZADO COMO VEHICLES */}
           <TabsContent value="categories" className="space-y-8 mt-0 outline-none">
-            {/* Stats */}
             <div className="grid gap-4 sm:grid-cols-3">
               <Card className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
                 <CardContent className="p-5 flex items-center gap-4">
@@ -836,7 +823,6 @@ export default function MaintenancePageContent() {
               </Card>
             </div>
 
-            {/* Toolbar */}
             <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between bg-card p-4 rounded-2xl border border-muted/50 shadow-sm">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -869,7 +855,7 @@ export default function MaintenancePageContent() {
                     className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60 cursor-pointer"
                     onClick={() => {
                       selectCategory(category);
-                      // Abrir dialog de edição se existir
+                      setEditCategoryDialogOpen(true);
                     }}
                   >
                     <CardHeader className="pb-3 pt-5 px-5">
@@ -908,7 +894,8 @@ export default function MaintenancePageContent() {
                           className="flex-1 h-9 text-xs font-bold bg-background hover:bg-muted"
                           onClick={(e) => {
                             e.stopPropagation();
-                            // Abrir edição
+                            selectCategory(category);
+                            setEditCategoryDialogOpen(true);
                           }}
                         >
                           <Edit className="w-3.5 h-3.5 mr-1.5" />
@@ -935,9 +922,7 @@ export default function MaintenancePageContent() {
             )}
           </TabsContent>
 
-          {/* TAB: OFICINAS - ESTILIZADO COMO VEHICLES */}
           <TabsContent value="workshops" className="space-y-8 mt-0 outline-none">
-            {/* Stats */}
             <div className="grid gap-4 sm:grid-cols-3">
               <Card className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
                 <CardContent className="p-5 flex items-center gap-4">
@@ -976,7 +961,6 @@ export default function MaintenancePageContent() {
               </Card>
             </div>
 
-            {/* Toolbar */}
             <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between bg-card p-4 rounded-2xl border border-muted/50 shadow-sm">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1102,7 +1086,6 @@ export default function MaintenancePageContent() {
           </TabsContent>
         </Tabs>
 
-        {/* Dialogs */}
         <ViewMaintenanceDialog
           open={!!selectedMaintenance}
           onOpenChange={(open) => !open && selectMaintenance(null)}
@@ -1121,6 +1104,12 @@ export default function MaintenancePageContent() {
         <EditWorkshopDialog 
           open={editWorkshopDialogOpen} 
           onOpenChange={setEditWorkshopDialogOpen} 
+        />
+
+        <EditMaintenanceCategoryDialog
+          open={editCategoryDialogOpen}
+          onOpenChange={setEditCategoryDialogOpen}
+          category={selectedCategory}
         />
 
         <ConfirmDeleteDialog

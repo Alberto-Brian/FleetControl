@@ -88,72 +88,61 @@ export async function findVehicleByLicensePlate(license_plate: string) {
  */
 export async function getAllVehicles(params: IPaginationParams = {}): Promise<IPaginatedResult<IVehicle>> {
     const { db } = useDb();
-    
-    // Valores padrão para paginação
-    const page = params.page || 1;
-    const limit = params.limit || 20;
+
+    const page   = params.page  || 1;
+    const limit  = params.limit || 60;
     const offset = (page - 1) * limit;
 
-    // Construir condições de filtro
+    // Condições com filtros
     const conditions: SQL[] = [isNull(vehicles.deleted_at)];
 
-    // Filtro de busca (procura em license_plate, brand, model)
-    if (params.search && params.search.trim()) {
-        const searchTerm = `%${params.search.toLowerCase()}%`;
-        conditions.push(
-            or(
-                like(vehicles.license_plate, searchTerm),
-                like(vehicles.brand, searchTerm),
-                like(vehicles.model, searchTerm)
-            )!
-        );
+    if (params.search?.trim()) {
+        const s = `%${params.search.toLowerCase()}%`;
+        conditions.push(or(
+            like(vehicles.license_plate, s),
+            like(vehicles.brand, s),
+            like(vehicles.model, s)
+        )!);
     }
-
-    // Filtro de status
     if (params.status && params.status !== 'all') {
         conditions.push(eq(vehicles.status, params.status));
     }
-
-    // Filtro de categoria
     if (params.category_id && params.category_id !== 'all') {
         conditions.push(eq(vehicles.category_id, params.category_id));
     }
 
     const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
 
-    // Contar total de registros
-    const [countResult] = await db
+    // Total com filtros aplicados
+    const [{ total }] = await db
         .select({ total: count() })
         .from(vehicles)
         .where(whereClause);
 
-    const total = countResult.total;
-    const totalPages = Math.ceil(total / limit);
-
-    // Buscar dados paginados
+    // ✅ Select completo — igual ao findVehicleById
     const data = await db
         .select({
-            id: vehicles.id,
-            category_id: vehicles.category_id,
-            category_name: vehicle_categories.name,
-            category_color: vehicle_categories.color,
-            license_plate: vehicles.license_plate,
-            brand: vehicles.brand,
-            model: vehicles.model,
-            year: vehicles.year,
-            color: vehicles.color,
-            status: vehicles.status,
-            photo: vehicles.photo,
-            is_active: vehicles.is_active,
-            notes: vehicles.notes,
-            fuel_tank_capacity: vehicles.fuel_tank_capacity,
-            chassis_number: vehicles.chassis_number,
-            engine_number: vehicles.engine_number,
-            current_mileage: vehicles.current_mileage,
-            acquisition_date: vehicles.acquisition_date,
+            id:                vehicles.id,
+            category_id:       vehicles.category_id,
+            category_name:     vehicle_categories.name,
+            category_color:    vehicle_categories.color,
+            license_plate:     vehicles.license_plate,
+            brand:             vehicles.brand,
+            model:             vehicles.model,
+            year:              vehicles.year,
+            color:             vehicles.color,
+            status:            vehicles.status,
+            photo:             vehicles.photo,
+            is_active:         vehicles.is_active,
+            notes:             vehicles.notes,
+            fuel_tank_capacity:  vehicles.fuel_tank_capacity,
+            chassis_number:    vehicles.chassis_number,
+            engine_number:     vehicles.engine_number,
+            current_mileage:   vehicles.current_mileage,
+            acquisition_date:  vehicles.acquisition_date,
             acquisition_value: vehicles.acquisition_value,
-            updated_at: vehicles.updated_at,
-            created_at: vehicles.created_at,
+            updated_at:        vehicles.updated_at,
+            created_at:        vehicles.created_at,
         })
         .from(vehicles)
         .leftJoin(vehicle_categories, eq(vehicles.category_id, vehicle_categories.id))
@@ -162,29 +151,61 @@ export async function getAllVehicles(params: IPaginationParams = {}): Promise<IP
         .limit(limit)
         .offset(offset);
 
+    // Counts por status — sem filtros de status/categoria (totais reais)
+    const baseConditions: SQL[] = [isNull(vehicles.deleted_at)];
+    if (params.search?.trim()) {
+        const s = `%${params.search.toLowerCase()}%`;
+        baseConditions.push(or(
+            like(vehicles.license_plate, s),
+            like(vehicles.brand, s),
+            like(vehicles.model, s)
+        )!);
+    }
+    const baseWhere = baseConditions.length > 1 ? and(...baseConditions) : baseConditions[0];
+
+    const countsRaw = await db
+        .select({
+            status: vehicles.status,
+            count:  count(),
+        })
+        .from(vehicles)
+        .where(baseWhere)
+        .groupBy(vehicles.status);
+
+    const statusCounts: Record<string, number> = {
+        available:   0,
+        in_use:      0,
+        maintenance: 0,
+        inactive:    0,
+    };
+    for (const row of countsRaw) {
+        statusCounts[row.status] = row.count;
+    }
+
     return {
         data: data as IVehicle[],
         pagination: {
             total,
             page,
             limit,
-            totalPages,
-            hasNextPage: page < totalPages,
-            hasPrevPage: page > 1
-        }
+            totalPages:  Math.ceil(total / limit),
+            hasNextPage: page < Math.ceil(total / limit),
+            hasPrevPage: page > 1,
+        },
+        statusCounts,
     };
 }
 
 /**
  * Buscar veículo por ID
  */
-export async function findVehicleById(vehicleId: string) {
+export async function findVehicleById(vehicleId: string): Promise<IVehicle> {
     const { db } = useDb();
     const result = await db
         .select({
             id: vehicles.id,
             category_id: vehicles.category_id,
-            category_name: vehicle_categories.name,
+            category_name: vehicle_categories?.name ?? undefined,
             license_plate: vehicles.license_plate,
             brand: vehicles.brand,
             model: vehicles.model,
@@ -202,13 +223,15 @@ export async function findVehicleById(vehicleId: string) {
             is_active: vehicles.is_active,
             created_at: vehicles.created_at,
             updated_at: vehicles.updated_at,
+            deleted_at: vehicles.deleted_at
         })
         .from(vehicles)
         .leftJoin(vehicle_categories, eq(vehicles.category_id, vehicle_categories.id))
         .where(
             and(
                 eq(vehicles.id, vehicleId),
-                isNull(vehicles.deleted_at)
+                isNull(vehicles.deleted_at),
+                eq(vehicles.is_active, true)
             )
         )
         .limit(1);
@@ -245,7 +268,8 @@ export async function deleteVehicle(vehicleId: string) {
         .set({
             deleted_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-            status: vehicleStatus.INACTIVE
+            status: vehicleStatus.INACTIVE,
+            is_active: false
         })
         .where(eq(vehicles.id, vehicleId));
 
@@ -335,7 +359,8 @@ export async function getVehiclesByCategory(categoryId: string) {
         .where(
             and(
                 eq(vehicles.category_id, categoryId),
-                isNull(vehicles.deleted_at)
+                isNull(vehicles.deleted_at),
+                eq(vehicles.is_active, true)
             )
         );
 
@@ -353,7 +378,12 @@ export async function countVehiclesByStatus() {
             count: count(vehicles.id).as("vehicle_count"),
         })
         .from(vehicles)
-        .where(isNull(vehicles.deleted_at))
+        .where(
+            and(
+                isNull(vehicles.deleted_at),
+                eq(vehicles.is_active, true)
+            )
+        )
         .groupBy(vehicles.status);
     return result;
 }

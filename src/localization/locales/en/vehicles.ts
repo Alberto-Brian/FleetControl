@@ -79,6 +79,7 @@ export const enVehicles = {
     selectCategory: "Select category",
     categoryName: "Ex: Utility, Passenger, Cargo...",
     categoryDescription: "Ex: Vehicles for light cargo transport...",
+    searchCategory: 'Search category...',
   },
 
   actions: {
@@ -168,10 +169,12 @@ export const enVehicles = {
     deleted: "Category deleted successfully",
     newDescription: "Create a new category to organize your vehicles",
     editDescription: "Update vehicle category information",
+    deleteDescription: "Are you sure you want to delete the vehicle category",
     namePlaceholder: "Category Name",
     descriptionPlaceholder: "Category description",
     colorHint: "The color helps visually identify the category",
     colorTip: "Choose different colors for each category to make it easier to visually identify vehicles",
+    available: 'Available categories',
   },
 
   tabs: {
@@ -243,12 +246,14 @@ export const enVehicles = {
     vehicleNotFound: "Vehicle not found",
     vehicleAlreadyExists: "This vehicle already exists",
     vehicleWithSamePlate: "A vehicle with license plate {{plate}} already exists",
+    vehicleInUse: "A vehicle with license plate {{plate}} is in use, it can't be modified",
     categoryNotFound: "Category not found",
     categoryHasVehicles: "Cannot delete: category linked to {{count}} vehicle(s)",
     categoryAlreadyExists: "A category with the name {{name}} already exists",
     mileageLessThanCurrent: "New mileage cannot be less than current",
     mileageDifferenceTooBig: "Mileage difference too large. Please verify the value",
-    restoreFailed: "Error activating category"
+    restoreFailed: "Error activating category",
+    noCategoriesFound: 'No categories found',
   },
 
   warnings: {

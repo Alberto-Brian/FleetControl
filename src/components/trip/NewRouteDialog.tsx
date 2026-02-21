@@ -1,4 +1,3 @@
-// src/components/route/NewRouteDialog.tsx
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,18 +9,20 @@ import { useToast } from '@/components/ui/use-toast';
 import { Plus, Route as RouteIcon } from 'lucide-react';
 import { createRoute } from '@/helpers/route-helpers';
 import { ICreateRoute } from '@/lib/types/route';
+import { useTranslation } from 'react-i18next';
 
 interface NewRouteDialogProps {
   onRouteCreated?: (route: any) => void;
 }
 
 const ROUTE_TYPES = [
-  { value: 'regular', label: 'Regular' },
-  { value: 'express', label: 'Expressa' },
-  { value: 'alternative', label: 'Alternativa' },
+  { value: 'regular', label: 'routes:types.regular' },
+  { value: 'express', label: 'routes:types.express' },
+  { value: 'alternative', label: 'routes:types.alternative' },
 ];
 
 export default function NewRouteDialog({ onRouteCreated }: NewRouteDialogProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,8 +45,8 @@ export default function NewRouteDialog({ onRouteCreated }: NewRouteDialogProps) 
       const newRoute = await createRoute(formData);
       
       toast({
-        title: 'Sucesso!',
-        description: 'Rota registada com sucesso.',
+        title: t('common:toast.success'),
+        description: t('routes:toast.createSuccess'),
       });
       
       if (onRouteCreated) {
@@ -56,8 +57,8 @@ export default function NewRouteDialog({ onRouteCreated }: NewRouteDialogProps) 
       resetForm();
     } catch (error: any) {
       toast({
-        title: 'Erro',
-        description: error.message || 'Erro ao registar rota',
+        title: t('common:toast.error'),
+        description: error.message || t('routes:toast.createError'),
         variant: 'destructive',
       });
     } finally {
@@ -83,38 +84,36 @@ export default function NewRouteDialog({ onRouteCreated }: NewRouteDialogProps) 
       <DialogTrigger asChild>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
-          Nova Rota
+          {t('routes:actions.new')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RouteIcon className="w-5 h-5" />
-            Registar Rota
+            {t('routes:dialogs.new.title')}
           </DialogTitle>
           <DialogDescription>
-            Defina um percurso pré-estabelecido para viagens
+            {t('routes:dialogs.new.description')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Nome da Rota */}
           <div className="space-y-2">
-            <Label>Nome da Rota *</Label>
+            <Label>{t('routes:fields.name')} <span className="text-destructive">*</span></Label>
             <Input
-              placeholder="Ex: Luanda - Benguela"
+              placeholder={t('routes:placeholders.name')}
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
             />
           </div>
 
-          {/* Origem e Destino */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Origem *</Label>
+              <Label>{t('routes:fields.origin')} <span className="text-destructive">*</span></Label>
               <Input
-                placeholder="Ex: Luanda"
+                placeholder={t('routes:placeholders.origin')}
                 value={formData.origin}
                 onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
                 required
@@ -122,9 +121,9 @@ export default function NewRouteDialog({ onRouteCreated }: NewRouteDialogProps) 
             </div>
 
             <div className="space-y-2">
-              <Label>Destino *</Label>
+              <Label>{t('routes:fields.destination')} <span className="text-destructive">*</span></Label>
               <Input
-                placeholder="Ex: Benguela"
+                placeholder={t('routes:placeholders.destination')}
                 value={formData.destination}
                 onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
                 required
@@ -132,14 +131,13 @@ export default function NewRouteDialog({ onRouteCreated }: NewRouteDialogProps) 
             </div>
           </div>
 
-          {/* Distância e Duração */}
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Distância (km) *</Label>
+              <Label>{t('routes:fields.distance')} <span className="text-destructive">*</span></Label>
               <Input
                 type="number"
                 min="0"
-                placeholder="Ex: 650"
+                placeholder={t('routes:placeholders.distance')}
                 value={formData.distance_km || ''}
                 onChange={(e) => setFormData({ ...formData, distance_km: parseInt(e.target.value) || 0 })}
                 required
@@ -147,19 +145,19 @@ export default function NewRouteDialog({ onRouteCreated }: NewRouteDialogProps) 
             </div>
 
             <div className="space-y-2">
-              <Label>Duração (horas)</Label>
+              <Label>{t('routes:fields.duration')}</Label>
               <Input
                 type="number"
                 min="0"
                 step="0.5"
-                placeholder="Ex: 8"
+                placeholder={t('routes:placeholders.duration')}
                 value={formData.estimated_duration_hours || ''}
                 onChange={(e) => setFormData({ ...formData, estimated_duration_hours: parseFloat(e.target.value) || 0 })}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Tipo de Rota</Label>
+              <Label>{t('routes:fields.type')}</Label>
               <Select
                 value={formData.route_type}
                 onValueChange={(value) => setFormData({ ...formData, route_type: value })}
@@ -170,7 +168,7 @@ export default function NewRouteDialog({ onRouteCreated }: NewRouteDialogProps) 
                 <SelectContent>
                   {ROUTE_TYPES.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
-                      {type.label}
+                      {t(type.label)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -178,31 +176,28 @@ export default function NewRouteDialog({ onRouteCreated }: NewRouteDialogProps) 
             </div>
           </div>
 
-          {/* Pontos de Passagem */}
           <div className="space-y-2">
-            <Label>Pontos de Passagem</Label>
+            <Label>{t('routes:fields.waypoints')}</Label>
             <Input
-              placeholder="Ex: Catumbela, Lobito"
+              placeholder={t('routes:placeholders.waypoints')}
               value={formData.waypoints || ''}
               onChange={(e) => setFormData({ ...formData, waypoints: e.target.value })}
             />
             <p className="text-xs text-muted-foreground">
-              Separe múltiplos pontos por vírgula
+              {t('routes:hints.waypoints')}
             </p>
           </div>
 
-          {/* Descrição */}
           <div className="space-y-2">
-            <Label>Descrição</Label>
+            <Label>{t('routes:fields.description')}</Label>
             <Textarea
-              placeholder="Informações adicionais sobre a rota..."
+              placeholder={t('routes:placeholders.description')}
               value={formData.description || ''}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
             />
           </div>
 
-          {/* Resumo */}
           {formData.distance_km > 0 && (
             <div className="p-3 bg-primary/10 rounded-lg">
               <p className="text-sm font-medium">
@@ -219,10 +214,10 @@ export default function NewRouteDialog({ onRouteCreated }: NewRouteDialogProps) 
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
+              {t('common:actions.cancel')}
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Registando...' : 'Registar Rota'}
+              {isLoading ? t('common:actions.creating') : t('routes:actions.create')}
             </Button>
           </div>
         </form>

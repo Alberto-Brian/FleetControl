@@ -12,13 +12,14 @@ import {
     COUNT_VEHICLES_BY_STATUS,
 } from "./vehicles-channels";
 
+import { IPaginationParams } from "@/lib/types/pagination";
 import { ICreateVehicle, IUpdateStatus, IUpdateVehicle } from '@/lib/types/vehicle';
 
 export function exposeVehiclesContext() {
     const { contextBridge, ipcRenderer } = window.require("electron");
     
     contextBridge.exposeInMainWorld("_vehicles", {
-        getAll: () => ipcRenderer.invoke(GET_ALL_VEHICLES),
+        getAll: (params?: IPaginationParams) => ipcRenderer.invoke(GET_ALL_VEHICLES, params),
         getById: (vehicleId: string) => ipcRenderer.invoke(GET_VEHICLE_BY_ID, vehicleId),
         create: (vehicleData: ICreateVehicle) => ipcRenderer.invoke(CREATE_VEHICLE, vehicleData),
         update: (vehicleId: string, vehicleData: IUpdateVehicle) => ipcRenderer.invoke(UPDATE_VEHICLE, vehicleId, vehicleData),

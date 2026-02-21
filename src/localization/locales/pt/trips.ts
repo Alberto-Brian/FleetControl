@@ -170,6 +170,8 @@ export const ptTrips = {
     inProgress: 'Em Andamento',
     completed: 'Concluídas',
     cancelled: 'Canceladas',
+    trips: 'Viagens',
+    routes: 'Rotas',
   },
   
   table: {

@@ -3,7 +3,7 @@
 // ========================================
 
 export const ptDashboard = {
-  title: "Dashboard",
+  title: "Painel Principal",
   welcome: "Bem-vindo de volta",
   lastUpdated: "Última actualização",
   refresh: "Actualizar",

@@ -114,6 +114,7 @@ export const enMaintenances = {
     notes: 'Additional information...',
     categoryName: 'E.g.: Oil Change, Brake Inspection',
     categoryDescription: 'Optional category description...',
+    categoryNamePreview: 'Category name'
   },
 
   actions: {
@@ -173,6 +174,10 @@ export const enMaintenances = {
       description: 'Are you sure you want to delete the category',
       warning: 'This action cannot be undone.',
     },
+     editCategory: {
+      title: 'Edit Category',
+      description: 'Edit the selected category details.',
+  },
   },
 
   alerts: {

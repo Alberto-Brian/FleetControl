@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/pages/provider/VehiclesPageContent.tsx (COM PAGINAÇÃO)
+// FILE: src/pages/provider/VehiclesPageContent.tsx
 // ========================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -58,8 +58,8 @@ export default function VehiclesPageContent() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
-  
-  // Estados de paginação
+
+  // Paginação
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [paginationInfo, setPaginationInfo] = useState({
@@ -68,10 +68,18 @@ export default function VehiclesPageContent() {
     limit: 20,
     totalPages: 0,
     hasNextPage: false,
-    hasPrevPage: false
+    hasPrevPage: false,
   });
 
-  // Debounce para busca
+  // Counts por status — vindos do back, independentes dos filtros activos
+  const [statusCounts, setStatusCounts] = useState({
+    available:   0,
+    in_use:      0,
+    maintenance: 0,
+    inactive:    0,
+  });
+
+  // Debounce para search
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -84,45 +92,47 @@ export default function VehiclesPageContent() {
   const [categoryDeleteDialogOpen, setCategoryDeleteDialogOpen] = useState(false);
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
 
-  // Debounce effect para search
+  // Debounce — reset para página 1 quando o search mudar
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
-      setCurrentPage(1); // Reset para primeira página quando buscar
+      setCurrentPage(1);
     }, 500);
-
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Load inicial
   useEffect(() => {
     loadCategories();
   }, []);
 
-  // Carregar veículos quando filtros mudarem
   useEffect(() => {
     loadVehicles();
   }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter]);
 
-const loadVehicles = useCallback(async () => {
-  setLoading(true);
-  try {
-    const result = await getAllVehicles({
-      page: currentPage,
-      limit: itemsPerPage,
-      search: debouncedSearch,
-      status: statusFilter === 'all' ? undefined : statusFilter,        // ✅ CORRIGIDO
-      category_id: categoryFilter === 'all' ? undefined : categoryFilter // ✅ CORRIGIDO
-    });
-    
-    setVehicles(result.data);
-    setPaginationInfo(result.pagination);
-  } catch (error) {
-    handleError(error, 'vehicles:errors.errorLoading');
-  } finally {
-    setLoading(false);
-  }
-}, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter]);
+  const loadVehicles = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await getAllVehicles({
+        page:        currentPage,
+        limit:       itemsPerPage,
+        search:      debouncedSearch,
+        status:      statusFilter   === 'all' ? undefined : statusFilter,
+        category_id: categoryFilter === 'all' ? undefined : categoryFilter,
+      });
+
+      setVehicles(result.data);
+      setPaginationInfo(result.pagination);
+
+      // Counts reais vindos do back — não afectados pelos filtros
+      if (result.statusCounts) {
+        setStatusCounts(result.statusCounts as typeof statusCounts);
+      }
+    } catch (error) {
+      handleError(error, 'vehicles:errors.errorLoading');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter]);
 
   async function loadCategories() {
     setCategoriesLoading(true);
@@ -142,7 +152,7 @@ const loadVehicles = useCallback(async () => {
 
   function handleLimitChange(limit: number) {
     setItemsPerPage(limit);
-    setCurrentPage(1); // Reset para primeira página
+    setCurrentPage(1);
   }
 
   function openDeleteDialog(vehicle: any) {
@@ -155,15 +165,12 @@ const loadVehicles = useCallback(async () => {
   async function handleDeleteVehicle() {
     if (!selectedVehicle) return;
     setIsDeleting(true);
-    
     try {
       await deleteVehicle(selectedVehicle.id);
       removeVehicleFromContext(selectedVehicle.id);
       showSuccess('vehicles:toast.deleteSuccess');
       setDeleteDialogOpen(false);
       selectVehicle(null);
-      
-      // Recarregar lista
       loadVehicles();
     } catch (error) {
       handleError(error, 'vehicles:toast.deleteError');
@@ -183,10 +190,8 @@ const loadVehicles = useCallback(async () => {
   }
 
   async function handleDeleteCategory() {
-    if (!selectedCategory) return; 
-    
+    if (!selectedCategory) return;
     setIsDeletingCategory(true);
-    
     try {
       await deleteVehicleCategory(selectedCategory.id);
       removeCategoryFromContext(selectedCategory.id);
@@ -223,10 +228,8 @@ const loadVehicles = useCallback(async () => {
         className: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800'
       },
     };
-    
     const statusInfo = statusMap[status as keyof typeof statusMap] || statusMap.available;
     const Icon = statusInfo.icon;
-
     return (
       <Badge variant="outline" className={cn("flex items-center gap-1.5 font-bold px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider", statusInfo.className)}>
         <Icon className="w-3.5 h-3.5" />
@@ -243,16 +246,30 @@ const loadVehicles = useCallback(async () => {
     return vehicles.filter(v => v.category_id === categoryId).length;
   }
 
-  // FILTER TEMPORÁRIO ... 
+  // Stats — totais reais do back, não afectados pelos filtros
+  function formatStatValue(n: number): string {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+    if (n >= 1_000)     return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
+    return String(n);
+  }
 
-  const filteredVehicles = vehicles.filter(v => {
-  const matchesSearch = v.license_plate?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.brand?.toLowerCase().includes(searchTerm.toLowerCase());
-  const matchesCategoryFilter = categoryFilter === 'all' || v.category_id === categoryFilter;
-  const matchesStatusFilter = statusFilter === 'all' || v.status === statusFilter;
-  return matchesSearch && matchesCategoryFilter && matchesStatusFilter;
-});
+  const stats = [
+    { label: t('vehicles:stats.total'),       value: paginationInfo.total,     icon: Truck,        color: 'text-slate-600',   bg: 'bg-slate-100/60'  },
+    { label: t('vehicles:stats.available'),   value: statusCounts.available,   icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
+    { label: t('vehicles:stats.inUse'),       value: statusCounts.in_use,      icon: Clock,        color: 'text-blue-600',    bg: 'bg-blue-50/60'    },
+    { label: t('vehicles:stats.maintenance'), value: statusCounts.maintenance, icon: Settings2,    color: 'text-amber-600',   bg: 'bg-amber-50/60'   },
+    { label: t('vehicles:stats.inactive'),    value: statusCounts.inactive,    icon: Ban,          color: 'text-slate-500',   bg: 'bg-slate-50/60'   },
+  ];
+
+  const viewModes = [
+    { mode: 'compact', icon: Rows },
+    { mode: 'normal',  icon: List },
+    { mode: 'cards',   icon: LayoutGrid },
+  ] as const;
+
+  // ---------------------------------------------------------------
+  // Views — usam "vehicles" directamente (já filtrados pelo back)
+  // ---------------------------------------------------------------
 
   function renderCompactView() {
     return (
@@ -265,7 +282,7 @@ const loadVehicles = useCallback(async () => {
           <div className="col-span-2 text-right">{t('vehicles:table.actions')}</div>
         </div>
         <div className="divide-y">
-          {filteredVehicles.map((vehicle) => (
+          {vehicles.map((vehicle) => (
             <div key={vehicle.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors duration-150">
               <div className="col-span-3">
                 <span className="font-mono font-bold text-sm bg-muted/50 px-2.5 py-1 rounded border border-muted-foreground/10">
@@ -291,20 +308,10 @@ const loadVehicles = useCallback(async () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuItem onClick={() => {
-                      closeDropdownsAndOpenDialog(() => {
-                        selectVehicle(vehicle);
-                        setViewDialogOpen(true);
-                      });
-                    }}>
+                    <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectVehicle(vehicle); setViewDialogOpen(true); })}>
                       <Eye className="w-4 h-4 mr-2" /> {t('vehicles:actions.view')}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => {
-                      closeDropdownsAndOpenDialog(() => {
-                        selectVehicle(vehicle);
-                        setEditDialogOpen(true);
-                      });
-                    }}>
+                    <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectVehicle(vehicle); setEditDialogOpen(true); })}>
                       <Edit className="w-4 h-4 mr-2" /> {t('vehicles:actions.edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => openDeleteDialog(vehicle)}>
@@ -323,7 +330,7 @@ const loadVehicles = useCallback(async () => {
   function renderNormalView() {
     return (
       <div className="grid gap-4">
-        {filteredVehicles.map((vehicle) => (
+        {vehicles.map((vehicle) => (
           <Card key={vehicle.id} className="overflow-hidden border-l-4 group hover:shadow-md transition-all duration-200 bg-card" style={{ borderLeftColor: vehicle.category_color }}>
             <CardContent className="p-0">
               <div className="flex items-center p-5 gap-5">
@@ -335,7 +342,7 @@ const loadVehicles = useCallback(async () => {
                     <h3 className="font-bold text-lg tracking-tight">{vehicle.license_plate}</h3>
                     {getStatusBadge(vehicle.status)}
                   </div>
-                  <div className="flex wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
                     <span className="font-bold text-foreground/80">{vehicle.brand} {vehicle.model}</span>
                     <span className="flex items-center gap-1.5">
                       <Tag className="w-4 h-4" />
@@ -344,22 +351,13 @@ const loadVehicles = useCallback(async () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => {
-                    selectVehicle(vehicle);
-                    setViewDialogOpen(true);
-                  }}>
+                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => { selectVehicle(vehicle); setViewDialogOpen(true); }}>
                     <Eye className="w-5 h-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => {
-                    selectVehicle(vehicle);
-                    setEditDialogOpen(true);
-                  }}>
+                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => { selectVehicle(vehicle); setEditDialogOpen(true); }}>
                     <Edit className="w-5 h-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:bg-destructive/10" onClick={() => {
-                    selectVehicle(vehicle);
-                    setDeleteDialogOpen(true);
-                  }}>
+                  <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:bg-destructive/10" onClick={() => { selectVehicle(vehicle); setDeleteDialogOpen(true); }}>
                     <Trash2 className="w-5 h-5" />
                   </Button>
                 </div>
@@ -374,7 +372,7 @@ const loadVehicles = useCallback(async () => {
   function renderCardsView() {
     return (
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredVehicles.map((vehicle) => (
+        {vehicles.map((vehicle) => (
           <Card 
             key={vehicle.id} 
             className="flex flex-col h-full group hover:shadow-lg transition-all duration-300 border-t-4 border-t-gray-200/50 dark:border-t-gray-700/50 bg-card relative"
@@ -384,7 +382,6 @@ const loadVehicles = useCallback(async () => {
               style={{ backgroundColor: vehicle.category_color }}
               title={vehicle.category_name}
             />
-            
             <CardHeader className="pb-3 pt-5 px-5">
               <div className="flex justify-between items-start mb-3">
                 <div className="p-2.5 rounded-xl bg-muted group-hover:bg-primary/5 group-hover:text-primary transition-colors">
@@ -397,13 +394,12 @@ const loadVehicles = useCallback(async () => {
                 {vehicle.brand} {vehicle.model} ({vehicle.year})
               </CardDescription>
             </CardHeader>
-            
             <CardContent className="flex-1 flex flex-col gap-4 p-5 pt-2">
               <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/50 border border-muted/50">
                 <div className="space-y-0.5">
                   <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('vehicles:fields.mileage')}</p>
                   <p className="text-lg font-bold tracking-tight">
-                    {vehicle.current_mileage?.toLocaleString('pt-AO')} 
+                    {vehicle.current_mileage?.toLocaleString('pt-AO')}
                     <span className="ml-1 text-xs font-normal text-muted-foreground">km</span>
                   </p>
                 </div>
@@ -413,15 +409,8 @@ const loadVehicles = useCallback(async () => {
                   <p className="text-sm font-bold truncate max-w-[90px]">{vehicle.category_name}</p>
                 </div>
               </div>
-
               <div className="mt-auto pt-2 flex gap-2">
-                <Button 
-                  className="flex-1 h-10 text-sm font-bold shadow-sm" 
-                  onClick={() => {
-                    selectVehicle(vehicle);
-                    setViewDialogOpen(true);
-                  }}
-                >
+                <Button className="flex-1 h-10 text-sm font-bold shadow-sm" onClick={() => { selectVehicle(vehicle); setViewDialogOpen(true); }}>
                   {t('vehicles:actions.view')}
                 </Button>
                 <DropdownMenu>
@@ -431,12 +420,7 @@ const loadVehicles = useCallback(async () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => {
-                      closeDropdownsAndOpenDialog(() => {
-                        selectVehicle(vehicle);
-                        setEditDialogOpen(true);
-                      });
-                    }}>
+                    <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectVehicle(vehicle); setEditDialogOpen(true); })}>
                       <Edit className="w-4 h-4 mr-2" /> {t('vehicles:actions.edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => openDeleteDialog(vehicle)}>
@@ -452,27 +436,15 @@ const loadVehicles = useCallback(async () => {
     );
   }
 
-  // Stats calculados baseados na paginação total
-  const availableCount = vehicles.filter(v => v.status === 'available').length;
-  const inUseCount = vehicles.filter(v => v.status === 'in_use').length;
-  const maintenanceCount = vehicles.filter(v => v.status === 'maintenance').length;
-
-  const stats = [
-    { label: t('vehicles:stats.total'), value: paginationInfo.total, icon: Truck, color: 'text-slate-600', bg: 'bg-slate-100/60' },
-    { label: t('vehicles:stats.available'), value: availableCount, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
-    { label: t('vehicles:stats.inUse'), value: inUseCount, icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50/60' },
-    { label: t('vehicles:stats.maintenance'), value: maintenanceCount, icon: Settings2, color: 'text-amber-600', bg: 'bg-amber-50/60' },
-  ];
-
-  const viewModes = [
-    { mode: 'compact', icon: Rows },
-    { mode: 'normal', icon: List },
-    { mode: 'cards', icon: LayoutGrid },
-  ] as const;
+  // ---------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------
 
   return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6"> 
+    <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
       <div className="max-w-[1500px] mx-auto space-y-8 pb-10">
+
+        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('vehicles:title')}</h1>
@@ -493,80 +465,90 @@ const loadVehicles = useCallback(async () => {
             </TabsTrigger>
           </TabsList>
 
+          {/* ---- TAB: VEÍCULOS ---- */}
           <TabsContent value="vehicles" className="space-y-6 mt-0 outline-none">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+            {/* Stats — overflow-hidden evita corte do primeiro card */}
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
               {stats.map((stat, i) => (
-                <Card key={i} className="border-none shadow-sm bg-card">
-                  <CardContent className="p-5 flex items-center gap-4">
-                    <div className={cn("p-3 rounded-xl", stat.bg, stat.color)}>
-                      <stat.icon className="w-5 h-5" />
+                <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className={cn("p-2.5 rounded-xl shrink-0", stat.bg, stat.color)}>
+                      <stat.icon className="w-4 h-4" />
                     </div>
-                    <div>
-                      <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
-                      <p className="text-2xl font-black tracking-tight">{stat.value}</p>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">
+                        {stat.label}
+                      </p>
+                      <p
+                        className={cn("font-black tracking-tight leading-tight", stat.value >= 10_000 ? "text-lg" : "text-2xl")}
+                        title={stat.value.toLocaleString('pt-PT')}
+                      >
+                        {formatStatValue(stat.value)}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between bg-card p-4 rounded-2xl border border-muted/50 shadow-sm">
-              <div className="flex flex-col sm:flex-row gap-3 flex-1">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder={t('vehicles:placeholders.search')}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
-                  />
-                </div>
-                
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
-                    <Filter className="w-4 h-4 text-muted-foreground" />
-                    <SelectValue placeholder={t('vehicles:filters.status')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('vehicles:filters.all')}</SelectItem>
-                    <SelectItem value="available">{t('vehicles:status.available.label')}</SelectItem>
-                    <SelectItem value="in_use">{t('vehicles:status.in_use.label')}</SelectItem>
-                    <SelectItem value="maintenance">{t('vehicles:status.maintenance.label')}</SelectItem>
-                    <SelectItem value="inactive">{t('vehicles:status.inactive.label')}</SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* Toolbar — filtros + view modes numa linha, paginação na linha abaixo */}
+            <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
+              {/* Linha 1: filtros + view modes */}
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
+                {/* Filtros */}
+                <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder={t('vehicles:placeholders.search')}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
+                    />
+                  </div>
 
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-full sm:w-[220px] h-10 text-sm bg-muted/20 border-none">
-                    <Tag className="w-4 h-4 text-muted-foreground" />
-                    <SelectValue placeholder={t('vehicles:filters.category')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">
-                      <span className="flex items-center justify-between w-full">
-                        <span>{t('vehicles:filters.allCategories')}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">({paginationInfo.total})</span>
-                      </span>
-                    </SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        <span className="flex items-center justify-between w-full gap-3">
-                          <span className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: category.color }} />
-                            <span className="truncate">{category.name}</span>
-                          </span>
-                          <span className="text-xs text-muted-foreground ml-auto">
-                            ({getVehicleCountByCategory(category.id)})
-                          </span>
+                  <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
+                    <SelectTrigger className="w-full sm:w-[160px] h-10 text-sm bg-muted/20 border-none">
+                      <Filter className="w-4 h-4 text-muted-foreground" />
+                      <SelectValue placeholder={t('vehicles:filters.status')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('vehicles:filters.all')}</SelectItem>
+                      <SelectItem value="available">{t('vehicles:status.available.label')}</SelectItem>
+                      <SelectItem value="in_use">{t('vehicles:status.in_use.label')}</SelectItem>
+                      <SelectItem value="maintenance">{t('vehicles:status.maintenance.label')}</SelectItem>
+                      <SelectItem value="inactive">{t('vehicles:status.inactive.label')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setCurrentPage(1); }}>
+                    <SelectTrigger className="w-full sm:w-[200px] h-10 text-sm bg-muted/20 border-none">
+                      <Tag className="w-4 h-4 text-muted-foreground" />
+                      <SelectValue placeholder={t('vehicles:filters.category')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">
+                        <span className="flex items-center gap-2">
+                          <span>{t('vehicles:filters.allCategories')}</span>
+                          <span className="text-xs text-muted-foreground">({paginationInfo.total})</span>
                         </span>
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          <span className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: category.color }} />
+                            <span className="truncate">{category.name}</span>
+                            <span className="text-xs text-muted-foreground">({getVehicleCountByCategory(category.id)})</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="flex items-center gap-3 self-center lg:self-auto">
-                <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50">
+                {/* View modes */}
+                <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50 self-center sm:self-auto shrink-0">
                   {viewModes.map((item) => (
                     <Button
                       key={item.mode}
@@ -583,8 +565,20 @@ const loadVehicles = useCallback(async () => {
                   ))}
                 </div>
               </div>
+
+              {/* Linha 2: paginação — só aparece quando há mais de 1 página */}
+              {paginationInfo.totalPages > 1 && (
+                <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
+                  <Pagination
+                    pagination={paginationInfo}
+                    onPageChange={handlePageChange}
+                    onLimitChange={handleLimitChange}
+                  />
+                </div>
+              )}
             </div>
 
+            {/* Lista */}
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-24 space-y-4">
                 <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
@@ -597,27 +591,15 @@ const loadVehicles = useCallback(async () => {
                 <p className="text-sm text-muted-foreground mt-1">{t('vehicles:empty.adjustFilters')}</p>
               </div>
             ) : (
-              <>
-                <div className="animate-in fade-in duration-300">
-                  {viewMode === 'compact' && renderCompactView()}
-                  {viewMode === 'normal' && renderNormalView()}
-                  {viewMode === 'cards' && renderCardsView()}
-                </div>
-
-                {/* Paginação */}
-                {paginationInfo.totalPages > 1 && (
-                  <div className="mt-6">
-                    <Pagination
-                      pagination={paginationInfo}
-                      onPageChange={handlePageChange}
-                      onLimitChange={handleLimitChange}
-                    />
-                  </div>
-                )}
-              </>
+              <div className="animate-in fade-in duration-300">
+                {viewMode === 'compact' && renderCompactView()}
+                {viewMode === 'normal'  && renderNormalView()}
+                {viewMode === 'cards'   && renderCardsView()}
+              </div>
             )}
           </TabsContent>
 
+          {/* ---- TAB: CATEGORIAS ---- */}
           <TabsContent value="categories" className="space-y-6 mt-0 outline-none">
             <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
               <div className="relative flex-1 max-w-md">
@@ -666,7 +648,7 @@ const loadVehicles = useCallback(async () => {
                           </div>
                         </div>
                       </div>
-                      
+
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-5 min-h-[40px]">
                         {category.description || t('vehicles:categories.noDescription')}
                       </p>
@@ -678,24 +660,14 @@ const loadVehicles = useCallback(async () => {
                         </div>
                         <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
                           <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-9 w-9 hover:bg-primary/10 hover:text-primary transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openCategoryEditDialog(category);
-                            }}
+                            variant="ghost" size="icon" className="h-9 w-9 hover:bg-primary/10 hover:text-primary transition-colors"
+                            onClick={(e) => { e.stopPropagation(); openCategoryEditDialog(category); }}
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
                           <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-9 w-9 text-destructive hover:bg-destructive/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openCategoryDeleteDialog(category);
-                            }}
+                            variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10"
+                            onClick={(e) => { e.stopPropagation(); openCategoryDeleteDialog(category); }}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -704,7 +676,7 @@ const loadVehicles = useCallback(async () => {
                     </CardContent>
                   </Card>
                 ))}
-                
+
                 <button 
                   onClick={() => document.getElementById('new-category-trigger')?.click()}
                   className="flex flex-col items-center justify-center gap-4 p-8 rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-card/50 hover:border-primary/40 hover:bg-primary/5 transition-all group min-h-[200px]"
@@ -721,9 +693,10 @@ const loadVehicles = useCallback(async () => {
           </TabsContent>
         </Tabs>
 
-        <EditVehicleDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} />
+        {/* Dialogs */}
+        <EditVehicleDialog       open={editDialogOpen}         onOpenChange={setEditDialogOpen}         />
         <EditVehicleCategoryDialog open={editCategoryDialogOpen} onOpenChange={setEditCategoryDialogOpen} />
-        <ViewVehicleDialog open={viewDialogOpen} onOpenChange={setViewDialogOpen} />
+        <ViewVehicleDialog       open={viewDialogOpen}         onOpenChange={setViewDialogOpen}         />
 
         <ConfirmDeleteDialog
           open={deleteDialogOpen}
@@ -741,7 +714,7 @@ const loadVehicles = useCallback(async () => {
           onOpenChange={setCategoryDeleteDialogOpen}
           onConfirm={handleDeleteCategory}
           title={t('vehicles:categories.delete')}
-          description={t('vehicles:dialogs.delete.description')}
+          description={t('vehicles:categories.deleteDescription')}
           warning={t('vehicles:dialogs.delete.warning')}
           itemName={selectedCategory?.name}
           isLoading={isDeletingCategory}

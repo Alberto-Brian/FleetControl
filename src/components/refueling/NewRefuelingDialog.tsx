@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/refueling/NewRefuelingDialog.tsx (VERSÃO LIMPA E PROFISSIONAL)
+// FILE: src/components/refueling/NewRefuelingDialog.tsx
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { 
-  Fuel, Plus, AlertCircle, Car, User, MapPin, 
-  Gauge, Droplets, DollarSign, FileText, StickyNote, 
+import {
+  Fuel, Plus, AlertCircle, Car, User, MapPin,
+  Gauge, Droplets, DollarSign, FileText, StickyNote,
   Route, Calculator, CheckCircle2, Link2, ArrowRight
 } from 'lucide-react';
 import { createRefueling } from '@/helpers/refueling-helpers';
@@ -37,12 +38,13 @@ export default function NewRefuelingDialog() {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { state: { fuelStations }, addRefueling } = useRefuelings();
-  
+
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [trips, setTrips] = useState<any[]>([]);
+  const [autoFilledDriver, setAutoFilledDriver] = useState(false);
   const [formData, setFormData] = useState<ICreateRefueling>({
     vehicle_id: '',
     driver_id: undefined,
@@ -56,13 +58,9 @@ export default function NewRefuelingDialog() {
     invoice_number: '',
     notes: '',
   });
-  
-  const [autoFilledDriver, setAutoFilledDriver] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      loadData();
-    }
+    if (open) loadData();
   }, [open]);
 
   async function loadData() {
@@ -83,10 +81,8 @@ export default function NewRefuelingDialog() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsLoading(true);
-
     try {
       const newRefueling = await createRefueling(formData);
-      
       if (newRefueling) {
         addRefueling(newRefueling);
         showSuccess('refuelings:toast.createSuccess');
@@ -101,57 +97,77 @@ export default function NewRefuelingDialog() {
   }
 
   function resetForm() {
-    setFormData({
-      vehicle_id: '',
-      driver_id: undefined,
-      station_id: undefined,
-      trip_id: undefined,
-      fuel_type: 'diesel',
-      liters: 0,
-      price_per_liter: 0,
-      current_mileage: 0,
-      is_full_tank: true,
-      invoice_number: '',
-      notes: '',
-    });
+    setFormData({ vehicle_id: '', driver_id: undefined, station_id: undefined, trip_id: undefined, fuel_type: 'diesel', liters: 0, price_per_liter: 0, current_mileage: 0, is_full_tank: true, invoice_number: '', notes: '' });
     setAutoFilledDriver(false);
   }
 
-  const handleTripChange = (value: string) => {
+  function handleTripChange(value: string) {
     const tripId = value === 'none' ? undefined : value;
-    const selectedTrip = trips.find(t => t.id === tripId);
-    
-    if (selectedTrip && selectedTrip.driver_id) {
-      setFormData({ 
-        ...formData, 
-        trip_id: tripId,
-        driver_id: selectedTrip.driver_id
-      });
+    const selectedTrip = trips.find((t) => t.id === tripId);
+    if (selectedTrip?.driver_id) {
+      setFormData({ ...formData, trip_id: tripId, driver_id: selectedTrip.driver_id });
       setAutoFilledDriver(true);
     } else {
-      setFormData({ 
-        ...formData, 
-        trip_id: tripId,
-        driver_id: undefined
-      });
+      setFormData({ ...formData, trip_id: tripId, driver_id: undefined });
       setAutoFilledDriver(false);
     }
-  };
+  }
 
-  const handleDriverChange = (value: string) => {
-    const driverId = value === 'none' ? undefined : value;
-    setFormData({ ...formData, driver_id: driverId });
+  function handleDriverChange(value: string) {
+    setFormData({ ...formData, driver_id: value === 'none' ? undefined : value });
     setAutoFilledDriver(false);
-  };
+  }
 
   const totalCost = formData.liters * formData.price_per_liter;
-  const selectedVehicle = vehicles.find(v => v.id === formData.vehicle_id);
-  const selectedTrip = trips.find(t => t.id === formData.trip_id);
-  const selectedDriver = drivers.find(d => d.id === formData.driver_id);
-  const activeStations = fuelStations.filter(s => s.is_active);
-  const filteredTrips = formData.vehicle_id 
-    ? trips.filter(t => t.vehicle_id === formData.vehicle_id)
-    : trips;
+  const selectedVehicle = vehicles.find((v) => v.id === formData.vehicle_id);
+  const selectedTrip = trips.find((t) => t.id === formData.trip_id);
+  const selectedDriver = drivers.find((d) => d.id === formData.driver_id);
+  const activeStations = fuelStations.filter((s) => s.is_active);
+  const filteredTrips = formData.vehicle_id ? trips.filter((t) => t.vehicle_id === formData.vehicle_id) : trips;
+
+  // Opções para veículos — pesquisa por matrícula, marca, modelo
+  const vehicleOptions: SearchableSelectOption[] = vehicles.map((v) => ({
+    value: v.id,
+    searchText: `${v.license_plate} ${v.brand} ${v.model}`,
+    label: (
+      <div className="flex items-center gap-2">
+        <span className="font-mono font-bold">{v.license_plate}</span>
+        <span className="text-muted-foreground text-sm">— {v.brand} {v.model}</span>
+      </div>
+    ),
+    selectedLabel: <span className="font-mono font-semibold">{v.license_plate} — {v.brand} {v.model}</span>,
+  }));
+
+  // Opções para motoristas — pesquisa por nome e carta de condução
+  const driverOptions: SearchableSelectOption[] = drivers.map((d) => ({
+    value: d.id,
+    searchText: `${d.name} ${d.license_number ?? ''}`,
+    label: (
+      <div className="flex items-center gap-2">
+        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+          {d.name.charAt(0).toUpperCase()}
+        </div>
+        <div className="flex flex-col min-w-0">
+          <span className="truncate">{d.name}</span>
+          {d.license_number && <span className="text-xs text-muted-foreground font-mono">{d.license_number}</span>}
+        </div>
+      </div>
+    ),
+    selectedLabel: <span>{d.name}</span>,
+  }));
+
+  // Opções para postos — pesquisa por nome e marca do posto
+  const stationOptions: SearchableSelectOption[] = activeStations.map((s) => ({
+    value: s.id,
+    searchText: `${s.name} ${s.brand ?? ''}`,
+    label: (
+      <div className="flex items-center justify-between w-full gap-3">
+        <span>{s.name}</span>
+        {s.brand && <Badge variant="outline" className="text-[10px]">{s.brand}</Badge>}
+      </div>
+    ),
+    selectedLabel: <span>{s.name}{s.brand ? ` — ${s.brand}` : ''}</span>,
+  }));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -161,16 +177,14 @@ export default function NewRefuelingDialog() {
           {t('refuelings:newRefueling')}
         </Button>
       </DialogTrigger>
-      
+
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Fuel className="w-5 h-5 text-primary" />
             {t('refuelings:dialogs.new.title')}
           </DialogTitle>
-          <DialogDescription>
-            {t('refuelings:dialogs.new.description')}
-          </DialogDescription>
+          <DialogDescription>{t('refuelings:dialogs.new.description')}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
@@ -180,7 +194,7 @@ export default function NewRefuelingDialog() {
               <Car className="w-4 h-4" />
               {t('refuelings:sections.identification')}
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Veículo */}
               <div className="space-y-2">
@@ -188,42 +202,19 @@ export default function NewRefuelingDialog() {
                   {t('refuelings:fields.vehicle')}
                   <span className="text-destructive ml-1">*</span>
                 </Label>
-                <Select
+                <SearchableSelect
+                  options={vehicleOptions}
                   value={formData.vehicle_id}
                   onValueChange={(value) => {
-                    const vehicle = vehicles.find(v => v.id === value);
-                    setFormData({ 
-                      ...formData, 
-                      vehicle_id: value,
-                      trip_id: undefined,
-                      driver_id: undefined,
-                      current_mileage: vehicle?.current_mileage || 0
-                    });
+                    const vehicle = vehicles.find((v) => v.id === value);
+                    setFormData({ ...formData, vehicle_id: value, trip_id: undefined, driver_id: undefined, current_mileage: vehicle?.current_mileage || 0 });
                     setAutoFilledDriver(false);
                   }}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('refuelings:placeholders.selectVehicle')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vehicles.length === 0 ? (
-                      <div className="p-4 text-center text-sm text-muted-foreground">
-                        <AlertCircle className="w-5 h-5 mx-auto mb-2" />
-                        {t('refuelings:alerts.noVehicles')}
-                      </div>
-                    ) : (
-                      vehicles.map((v) => (
-                        <SelectItem key={v.id} value={v.id}>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold">{v.license_plate}</span>
-                            <span className="text-muted-foreground text-sm">- {v.brand} {v.model}</span>
-                          </div>
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                  placeholder={t('refuelings:placeholders.selectVehicle')}
+                  searchPlaceholder="Pesquisar por matrícula, marca..."
+                  emptyMessage={t('refuelings:alerts.noVehicles')}
+                  popoverMinWidth={320}
+                />
                 {selectedVehicle && (
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <Gauge className="w-3 h-3" />
@@ -232,28 +223,24 @@ export default function NewRefuelingDialog() {
                 )}
               </div>
 
-              {/* Viagem */}
+              {/* Viagem — lista filtrada e finita, Select normal é suficiente */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium flex items-center gap-1">
                   <Route className="w-3.5 h-3.5" />
                   {t('refuelings:fields.trip')}
                 </Label>
-                <Select
-                  value={formData.trip_id || 'none'}
-                  onValueChange={handleTripChange}
-                  disabled={!formData.vehicle_id}
-                >
-                  <SelectTrigger className={cn(!formData.vehicle_id && "opacity-50")}>
+                <Select value={formData.trip_id || 'none'} onValueChange={handleTripChange} disabled={!formData.vehicle_id}>
+                  <SelectTrigger className={cn(!formData.vehicle_id && 'opacity-50')}>
                     <SelectValue placeholder={!formData.vehicle_id ? t('refuelings:placeholders.selectVehicleFirst') : t('refuelings:placeholders.selectTrip')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">{t('common:none')}</SelectItem>
-                    {filteredTrips.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
+                    {filteredTrips.map((trip) => (
+                      <SelectItem key={trip.id} value={trip.id}>
                         <div className="flex flex-col">
-                          <span className="font-medium">{t.route_name || t.destination}</span>
+                          <span className="font-medium">{trip.route_name || trip.destination}</span>
                           <span className="text-xs text-muted-foreground">
-                            {new Date(t.start_date).toLocaleDateString('pt-PT')} • {t.driver_name}
+                            {new Date(trip.start_date).toLocaleDateString('pt-PT')} • {trip.driver_name}
                           </span>
                         </div>
                       </SelectItem>
@@ -282,27 +269,17 @@ export default function NewRefuelingDialog() {
                     </Badge>
                   )}
                 </div>
-                <Select
+                <SearchableSelect
+                  options={driverOptions}
                   value={formData.driver_id || 'none'}
                   onValueChange={handleDriverChange}
-                >
-                  <SelectTrigger className={cn(autoFilledDriver && "border-primary/50 bg-primary/5")}>
-                    <SelectValue placeholder={t('refuelings:placeholders.selectDriver')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{t('common:none')}</SelectItem>
-                    {drivers.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                            {d.name.charAt(0).toUpperCase()}
-                          </div>
-                          {d.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder={t('refuelings:placeholders.selectDriver')}
+                  searchPlaceholder="Pesquisar por nome ou carta..."
+                  emptyMessage="Nenhum motorista encontrado."
+                  noneOption={{ value: 'none', label: t('common:none') }}
+                  popoverMinWidth={280}
+                  className={cn(autoFilledDriver && 'border-primary/50 bg-primary/5')}
+                />
                 {autoFilledDriver && selectedDriver && (
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <Link2 className="w-3 h-3" />
@@ -321,44 +298,30 @@ export default function NewRefuelingDialog() {
               <MapPin className="w-4 h-4" />
               {t('refuelings:sections.location')}
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Posto */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">{t('refuelings:fields.station')}</Label>
-                <Select
+                <SearchableSelect
+                  options={stationOptions}
                   value={formData.station_id || 'none'}
                   onValueChange={(value) => setFormData({ ...formData, station_id: value === 'none' ? undefined : value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('refuelings:placeholders.selectStation')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{t('common:none')}</SelectItem>
-                    {activeStations.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        <div className="flex items-center justify-between w-full gap-4">
-                          <span>{s.name}</span>
-                          {s.brand && <Badge variant="outline" className="text-[10px]">{s.brand}</Badge>}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder={t('refuelings:placeholders.selectStation')}
+                  searchPlaceholder="Pesquisar por nome ou marca..."
+                  emptyMessage="Nenhum posto encontrado."
+                  noneOption={{ value: 'none', label: t('common:none') }}
+                />
               </div>
 
-              {/* Tipo de Combustível */}
+              {/* Tipo de Combustível — lista estática, Select normal */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium flex items-center gap-1">
                   <Droplets className="w-3.5 h-3.5" />
                   {t('refuelings:fields.fuelType')}
                   <span className="text-destructive ml-1">*</span>
                 </Label>
-                <Select
-                  value={formData.fuel_type}
-                  onValueChange={(value) => setFormData({ ...formData, fuel_type: value })}
-                  required
-                >
+                <Select value={formData.fuel_type} onValueChange={(value) => setFormData({ ...formData, fuel_type: value })} required>
                   <SelectTrigger>
                     <SelectValue placeholder={t('refuelings:placeholders.selectFuelType')} />
                   </SelectTrigger>
@@ -385,77 +348,45 @@ export default function NewRefuelingDialog() {
               <Calculator className="w-4 h-4" />
               {t('refuelings:sections.quantities')}
             </div>
-            
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {/* Quilometragem */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
                   {t('refuelings:fields.mileage')}
                   <span className="text-destructive ml-1">*</span>
                 </Label>
                 <div className="relative">
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={formData.current_mileage || ''}
-                    onChange={(e) => setFormData({ ...formData, current_mileage: parseInt(e.target.value) || 0 })}
-                    className="pr-10 font-mono"
-                    required
-                  />
+                  <Input type="number" min="0" placeholder="0" value={formData.current_mileage || ''} onChange={(e) => setFormData({ ...formData, current_mileage: parseInt(e.target.value) || 0 })} className="pr-10 font-mono" required />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">km</span>
                 </div>
               </div>
 
-              {/* Litros */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
                   {t('refuelings:fields.liters')}
                   <span className="text-destructive ml-1">*</span>
                 </Label>
                 <div className="relative">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={formData.liters || ''}
-                    onChange={(e) => setFormData({ ...formData, liters: parseFloat(e.target.value) || 0 })}
-                    className="pr-8 font-mono"
-                    required
-                  />
+                  <Input type="number" min="0" step="0.01" placeholder="0.00" value={formData.liters || ''} onChange={(e) => setFormData({ ...formData, liters: parseFloat(e.target.value) || 0 })} className="pr-8 font-mono" required />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">L</span>
                 </div>
               </div>
 
-              {/* Preço por Litro */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
                   {t('refuelings:fields.pricePerLiter')}
                   <span className="text-destructive ml-1">*</span>
                 </Label>
                 <div className="relative">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={formData.price_per_liter || ''}
-                    onChange={(e) => setFormData({ ...formData, price_per_liter: parseFloat(e.target.value) || 0 })}
-                    className="pl-8 font-mono"
-                    required
-                  />
+                  <Input type="number" min="0" step="0.01" placeholder="0.00" value={formData.price_per_liter || ''} onChange={(e) => setFormData({ ...formData, price_per_liter: parseFloat(e.target.value) || 0 })} className="pl-8 font-mono" required />
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-bold">Kz</span>
                 </div>
               </div>
 
-              {/* Custo Total */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-primary">{t('refuelings:fields.totalCost')}</Label>
                 <div className="h-10 flex items-center px-3 rounded-md bg-primary/10 border border-primary/20">
-                  <span className="font-bold text-primary font-mono">
-                    {totalCost.toLocaleString('pt-PT', { minimumFractionDigits: 2 })}
-                  </span>
+                  <span className="font-bold text-primary font-mono">{totalCost.toLocaleString('pt-PT', { minimumFractionDigits: 2 })}</span>
                   <span className="ml-1 text-xs text-primary/70">Kz</span>
                 </div>
               </div>
@@ -470,42 +401,22 @@ export default function NewRefuelingDialog() {
               <FileText className="w-4 h-4" />
               {t('refuelings:sections.details')}
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Tanque Cheio */}
               <div className="flex items-center space-x-2 p-3 rounded-lg border bg-muted/30">
-                <Checkbox
-                  id="is_full_tank"
-                  checked={formData.is_full_tank}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_full_tank: checked as boolean })}
-                />
-                <label htmlFor="is_full_tank" className="text-sm font-medium cursor-pointer flex-1">
-                  {t('refuelings:fields.fullTank')}
-                </label>
+                <Checkbox id="is_full_tank" checked={formData.is_full_tank} onCheckedChange={(checked) => setFormData({ ...formData, is_full_tank: checked as boolean })} />
+                <label htmlFor="is_full_tank" className="text-sm font-medium cursor-pointer flex-1">{t('refuelings:fields.fullTank')}</label>
                 {formData.is_full_tank && <CheckCircle2 className="w-4 h-4 text-green-500" />}
               </div>
 
-              {/* Fatura */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">{t('refuelings:fields.invoiceNumber')}</Label>
-                <Input
-                  placeholder="INV-2024-001"
-                  value={formData.invoice_number || ''}
-                  onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
-                  className="font-mono uppercase"
-                />
+                <Input placeholder="INV-2024-001" value={formData.invoice_number || ''} onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })} className="font-mono uppercase" />
               </div>
 
-              {/* Observações */}
-              <div className="space-y-2 md:col-span-1">
+              <div className="space-y-2">
                 <Label className="text-sm font-medium">{t('refuelings:fields.notes')}</Label>
-                <Textarea
-                  placeholder={t('refuelings:placeholders.addNotes')}
-                  value={formData.notes || ''}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows={1}
-                  className="resize-none min-h-[38px]"
-                />
+                <Textarea placeholder={t('refuelings:placeholders.addNotes')} value={formData.notes || ''} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={1} className="resize-none min-h-[38px]" />
               </div>
             </div>
           </div>
@@ -514,41 +425,19 @@ export default function NewRefuelingDialog() {
           {totalCost > 0 && (
             <div className="p-4 rounded-lg bg-muted/50 border space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
-                  {formData.liters}L × {formData.price_per_liter.toLocaleString('pt-PT')} Kz
-                </span>
-                <span className="text-xl font-bold text-primary font-mono">
-                  {totalCost.toLocaleString('pt-PT', { minimumFractionDigits: 2 })} Kz
-                </span>
+                <span className="text-sm text-muted-foreground">{formData.liters}L × {formData.price_per_liter.toLocaleString('pt-PT')} Kz</span>
+                <span className="text-xl font-bold text-primary font-mono">{totalCost.toLocaleString('pt-PT', { minimumFractionDigits: 2 })} Kz</span>
               </div>
               <div className="flex flex-wrap gap-2 text-xs">
-                {selectedVehicle && (
-                  <Badge variant="outline" className="gap-1">
-                    <Car className="w-3 h-3" />
-                    {selectedVehicle.license_plate}
-                  </Badge>
-                )}
-                {selectedTrip && (
-                  <Badge variant="outline" className="gap-1">
-                    <Route className="w-3 h-3" />
-                    {selectedTrip.route_name || selectedTrip.destination}
-                  </Badge>
-                )}
-                {selectedDriver && (
-                  <Badge variant="outline" className={cn("gap-1", autoFilledDriver && "bg-primary/10")}>
-                    <User className="w-3 h-3" />
-                    {selectedDriver.name}
-                  </Badge>
-                )}
+                {selectedVehicle && <Badge variant="outline" className="gap-1"><Car className="w-3 h-3" />{selectedVehicle.license_plate}</Badge>}
+                {selectedTrip && <Badge variant="outline" className="gap-1"><Route className="w-3 h-3" />{selectedTrip.route_name || selectedTrip.destination}</Badge>}
+                {selectedDriver && <Badge variant="outline" className={cn('gap-1', autoFilledDriver && 'bg-primary/10')}><User className="w-3 h-3" />{selectedDriver.name}</Badge>}
               </div>
             </div>
           )}
 
-          {/* Footer */}
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
-              {t('common:actions.cancel')}
-            </Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>{t('common:actions.cancel')}</Button>
             <Button type="submit" disabled={isLoading || vehicles.length === 0}>
               {isLoading ? t('refuelings:actions.creating') : t('refuelings:actions.register')}
             </Button>

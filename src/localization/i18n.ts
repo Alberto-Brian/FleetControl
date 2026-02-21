@@ -25,6 +25,8 @@ import { ptNavigation } from "./locales/pt/navigation";
 import { enNavigation } from "./locales/en/navigation";
 import { ptReport } from "./locales/pt/reports";
 import { enReport } from "./locales/en/reports";
+import { ptRoutes } from "./locales/pt/routes";
+import { enRoutes } from "./locales/en/routes";
 
 i18n.use(initReactI18next).init({
     fallbackLng: "en",
@@ -40,6 +42,7 @@ i18n.use(initReactI18next).init({
             dashboard: enDashboard,
             navigation: enNavigation,
             reports: enReport,
+            routes: enRoutes,
             // vehicles: vehicleTranslations.en.vehicles,
             auth: authTranslations.en.auth,
             common: enCommon,
@@ -79,6 +82,7 @@ i18n.use(initReactI18next).init({
             dashboard: ptDashboard,
             navigation: ptNavigation,
             reports: ptReport,
+            routes: ptRoutes,
             // vehicles: vehicleTranslations.pt.vehicles,
             auth: authTranslations.pt.auth,
             common: ptCommon,

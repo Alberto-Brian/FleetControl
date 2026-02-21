@@ -173,6 +173,10 @@ export const ptMaintenances = {
       description: 'Tem a certeza que deseja eliminar a categoria',
       warning: 'Esta acção não pode ser desfeita.',
     },
+    editCategory: {
+      title: 'Editar Categoria',
+      description: 'Altere os dados da categoria seleccionada.',
+  },
   },
 
   alerts: {
@@ -306,6 +310,7 @@ export const ptMaintenances = {
       state: 'Ex: Luanda',
       specialties: 'Ex: Mecânica geral, Elétrica, Funilaria',
       notes: 'Informações adicionais sobre a oficina...',
+      categoryNamePreview: 'Nome da Categoria'
     },
 
     dialogs: {

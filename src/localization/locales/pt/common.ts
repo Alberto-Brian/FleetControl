@@ -69,7 +69,9 @@ export const ptCommon = {
       selected: "Selecionado",
       clickToSelect: "Clique para selecionar",
       yes: "Sim",
-      no: "Não"
+      no: "Não",
+      saving: 'A guardar...',
+      save: 'Guardar',
   },
   warnigns: {
       licensePlateRequired: "Por favor, insira uma placa de veículo",

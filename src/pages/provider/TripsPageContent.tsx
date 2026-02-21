@@ -1,32 +1,37 @@
-// ========================================
-// FILE: src/pages/provider/TripsPageContent.tsx
-// ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
-import { 
-  Search, MapPin, Calendar, Truck, User, Flag, TrendingUp, Clock, Eye, 
-  Route as RouteIcon, AlertCircle, XCircle, List, LayoutGrid, MoreHorizontal, 
-  Navigation, ArrowRight, Gauge, PlayCircle, CheckCircle2
+import {
+  Search, MapPin, Calendar, Truck, User, Flag, TrendingUp, Clock, Eye,
+  Route as RouteIcon, AlertCircle, XCircle, List, LayoutGrid, MoreHorizontal,
+  Navigation, ArrowRight, Gauge, PlayCircle, CheckCircle2, Edit, Trash2,
+  Plus
 } from 'lucide-react';
 import { getAllTrips, cancelTrip as cancelTripHelper } from '@/helpers/trip-helpers';
+import { getAllRoutes, deleteRoute as deleteRouteHelper } from '@/helpers/route-helpers';
 import { cn } from '@/lib/utils';
 import { useTrips } from '@/contexts/TripsContext';
 
-// Dialogs
+// Dialogs — trips
 import StartTripDialog from '@/components/trip/StartTripDialog';
 import CompleteTripDialog from '@/components/trip/CompleteTripDialog';
 import ViewTripDialog from '@/components/trip/ViewTripDialog';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
+
+// Dialogs — routes
+import NewRouteDialog from '@/components/trip/NewRouteDialog';
+import EditRouteDialog from '@/components/trip/EditRouteDialog';
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
   closeDropdownsAndOpenDialog
 } from '@/components/ui/dropdown-menu';
@@ -37,8 +42,7 @@ export default function TripsPageContent() {
   const { t } = useTranslation();
   const { handleError, showSuccess } = useErrorHandler();
 
-  // ✨ CONTEXT
-  const { 
+  const {
     state: { trips, selectedTrip, isLoading },
     setTrips,
     selectTrip,
@@ -46,19 +50,32 @@ export default function TripsPageContent() {
     setLoading,
   } = useTrips();
 
-  // Estados UI
+  // UI states
+  const [activeTab, setActiveTab] = useState('trips');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('cards'); // Cards como padrão
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [routeSearch, setRouteSearch] = useState('');
 
-  // Dialogs
+  // Routes
+  const [routes, setRoutes] = useState<any[]>([]);
+  const [isRoutesLoading, setIsRoutesLoading] = useState(false);
+  const [selectedRoute, setSelectedRoute] = useState<any | null>(null);
+
+  // Dialogs — trips
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
+  // Dialogs — routes
+  const [editRouteDialogOpen, setEditRouteDialogOpen] = useState(false);
+  const [deleteRouteDialogOpen, setDeleteRouteDialogOpen] = useState(false);
+  const [isDeletingRoute, setIsDeletingRoute] = useState(false);
+
   useEffect(() => {
     loadTrips();
+    loadRoutes();
   }, []);
 
   async function loadTrips() {
@@ -73,21 +90,27 @@ export default function TripsPageContent() {
     }
   }
 
+  async function loadRoutes() {
+    setIsRoutesLoading(true);
+    try {
+      const data = await getAllRoutes();
+      setRoutes(data);
+    } catch (error) {
+      handleError(error, 'routes:errors.errorLoading');
+    } finally {
+      setIsRoutesLoading(false);
+    }
+  }
+
   async function handleCancelTrip() {
     if (!selectedTrip) return;
     setIsCancelling(true);
-    
     try {
       await cancelTripHelper(selectedTrip.id);
-      
-      // ✨ Atualiza viagem no contexto
-      const updatedTrip = { ...selectedTrip, status: 'cancelled' as const };
-      updateTrip(updatedTrip);
-      
+      updateTrip({ ...selectedTrip, status: 'cancelled' as const });
       showSuccess('trips:toast.cancelSuccess');
       setCancelDialogOpen(false);
       selectTrip(null);
-      
     } catch (error) {
       handleError(error, 'trips:toast.cancelError');
     } finally {
@@ -95,57 +118,100 @@ export default function TripsPageContent() {
     }
   }
 
+  async function handleDeleteRoute() {
+    if (!selectedRoute) return;
+    setIsDeletingRoute(true);
+    try {
+      await deleteRouteHelper(selectedRoute.id);
+      setRoutes((prev) => prev.filter((r) => r.id !== selectedRoute.id));
+      showSuccess('routes:toast.deleteSuccess');
+      setDeleteRouteDialogOpen(false);
+      setSelectedRoute(null);
+    } catch (error) {
+      handleError(error, 'routes:toast.deleteError');
+    } finally {
+      setIsDeletingRoute(false);
+    }
+  }
+
+  function handleRouteCreated(route: any) {
+    setRoutes((prev) => [route, ...prev]);
+  }
+
+  function handleRouteUpdated(updated: any) {
+    setRoutes((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+  }
+
+  // Status badge
   function getStatusBadge(status: string) {
     const statusMap = {
-      in_progress: { 
+      in_progress: {
         label: t('trips:status.in_progress.label'),
         icon: Clock,
-        className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800'
+        className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800',
       },
-      completed: { 
+      completed: {
         label: t('trips:status.completed.label'),
         icon: Flag,
-        className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800'
+        className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800',
       },
-      cancelled: { 
+      cancelled: {
         label: t('trips:status.cancelled.label'),
         icon: XCircle,
-        className: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800'
+        className: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800',
       },
     };
-    
     const statusInfo = statusMap[status as keyof typeof statusMap] || statusMap.in_progress;
     const Icon = statusInfo.icon;
-
     return (
-      <Badge variant="outline" className={cn("flex items-center gap-1.5 font-bold px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider", statusInfo.className)}>
+      <Badge variant="outline" className={cn('flex items-center gap-1.5 font-bold px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider', statusInfo.className)}>
         <Icon className="w-3.5 h-3.5" />
         {statusInfo.label}
       </Badge>
     );
   }
 
-  const filteredTrips = trips.filter(t => {
-    const matchesSearch = 
-      t.trip_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.vehicle_license?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.driver_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.origin?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.destination?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
-    
+  // Filters
+  const filteredTrips = trips.filter((trip) => {
+    const matchesSearch =
+      trip.trip_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trip.vehicle_license?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trip.driver_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trip.origin?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trip.destination?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || trip.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const activeCount = trips.filter(t => t.status === 'in_progress').length;
-  const completedCount = trips.filter(t => t.status === 'completed').length;
-  const cancelledCount = trips.filter(t => t.status === 'cancelled').length;
+  const filteredRoutes = routes.filter(
+    (r) =>
+      r.name?.toLowerCase().includes(routeSearch.toLowerCase()) ||
+      r.origin?.toLowerCase().includes(routeSearch.toLowerCase()) ||
+      r.destination?.toLowerCase().includes(routeSearch.toLowerCase())
+  );
+
+  // Trip stats
+  const activeCount = trips.filter((t) => t.status === 'in_progress').length;
+  const completedCount = trips.filter((t) => t.status === 'completed').length;
   const totalDistance = trips
-    .filter(t => t.end_mileage)
+    .filter((t) => t.end_mileage)
     .reduce((sum, t) => sum + (t.end_mileage! - t.start_mileage), 0);
 
-  // Renderização da visualização em Lista (melhorada)
+  // Route stats
+  const activeRoutes = routes.filter((r) => r.status === 'active' || !r.status).length;
+
+  const tripStats = [
+    { label: t('trips:stats.total'), value: trips.length, icon: RouteIcon, color: 'text-slate-600', bg: 'bg-slate-100/60' },
+    { label: t('trips:stats.inProgress'), value: activeCount, icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50/60' },
+    { label: t('trips:stats.completed'), value: completedCount, icon: Flag, color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
+    { label: t('trips:stats.totalDistance'), value: `${totalDistance.toLocaleString('pt-PT')} km`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50/60' },
+  ];
+
+  const viewModes = [
+    { mode: 'list', icon: List, label: t('trips:dialogs.view.list') },
+    { mode: 'cards', icon: LayoutGrid, label: t('trips:dialogs.view.cards') },
+  ] as const;
+
   function renderListView() {
     return (
       <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
@@ -160,21 +226,14 @@ export default function TripsPageContent() {
         <div className="divide-y">
           {filteredTrips.map((trip) => {
             const distance = trip.end_mileage ? trip.end_mileage - trip.start_mileage : null;
-            
             return (
               <div key={trip.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors duration-150">
                 <div className="col-span-2">
-                  <span className="font-mono font-bold text-sm bg-muted/50 px-2.5 py-1 rounded border border-muted-foreground/10">
-                    {trip.trip_code}
-                  </span>
+                  <span className="font-mono font-bold text-sm bg-muted/50 px-2.5 py-1 rounded border border-muted-foreground/10">{trip.trip_code}</span>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {new Date(trip.start_date).toLocaleDateString('pt-PT', {
-                      day: '2-digit',
-                      month: 'short'
-                    })}
+                    {new Date(trip.start_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}
                   </div>
                 </div>
-                
                 <div className="col-span-3">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="font-semibold text-green-600 dark:text-green-400 truncate max-w-[80px]">{trip.origin}</span>
@@ -183,63 +242,34 @@ export default function TripsPageContent() {
                   </div>
                   {distance !== null && (
                     <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                      <TrendingUp className="w-3 h-3" />
-                      {distance.toLocaleString('pt-PT')} km
+                      <TrendingUp className="w-3 h-3" />{distance.toLocaleString('pt-PT')} km
                     </div>
                   )}
                 </div>
-
                 <div className="col-span-2">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold">{trip.vehicle_license}</span>
-                    <span className="text-xs text-muted-foreground truncate">{trip.vehicle_brand} {trip.vehicle_model}</span>
-                  </div>
+                  <span className="text-sm font-bold">{trip.vehicle_license}</span>
+                  <span className="text-xs text-muted-foreground block truncate">{trip.vehicle_brand} {trip.vehicle_model}</span>
                 </div>
-
                 <div className="col-span-2">
                   <span className="text-sm font-medium truncate block">{trip.driver_name}</span>
                   <span className="text-xs text-muted-foreground truncate">{trip.driver_license_number}</span>
-                  {/* <span className="text-xs text-muted-foreground truncate">{trip.driver_email}</span> */}
-
                 </div>
-
-                <div className="col-span-2">
-                  {getStatusBadge(trip.status)}
-                </div>
-
+                <div className="col-span-2">{getStatusBadge(trip.status)}</div>
                 <div className="col-span-1 flex justify-end">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-44">
-                      <DropdownMenuItem onClick={() => {
-                        closeDropdownsAndOpenDialog(() => {
-                          selectTrip(trip);
-                          setViewDialogOpen(true);
-                        });
-                      }}>
+                      <DropdownMenuItem onClick={() => { closeDropdownsAndOpenDialog(() => { selectTrip(trip); setViewDialogOpen(true); }); }}>
                         <Eye className="w-4 h-4 mr-2" /> {t('trips:actions.view')}
                       </DropdownMenuItem>
-                      
                       {trip.status === 'in_progress' && (
                         <>
-                          <DropdownMenuItem onClick={() => {
-                            closeDropdownsAndOpenDialog(() => {
-                              selectTrip(trip);
-                              setCompleteDialogOpen(true);
-                            });
-                          }}>
+                          <DropdownMenuItem onClick={() => { closeDropdownsAndOpenDialog(() => { selectTrip(trip); setCompleteDialogOpen(true); }); }}>
                             <Flag className="w-4 h-4 mr-2" /> {t('trips:actions.complete')}
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => {
-                            closeDropdownsAndOpenDialog(() => {
-                              selectTrip(trip);
-                              setCancelDialogOpen(true);
-                            });
-                          }}>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => { closeDropdownsAndOpenDialog(() => { selectTrip(trip); setCancelDialogOpen(true); }); }}>
                             <XCircle className="w-4 h-4 mr-2" /> {t('trips:actions.cancel')}
                           </DropdownMenuItem>
                         </>
@@ -255,47 +285,25 @@ export default function TripsPageContent() {
     );
   }
 
-  // Renderização da visualização em Cards (NOVA - padrão)
   function renderCardsView() {
     return (
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {filteredTrips.map((trip) => {
           const distance = trip.end_mileage ? trip.end_mileage - trip.start_mileage : null;
           const isInProgress = trip.status === 'in_progress';
-          
           return (
-            <Card 
-              key={trip.id} 
-              className={cn(
-                "flex flex-col h-full group hover:shadow-xl transition-all duration-300 bg-card relative overflow-hidden",
-                isInProgress && "ring-1 ring-blue-600 dark:ring-blue-400"
-              )}
-            >
-              {/* Barra de progresso lateral para viagens em andamento */}
-              {/* {isInProgress && (
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-400 to-blue-600 animate-pulse" />
-              )} */}
-              
+            <Card key={trip.id} className={cn('flex flex-col h-full group hover:shadow-xl transition-all duration-300 bg-card relative overflow-hidden', isInProgress && 'ring-1 ring-blue-600 dark:ring-blue-400')}>
               <CardContent className="p-0 flex flex-col h-full">
-                {/* Header com código e status */}
                 <div className="p-5 pb-3 border-b border-muted/50">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-2">
-                      <div className={cn(
-                        "p-2 rounded-lg transition-colors",
-                        isInProgress ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" : "bg-muted/50 text-muted-foreground group-hover:bg-primary/5 group-hover:text-primary"
-                      )}>
+                      <div className={cn('p-2 rounded-lg transition-colors', isInProgress ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-muted/50 text-muted-foreground group-hover:bg-primary/5 group-hover:text-primary')}>
                         <Navigation className="w-5 h-5" />
                       </div>
                       <div>
                         <h3 className="font-mono font-bold text-lg leading-tight">{trip.trip_code}</h3>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(trip.start_date).toLocaleDateString('pt-PT', {
-                            day: '2-digit',
-                            month: 'long',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                          {new Date(trip.start_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
                     </div>
@@ -303,9 +311,7 @@ export default function TripsPageContent() {
                   </div>
                 </div>
 
-                {/* Corpo - Rota destacada */}
                 <div className="p-5 pt-4 flex-1 space-y-4">
-                  {/* Rota Visual */}
                   <div className="relative">
                     <div className="flex items-center gap-3 mb-1">
                       <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
@@ -316,10 +322,7 @@ export default function TripsPageContent() {
                         <p className="font-bold text-foreground truncate">{trip.origin}</p>
                       </div>
                     </div>
-                    
-                    {/* Linha conectora */}
-                    <div className="absolute left-5 top-10 bottom-0 w-0.5 h-8 bg-gradient-to-b from-green-200 to-red-200 dark:from-green-800 dark:to-red-800" />
-                    
+                    <div className="absolute left-5 top-10 w-0.5 h-8 bg-gradient-to-b from-green-200 to-red-200 dark:from-green-800 dark:to-red-800" />
                     <div className="flex items-center gap-3 mt-6">
                       <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
                         <Flag className="w-5 h-5 text-red-600 dark:text-red-400" />
@@ -331,7 +334,6 @@ export default function TripsPageContent() {
                     </div>
                   </div>
 
-                  {/* Info Grid */}
                   <div className="grid grid-cols-2 gap-3 pt-2">
                     <div className="p-3 rounded-xl bg-muted/40 border border-muted/50">
                       <div className="flex items-center gap-2 mb-1">
@@ -339,22 +341,18 @@ export default function TripsPageContent() {
                         <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('trips:fields.vehicle')}</span>
                       </div>
                       <p className="font-bold text-sm truncate">{trip.vehicle_license}</p>
-                      <p className="text-xs text-muted-foreground truncate">{trip.vehicle_brand}</p>
-                      <p className="text-xs text-muted-foreground truncate">{trip.vehicle_model}</p>
+                      <p className="text-xs text-muted-foreground truncate">{trip.vehicle_brand} {trip.vehicle_model}</p>
                     </div>
-
                     <div className="p-3 rounded-xl bg-muted/40 border border-muted/50">
                       <div className="flex items-center gap-2 mb-1">
                         <User className="w-3.5 h-3.5 text-muted-foreground" />
                         <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('trips:fields.driver')}</span>
                       </div>
                       <p className="font-bold text-sm truncate">{trip.driver_name}</p>
-                       <p className="text-xs text-muted-foreground truncate">{trip.driver_license_number}</p>
-                       <p className="text-xs text-muted-foreground truncate">{trip.driver_email}</p>
+                      <p className="text-xs text-muted-foreground truncate">{trip.driver_license_number}</p>
                     </div>
                   </div>
 
-                  {/* Distância ou KM Inicial */}
                   <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-muted/30 to-muted/50 border border-muted">
                     <div className="flex items-center gap-2">
                       <Gauge className="w-4 h-4 text-muted-foreground" />
@@ -363,14 +361,10 @@ export default function TripsPageContent() {
                       </span>
                     </div>
                     <span className="font-bold text-lg">
-                      {distance !== null 
-                        ? `${distance.toLocaleString('pt-PT')} km`
-                        : `${trip.start_mileage.toLocaleString('pt-PT')} km`
-                      }
+                      {distance !== null ? `${distance.toLocaleString('pt-PT')} km` : `${trip.start_mileage.toLocaleString('pt-PT')} km`}
                     </span>
                   </div>
 
-                  {/* Finalidade */}
                   {trip.purpose && (
                     <div className="p-3 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30">
                       <p className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 tracking-wider mb-1">{t('trips:fields.purpose')}</p>
@@ -379,60 +373,29 @@ export default function TripsPageContent() {
                   )}
                 </div>
 
-                {/* Footer - Ações */}
                 <div className="p-4 pt-0 mt-auto">
                   <div className="flex gap-2">
-                    <Button 
-                      variant="outline"
-                      className="flex-1 h-10 text-sm font-bold"
-                      onClick={() => {
-                        selectTrip(trip);
-                        setViewDialogOpen(true);
-                      }}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      {t('trips:actions.view')}
+                    <Button variant="outline" className="flex-1 h-10 text-sm font-bold" onClick={() => { selectTrip(trip); setViewDialogOpen(true); }}>
+                      <Eye className="w-4 h-4 mr-2" />{t('trips:actions.view')}
                     </Button>
-                    
                     {isInProgress ? (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button className="flex-1 h-10 text-sm font-bold shadow-sm">
-                            <PlayCircle className="w-4 h-4 mr-2" />
-                            {t('trips:actions.actions')}
+                            <PlayCircle className="w-4 h-4 mr-2" />{t('trips:actions.actions')}
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => {
-                            closeDropdownsAndOpenDialog(() => {
-                              selectTrip(trip);
-                              setCompleteDialogOpen(true);
-                            });
-                          }}>
-                            <Flag className="w-4 h-4 mr-2 text-emerald-600" />
-                            {t('trips:actions.complete')}
+                          <DropdownMenuItem onClick={() => { closeDropdownsAndOpenDialog(() => { selectTrip(trip); setCompleteDialogOpen(true); }); }}>
+                            <Flag className="w-4 h-4 mr-2 text-emerald-600" />{t('trips:actions.complete')}
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => {
-                              closeDropdownsAndOpenDialog(() => {
-                                selectTrip(trip);
-                                setCancelDialogOpen(true);
-                              });
-                            }}
-                          >
-                            <XCircle className="w-4 h-4 mr-2" />
-                            {t('trips:actions.cancel')}
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => { closeDropdownsAndOpenDialog(() => { selectTrip(trip); setCancelDialogOpen(true); }); }}>
+                            <XCircle className="w-4 h-4 mr-2" />{t('trips:actions.cancel')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     ) : (
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-10 w-10 text-muted-foreground"
-                        disabled
-                      >
+                      <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground" disabled>
                         <CheckCircle2 className="w-5 h-5" />
                       </Button>
                     )}
@@ -446,27 +409,104 @@ export default function TripsPageContent() {
     );
   }
 
-  const stats = [
-    { label: t('trips:stats.total'), value: trips.length, icon: RouteIcon, color: 'text-slate-600', bg: 'bg-slate-100/60' },
-    { label: t('trips:stats.inProgress'), value: activeCount, icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50/60' },
-    { label: t('trips:stats.completed'), value: completedCount, icon: Flag, color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
-    { label: t('trips:stats.totalDistance'), value: `${totalDistance.toLocaleString('pt-PT')} km`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50/60' },
-  ];
+  function renderRoutesCards() {
+    return (
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in duration-300">
+        {filteredRoutes.map((route) => {
+          const isActive = route.status === 'active' || !route.status;
+          return (
+            <Card
+              key={route.id}
+              className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60"
+            >
+              <CardHeader className="pb-3 pt-5 px-5">
+                <div className="flex justify-between items-start mb-3">
+                  <div className={cn('p-2.5 rounded-xl transition-colors', isActive ? 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white' : 'bg-muted text-muted-foreground')}>
+                    <RouteIcon className="w-5 h-5" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {route.route_type && (
+                      <Badge variant="outline" className="text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        {t(`routes:types.${route.route_type}`, route.route_type)}
+                      </Badge>
+                    )}
+                    <Badge
+                      variant={isActive ? 'outline' : 'secondary'}
+                      className={cn('rounded-full text-[10px] font-bold px-2.5 py-0.5', isActive ? 'border-green-200 text-green-700 bg-green-50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800' : 'border-slate-200 text-slate-600 bg-slate-50 dark:bg-slate-800 dark:text-slate-400')}
+                    >
+                      {isActive ? t('common:status.active') : t('common:status.inactive')}
+                    </Badge>
+                  </div>
+                </div>
+                <CardTitle className="text-base font-bold leading-tight truncate" title={route.name}>
+                  {route.name}
+                </CardTitle>
+                <CardDescription className="text-sm font-medium">
+                  <span className="text-green-600 dark:text-green-400">{route.origin}</span>
+                  <ArrowRight className="inline w-3 h-3 mx-1 text-muted-foreground" />
+                  <span className="text-red-600 dark:text-red-400">{route.destination}</span>
+                </CardDescription>
+              </CardHeader>
 
-  const viewModes = [
-    { mode: 'list', icon: List, label: t('trips:dialogs.view.list') },
-    { mode: 'cards', icon: LayoutGrid, label: t('trips:dialogs.view.cards') },
-  ] as const;
+              <CardContent className="flex-1 flex flex-col gap-3 p-5 pt-0">
+                <div className="space-y-2 min-h-[48px]">
+                  {(route.distance_km || route.estimated_distance) && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <TrendingUp className="w-4 h-4 shrink-0" />
+                      <span>{(route.distance_km || route.estimated_distance).toLocaleString('pt-PT')} km</span>
+                    </div>
+                  )}
+                  {(route.estimated_duration_hours || route.estimated_duration) && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="w-4 h-4 shrink-0" />
+                      <span>~{route.estimated_duration_hours || route.estimated_duration}h</span>
+                    </div>
+                  )}
+                  {route.waypoints && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{route.waypoints}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-auto pt-4 border-t border-muted/50 flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-9 text-xs font-bold bg-background hover:bg-muted"
+                    onClick={() => { setSelectedRoute(route); setEditRouteDialogOpen(true); }}
+                  >
+                    <Edit className="w-3.5 h-3.5 mr-1.5" />{t('common:actions.edit')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-9 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive bg-background"
+                    onClick={() => { setSelectedRoute(route); setDeleteRouteDialogOpen(true); }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />{t('common:actions.delete')}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
       <div className="max-w-[1500px] mx-auto space-y-8 pb-10">
-        {/* Header */}
+
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('trips:title')}</h1>
             <p className="text-muted-foreground text-base">
-              {t('trips:description')}
+              {activeTab === 'trips'
+                ? t('trips:description')
+                : t('routes:description', { count: routes.length })}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -474,105 +514,140 @@ export default function TripsPageContent() {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat, i) => (
-            <Card key={i} className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className={cn("p-3 rounded-xl", stat.bg, stat.color)}>
-                  <stat.icon className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
-                  <p className="text-2xl font-black tracking-tight">{stat.value}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-[440px] grid-cols-2 bg-muted/60 p-1 rounded-xl border border-muted/50">
+            <TabsTrigger value="trips" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2">
+              <Navigation className="w-4 h-4" />
+              {t('trips:tabs.trips')}
+            </TabsTrigger>
+            <TabsTrigger value="routes" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2">
+              <RouteIcon className="w-4 h-4" />
+              {t('trips:tabs.routes')}
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Toolbar */}
-        <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between bg-card p-4 rounded-2xl border border-muted/50 shadow-sm">
-          <div className="flex flex-col sm:flex-row gap-3 flex-1">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder={t('trips:searchPlaceholder')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
-              />
-            </div>
-            
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
-                <SelectValue placeholder={t('trips:filters.all')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('trips:filters.all')}</SelectItem>
-                <SelectItem value="in_progress">{t('trips:filters.in_progress')}</SelectItem>
-                <SelectItem value="completed">{t('trips:filters.completed')}</SelectItem>
-                <SelectItem value="cancelled">{t('trips:filters.cancelled')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Toggle View Mode */}
-          <div className="flex items-center gap-3 self-center lg:self-auto">
-            <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50">
-              {viewModes.map((item) => (
-                <Button
-                  key={item.mode}
-                  variant={viewMode === item.mode ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode(item.mode as ViewMode)}
-                  className={cn(
-                    "h-9 px-3 rounded-lg transition-all flex items-center gap-2",
-                    viewMode === item.mode ? "bg-background shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
-                  )}
-                  title={item.label}
-                >
-                  <item.icon className="w-4 h-4" />
-                  <span className="hidden sm:inline text-xs">{item.label}</span>
-                </Button>
+          <TabsContent value="trips" className="space-y-8 mt-0 outline-none">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {tripStats.map((stat, i) => (
+                <Card key={i} className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
+                  <CardContent className="p-5 flex items-center gap-4">
+                    <div className={cn('p-3 rounded-xl', stat.bg, stat.color)}>
+                      <stat.icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
+                      <p className="text-2xl font-black tracking-tight">{stat.value}</p>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
-          </div>
-        </div>
 
-        {/* Content */}
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-24 space-y-4">
-            <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
-            <p className="text-sm text-muted-foreground font-bold animate-pulse">
-              {t('common:loading')}...
-            </p>
-          </div>
-        ) : filteredTrips.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 bg-card rounded-3xl border-2 border-dashed border-muted/50">
-            <RouteIcon className="w-12 h-12 text-muted-foreground/20 mb-4" />
-            <h3 className="text-lg font-bold">{t('trips:noTrips')}</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              {searchTerm ? t('common:noResults') : t('common:noData')}
-            </p>
-          </div>
-        ) : (
-          <div className="animate-in fade-in duration-300">
-            {viewMode === 'list' ? renderListView() : renderCardsView()}
-          </div>
-        )}
+            <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between bg-card p-4 rounded-2xl border border-muted/50 shadow-sm">
+              <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input placeholder={t('trips:searchPlaceholder')} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
+                    <SelectValue placeholder={t('trips:filters.all')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('trips:filters.all')}</SelectItem>
+                    <SelectItem value="in_progress">{t('trips:filters.in_progress')}</SelectItem>
+                    <SelectItem value="completed">{t('trips:filters.completed')}</SelectItem>
+                    <SelectItem value="cancelled">{t('trips:filters.cancelled')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-3 self-center lg:self-auto">
+                <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50">
+                  {viewModes.map((item) => (
+                    <Button key={item.mode} variant={viewMode === item.mode ? 'secondary' : 'ghost'} size="sm"
+                      onClick={() => setViewMode(item.mode as ViewMode)}
+                      className={cn('h-9 px-3 rounded-lg transition-all flex items-center gap-2', viewMode === item.mode ? 'bg-background shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground')}
+                      title={item.label}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      <span className="hidden sm:inline text-xs">{item.label}</span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
 
-        {/* Dialogs */}
-        <CompleteTripDialog
-          open={completeDialogOpen}
-          onOpenChange={setCompleteDialogOpen}
-        />
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-24 space-y-4">
+                <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
+                <p className="text-sm text-muted-foreground font-bold animate-pulse">{t('common:loading')}...</p>
+              </div>
+            ) : filteredTrips.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-24 bg-card rounded-3xl border-2 border-dashed border-muted/50">
+                <RouteIcon className="w-12 h-12 text-muted-foreground/20 mb-4" />
+                <h3 className="text-lg font-bold">{t('trips:noTrips')}</h3>
+                <p className="text-sm text-muted-foreground mt-1">{searchTerm ? t('common:noResults') : t('common:noData')}</p>
+              </div>
+            ) : (
+              <div className="animate-in fade-in duration-300">
+                {viewMode === 'list' ? renderListView() : renderCardsView()}
+              </div>
+            )}
+          </TabsContent>
 
-        <ViewTripDialog
-          open={viewDialogOpen}
-          onOpenChange={setViewDialogOpen}
-        />
+          <TabsContent value="routes" className="space-y-6 mt-0 outline-none">
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[
+                { label: t('routes:stats.total'), value: routes.length, icon: RouteIcon, color: 'text-blue-600', bg: 'bg-blue-50/60 dark:bg-blue-900/20' },
+                { label: t('routes:stats.active'), value: activeRoutes, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50/60 dark:bg-green-900/20' },
+                { label: t('routes:stats.inactive'), value: routes.length - activeRoutes, icon: XCircle, color: 'text-slate-600', bg: 'bg-slate-50/60 dark:bg-slate-800/50' },
+              ].map((stat, i) => (
+                <Card key={i} className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
+                  <CardContent className="p-5 flex items-center gap-4">
+                    <div className={cn('p-3 rounded-xl', stat.bg, stat.color)}>
+                      <stat.icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
+                      <p className="text-2xl font-black tracking-tight">{stat.value}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
+            <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between bg-card p-4 rounded-2xl border border-muted/50 shadow-sm">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder={t('routes:searchPlaceholder')}
+                  value={routeSearch}
+                  onChange={(e) => setRouteSearch(e.target.value)}
+                  className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
+                />
+              </div>
+              <NewRouteDialog onRouteCreated={handleRouteCreated} />
+            </div>
+
+            {isRoutesLoading ? (
+              <div className="flex flex-col items-center justify-center py-24 space-y-4">
+                <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
+                <p className="text-sm text-muted-foreground font-bold animate-pulse">{t('common:loading')}...</p>
+              </div>
+            ) : filteredRoutes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-24 bg-card rounded-3xl border-2 border-dashed border-muted/50">
+                <RouteIcon className="w-12 h-12 text-muted-foreground/20 mb-4" />
+                <h3 className="text-lg font-bold">{t('routes:noRoutes')}</h3>
+                <p className="text-sm text-muted-foreground mt-1">{routeSearch ? t('common:noResults') : t('common:noData')}</p>
+              </div>
+            ) : (
+              renderRoutesCards()
+            )}
+          </TabsContent>
+        </Tabs>
+
+        <CompleteTripDialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen} />
+        <ViewTripDialog open={viewDialogOpen} onOpenChange={setViewDialogOpen} />
         <ConfirmDeleteDialog
           open={cancelDialogOpen}
           onOpenChange={setCancelDialogOpen}
@@ -581,6 +656,23 @@ export default function TripsPageContent() {
           description={t('trips:dialogs.cancel.warning')}
           itemName={selectedTrip?.trip_code}
           isLoading={isCancelling}
+        />
+
+        <EditRouteDialog
+          open={editRouteDialogOpen}
+          onOpenChange={setEditRouteDialogOpen}
+          route={selectedRoute}
+          onRouteUpdated={handleRouteUpdated}
+        />
+        <ConfirmDeleteDialog
+          open={deleteRouteDialogOpen}
+          onOpenChange={setDeleteRouteDialogOpen}
+          onConfirm={handleDeleteRoute}
+          title={t('routes:dialogs.delete.title')}
+          description={t('routes:dialogs.delete.description')}
+          warning={t('routes:dialogs.delete.warning')}
+          itemName={selectedRoute?.name}
+          isLoading={isDeletingRoute}
         />
       </div>
     </div>

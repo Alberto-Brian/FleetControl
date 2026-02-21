@@ -79,6 +79,7 @@ export const ptVehicles = {
     selectCategory: "Selecione a categoria",
     categoryName: "Ex: Utilitário, Passeio, Carga...",
     categoryDescription: "Ex: Veículos para transporte de carga leve...",
+    searchCategory: 'Pesquisar categoria...',
   },
 
   actions: {
@@ -168,10 +169,12 @@ export const ptVehicles = {
     deleted: "Categoria excluída com sucesso",
     newDescription: "Crie uma nova categoria para organizar seus veículos",
     editDescription: "Atualize as informações da categoria de veículo",
+    deleteDescription: "Tem a certeza que deseja excluir a categoria de veículo",
     namePlaceholder: "Nome da Categoria",
     descriptionPlaceholder: "Descrição da categoria",
     colorHint: "A cor ajuda a identificar visualmente a categoria",
     colorTip: "Escolha cores diferentes para cada categoria para facilitar a identificação visual dos veículos",
+    available: 'Categorias disponíveis',
   },
 
   tabs: {
@@ -243,12 +246,14 @@ export const ptVehicles = {
     vehicleNotFound: "Veículo não encontrado",
     vehicleAlreadyExists: "Este veículo já existe",
     vehicleWithSamePlate: "Já existe um veículo com a matrícula {{plate}}",
+    vehicleInUse: "O veículo com a matrícula {{plate}} está em uso, não pode ser alterado!!",
     categoryNotFound: "Categoria não encontrada",
     categoryHasVehicles: "Não é possível excluir: categoria vinculada a {{count}} veículo(s)",
     categoryAlreadyExists: "Já existe uma categoria com o nome {{name}}",
     mileageLessThanCurrent: "A nova quilometragem não pode ser menor que a actual",
     mileageDifferenceTooBig: "Diferença muito grande na quilometragem. Verifique o valor",
-    restoreFailed: "Erro ao activar categoria"
+    restoreFailed: "Erro ao activar categoria",
+    noCategoriesFound: 'Nenhuma categoria encontrada',
   },
 
   warnings: {

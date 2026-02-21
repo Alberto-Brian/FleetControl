@@ -170,6 +170,8 @@ export const enTrips = {
     inProgress: 'In Progress',
     completed: 'Completed',
     cancelled: 'Cancelled',
+    trips: 'Trips',
+    routes: 'Routes',
   },
 
   table: {

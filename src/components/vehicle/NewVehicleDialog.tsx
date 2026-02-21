@@ -1,15 +1,17 @@
 // ========================================
-// FILE: src/components/vehicle/NewVehicleDialog.tsx (ATUALIZADO)
+// FILE: src/components/vehicle/NewVehicleDialog.tsx (CORRIGIDO)
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
-import { Plus } from 'lucide-react';
+import { Plus, Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { createVehicle } from '@/helpers/vehicle-helpers';
 import { getAllVehicleCategories } from '@/helpers/vehicle-category-helpers';
 import { ICreateVehicle } from '@/lib/types/vehicle';
@@ -22,6 +24,7 @@ export default function NewVehicleDialog() {
   const { addVehicle } = useVehicles();
   
   const [open, setOpen] = useState(false);
+  const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [formData, setFormData] = useState<ICreateVehicle>({
@@ -33,6 +36,14 @@ export default function NewVehicleDialog() {
     color: '',
     current_mileage: 0,
   });
+
+  {/* Estado para pesquisa — adiciona junto aos outros estados */}
+const [categorySearch, setCategorySearch] = useState('');
+
+// Categorias filtradas pela pesquisa
+const filteredCategories = categories.filter(cat =>
+  cat.name.toLowerCase().includes(categorySearch.toLowerCase())
+);
 
   useEffect(() => {
     if (open) {
@@ -60,7 +71,17 @@ export default function NewVehicleDialog() {
       const newVehicle = await createVehicle(formData);
       
       if (newVehicle) {
-        addVehicle(newVehicle);
+        // Buscar dados completos da categoria selecionada
+        const selectedCategory = categories.find(cat => cat.id === formData.category_id);
+        
+        // Enriquecer o veículo com dados da categoria
+        const enrichedVehicle = {
+          ...newVehicle,
+          category_name: selectedCategory?.name || null,
+          category_color: selectedCategory?.color || null,
+        };
+        
+        addVehicle(enrichedVehicle);
         showSuccess(t('vehicles:toast.createSuccess'));
         setOpen(false);
         resetForm();
@@ -84,6 +105,9 @@ export default function NewVehicleDialog() {
     });
   }
 
+  // Encontrar categoria selecionada
+  const selectedCategory = categories.find((cat) => cat.id === formData.category_id);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -103,23 +127,108 @@ export default function NewVehicleDialog() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="category">{t('vehicles:fields.category')} *</Label>
-              <Select
-                value={formData.category_id}
-                onValueChange={(value: string) => setFormData({ ...formData, category_id: value })}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('vehicles:placeholders.selectCategory')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>{t('vehicles:fields.category')} *</Label>
+              <Popover open={categoryPopoverOpen} onOpenChange={(o) => {
+                setCategoryPopoverOpen(o);
+                if (!o) setCategorySearch('');
+              }}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={categoryPopoverOpen}
+                    className="w-full justify-between font-normal"
+                    disabled={isLoading}
+                    type="button"
+                  >
+                    {selectedCategory ? (
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-3 w-3 rounded-full shrink-0"
+                          style={{ backgroundColor: selectedCategory.color || '#ccc' }}
+                        />
+                        <span>{selectedCategory.name}</span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {t('vehicles:placeholders.selectCategory')}
+                      </span>
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+
+                <PopoverContent
+                  className="w-[--radix-popover-trigger-width] p-0 shadow-xl border border-border rounded-lg overflow-hidden"
+                  align="start"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                  onWheel={(e) => e.stopPropagation()}
+                >
+                  {/* Campo de pesquisa */}
+                  <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/30">
+                    <svg className="h-4 w-4 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                    </svg>
+                    <input
+                      autoFocus
+                      type="text"
+                      value={categorySearch}
+                      onChange={(e) => setCategorySearch(e.target.value)}
+                      placeholder={t('vehicles:placeholders.searchCategory')}
+                      className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                    />
+                    {categorySearch && (
+                      <button
+                        type="button"
+                        onClick={() => setCategorySearch('')}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Lista com scroll nativo */}
+                  <div className="overflow-y-auto max-h-[240px] p-1 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground">
+                    {filteredCategories.length === 0 ? (
+                      <div className="py-8 text-center text-sm text-muted-foreground">
+                        {t('vehicles:errors.noCategoriesFound')}
+                      </div>
+                    ) : (
+                      filteredCategories.map((cat) => {
+                        const isSelected = formData.category_id === cat.id;
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, category_id: cat.id });
+                              setCategoryPopoverOpen(false);
+                              setCategorySearch('');
+                            }}
+                            className={cn(
+                              "flex items-center gap-2 w-full px-2 py-2 rounded-md text-sm text-left transition-colors",
+                              "hover:bg-accent hover:text-accent-foreground",
+                              isSelected && "bg-accent/50 font-medium"
+                            )}
+                          >
+                            <div
+                              className="h-3 w-3 rounded-full shrink-0"
+                              style={{ backgroundColor: cat.color || '#ccc' }}
+                            />
+                            <span className="flex-1">{cat.name}</span>
+                            {isSelected && (
+                              <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">

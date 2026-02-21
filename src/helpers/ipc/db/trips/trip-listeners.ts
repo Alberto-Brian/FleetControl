@@ -40,7 +40,7 @@ export function addTripsEventListeners() {
             const vehicleAvailable = await isVehicleAvailable(data.vehicle_id);
             if (!vehicleAvailable) {
                 throw new ValidationError(
-                    'trips:errors.vehicleNotAvailable',{
+                    'trips:errors.vehicleNotAvailable', {
                         duration: 400
                     }
                 );
