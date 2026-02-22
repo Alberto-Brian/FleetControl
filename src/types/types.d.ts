@@ -76,7 +76,7 @@ interface IVehicles {
     update: (vehicleId: string, vehicleData: IUpdateVehicle) => Promise<IVehicle | null>;
     delete: (vehicleId: string) => Promise<string | null>;
     getAvailable: () => Promise<IVehicle[]>;
-    updateStatus: (vehicleId: string, status: string) => Promise<IVehicle | null>;
+    updateStatus: (vehicleId: string, data: IUpdateStatus) => Promise<IVehicle | null>;
     updateMileage: (vehicleId: string, mileage: number) => Promise<IVehicle | null>
 }
 
@@ -88,7 +88,7 @@ interface IVehicleCategories {
 }
 
 interface IDrivers {
-    getAll: () => Promise<IDriver[]>;
+    getAll: (params?: IPaginationParams) => Promise<IPaginatedResult<IDriver>>;
     getById: (id: string) => Promise<IDriver | null>;
     create: (data: ICreateDriver) => Promise<IDriver | null>;
     update: (id: string, data: IUpdateDriver) => Promise<IDriver | null>;
@@ -99,7 +99,7 @@ interface IDrivers {
 }
 
 interface ITrips {
-    getAll: () => Promise<ITrip[]>;
+    getAll: (params?: IPaginationParams) => Promise<IPaginatedResult<ITrip>>;
     getById: (id: string) => Promise<ITrip | null>;
     create: (data: ICreateTrip) => Promise<ITrip | null>;
     complete: (id: string, data: ICompleteTrip) => Promise<ITrip | null>;
@@ -107,13 +107,13 @@ interface ITrips {
     getActive: () => Promise<ITrip[]>;
 }
 interface IRefuelings {
-    getAll: () => Promise<IRefueling[]>;
+    getAll: (params?: IPaginationParams) => Promise<IPaginatedResult<IRefueling>>;
     create: (data: ICreateRefueling) => Promise<IRefueling | null>;
     getByVehicle: (id: string) => Promise<IRefueling[]>;
 }
 
 interface IMaintenances {
-    getAll: () => Promise<IMaintenance[]>;
+    getAll: (params?: IPaginationParams) => Promise<IPaginatedResult<IMaintenance>>;
     create: (data: ICreateMaintenance) => Promise<IMaintenance | null>;
     update: (id: string, data: IUpdateMaintenance) => Promise<IMaintenance | null>;
     complete: (id: string, data: IUpdateMaintenance) => Promise<IMaintenance | null>;
@@ -134,7 +134,7 @@ interface IMaintenanceCategories {
 }
 
 interface IExpenses {
-    getAll: () => Promise<IExpense[]>;
+    getAll: (params?: IPaginationParams) => Promise<IPaginatedResult<IExpense>>;
     getById: (id: string) => Promise<IExpense | null>;
     create: (data: ICreateExpense) => Promise<IExpense | null>;
     update: (id: string, data: IUpdateExpense) => Promise<IExpense | null>;
@@ -179,7 +179,7 @@ interface IRoutes {
 }
 
 interface IFines {
-    getAll: () => Promise<IFine[]>;
+    getAll: (params?: IPaginationParams) => Promise<IPaginatedResult<IFine>>;
     getById: (id: string) => Promise<IFine | null>;
     create: (data: ICreateFine) => Promise<IFine | null>;
     update: (id: string, data: IUpdateFine) => Promise<IFine | null>;

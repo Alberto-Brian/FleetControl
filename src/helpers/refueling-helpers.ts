@@ -1,9 +1,10 @@
 // src/helpers/refueling-helpers.ts
 import { ICreateRefueling, IRefueling } from '@/lib/types/refueling';
+import { IPaginationParams, IPaginatedResult } from '@/lib/types/pagination';
 
-export async function getAllRefuelings(): Promise<IRefueling[]> {
+export async function getAllRefuelings(params?: IPaginationParams): Promise<IPaginatedResult<IRefueling>> {
     try {
-        const result = await window._refuelings.getAll();
+        const result =  await window._refuelings.getAll(params);
         return result;
     } catch (error) {
         throw error; // ✨ Propaga para useErrorHandler

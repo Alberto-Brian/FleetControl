@@ -1,28 +1,28 @@
-import React, { useState, useEffect } from 'react';
+// ========================================
+// FILE: src/components/maintenance/MaintenancePageContent.tsx
+// ========================================
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Pagination } from '@/components/ui/pagination';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { maintenanceStatus } from '@/lib/db/schemas/maintenances';
 import { cn } from '@/lib/utils';
-import { 
-  Wrench, Search, Tag, Edit, Trash2, LayoutGrid, List, Rows, 
-  Building2, AlertCircle, Clock, Flag, Settings, Phone, Mail, MapPin, Plus, Eye, Play, CheckCircle2
+import {
+  Wrench, Search, Tag, Edit, Trash2, LayoutGrid, List, Rows,
+  Building2, AlertCircle, Clock, Flag, Settings, Phone, Mail, MapPin, Eye, Play, CheckCircle2, Filter
 } from 'lucide-react';
 
-// Context
 import { useMaintenances } from '@/contexts/MaintenancesContext';
-
-// Helpers
 import { getAllMaintenances as getAllMaintenancesHelper, deleteMaintenance as deleteMaintenanceHelper } from '@/helpers/maintenance-helpers';
 import { getAllMaintenanceCategories as getAllCategoriesHelper, deleteMaintenanceCategory as deleteCategoryHelper } from '@/helpers/maintenance-category-helpers';
 import { getAllWorkshops, deleteWorkshop as deleteWorkshopHelper } from '@/helpers/workshop-helpers';
 
-// Dialogs
 import NewMaintenanceDialog from '@/components/maintenance/NewMaintenanceDialog';
 import StartMaintenanceDialog from '@/components/maintenance/StartMaintenanceDialog';
 import CompleteMaintenanceDialog from '@/components/maintenance/CompleteMaintenanceDialog';
@@ -40,224 +40,182 @@ export function MaintenancePageContent() {
   const { t } = useTranslation();
   const { handleError, showSuccess } = useErrorHandler();
 
-  // Context
   const {
-    state: { 
-      maintenances, 
-      categories, 
-      workshops,
-      selectedMaintenance, 
-      selectedCategory,
-      selectedWorkshop,
-      isLoading, 
-      isCategoriesLoading,
-      isWorkshopsLoading 
-    },
-    setMaintenances,
-    setCategories,
-    setWorkshops,
-    selectMaintenance,
-    selectCategory,
-    selectWorkshop,
-    deleteMaintenance: removeMaintenanceFromContext,
-    deleteCategory: removeCategoryFromContext,
-    deleteWorkshop: removeWorkshopFromContext,
-    setLoading,
-    setCategoriesLoading,
-    setWorkshopsLoading,
-    updateCategory,
-    updateWorkshop,
+    state: { maintenances, categories, workshops, selectedMaintenance, selectedCategory, selectedWorkshop,
+             isLoading, isCategoriesLoading, isWorkshopsLoading },
+    setMaintenances, setCategories, setWorkshops, selectMaintenance, selectCategory, selectWorkshop,
+    deleteMaintenance: removeMaintenanceFromContext, deleteCategory: removeCategoryFromContext,
+    deleteWorkshop: removeWorkshopFromContext, setLoading, setCategoriesLoading, setWorkshopsLoading,
+    updateCategory, updateWorkshop,
   } = useMaintenances();
 
-  // UI States
-  const [activeTab, setActiveTab] = useState('maintenances');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab]     = useState('maintenances');
+  const [searchTerm, setSearchTerm]   = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [viewMode, setViewMode]       = useState<ViewMode>('cards');
   const [categorySearch, setCategorySearch] = useState('');
   const [workshopSearch, setWorkshopSearch] = useState('');
 
-  // Delete dialogs
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [categoryDeleteDialogOpen, setCategoryDeleteDialogOpen] = useState(false);
-  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
-  const [workshopDeleteDialogOpen, setWorkshopDeleteDialogOpen] = useState(false);
-  const [isDeletingWorkshop, setIsDeletingWorkshop] = useState(false);
+  // Paginação
+  const [currentPage, setCurrentPage]   = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [paginationInfo, setPaginationInfo] = useState({
+    total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false,
+  });
+  const [statusCounts, setStatusCounts] = useState({
+    scheduled: 0, in_progress: 0, completed: 0, cancelled: 0,
+  });
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  // Edit dialogs
+  // Dialogs
+  const [deleteDialogOpen, setDeleteDialogOpen]         = useState(false);
+  const [isDeleting, setIsDeleting]                     = useState(false);
+  const [categoryDeleteDialogOpen, setCategoryDeleteDialogOpen] = useState(false);
+  const [isDeletingCategory, setIsDeletingCategory]     = useState(false);
+  const [workshopDeleteDialogOpen, setWorkshopDeleteDialogOpen] = useState(false);
+  const [isDeletingWorkshop, setIsDeletingWorkshop]     = useState(false);
   const [editCategoryDialogOpen, setEditCategoryDialogOpen] = useState(false);
   const [editWorkshopDialogOpen, setEditWorkshopDialogOpen] = useState(false);
-  
-  // Start/Complete dialogs
-  const [startDialogOpen, setStartDialogOpen] = useState(false);
-  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [startDialogOpen, setStartDialogOpen]           = useState(false);
+  const [completeDialogOpen, setCompleteDialogOpen]     = useState(false);
 
-  // Listen for restored categories and workshops events
   useEffect(() => {
-    const handleActionCompleted = (event: any) => {
-      const { handler, result } = event.detail;
-      
-      if (handler === RESTORE_MAINTENANCE_CATEGORY && result) {
-        updateCategory(result);
-      }
-    };
-
-    window.addEventListener('action-completed', handleActionCompleted);
-    
-    return () => {
-      window.removeEventListener('action-completed', handleActionCompleted);
-    };
-  }, [updateCategory]);
+    const timer = setTimeout(() => { setDebouncedSearch(searchTerm); setCurrentPage(1); }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     loadMaintenances();
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter]);
+
+  useEffect(() => {
     loadCategories();
     loadWorkshops();
+    window.addEventListener('action-completed', handleActionCompleted);
+    return () => window.removeEventListener('action-completed', handleActionCompleted);
   }, []);
 
-  async function loadMaintenances() {
+  const handleActionCompleted = useCallback((event: any) => {
+    const { handler, result } = event.detail;
+    if (handler === RESTORE_MAINTENANCE_CATEGORY && result) updateCategory(result);
+  }, [updateCategory]);
+
+  const loadMaintenances = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getAllMaintenancesHelper();
-      setMaintenances(data);
+      const result = await getAllMaintenancesHelper({
+        page:   currentPage,
+        limit:  itemsPerPage,
+        search: debouncedSearch,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+      });
+      setMaintenances(result.data);
+      setPaginationInfo(result.pagination);
+      if (result.statusCounts) setStatusCounts(result.statusCounts as typeof statusCounts);
     } catch (error) {
       handleError(error, 'maintenances:errors.errorLoading');
     } finally {
       setLoading(false);
     }
-  }
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter]);
 
   async function loadCategories() {
     setCategoriesLoading(true);
-    try {
-      const data = await getAllCategoriesHelper();
-      setCategories(data);
-    } catch (error) {
-      handleError(error, 'maintenances:errors.errorLoadingCategories');
-    } finally {
-      setCategoriesLoading(false);
-    }
+    try { const data = await getAllCategoriesHelper(); setCategories(data); }
+    catch (error) { handleError(error, 'maintenances:errors.errorLoadingCategories'); }
+    finally { setCategoriesLoading(false); }
   }
 
   async function loadWorkshops() {
     setWorkshopsLoading(true);
-    try {
-      const data = await getAllWorkshops();
-      setWorkshops(data);
-    } catch (error) {
-      handleError(error, 'common:errors.loadingData');
-    } finally {
-      setWorkshopsLoading(false);
-    }
+    try { const data = await getAllWorkshops(); setWorkshops(data); }
+    catch (error) { handleError(error, 'common:errors.loadingData'); }
+    finally { setWorkshopsLoading(false); }
   }
 
   async function handleDeleteMaintenance() {
     if (!selectedMaintenance) return;
     setIsDeleting(true);
-    
     try {
       await deleteMaintenanceHelper(selectedMaintenance.id);
       removeMaintenanceFromContext(selectedMaintenance.id);
       showSuccess('maintenances:toast.deleteSuccess');
       setDeleteDialogOpen(false);
       selectMaintenance(null);
-    } catch (error) {
-      handleError(error, 'maintenances:toast.deleteError');
-    } finally {
-      setIsDeleting(false);
-    }
+      loadMaintenances();
+    } catch (error) { handleError(error, 'maintenances:toast.deleteError'); }
+    finally { setIsDeleting(false); }
   }
 
   async function handleDeleteCategory() {
     if (!selectedCategory) return;
     setIsDeletingCategory(true);
-    
     try {
       await deleteCategoryHelper(selectedCategory.id);
       removeCategoryFromContext(selectedCategory.id);
       showSuccess('maintenances:toast.categoryDeleteSuccess');
       setCategoryDeleteDialogOpen(false);
       selectCategory(null);
-    } catch (error) {
-      handleError(error, 'maintenances:toast.categoryDeleteError');
-    } finally {
-      setIsDeletingCategory(false);
-    }
+    } catch (error) { handleError(error, 'maintenances:toast.categoryDeleteError'); }
+    finally { setIsDeletingCategory(false); }
   }
 
   async function handleDeleteWorkshop() {
     if (!selectedWorkshop) return;
     setIsDeletingWorkshop(true);
-    
     try {
       await deleteWorkshopHelper(selectedWorkshop.id);
       removeWorkshopFromContext(selectedWorkshop.id);
       showSuccess('maintenances:workshops.toast.deleteSuccess');
       setWorkshopDeleteDialogOpen(false);
       selectWorkshop(null);
-    } catch (error) {
-      handleError(error, 'maintenances:workshops.toast.deleteError');
-    } finally {
-      setIsDeletingWorkshop(false);
-    }
+    } catch (error) { handleError(error, 'maintenances:workshops.toast.deleteError'); }
+    finally { setIsDeletingWorkshop(false); }
   }
 
-  // Filters
-  const filteredMaintenances = maintenances.filter((m) => {
-    const matchesSearch = 
-      m.vehicle_license?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.category_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || m.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const filteredCategories = categories.filter(c =>
-    c.name?.toLowerCase().includes(categorySearch.toLowerCase())
-  );
-
-  const filteredWorkshops = workshops.filter(w =>
+  const filteredCategories = categories.filter(c => c.name?.toLowerCase().includes(categorySearch.toLowerCase()));
+  const filteredWorkshops  = workshops.filter(w =>
     w.name?.toLowerCase().includes(workshopSearch.toLowerCase()) ||
     w.city?.toLowerCase().includes(workshopSearch.toLowerCase())
   );
 
-  // Badges
+  const preventiveCount = categories.filter(c => c.type === 'preventive').length;
+  const correctiveCount = categories.filter(c => c.type === 'corrective').length;
+  const activeWorkshops = workshops.filter(w => w.is_active).length;
+
   function getPriorityBadge(priority: string) {
     const map = {
-      low: { label: t('maintenances:priority.low.label'), className: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400' },
-      normal: { label: t('maintenances:priority.normal.label'), className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400' },
-      high: { label: t('maintenances:priority.high.label'), className: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400' },
-      urgent: { label: t('maintenances:priority.urgent.label'), className: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400' },
+      low:    { label: t('maintenances:priority.low.label'),    className: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400'   },
+      normal: { label: t('maintenances:priority.normal.label'), className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400'       },
+      high:   { label: t('maintenances:priority.high.label'),   className: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400' },
+      urgent: { label: t('maintenances:priority.urgent.label'), className: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400'             },
     };
     const p = map[priority as keyof typeof map] || map.normal;
-    return <Badge variant="outline" className={cn("rounded-full text-[10px] font-bold px-2.5 py-0.5", p.className)}>{p.label}</Badge>;
+    return <Badge variant="outline" className={cn('rounded-full text-[10px] font-bold px-2.5 py-0.5', p.className)}>{p.label}</Badge>;
   }
 
   function getStatusBadge(status: string) {
     const map = {
-      scheduled: { label: t('maintenances:status.scheduled.label'), icon: Clock, className: 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-400' },
-      in_progress: { label: t('maintenances:status.in_progress.label'), icon: Settings, className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400' },
-      completed: { label: t('maintenances:status.completed.label'), icon: Flag, className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400' },
-      cancelled: { label: t('maintenances:status.cancelled.label'), icon: AlertCircle, className: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400' },
+      scheduled:   { label: t('maintenances:status.scheduled.label'),   icon: Clock,     className: 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-400'           },
+      in_progress: { label: t('maintenances:status.in_progress.label'), icon: Settings,  className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400'           },
+      completed:   { label: t('maintenances:status.completed.label'),   icon: Flag,      className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400' },
+      cancelled:   { label: t('maintenances:status.cancelled.label'),   icon: AlertCircle, className: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400'         },
     };
     const s = map[status as keyof typeof map] || map.scheduled;
     const Icon = s.icon;
     return (
-      <Badge variant="outline" className={cn("flex items-center gap-1.5 font-bold rounded-full text-[10px] px-2.5 py-0.5", s.className)}>
-        <Icon className="w-3.5 h-3.5" />
-        {s.label}
+      <Badge variant="outline" className={cn('flex items-center gap-1.5 font-bold rounded-full text-[10px] px-2.5 py-0.5', s.className)}>
+        <Icon className="w-3.5 h-3.5" />{s.label}
       </Badge>
     );
   }
 
-  // View modes with labels
   const viewModes = [
-    { mode: 'compact', icon: Rows, label: t('common:viewModes.compact') },
-    { mode: 'normal', icon: List, label: t('common:viewModes.normal') },
-    { mode: 'cards', icon: LayoutGrid, label: t('common:viewModes.cards') },
+    { mode: 'compact', icon: Rows,       label: t('common:viewModes.compact') },
+    { mode: 'normal',  icon: List,       label: t('common:viewModes.normal')  },
+    { mode: 'cards',   icon: LayoutGrid, label: t('common:viewModes.cards')   },
   ] as const;
 
-  // Views
   function renderCompactView() {
     return (
       <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
@@ -269,90 +227,27 @@ export function MaintenancePageContent() {
           <div className="col-span-2 text-right">{t('common:actions.actions')}</div>
         </div>
         <div className="divide-y">
-          {filteredMaintenances.map((m) => (
+          {maintenances.map((m) => (
             <div key={m.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors duration-150">
               <div className="col-span-3">
                 <span className="font-mono font-bold text-sm">{m.vehicle_license}</span>
                 <p className="text-xs text-muted-foreground">{m.vehicle_brand} {m.vehicle_model}</p>
               </div>
-              <div className="col-span-3">
-                <span className="text-sm font-medium truncate block">{m.category_name}</span>
-              </div>
+              <div className="col-span-3"><span className="text-sm font-medium truncate block">{m.category_name}</span></div>
               <div className="col-span-2">{getStatusBadge(m.status)}</div>
-              <div className="col-span-2">
-                <span className="text-sm font-bold">{m.total_cost.toLocaleString('pt-PT')} Kz</span>
-              </div>
+              <div className="col-span-2"><span className="text-sm font-bold">{m.total_cost.toLocaleString('pt-PT')} Kz</span></div>
               <div className="col-span-2 flex gap-1 justify-end items-center">
                 {m.status === maintenanceStatus.SCHEDULED && (
                   <>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        selectMaintenance(m);
-                        setStartDialogOpen(true);
-                      }}
-                      title={t('maintenances:actions.start')}
-                    >
-                      <Play className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 text-green-600 hover:bg-green-50 hover:text-green-700"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        selectMaintenance(m);
-                        setCompleteDialogOpen(true);
-                      }}
-                      title={t('maintenances:actions.complete')}
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(m); setStartDialogOpen(true); }} title={t('maintenances:actions.start')}><Play className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(m); setCompleteDialogOpen(true); }} title={t('maintenances:actions.complete')}><CheckCircle2 className="w-4 h-4" /></Button>
                   </>
                 )}
                 {m.status === maintenanceStatus.IN_PROGRESS && (
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 text-green-600 hover:bg-green-50 hover:text-green-700"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      selectMaintenance(m);
-                      setCompleteDialogOpen(true);
-                    }}
-                    title={t('maintenances:actions.complete')}
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(m); setCompleteDialogOpen(true); }}><CheckCircle2 className="w-4 h-4" /></Button>
                 )}
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    selectMaintenance(m);
-                  }}
-                  title={t('maintenances:actions.view')}
-                >
-                  <Eye className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    selectMaintenance(m);
-                    setDeleteDialogOpen(true);
-                  }}
-                  title={t('common:actions.delete')}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); selectMaintenance(m); }}><Eye className="w-4 h-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); selectMaintenance(m); setDeleteDialogOpen(true); }}><Trash2 className="w-4 h-4" /></Button>
               </div>
             </div>
           ))}
@@ -364,25 +259,16 @@ export function MaintenancePageContent() {
   function renderNormalView() {
     return (
       <div className="grid gap-4">
-        {filteredMaintenances.map((maintenance) => (
-          <Card 
-            key={maintenance.id} 
-            className="overflow-hidden border-l-4 group hover:shadow-md transition-all duration-200 bg-card"
+        {maintenances.map((maintenance) => (
+          <Card key={maintenance.id} className="overflow-hidden border-l-4 group hover:shadow-md transition-all duration-200 bg-card cursor-pointer"
             style={{ borderLeftColor: maintenance.type === 'preventive' ? '#3b82f6' : '#f97316' }}
-          >
+            onClick={() => selectMaintenance(maintenance)}>
             <CardContent className="p-0">
               <div className="flex items-center p-5 gap-5">
-                <div className={cn(
-                  "hidden sm:flex h-12 w-12 items-center justify-center rounded-xl transition-colors cursor-pointer",
-                  maintenance.type === 'preventive' 
-                    ? 'bg-blue-100 text-blue-600 group-hover:bg-blue-200' 
-                    : 'bg-orange-100 text-orange-600 group-hover:bg-orange-200'
-                )}
-                onClick={() => selectMaintenance(maintenance)}
-                >
+                <div className={cn('hidden sm:flex h-12 w-12 items-center justify-center rounded-xl transition-colors', maintenance.type === 'preventive' ? 'bg-blue-100 text-blue-600 group-hover:bg-blue-200' : 'bg-orange-100 text-orange-600 group-hover:bg-orange-200')}>
                   <Wrench className="w-6 h-6" />
                 </div>
-                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => selectMaintenance(maintenance)}>
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1">
                     <h3 className="font-bold text-lg tracking-tight">{maintenance.category_name}</h3>
                     {getStatusBadge(maintenance.status)}
@@ -390,21 +276,11 @@ export function MaintenancePageContent() {
                   <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
                     <span className="font-mono font-bold text-foreground/80">{maintenance.vehicle_license}</span>
                     <span>{maintenance.vehicle_brand} {maintenance.vehicle_model}</span>
-                    <span className="flex items-center gap-1.5">
-                      <Clock className="w-4 h-4" />
-                      {new Date(maintenance.entry_date).toLocaleDateString('pt-PT')}
-                    </span>
-                    {maintenance.workshop_name && (
-                      <span className="flex items-center gap-1.5">
-                        <Building2 className="w-4 h-4" />
-                        {maintenance.workshop_name}
-                      </span>
-                    )}
+                    <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" />{new Date(maintenance.entry_date).toLocaleDateString('pt-PT')}</span>
+                    {maintenance.workshop_name && <span className="flex items-center gap-1.5"><Building2 className="w-4 h-4" />{maintenance.workshop_name}</span>}
                   </div>
                   <div className="flex gap-2 mt-2">
-                    <Badge variant={maintenance.type === 'preventive' ? 'default' : 'secondary'} className="text-[10px]">
-                      {t(`maintenances:type.${maintenance.type}.label`)}
-                    </Badge>
+                    <Badge variant={maintenance.type === 'preventive' ? 'default' : 'secondary'} className="text-[10px]">{t(`maintenances:type.${maintenance.type}.label`)}</Badge>
                     {getPriorityBadge(maintenance.priority)}
                   </div>
                 </div>
@@ -415,68 +291,15 @@ export function MaintenancePageContent() {
                   </div>
                   {maintenance.status === maintenanceStatus.SCHEDULED && (
                     <>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="h-9 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          selectMaintenance(maintenance);
-                          setStartDialogOpen(true);
-                        }}
-                      >
-                        <Play className="w-4 h-4 mr-1.5" />
-                        {t('maintenances:actions.start')}
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="h-9 text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          selectMaintenance(maintenance);
-                          setCompleteDialogOpen(true);
-                        }}
-                      >
-                        <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                        {t('maintenances:actions.complete')}
-                      </Button>
+                      <Button variant="outline" size="sm" className="h-9 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setStartDialogOpen(true); }}><Play className="w-4 h-4 mr-1.5" />{t('maintenances:actions.start')}</Button>
+                      <Button variant="outline" size="sm" className="h-9 text-green-600 border-green-200 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setCompleteDialogOpen(true); }}><CheckCircle2 className="w-4 h-4 mr-1.5" />{t('maintenances:actions.complete')}</Button>
                     </>
                   )}
                   {maintenance.status === maintenanceStatus.IN_PROGRESS && (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="h-9 text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        selectMaintenance(maintenance);
-                        setCompleteDialogOpen(true);
-                      }}
-                    >
-                      <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                      {t('maintenances:actions.complete')}
-                    </Button>
+                    <Button variant="outline" size="sm" className="h-9 text-green-600 border-green-200 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setCompleteDialogOpen(true); }}><CheckCircle2 className="w-4 h-4 mr-1.5" />{t('maintenances:actions.complete')}</Button>
                   )}
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-10 w-10" 
-                    onClick={(e) => { 
-                      e.stopPropagation(); 
-                      selectMaintenance(maintenance); 
-                    }}
-                    title={t('maintenances:actions.view')}
-                  >
-                    <Eye className="w-5 h-5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:bg-destructive/10" onClick={(e) => { 
-                    e.stopPropagation(); 
-                    selectMaintenance(maintenance); 
-                    setDeleteDialogOpen(true); 
-                  }}>
-                    <Trash2 className="w-5 h-5" />
-                  </Button>
+                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); }} title={t('maintenances:actions.view')}><Eye className="w-5 h-5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setDeleteDialogOpen(true); }}><Trash2 className="w-5 h-5" /></Button>
                 </div>
               </div>
             </CardContent>
@@ -489,148 +312,56 @@ export function MaintenancePageContent() {
   function renderCardsView() {
     return (
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredMaintenances.map((maintenance) => (
-          <Card 
-            key={maintenance.id} 
-            className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60"
-          >
+        {maintenances.map((maintenance) => (
+          <Card key={maintenance.id} className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60">
             <CardHeader className="pb-3 pt-5 px-5 cursor-pointer" onClick={() => selectMaintenance(maintenance)}>
               <div className="flex justify-between items-start mb-3">
-                <div 
-                  className={cn(
-                    "p-2.5 rounded-xl transition-colors",
-                    maintenance.type === 'preventive' 
-                      ? 'bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white' 
-                      : 'bg-orange-100 text-orange-600 group-hover:bg-orange-600 group-hover:text-white'
-                  )}
-                >
+                <div className={cn('p-2.5 rounded-xl transition-colors', maintenance.type === 'preventive' ? 'bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white' : 'bg-orange-100 text-orange-600 group-hover:bg-orange-600 group-hover:text-white')}>
                   <Wrench className="w-5 h-5" />
                 </div>
                 {getStatusBadge(maintenance.status)}
               </div>
-              <CardTitle className="text-lg font-bold leading-tight line-clamp-2" title={maintenance.category_name}>
-                {maintenance.category_name}
-              </CardTitle>
+              <CardTitle className="text-lg font-bold leading-tight line-clamp-2" title={maintenance.category_name}>{maintenance.category_name}</CardTitle>
               <CardDescription className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <span className="font-mono">{maintenance.vehicle_license}</span>
-                <span>•</span>
-                <span>{maintenance.vehicle_brand} {maintenance.vehicle_model}</span>
+                <span className="font-mono">{maintenance.vehicle_license}</span><span>•</span><span>{maintenance.vehicle_brand} {maintenance.vehicle_model}</span>
               </CardDescription>
             </CardHeader>
-            
             <CardContent className="flex-1 flex flex-col gap-3 p-5 pt-0">
               <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/50 border border-muted/50">
                 <div className="space-y-0.5">
                   <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('maintenances:fields.entryDate')}</p>
-                  <p className="text-sm font-bold">
-                    {new Date(maintenance.entry_date).toLocaleDateString('pt-PT', {
-                      day: '2-digit',
-                      month: 'short'
-                    })}
-                  </p>
+                  <p className="text-sm font-bold">{new Date(maintenance.entry_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}</p>
                 </div>
                 <div className="h-8 w-px bg-muted-foreground/10" />
                 <div className="text-right space-y-0.5">
                   <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('maintenances:fields.type')}</p>
-                  <p className="text-sm font-bold">
-                    {t(`maintenances:type.${maintenance.type}.short`)}
-                  </p>
+                  <p className="text-sm font-bold">{t(`maintenances:type.${maintenance.type}.short`)}</p>
                 </div>
               </div>
-
               <div className="space-y-2">
-                {maintenance.workshop_name && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Building2 className="w-4 h-4 shrink-0" />
-                    <span className="truncate">{maintenance.workshop_name}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  {getPriorityBadge(maintenance.priority)}
-                </div>
+                {maintenance.workshop_name && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Building2 className="w-4 h-4 shrink-0" /><span className="truncate">{maintenance.workshop_name}</span></div>}
+                <div className="flex items-center gap-2">{getPriorityBadge(maintenance.priority)}</div>
               </div>
-
               <div className="mt-auto pt-4 border-t border-muted/50">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider">{t('maintenances:fields.totalCost')}</span>
-                  <span className="text-xl font-black text-primary">
-                    {maintenance.total_cost.toLocaleString('pt-PT')} <span className="text-sm font-bold">Kz</span>
-                  </span>
+                  <span className="text-xl font-black text-primary">{maintenance.total_cost.toLocaleString('pt-PT')} <span className="text-sm font-bold">Kz</span></span>
                 </div>
-                
                 <div className="flex gap-2">
                   {maintenance.status === maintenanceStatus.SCHEDULED && (
                     <>
-                      <Button 
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 h-9 text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          selectMaintenance(maintenance);
-                          setStartDialogOpen(true);
-                        }}
-                      >
-                        <Play className="w-3.5 h-3.5 mr-1.5" />
-                        {t('maintenances:actions.start')}
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 h-9 text-xs font-bold text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          selectMaintenance(maintenance);
-                          setCompleteDialogOpen(true);
-                        }}
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                        {t('maintenances:actions.complete')}
-                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setStartDialogOpen(true); }}><Play className="w-3.5 h-3.5 mr-1.5" />{t('maintenances:actions.start')}</Button>
+                      <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold text-green-600 border-green-200 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setCompleteDialogOpen(true); }}><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />{t('maintenances:actions.complete')}</Button>
                     </>
                   )}
                   {maintenance.status === maintenanceStatus.IN_PROGRESS && (
-                    <Button 
-                      variant="default"
-                      size="sm"
-                      className="flex-1 h-9 text-xs font-bold bg-green-600 hover:bg-green-700"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        selectMaintenance(maintenance);
-                        setCompleteDialogOpen(true);
-                      }}
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                      {t('maintenances:actions.complete')}
-                    </Button>
+                    <Button variant="default" size="sm" className="flex-1 h-9 text-xs font-bold bg-green-600 hover:bg-green-700" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setCompleteDialogOpen(true); }}><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />{t('maintenances:actions.complete')}</Button>
                   )}
                   {(maintenance.status === maintenanceStatus.COMPLETED || maintenance.status === maintenanceStatus.CANCELLED) && (
-                    <Button 
-                      variant="default"
-                      size="sm"
-                      className="flex-1 h-9 text-xs font-bold"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        selectMaintenance(maintenance);
-                      }}
-                    >
-                      <Eye className="w-3.5 h-3.5 mr-1.5" />
-                      {t('maintenances:actions.view')}
-                    </Button>
+                    <Button variant="default" size="sm" className="flex-1 h-9 text-xs font-bold" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); }}><Eye className="w-3.5 h-3.5 mr-1.5" />{t('maintenances:actions.view')}</Button>
                   )}
                   {(maintenance.status === maintenanceStatus.SCHEDULED || maintenance.status === maintenanceStatus.IN_PROGRESS) && (
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      className="h-9 px-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        selectMaintenance(maintenance);
-                      }}
-                      title={t('maintenances:actions.view')}
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                    </Button>
+                    <Button variant="outline" size="sm" className="h-9 px-2" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); }} title={t('maintenances:actions.view')}><Eye className="w-3.5 h-3.5" /></Button>
                   )}
                 </div>
               </div>
@@ -641,279 +372,180 @@ export function MaintenancePageContent() {
     );
   }
 
-  // Stats
-  const inProgress = maintenances.filter(m => m.status === 'in_progress').length;
-  const scheduled = maintenances.filter(m => m.status === 'scheduled').length;
-  const preventiveCount = categories.filter(c => c.type === 'preventive').length;
-  const correctiveCount = categories.filter(c => c.type === 'corrective').length;
-  const activeWorkshops = workshops.filter(w => w.is_active).length;
+  // ---------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------
 
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
       <div className="max-w-[1500px] mx-auto space-y-8 pb-10">
+
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('maintenances:title')}</h1>
             <p className="text-muted-foreground text-base">
-              {activeTab === 'maintenances' 
-                ? t('maintenances:info.inProgressCount', { count: inProgress })
+              {activeTab === 'maintenances'
+                ? t('maintenances:info.inProgressCount', { count: statusCounts.in_progress })
                 : activeTab === 'categories'
                 ? `${categories.length} ${t('maintenances:categories.title').toLowerCase()}`
-                : t('maintenances:workshops.info.activeCount', { count: activeWorkshops, plural: activeWorkshops !== 1 ? 's' : '' })
-              }
+                : t('maintenances:workshops.info.activeCount', { count: activeWorkshops, plural: activeWorkshops !== 1 ? 's' : '' })}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <NewMaintenanceDialog />
-          </div>
+          <NewMaintenanceDialog />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full max-w-[440px] grid-cols-3 bg-muted/60 p-1 rounded-xl border border-muted/50">
-            <TabsTrigger 
-              value="maintenances" 
-              className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2"
-            >
-              <Wrench className="w-4 h-4" />
-              {t('maintenances:tabs.maintenances')}
+            <TabsTrigger value="maintenances" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2">
+              <Wrench className="w-4 h-4" />{t('maintenances:tabs.maintenances')}
             </TabsTrigger>
-            <TabsTrigger 
-              value="categories" 
-              className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2"
-            >
-              <Tag className="w-4 h-4" />
-              {t('maintenances:tabs.categories')}
+            <TabsTrigger value="categories" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2">
+              <Tag className="w-4 h-4" />{t('maintenances:tabs.categories')}
             </TabsTrigger>
-            <TabsTrigger 
-              value="workshops" 
-              className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2"
-            >
-              <Building2 className="w-4 h-4" />
-              {t('maintenances:tabs.workshops')}
+            <TabsTrigger value="workshops" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2">
+              <Building2 className="w-4 h-4" />{t('maintenances:tabs.workshops')}
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="maintenances" className="space-y-8 mt-0 outline-none">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* ---- TAB: MANUTENÇÕES ---- */}
+          <TabsContent value="maintenances" className="space-y-6 mt-0 outline-none">
+
+            {/* Stats vindas do back */}
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { label: t('maintenances:stats.total'), value: maintenances.length, icon: Wrench, color: 'text-slate-600', bg: 'bg-slate-100/60' },
-                { label: t('maintenances:stats.scheduled'), value: scheduled, icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50/60' },
-                { label: t('maintenances:stats.inProgress'), value: inProgress, icon: Settings, color: 'text-orange-600', bg: 'bg-orange-50/60' },
-                { label: t('maintenances:stats.completed'), value: maintenances.filter(m => m.status === 'completed').length, icon: Flag, color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
+                { label: t('maintenances:stats.total'),      value: paginationInfo.total,         icon: Wrench,   color: 'text-slate-600',   bg: 'bg-slate-100/60'  },
+                { label: t('maintenances:stats.scheduled'),  value: statusCounts.scheduled,       icon: Clock,    color: 'text-blue-600',    bg: 'bg-blue-50/60'    },
+                { label: t('maintenances:stats.inProgress'), value: statusCounts.in_progress,     icon: Settings, color: 'text-orange-600',  bg: 'bg-orange-50/60'  },
+                { label: t('maintenances:stats.completed'),  value: statusCounts.completed,       icon: Flag,     color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
               ].map((stat, i) => (
-                <Card key={i} className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
-                  <CardContent className="p-5 flex items-center gap-4">
-                    <div className={cn("p-3 rounded-xl", stat.bg, stat.color)}>
-                      <stat.icon className="w-5 h-5" />
+                <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className={cn('p-2.5 rounded-xl shrink-0', stat.bg, stat.color)}>
+                      <stat.icon className="w-4 h-4" />
                     </div>
-                    <div>
-                      <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
-                      <p className="text-2xl font-black tracking-tight">{stat.value}</p>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">{stat.label}</p>
+                      <p className="text-2xl font-black tracking-tight leading-tight">{stat.value}</p>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between bg-card p-4 rounded-2xl border border-muted/50 shadow-sm">
-              <div className="flex flex-col sm:flex-row gap-3 flex-1">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder={t('maintenances:searchPlaceholder')}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
-                  />
+            {/* Toolbar */}
+            <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
+                <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input placeholder={t('maintenances:searchPlaceholder')} value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
+                  </div>
+                  <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
+                    <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
+                      <Filter className="w-4 h-4 text-muted-foreground" />
+                      <SelectValue placeholder={t('maintenances:filters.all')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('maintenances:filters.all')}</SelectItem>
+                      <SelectItem value="scheduled">{t('maintenances:filters.scheduled')}</SelectItem>
+                      <SelectItem value="in_progress">{t('maintenances:filters.in_progress')}</SelectItem>
+                      <SelectItem value="completed">{t('maintenances:filters.completed')}</SelectItem>
+                      <SelectItem value="cancelled">{t('maintenances:filters.cancelled')}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
-                    <SelectValue placeholder={t('maintenances:filters.all')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('maintenances:filters.all')}</SelectItem>
-                    <SelectItem value="scheduled">{t('maintenances:filters.scheduled')}</SelectItem>
-                    <SelectItem value="in_progress">{t('maintenances:filters.in_progress')}</SelectItem>
-                    <SelectItem value="completed">{t('maintenances:filters.completed')}</SelectItem>
-                    <SelectItem value="cancelled">{t('maintenances:filters.cancelled')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-                <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50">
+                <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50 self-center sm:self-auto shrink-0">
                   {viewModes.map((item) => (
-                    <Button
-                      key={item.mode}
-                      variant={viewMode === item.mode ? 'secondary' : 'ghost'}
-                      size="sm"
+                    <Button key={item.mode} variant={viewMode === item.mode ? 'secondary' : 'ghost'} size="sm"
                       onClick={() => setViewMode(item.mode as ViewMode)}
-                      className={cn(
-                        "h-9 px-3 rounded-lg transition-all flex items-center gap-2",
-                        viewMode === item.mode ? "bg-background shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
-                      )}
-                      title={item.label}
-                    >
+                      className={cn('h-8 px-3 rounded-lg transition-all flex items-center gap-2', viewMode === item.mode ? 'bg-background shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground')}
+                      title={item.label}>
                       <item.icon className="w-4 h-4" />
                       <span className="hidden sm:inline text-xs">{item.label}</span>
                     </Button>
                   ))}
                 </div>
+              </div>
+              {paginationInfo.totalPages > 1 && (
+                <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
+                  <Pagination pagination={paginationInfo}
+                    onPageChange={(p) => setCurrentPage(p)}
+                    onLimitChange={(l) => { setItemsPerPage(l); setCurrentPage(1); }} />
+                </div>
+              )}
             </div>
 
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-24 space-y-4">
                 <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
-                <p className="text-sm text-muted-foreground font-bold animate-pulse">
-                  {t('common:loading')}...
-                </p>
+                <p className="text-sm text-muted-foreground font-bold animate-pulse">{t('common:loading')}...</p>
               </div>
-            ) : filteredMaintenances.length === 0 ? (
+            ) : maintenances.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 bg-card rounded-3xl border-2 border-dashed border-muted/50">
                 <Wrench className="w-12 h-12 text-muted-foreground/20 mb-4" />
                 <h3 className="text-lg font-bold">{t('maintenances:noMaintenances')}</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {searchTerm ? t('common:noResults') : t('common:noData')}
-                </p>
+                <p className="text-sm text-muted-foreground mt-1">{searchTerm ? t('common:noResults') : t('common:noData')}</p>
               </div>
             ) : (
               <div className="animate-in fade-in duration-300">
                 {viewMode === 'compact' && renderCompactView()}
-                {viewMode === 'normal' && renderNormalView()}
-                {viewMode === 'cards' && renderCardsView()}
+                {viewMode === 'normal'  && renderNormalView()}
+                {viewMode === 'cards'   && renderCardsView()}
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="categories" className="space-y-8 mt-0 outline-none">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Card className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-blue-50/60 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
-                    <Tag className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t('maintenances:stats.total')}</p>
-                    <p className="text-2xl font-black tracking-tight">{categories.length}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-green-50/60 dark:bg-green-900/20 text-green-600 dark:text-green-400">
-                    <Tag className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t('maintenances:categories.preventive')}</p>
-                    <p className="text-2xl font-black tracking-tight">{preventiveCount}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-orange-50/60 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400">
-                    <Tag className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t('maintenances:categories.corrective')}</p>
-                    <p className="text-2xl font-black tracking-tight">{correctiveCount}</p>
-                  </div>
-                </CardContent>
-              </Card>
+          {/* ---- TAB: CATEGORIAS ---- */}
+          <TabsContent value="categories" className="space-y-6 mt-0 outline-none">
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
+              {[
+                { label: t('maintenances:stats.total'),           value: categories.length, icon: Tag, color: 'text-blue-600',   bg: 'bg-blue-50/60'   },
+                { label: t('maintenances:categories.preventive'), value: preventiveCount,   icon: Tag, color: 'text-green-600',  bg: 'bg-green-50/60'  },
+                { label: t('maintenances:categories.corrective'), value: correctiveCount,   icon: Tag, color: 'text-orange-600', bg: 'bg-orange-50/60' },
+              ].map((stat, i) => (
+                <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className={cn('p-2.5 rounded-xl shrink-0', stat.bg, stat.color)}><stat.icon className="w-4 h-4" /></div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">{stat.label}</p>
+                      <p className="text-2xl font-black tracking-tight leading-tight">{stat.value}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between bg-card p-4 rounded-2xl border border-muted/50 shadow-sm">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder={t('common:search')}
-                  value={categorySearch}
-                  onChange={(e) => setCategorySearch(e.target.value)}
-                  className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-2 focus-visible:ring-primary/20"
-                />
+            <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input placeholder={t('common:search')} value={categorySearch} onChange={(e) => setCategorySearch(e.target.value)} className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
+                </div>
+                <div className="sm:ml-auto"><NewMaintenanceCategoryDialog /></div>
               </div>
-              <NewMaintenanceCategoryDialog />
             </div>
-
             {isCategoriesLoading ? (
-              <div className="flex flex-col items-center justify-center py-24 space-y-4">
-                <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
-                <p className="text-sm text-muted-foreground font-bold animate-pulse">{t('common:loading')}...</p>
-              </div>
+              <div className="flex flex-col items-center justify-center py-24 space-y-4"><div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" /><p className="text-sm text-muted-foreground font-bold animate-pulse">{t('common:loading')}...</p></div>
             ) : filteredCategories.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-24 bg-card rounded-3xl border-2 border-dashed border-muted/50">
-                <Tag className="w-12 h-12 text-muted-foreground/20 mb-4" />
-                <h3 className="text-lg font-bold">{t('maintenances:categories.noCategories')}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{t('common:noResults')}</p>
-              </div>
+              <div className="flex flex-col items-center justify-center py-24 bg-card rounded-3xl border-2 border-dashed border-muted/50"><Tag className="w-12 h-12 text-muted-foreground/20 mb-4" /><h3 className="text-lg font-bold">{t('maintenances:categories.noCategories')}</h3></div>
             ) : (
               <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in duration-300">
                 {filteredCategories.map((category) => (
-                  <Card 
-                    key={category.id} 
-                    className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60 cursor-pointer"
-                    onClick={() => {
-                      selectCategory(category);
-                      setEditCategoryDialogOpen(true);
-                    }}
-                  >
+                  <Card key={category.id} className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60 cursor-pointer" onClick={() => { selectCategory(category); setEditCategoryDialogOpen(true); }}>
                     <CardHeader className="pb-3 pt-5 px-5">
                       <div className="flex justify-between items-start mb-3">
-                        <div 
-                          className="p-2.5 rounded-xl transition-colors"
-                          style={{ backgroundColor: `${category.color}20` }}
-                        >
-                          <Tag className="w-5 h-5" style={{ color: category.color }} />
-                        </div>
-                        <Badge 
-                          variant={category.type === 'preventive' ? 'default' : 'secondary'} 
-                          className="rounded-full text-[10px] font-bold px-2.5 py-0.5"
-                        >
-                          {t(`maintenances:type.${category.type}.label`)}
-                        </Badge>
+                        <div className="p-2.5 rounded-xl transition-colors" style={{ backgroundColor: `${category.color}20` }}><Tag className="w-5 h-5" style={{ color: category.color }} /></div>
+                        <Badge variant={category.type === 'preventive' ? 'default' : 'secondary'} className="rounded-full text-[10px] font-bold px-2.5 py-0.5">{t(`maintenances:type.${category.type}.label`)}</Badge>
                       </div>
-                      <CardTitle className="text-lg font-bold leading-tight">
-                        {category.name}
-                      </CardTitle>
-                      <CardDescription className="text-sm text-muted-foreground line-clamp-2 min-h-[40px]">
-                        {category.description || t('maintenances:categories.noDescription')}
-                      </CardDescription>
+                      <CardTitle className="text-lg font-bold leading-tight">{category.name}</CardTitle>
+                      <CardDescription className="text-sm text-muted-foreground line-clamp-2 min-h-[40px]">{category.description || t('maintenances:categories.noDescription')}</CardDescription>
                     </CardHeader>
-                    
                     <CardContent className="flex-1 flex flex-col gap-3 p-5 pt-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: category.color }} />
-                        <span className="text-[11px] font-mono font-bold text-muted-foreground uppercase tracking-wider">{category.color}</span>
-                      </div>
-
+                      <div className="flex items-center gap-2 mb-2"><div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: category.color }} /><span className="text-[11px] font-mono font-bold text-muted-foreground uppercase tracking-wider">{category.color}</span></div>
                       <div className="mt-auto pt-4 border-t border-muted/50 flex gap-2">
-                        <Button 
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 h-9 text-xs font-bold bg-background hover:bg-muted"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            selectCategory(category);
-                            setEditCategoryDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="w-3.5 h-3.5 mr-1.5" />
-                          {t('common:actions.edit')}
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 h-9 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive bg-background"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            selectCategory(category);
-                            setCategoryDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                          {t('common:actions.delete')}
-                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold bg-background hover:bg-muted" onClick={(e) => { e.stopPropagation(); selectCategory(category); setEditCategoryDialogOpen(true); }}><Edit className="w-3.5 h-3.5 mr-1.5" />{t('common:actions.edit')}</Button>
+                        <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive bg-background" onClick={(e) => { e.stopPropagation(); selectCategory(category); setCategoryDeleteDialogOpen(true); }}><Trash2 className="w-3.5 h-3.5 mr-1.5" />{t('common:actions.delete')}</Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -922,161 +554,61 @@ export function MaintenancePageContent() {
             )}
           </TabsContent>
 
-          <TabsContent value="workshops" className="space-y-8 mt-0 outline-none">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Card className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-blue-50/60 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
-                    <Building2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t('maintenances:workshops.stats.total')}</p>
-                    <p className="text-2xl font-black tracking-tight">{workshops.length}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-green-50/60 dark:bg-green-900/20 text-green-600 dark:text-green-400">
-                    <Building2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t('maintenances:workshops.stats.active')}</p>
-                    <p className="text-2xl font-black tracking-tight">{activeWorkshops}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-slate-50/60 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400">
-                    <Building2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{t('maintenances:workshops.stats.inactive')}</p>
-                    <p className="text-2xl font-black tracking-tight">{workshops.length - activeWorkshops}</p>
-                  </div>
-                </CardContent>
-              </Card>
+          {/* ---- TAB: OFICINAS ---- */}
+          <TabsContent value="workshops" className="space-y-6 mt-0 outline-none">
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
+              {[
+                { label: t('maintenances:workshops.stats.total'),    value: workshops.length,                icon: Building2, color: 'text-blue-600',    bg: 'bg-blue-50/60'    },
+                { label: t('maintenances:workshops.stats.active'),   value: activeWorkshops,                 icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
+                { label: t('maintenances:workshops.stats.inactive'), value: workshops.length - activeWorkshops, icon: Building2, color: 'text-slate-500',   bg: 'bg-slate-50/60'   },
+              ].map((stat, i) => (
+                <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className={cn('p-2.5 rounded-xl shrink-0', stat.bg, stat.color)}><stat.icon className="w-4 h-4" /></div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">{stat.label}</p>
+                      <p className="text-2xl font-black tracking-tight leading-tight">{stat.value}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between bg-card p-4 rounded-2xl border border-muted/50 shadow-sm">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder={t('common:search')}
-                  value={workshopSearch}
-                  onChange={(e) => setWorkshopSearch(e.target.value)}
-                  className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-2 focus-visible:ring-primary/20"
-                />
+            <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input placeholder={t('common:search')} value={workshopSearch} onChange={(e) => setWorkshopSearch(e.target.value)} className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
+                </div>
+                <div className="sm:ml-auto"><NewWorkshopDialog /></div>
               </div>
-              <NewWorkshopDialog />
             </div>
-
             {isWorkshopsLoading ? (
-              <div className="flex flex-col items-center justify-center py-24 space-y-4">
-                <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
-                <p className="text-sm text-muted-foreground font-bold animate-pulse">{t('common:loading')}...</p>
-              </div>
+              <div className="flex flex-col items-center justify-center py-24 space-y-4"><div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" /><p className="text-sm text-muted-foreground font-bold animate-pulse">{t('common:loading')}...</p></div>
             ) : filteredWorkshops.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-24 bg-card rounded-3xl border-2 border-dashed border-muted/50">
-                <Building2 className="w-12 h-12 text-muted-foreground/20 mb-4" />
-                <h3 className="text-lg font-bold">{t('maintenances:workshops.noWorkshops')}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{t('common:noResults')}</p>
-              </div>
+              <div className="flex flex-col items-center justify-center py-24 bg-card rounded-3xl border-2 border-dashed border-muted/50"><Building2 className="w-12 h-12 text-muted-foreground/20 mb-4" /><h3 className="text-lg font-bold">{t('maintenances:workshops.noWorkshops')}</h3></div>
             ) : (
               <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in duration-300">
                 {filteredWorkshops.map((workshop) => (
-                  <Card 
-                    key={workshop.id} 
-                    className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60 cursor-pointer"
-                    onClick={() => {
-                      selectWorkshop(workshop);
-                      setEditWorkshopDialogOpen(true);
-                    }}
-                  >
+                  <Card key={workshop.id} className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60 cursor-pointer" onClick={() => { selectWorkshop(workshop); setEditWorkshopDialogOpen(true); }}>
                     <CardHeader className="pb-3 pt-5 px-5">
                       <div className="flex justify-between items-start mb-3">
-                        <div className={cn(
-                          "p-2.5 rounded-xl transition-colors",
-                          workshop.is_active 
-                            ? 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white' 
-                            : 'bg-muted text-muted-foreground'
-                        )}>
-                          <Building2 className="w-5 h-5" />
-                        </div>
-                        <Badge 
-                          variant={workshop.is_active ? 'outline' : 'secondary'} 
-                          className={cn(
-                            "rounded-full text-[10px] font-bold px-2.5 py-0.5",
-                            workshop.is_active 
-                              ? "border-green-200 text-green-700 bg-green-50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800" 
-                              : "border-slate-200 text-slate-600 bg-slate-50 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
-                          )}
-                        >
+                        <div className={cn('p-2.5 rounded-xl transition-colors', workshop.is_active ? 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white' : 'bg-muted text-muted-foreground')}><Building2 className="w-5 h-5" /></div>
+                        <Badge variant={workshop.is_active ? 'outline' : 'secondary'} className={cn('rounded-full text-[10px] font-bold px-2.5 py-0.5', workshop.is_active ? 'border-green-200 text-green-700 bg-green-50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800' : 'border-slate-200 text-slate-600 bg-slate-50 dark:bg-slate-800 dark:text-slate-400')}>
                           {workshop.is_active ? t('common:status.active') : t('common:status.inactive')}
                         </Badge>
                       </div>
-                      <CardTitle className="text-lg font-bold leading-tight truncate" title={workshop.name}>
-                        {workshop.name}
-                      </CardTitle>
-                      {workshop.specialties && (
-                        <CardDescription className="text-sm text-muted-foreground line-clamp-2 min-h-[40px]">
-                          {workshop.specialties}
-                        </CardDescription>
-                      )}
+                      <CardTitle className="text-lg font-bold leading-tight truncate" title={workshop.name}>{workshop.name}</CardTitle>
+                      {workshop.specialties && <CardDescription className="text-sm text-muted-foreground line-clamp-2 min-h-[40px]">{workshop.specialties}</CardDescription>}
                     </CardHeader>
-                    
                     <CardContent className="flex-1 flex flex-col gap-2 p-5 pt-0">
                       <div className="space-y-2 min-h-[60px]">
-                        {workshop.phone && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Phone className="w-4 h-4 shrink-0" />
-                            <span className="truncate">{workshop.phone}</span>
-                          </div>
-                        )}
-                        {workshop.email && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Mail className="w-4 h-4 shrink-0" />
-                            <span className="truncate">{workshop.email}</span>
-                          </div>
-                        )}
-                        {workshop.city && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <MapPin className="w-4 h-4 shrink-0" />
-                            <span className="truncate">{workshop.city}</span>
-                          </div>
-                        )}
+                        {workshop.phone && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Phone className="w-4 h-4 shrink-0" /><span className="truncate">{workshop.phone}</span></div>}
+                        {workshop.email && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Mail className="w-4 h-4 shrink-0" /><span className="truncate">{workshop.email}</span></div>}
+                        {workshop.city  && <div className="flex items-center gap-2 text-sm text-muted-foreground"><MapPin className="w-4 h-4 shrink-0" /><span className="truncate">{workshop.city}</span></div>}
                       </div>
-
                       <div className="mt-auto pt-4 border-t border-muted/50 flex gap-2">
-                        <Button 
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 h-9 text-xs font-bold bg-background hover:bg-muted"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            selectWorkshop(workshop);
-                            setEditWorkshopDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="w-3.5 h-3.5 mr-1.5" />
-                          {t('common:actions.edit')}
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 h-9 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive bg-background"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            selectWorkshop(workshop);
-                            setWorkshopDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                          {t('common:actions.delete')}
-                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold bg-background hover:bg-muted" onClick={(e) => { e.stopPropagation(); selectWorkshop(workshop); setEditWorkshopDialogOpen(true); }}><Edit className="w-3.5 h-3.5 mr-1.5" />{t('common:actions.edit')}</Button>
+                        <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive bg-background" onClick={(e) => { e.stopPropagation(); selectWorkshop(workshop); setWorkshopDeleteDialogOpen(true); }}><Trash2 className="w-3.5 h-3.5 mr-1.5" />{t('common:actions.delete')}</Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -1086,61 +618,14 @@ export function MaintenancePageContent() {
           </TabsContent>
         </Tabs>
 
-        <ViewMaintenanceDialog
-          open={!!selectedMaintenance}
-          onOpenChange={(open) => !open && selectMaintenance(null)}
-        />
-
-        <StartMaintenanceDialog 
-          open={startDialogOpen}
-          onOpenChange={setStartDialogOpen}
-        />
-
-        <CompleteMaintenanceDialog 
-          open={completeDialogOpen}
-          onOpenChange={setCompleteDialogOpen}
-        />
-
-        <EditWorkshopDialog 
-          open={editWorkshopDialogOpen} 
-          onOpenChange={setEditWorkshopDialogOpen} 
-        />
-
-        <EditMaintenanceCategoryDialog
-          open={editCategoryDialogOpen}
-          onOpenChange={setEditCategoryDialogOpen}
-          category={selectedCategory}
-        />
-
-        <ConfirmDeleteDialog
-          open={deleteDialogOpen}
-          onOpenChange={setDeleteDialogOpen}
-          onConfirm={handleDeleteMaintenance}
-          title={t('maintenances:dialogs.delete.title')}
-          description={t('maintenances:dialogs.delete.warning')}
-          itemName={selectedMaintenance ? `${selectedMaintenance.vehicle_license} - ${selectedMaintenance.category_name}` : ''}
-          isLoading={isDeleting}
-        />
-
-        <ConfirmDeleteDialog
-          open={categoryDeleteDialogOpen}
-          onOpenChange={setCategoryDeleteDialogOpen}
-          onConfirm={handleDeleteCategory}
-          title={t('maintenances:dialogs.deleteCategory.title')}
-          description={t('maintenances:dialogs.deleteCategory.warning')}
-          itemName={selectedCategory?.name}
-          isLoading={isDeletingCategory}
-        />
-
-        <ConfirmDeleteDialog
-          open={workshopDeleteDialogOpen}
-          onOpenChange={setWorkshopDeleteDialogOpen}
-          onConfirm={handleDeleteWorkshop}
-          title={t('maintenances:workshops.dialogs.delete.title')}
-          description={t('maintenances:workshops.dialogs.delete.warning')}
-          itemName={selectedWorkshop?.name}
-          isLoading={isDeletingWorkshop}
-        />
+        <ViewMaintenanceDialog open={!!selectedMaintenance} onOpenChange={(open) => !open && selectMaintenance(null)} />
+        <StartMaintenanceDialog open={startDialogOpen} onOpenChange={setStartDialogOpen} />
+        <CompleteMaintenanceDialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen} />
+        <EditWorkshopDialog open={editWorkshopDialogOpen} onOpenChange={setEditWorkshopDialogOpen} />
+        <EditMaintenanceCategoryDialog open={editCategoryDialogOpen} onOpenChange={setEditCategoryDialogOpen} category={selectedCategory} />
+        <ConfirmDeleteDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} onConfirm={handleDeleteMaintenance} title={t('maintenances:dialogs.delete.title')} description={t('maintenances:dialogs.delete.warning')} itemName={selectedMaintenance ? `${selectedMaintenance.vehicle_license} - ${selectedMaintenance.category_name}` : ''} isLoading={isDeleting} />
+        <ConfirmDeleteDialog open={categoryDeleteDialogOpen} onOpenChange={setCategoryDeleteDialogOpen} onConfirm={handleDeleteCategory} title={t('maintenances:dialogs.deleteCategory.title')} description={t('maintenances:dialogs.deleteCategory.warning')} itemName={selectedCategory?.name} isLoading={isDeletingCategory} />
+        <ConfirmDeleteDialog open={workshopDeleteDialogOpen} onOpenChange={setWorkshopDeleteDialogOpen} onConfirm={handleDeleteWorkshop} title={t('maintenances:workshops.dialogs.delete.title')} description={t('maintenances:workshops.dialogs.delete.warning')} itemName={selectedWorkshop?.name} isLoading={isDeletingWorkshop} />
       </div>
     </div>
   );

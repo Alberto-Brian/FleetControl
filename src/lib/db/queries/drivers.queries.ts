@@ -4,8 +4,10 @@
 import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { drivers, driverStatus, driverAvailability } from '@/lib/db/schemas/drivers';
 import { generateUuid } from '@/lib/utils/cripto';
-import { sql, eq, and, isNull, desc, lte, gte, or } from 'drizzle-orm';
+import { sql, eq, and, isNull, desc, lte, gte, or, count, like, SQL  } from 'drizzle-orm';
 import { ICreateDriver, IUpdateDriver, IDriver } from '@/lib/types/driver';
+import { IPaginationParams, IPaginatedResult } from '@/lib/types/pagination';
+
 
 /**
  * ✅ Busca motorista por número de carta
@@ -139,16 +141,104 @@ export async function createDriver(driverData: ICreateDriver): Promise<IDriver> 
 /**
  * Obtém todos os motoristas (não deletados)
  */
-export async function getAllDrivers(): Promise<IDriver[]> {
+export async function getAllDrivers(params: IPaginationParams = {}): Promise<IPaginatedResult<IDriver>> {
     const { db } = useDb();
-    
-    const result = await db
+
+    const page   = params.page  || 1;
+    const limit  = params.limit || 20;
+    const offset = (page - 1) * limit;
+
+    // Condições com filtros
+    const conditions: SQL[] = [isNull(drivers.deleted_at)];
+
+    if (params.search?.trim()) {
+        const s = `%${params.search.toLowerCase()}%`;
+        conditions.push(or(
+            like(drivers.name, s),
+            like(drivers.license_number, s),
+            like(drivers.phone, s),
+            like(drivers.email, s),
+        )!);
+    }
+    if (params.status && params.status !== 'all') {
+        // Reutilizamos "status" para filtrar por availability
+        conditions.push(eq(drivers.availability, params.status));
+    }
+
+    const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+    // Total com filtros
+    const [{ total }] = await db
+        .select({ total: count() })
+        .from(drivers)
+        .where(whereClause);
+
+    // Dados paginados
+    const data = await db
         .select()
         .from(drivers)
-        .where(isNull(drivers.deleted_at))
-        .orderBy(desc(drivers.created_at));
+        .where(whereClause)
+        .orderBy(desc(drivers.created_at))
+        .limit(limit)
+        .offset(offset);
 
-    return result;
+    // Counts por availability — sem filtro de availability (totais reais)
+    const baseConditions: SQL[] = [isNull(drivers.deleted_at)];
+    if (params.search?.trim()) {
+        const s = `%${params.search.toLowerCase()}%`;
+        baseConditions.push(or(
+            like(drivers.name, s),
+            like(drivers.license_number, s),
+            like(drivers.phone, s),
+            like(drivers.email, s),
+        )!);
+    }
+    const baseWhere = baseConditions.length > 1 ? and(...baseConditions) : baseConditions[0];
+
+    const availabilityCountsRaw = await db
+        .select({ availability: drivers.availability, count: count() })
+        .from(drivers)
+        .where(baseWhere)
+        .groupBy(drivers.availability);
+
+    const statusCountsRaw = await db
+        .select({ status: drivers.status, count: count() })
+        .from(drivers)
+        .where(baseWhere)
+        .groupBy(drivers.status);
+
+    const statusCounts: Record<string, number> = {
+        available:  0,
+        on_trip:    0,
+        offline:    0,
+        on_leave:   0,
+        terminated: 0,
+    };
+
+    for (const row of availabilityCountsRaw) {
+        if (row.availability in statusCounts) {
+            statusCounts[row.availability] = row.count;
+        }
+    }
+    for (const row of statusCountsRaw) {
+        // on_leave e terminated vêm do status, não da availability
+        if (row.status === 'on_leave' || row.status === 'terminated') {
+            statusCounts[row.status] = row.count;
+        }
+    }
+
+    return {
+        data: data as IDriver[],
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages:  Math.ceil(total / limit),
+            hasNextPage: page < Math.ceil(total / limit),
+            hasPrevPage: page > 1,
+        },
+        statusCounts,
+    };
 }
 
 /**

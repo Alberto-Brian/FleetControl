@@ -11,6 +11,7 @@ import {
     GET_EXPIRING_LICENSES,
     GET_AVAILABLE_DRIVERS
 } from "./drivers-channels";
+import { IPaginationParams } from '@/lib/types/pagination';
 
 import { ICreateDriver, IUpdateDriver } from '@/lib/types/driver';
 
@@ -18,7 +19,7 @@ export function exposeDriversContext() {
     const { contextBridge, ipcRenderer } = window.require("electron");
     
     contextBridge.exposeInMainWorld("_drivers", {
-        getAll: () => ipcRenderer.invoke(GET_ALL_DRIVERS),
+        getAll: (params?: IPaginationParams) => ipcRenderer.invoke(GET_ALL_DRIVERS, params),
         getById: (id: string) => ipcRenderer.invoke(GET_DRIVER_BY_ID, id),
         create: (data: ICreateDriver) => ipcRenderer.invoke(CREATE_DRIVER, data),
         update: (id: string, data: IUpdateDriver) => ipcRenderer.invoke(UPDATE_DRIVER, id, data),

@@ -5,8 +5,9 @@ import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { maintenances, vehicles, maintenance_categories, workshops } from '@/lib/db/schemas';
 import { maintenanceStatus } from '../schemas/maintenances'; 
 import { generateUuid } from '@/lib/utils/cripto';
-import { eq, and, isNull, desc } from 'drizzle-orm';
+import { eq, and, isNull, desc, or, SQL, count, like } from 'drizzle-orm';
 import { ICreateMaintenance, IUpdateMaintenance, IMaintenance } from '@/lib/types/maintenance';
+import { IPaginatedResult, IPaginationParams } from '@/lib/types/pagination';
 
 /**
  * ✅ Busca manutenção por ID completo (com joins)
@@ -108,46 +109,120 @@ export async function createMaintenance(maintenanceData: ICreateMaintenance): Pr
 /**
  * Obtém todas as manutenções
  */
-export async function getAllMaintenances(): Promise<IMaintenance[]> {
+export async function getAllMaintenances(params: IPaginationParams = {}): Promise<IPaginatedResult<IMaintenance>> {
     const { db } = useDb();
-    const result = await db
-        .select({
-            id: maintenances.id,
-            vehicle_id: maintenances.vehicle_id,
-            vehicle_license: vehicles.license_plate,
-            vehicle_brand: vehicles.brand,
-            vehicle_model: vehicles.model,
-            category_id: maintenances.category_id,
-            category_name: maintenance_categories.name,
-            category_type: maintenance_categories.type,
-            category_color: maintenance_categories.color,
-            workshop_id: maintenances.workshop_id,
-            workshop_name: workshops.name,
-            type: maintenances.type,
-            entry_date: maintenances.entry_date,
-            exit_date: maintenances.exit_date,
-            vehicle_mileage: maintenances.vehicle_mileage,
-            description: maintenances.description,
-            diagnosis: maintenances.diagnosis,
-            solution: maintenances.solution,
-            parts_cost: maintenances.parts_cost,
-            labor_cost: maintenances.labor_cost,
-            total_cost: maintenances.total_cost,
-            status: maintenances.status,
-            priority: maintenances.priority,
-            work_order_number: maintenances.work_order_number,
-            notes: maintenances.notes,
-            created_at: maintenances.created_at,
-            updated_at: maintenances.updated_at,
-        })
-        .from(maintenances)
-        .leftJoin(vehicles, eq(maintenances.vehicle_id, vehicles.id))
-        .leftJoin(maintenance_categories, eq(maintenances.category_id, maintenance_categories.id))
-        .leftJoin(workshops, eq(maintenances.workshop_id, workshops.id))
-        .where(isNull(maintenances.deleted_at))
-        .orderBy(desc(maintenances.created_at));
 
-    return result;
+    const page   = params.page  || 1;
+    const limit  = params.limit || 20;
+    const offset = (page - 1) * limit;
+
+    const conditions: SQL[] = [isNull(maintenances.deleted_at)];
+
+    if (params.search?.trim()) {
+        const s = `%${params.search.toLowerCase()}%`;
+        conditions.push(or(
+            like(vehicles.license_plate,         s),
+            like(maintenance_categories.name,    s),
+            like(workshops.name,                 s),
+        )!);
+    }
+    if (params.status && params.status !== 'all') {
+        conditions.push(eq(maintenances.status, params.status));
+    }
+
+    const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+    const selectFields = {
+        id:                  maintenances.id,
+        vehicle_id:          maintenances.vehicle_id,
+        vehicle_license:     vehicles.license_plate,
+        vehicle_brand:       vehicles.brand,
+        vehicle_model:       vehicles.model,
+        category_id:         maintenances.category_id,
+        category_name:       maintenance_categories.name,
+        category_type:       maintenance_categories.type,
+        category_color:      maintenance_categories.color,
+        workshop_id:         maintenances.workshop_id,
+        workshop_name:       workshops.name,
+        type:                maintenances.type,
+        entry_date:          maintenances.entry_date,
+        exit_date:           maintenances.exit_date,
+        vehicle_mileage:     maintenances.vehicle_mileage,
+        description:         maintenances.description,
+        diagnosis:           maintenances.diagnosis,
+        solution:            maintenances.solution,
+        parts_cost:          maintenances.parts_cost,
+        labor_cost:          maintenances.labor_cost,
+        total_cost:          maintenances.total_cost,
+        status:              maintenances.status,
+        priority:            maintenances.priority,
+        work_order_number:   maintenances.work_order_number,
+        notes:               maintenances.notes,
+        created_at:          maintenances.created_at,
+        updated_at:          maintenances.updated_at,
+    };
+
+    const [{ total }] = await db
+        .select({ total: count() })
+        .from(maintenances)
+        .leftJoin(vehicles,                eq(maintenances.vehicle_id,  vehicles.id))
+        .leftJoin(maintenance_categories,  eq(maintenances.category_id, maintenance_categories.id))
+        .leftJoin(workshops,               eq(maintenances.workshop_id, workshops.id))
+        .where(whereClause);
+
+    const data = await db
+        .select(selectFields)
+        .from(maintenances)
+        .leftJoin(vehicles,               eq(maintenances.vehicle_id,  vehicles.id))
+        .leftJoin(maintenance_categories, eq(maintenances.category_id, maintenance_categories.id))
+        .leftJoin(workshops,              eq(maintenances.workshop_id, workshops.id))
+        .where(whereClause)
+        .orderBy(desc(maintenances.created_at))
+        .limit(limit)
+        .offset(offset);
+
+    // Counts por status sem filtro de status
+    const baseConditions: SQL[] = [isNull(maintenances.deleted_at)];
+    if (params.search?.trim()) {
+        const s = `%${params.search.toLowerCase()}%`;
+        baseConditions.push(or(
+            like(vehicles.license_plate,        s),
+            like(maintenance_categories.name,   s),
+            like(workshops.name,                s),
+        )!);
+    }
+    const baseWhere = baseConditions.length > 1 ? and(...baseConditions) : baseConditions[0];
+
+    const countsRaw = await db
+        .select({ status: maintenances.status, count: count() })
+        .from(maintenances)
+        .leftJoin(vehicles,               eq(maintenances.vehicle_id,  vehicles.id))
+        .leftJoin(maintenance_categories, eq(maintenances.category_id, maintenance_categories.id))
+        .where(baseWhere)
+        .groupBy(maintenances.status);
+
+    const statusCounts: Record<string, number> = {
+        scheduled:   0,
+        in_progress: 0,
+        completed:   0,
+        cancelled:   0,
+    };
+    for (const row of countsRaw) {
+        statusCounts[row.status] = row.count;
+    }
+
+    return {
+        data: data as IMaintenance[],
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages:  Math.ceil(total / limit),
+            hasNextPage: page < Math.ceil(total / limit),
+            hasPrevPage: page > 1,
+        },
+        statusCounts,
+    };
 }
 
 /**

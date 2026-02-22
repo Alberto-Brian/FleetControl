@@ -29,6 +29,7 @@ import { getExpenseCategoryById } from "@/helpers/expense-category-helpers";
 import { WarningError, NotFoundError } from "@/lib/errors/AppError";
 
 import { ICreateExpense, IUpdateExpense, PaymentData } from '@/lib/types/expense';
+import { IPaginationParams } from "@/lib/types/pagination";
 
 // Chaves de tradução para erros
 const T_ERRORS = {
@@ -37,7 +38,7 @@ const T_ERRORS = {
 } as const;
 
 export function addExpensesEventListeners() {
-    ipcMain.handle(GET_ALL_EXPENSES, async (_) => await getAllExpenses());
+    ipcMain.handle(GET_ALL_EXPENSES, async (_, params?: IPaginationParams) => await getAllExpenses(params || {}));
     ipcMain.handle(GET_EXPENSE_BY_ID, async (_, id: string) => await getExpenseById(id));
     ipcMain.handle(CREATE_EXPENSE, async (_, data: ICreateExpense) => await createExpenseEvent(data));
     ipcMain.handle(UPDATE_EXPENSE, async (_, id: string, data: IUpdateExpense) => await updateExpense(id, data));

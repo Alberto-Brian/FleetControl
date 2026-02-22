@@ -13,12 +13,13 @@ import {
 } from "./expenses-channels";
 
 import { ICreateExpense, IUpdateExpense, PaymentData } from '@/lib/types/expense';
+import { IPaginationParams } from "@/lib/types/pagination";
 
 export function exposeExpensesContext() {
     const { contextBridge, ipcRenderer } = window.require("electron");
     
     contextBridge.exposeInMainWorld("_expenses", {
-        getAll: () => ipcRenderer.invoke(GET_ALL_EXPENSES),
+        getAll: (params?: IPaginationParams) => ipcRenderer.invoke(GET_ALL_EXPENSES, params),
         getById: (id: string) => ipcRenderer.invoke(GET_EXPENSE_BY_ID, id),
         create: (data: ICreateExpense) => ipcRenderer.invoke(CREATE_EXPENSE, data),
         update: (id: string, data: IUpdateExpense) => ipcRenderer.invoke(UPDATE_EXPENSE, id, data),

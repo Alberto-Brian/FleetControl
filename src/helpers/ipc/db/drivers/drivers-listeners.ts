@@ -30,9 +30,10 @@ import {
 
 import { ICreateDriver, IUpdateDriver } from '@/lib/types/driver';
 import { ConflictError, ValidationError } from '@/lib/errors/AppError';
+import { IPaginationParams, IPaginatedResult } from '@/lib/types/pagination';
 
 export function addDriversEventListeners() {
-    ipcMain.handle(GET_ALL_DRIVERS, async (_) => await getAllDrivers());
+    ipcMain.handle(GET_ALL_DRIVERS, async (_, params?: IPaginationParams) => await getAllDrivers(params || {}));
     
     ipcMain.handle(GET_DRIVER_BY_ID, async (_, id: string) => await getDriverById(id));
 
@@ -45,7 +46,7 @@ export function addDriversEventListeners() {
                 throw new ConflictError(
                     'drivers:errors.driverWithSameLicenseAlreadyExists',
                     { i18n: { license: data.license_number } }
-                )
+                ).toIpcString()
             }
 
             // Validação: NIF duplicado (se fornecido)
@@ -55,7 +56,7 @@ export function addDriversEventListeners() {
                     throw new ConflictError(
                         'drivers:errors.driverWithSameTaxIdAlreadyExists',
                         { i18n: { taxId: data.tax_id } }
-                    );
+                    ).toIpcString();
                 }
             }
 
@@ -64,7 +65,7 @@ export function addDriversEventListeners() {
             if (expiryDate < new Date()) {
                 throw new ValidationError(
                     'drivers:errors.licenseExpired',
-                );
+                ).toIpcString();
             }
 
             return await createDriver(data);
@@ -104,7 +105,7 @@ export function addDriversEventListeners() {
                 if (expiryDate < new Date()) {
                     throw new ValidationError(
                         'drivers:errors.licenseExpired',
-                    );
+                    ).toIpcString();
                 }
             }
 

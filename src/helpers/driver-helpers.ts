@@ -2,13 +2,15 @@
 // FILE: src/helpers/driver-helpers.ts
 // ========================================
 import { ICreateDriver, IUpdateDriver, IDriver } from '@/lib/types/driver';
+import { IPaginationParams, IPaginatedResult } from '@/lib/types/pagination';
 
-export async function getAllDrivers(): Promise<IDriver[]> {
+
+export async function getAllDrivers(params?: IPaginationParams): Promise<IPaginatedResult<IDriver>> {
     try {
-        const result = await window._drivers.getAll();
+        const result = await window._drivers.getAll(params);
         return result;
     } catch (error) {
-        throw error; // ✅ Propaga erro para useErrorHandler
+        throw error;
     }
 }
 

@@ -21,10 +21,11 @@ import {
 } from "@/lib/db/queries/fines.queries";
 
 import { ICreateFine, IUpdateFine, PayFineData } from "@/lib/types/fine";
+import { IPaginationParams } from "@/lib/types/pagination";
 
 export function addFinesEventListeners() {
+    ipcMain.handle(GET_ALL_FINES, async (_, params?: IPaginationParams) => await getAllFines(params || {}));
     ipcMain.handle(CREATE_FINE, async (_, data: ICreateFine) => await createFine(data));
-    ipcMain.handle(GET_ALL_FINES, async (_) => await getAllFines());
     ipcMain.handle(GET_FINE_BY_ID, async (_, id: string) => await getFineById(id));
     ipcMain.handle(UPDATE_FINE, async (_, id: string, data: IUpdateFine) => await updateFine(id, data));
     ipcMain.handle(MARK_FINE_AS_PAID, async (_, id: string, data: PayFineData) => await markFineAsPaid(id, data));

@@ -11,12 +11,13 @@ import {
 } from "./trips-channels";
 
 import { ICreateTrip, ICompleteTrip } from '@/lib/types/trip';
+import { IPaginationParams } from '@/lib/types/pagination';
 
 export function exposeTripsContext() {
     const { contextBridge, ipcRenderer } = window.require("electron");
     
     contextBridge.exposeInMainWorld("_trips", {
-        getAll: () => ipcRenderer.invoke(GET_ALL_TRIPS),
+        getAll: (params?: IPaginationParams) => ipcRenderer.invoke(GET_ALL_TRIPS, params),
         getById: (id: string) => ipcRenderer.invoke(GET_TRIP_BY_ID, id),
         create: (data: ICreateTrip) => ipcRenderer.invoke(CREATE_TRIP, data),
         cancel: (id: string) => ipcRenderer.invoke(CANCEL_TRIP, id),

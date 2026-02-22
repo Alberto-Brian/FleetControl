@@ -7,8 +7,9 @@ import { vehicleStatus } from '../schemas/vehicles';
 import { driverAvailability } from '../schemas/drivers';
 import { tripStatus } from '../schemas/trips';
 import { generateUuid } from '@/lib/utils/cripto';
-import { eq, and, isNull, desc } from 'drizzle-orm';
+import { eq, and, isNull, desc, sql, or, like, count, SQL } from 'drizzle-orm';
 import { ICreateTrip, ICompleteTrip, ITrip } from '@/lib/types/trip';
+import { IPaginationParams, IPaginatedResult } from '@/lib/types/pagination';
 
 /**
  * ✅ Busca viagem por ID completo (com joins)
@@ -161,42 +162,130 @@ export async function createTrip(tripData: ICreateTrip): Promise<ITrip> {
 /**
  * Obtém todas as viagens
  */
-export async function getAllTrips(): Promise<ITrip[]> {
+export async function getAllTrips(params: IPaginationParams = {}): Promise<IPaginatedResult<ITrip>> {
     const { db } = useDb();
-    const result = await db
+
+    const page   = params.page  || 1;
+    const limit  = params.limit || 20;
+    const offset = (page - 1) * limit;
+
+    // Condições com filtros
+    const conditions: SQL[] = [isNull(trips.deleted_at)];
+
+    if (params.search?.trim()) {
+        const s = `%${params.search.toLowerCase()}%`;
+        conditions.push(or(
+            like(trips.trip_code,       s),
+            like(vehicles.license_plate, s),
+            like(drivers.name,           s),
+            like(trips.origin,           s),
+            like(trips.destination,      s),
+        )!);
+    }
+    if (params.status && params.status !== 'all') {
+        conditions.push(eq(trips.status, params.status));
+    }
+
+    const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
+
+    // Total com filtros (precisa de joins para o search funcionar)
+    const [{ total }] = await db
+        .select({ total: count() })
+        .from(trips)
+        .leftJoin(vehicles, eq(trips.vehicle_id, vehicles.id))
+        .leftJoin(drivers,  eq(trips.driver_id,  drivers.id))
+        .where(whereClause);
+
+    // Dados paginados
+    const data = await db
         .select({
-            id: trips.id,
-            trip_code: trips.trip_code,
-            vehicle_id: trips.vehicle_id,
-            driver_id: trips.driver_id,
-            route_id: trips.route_id,
-            route_name: routes.name,
-            vehicle_license: vehicles.license_plate,
-            vehicle_brand: vehicles.brand,
-            vehicle_model: vehicles.model,
-            driver_name: drivers.name,
+            id:                    trips.id,
+            trip_code:             trips.trip_code,
+            vehicle_id:            trips.vehicle_id,
+            driver_id:             trips.driver_id,
+            route_id:              trips.route_id,
+            route_name:            routes.name,
+            vehicle_license:       vehicles.license_plate,
+            vehicle_brand:         vehicles.brand,
+            vehicle_model:         vehicles.model,
+            driver_name:           drivers.name,
             driver_license_number: drivers.license_number,
-            driver_email: drivers.email,
-            start_date: trips.start_date,
-            end_date: trips.end_date,
-            start_mileage: trips.start_mileage,
-            end_mileage: trips.end_mileage,
-            origin: trips.origin,
-            destination: trips.destination,
-            purpose: trips.purpose,
-            status: trips.status,
-            notes: trips.notes,
-            created_at: trips.created_at,
-            updated_at: trips.updated_at,
+            driver_email:          drivers.email,
+            start_date:            trips.start_date,
+            end_date:              trips.end_date,
+            start_mileage:         trips.start_mileage,
+            end_mileage:           trips.end_mileage,
+            origin:                trips.origin,
+            destination:           trips.destination,
+            purpose:               trips.purpose,
+            status:                trips.status,
+            notes:                 trips.notes,
+            created_at:            trips.created_at,
+            updated_at:            trips.updated_at,
         })
         .from(trips)
         .leftJoin(vehicles, eq(trips.vehicle_id, vehicles.id))
-        .leftJoin(drivers, eq(trips.driver_id, drivers.id))
-        .leftJoin(routes, eq(trips.route_id, routes.id))
-        .where(isNull(trips.deleted_at))
-        .orderBy(desc(trips.created_at));
+        .leftJoin(drivers,  eq(trips.driver_id,  drivers.id))
+        .leftJoin(routes,   eq(trips.route_id,   routes.id))
+        .where(whereClause)
+        .orderBy(desc(trips.created_at))
+        .limit(limit)
+        .offset(offset);
 
-    return result;
+    // Counts por status — sem filtro de status (totais reais)
+    const baseConditions: SQL[] = [isNull(trips.deleted_at)];
+    if (params.search?.trim()) {
+        const s = `%${params.search.toLowerCase()}%`;
+        baseConditions.push(or(
+            like(trips.trip_code,        s),
+            like(vehicles.license_plate, s),
+            like(drivers.name,           s),
+            like(trips.origin,           s),
+            like(trips.destination,      s),
+        )!);
+    }
+    const baseWhere = baseConditions.length > 1 ? and(...baseConditions) : baseConditions[0];
+
+    const countsRaw = await db
+        .select({ status: trips.status, count: count() })
+        .from(trips)
+        .leftJoin(vehicles, eq(trips.vehicle_id, vehicles.id))
+        .leftJoin(drivers,  eq(trips.driver_id,  drivers.id))
+        .where(baseWhere)
+        .groupBy(trips.status);
+
+    const statusCounts: Record<string, number> = {
+        in_progress: 0,
+        completed:   0,
+        cancelled:   0,
+    };
+    for (const row of countsRaw) {
+        statusCounts[row.status] = row.count;
+    }
+
+    // Distância total de todas as viagens completadas (global, sem filtros)
+    const [distRow] = await db
+        .select({
+            total: sql<number>`COALESCE(SUM(${trips.end_mileage} - ${trips.start_mileage}), 0)`
+        })
+        .from(trips)
+        .where(and(isNull(trips.deleted_at), eq(trips.status, 'completed')));
+
+    return {
+        data: data as ITrip[],
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages:  Math.ceil(total / limit),
+            hasNextPage: page < Math.ceil(total / limit),
+            hasPrevPage: page > 1,
+        },
+        statusCounts: {
+            ...statusCounts,
+            totalDistance: distRow?.total ?? 0,
+        },
+    };
 }
 
 /**

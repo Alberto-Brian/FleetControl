@@ -6,19 +6,19 @@ import { FineStatus } from "../db/schemas/fines";
 export interface IFine {
     id: string;
     vehicle_id: string;
-    driver_id?: string;
+    driver_id: string | null;
     fine_number: string;
     fine_date: string;
     infraction_type: string;
     description: string;
-    location?: string;
+    location: string | null;
     fine_amount: number;
-    due_date?: string;
-    payment_date?: string;
+    due_date: string | null;
+    payment_date: string | null;
     status: FineStatus;
-    points?: number;
-    authority?: string;
-    notes?: string;
+    points: number | null;
+    authority: string | null;
+    notes: string | null;
     created_at: string;
 }
 

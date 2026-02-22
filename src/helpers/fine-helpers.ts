@@ -2,6 +2,7 @@
 // FILE: src/helpers/fines-helpers.ts (CORRIGIDO)
 // ========================================
 import { ICreateFine, IUpdateFine, IFine, PayFineData } from "@/lib/types/fine";
+import { IPaginatedResult, IPaginationParams } from "@/lib/types/pagination";
 
 export async function createFine(data: ICreateFine): Promise<IFine> {
     try {
@@ -12,9 +13,10 @@ export async function createFine(data: ICreateFine): Promise<IFine> {
     }
 }
 
-export async function getAllFines(): Promise<any[]> {
+
+export async function getAllFines(params?: IPaginationParams): Promise<IPaginatedResult<IFine>> {
     try {
-        const result = await window._fines.getAll();
+        const result = await window._fines.getAll(params);
         return result;
     } catch (error) {
         throw error;

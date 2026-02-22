@@ -25,9 +25,10 @@ import {
 import { ICreateTrip, ICompleteTrip } from '@/lib/types/trip';
 import { NotFoundError, ValidationError } from '@/lib/errors/AppError';
 import { tripStatus } from "@/lib/db/schemas/trips";
+import { IPaginationParams, IPaginatedResult } from '@/lib/types/pagination';
 
 export function addTripsEventListeners() {
-    ipcMain.handle(GET_ALL_TRIPS, async (_) => await getAllTrips());
+    ipcMain.handle(GET_ALL_TRIPS, async (_, params?: IPaginationParams) => await getAllTrips(params || {}));
     
     ipcMain.handle(GET_TRIP_BY_ID, async (_, id: string) => await getTripById(id));
     
@@ -43,7 +44,7 @@ export function addTripsEventListeners() {
                     'trips:errors.vehicleNotAvailable', {
                         duration: 400
                     }
-                );
+                ).toIpcString();
             }
 
             // Validação: motorista disponível
@@ -51,14 +52,14 @@ export function addTripsEventListeners() {
             if (!driverAvailable) {
                 throw new ValidationError(
                     'trips:errors.driverNotAvailable',
-                );
+                ).toIpcString();
             }
 
             // Validação: rota OU origem/destino manual
             if (!data.route_id && (!data.origin || !data.destination)) {
                 throw new ValidationError(
                     'trips:errors.originDestinationRequired',
-                );
+                ).toIpcString();
             }
 
             return await createTrip(data);

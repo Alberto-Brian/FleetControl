@@ -24,9 +24,10 @@ import {
 
 import { ICreateMaintenance, IUpdateMaintenance } from '@/lib/types/maintenance';
 import { ValidationError, NotFoundError } from '@/lib/errors/AppError';
+import { IPaginationParams } from "@/lib/types/pagination";
 
 export function addMaintenancesEventListeners() {
-    ipcMain.handle(GET_ALL_MAINTENANCES, async () => await getAllMaintenances());
+    ipcMain.handle(GET_ALL_MAINTENANCES, async (_, params?: IPaginationParams) => await getAllMaintenances(params || {}));
     
     ipcMain.handle(GET_MAINTENANCE_BY_ID, async (_, id: string) => await getMaintenanceById(id));
     
@@ -37,23 +38,23 @@ export function addMaintenancesEventListeners() {
         try {
             // Validação: campos obrigatórios
             if (!data.vehicle_id) {
-                throw new ValidationError('maintenances:validation.vehicleRequired', 'validation');
+                throw new ValidationError('maintenances:validation.vehicleRequired', 'validation').toIpcString();
             }
 
             if (!data.category_id) {
-                throw new ValidationError('maintenances:validation.categoryRequired', 'validation');
+                throw new ValidationError('maintenances:validation.categoryRequired', 'validation').toIpcString();
             }
 
             if (!data.type) {
-                throw new ValidationError('maintenances:validation.typeRequired', 'validation');
+                throw new ValidationError('maintenances:validation.typeRequired', 'validation').toIpcString();
             }
 
             if (!data.description || data.description.trim() === '') {
-                throw new ValidationError('maintenances:validation.descriptionRequired', 'validation');
+                throw new ValidationError('maintenances:validation.descriptionRequired', 'validation').toIpcString();
             }
 
             if (!data.vehicle_mileage || data.vehicle_mileage <= 0) {
-                throw new ValidationError('maintenances:validation.mileagePositive', 'validation');
+                throw new ValidationError('maintenances:validation.mileagePositive', 'validation').toIpcString();
             }
 
             return await createMaintenance(data);

@@ -2,10 +2,11 @@
 // FILE: src/helpers/maintenance-helpers.ts (ATUALIZADO)
 // ========================================
 import { ICreateMaintenance, IUpdateMaintenance, IMaintenance } from '@/lib/types/maintenance';
+import { IPaginatedResult, IPaginationParams } from '@/lib/types/pagination';
 
-export async function getAllMaintenances(): Promise<IMaintenance[]> {
+export async function getAllMaintenances(params?: IPaginationParams): Promise<IPaginatedResult<IMaintenance>> {
     try {
-        const result = await window._maintenances.getAll();
+        const result = await window._maintenances.getAll(params);
         return result;
     } catch (error) {
         throw error; // ✅ Propaga para useErrorHandler

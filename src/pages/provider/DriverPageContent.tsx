@@ -1,13 +1,14 @@
 // ========================================
 // FILE: src/components/driver/DriversPageContent.tsx
 // ========================================
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Pagination } from '@/components/ui/pagination';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { 
@@ -45,30 +46,76 @@ export default function DriversPageContent() {
     setLoading,
   } = useDrivers();
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm]                 = useState('');
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [viewMode, setViewMode]                     = useState<ViewMode>('cards');
 
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  // Paginação
+  const [currentPage, setCurrentPage]     = useState(1);
+  const [itemsPerPage, setItemsPerPage]   = useState(20);
+  const [paginationInfo, setPaginationInfo] = useState({
+    total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false,
+  });
+
+  // Counts reais vindos do back — independentes dos filtros
+  const [statusCounts, setStatusCounts] = useState({
+    available:  0,
+    on_trip:    0,
+    offline:    0,
+    on_leave:   0,
+    terminated: 0,
+  });
+
+  // Debounce search
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const [editDialogOpen, setEditDialogOpen]     = useState(false);
+  const [viewDialogOpen, setViewDialogOpen]     = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleting, setIsDeleting]             = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     loadDrivers();
-  }, []);
+  }, [currentPage, itemsPerPage, debouncedSearch, availabilityFilter]);
 
-  async function loadDrivers() {
+  const loadDrivers = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getAllDrivers();
-      setDrivers(data);
+      const result = await getAllDrivers({
+        page:   currentPage,
+        limit:  itemsPerPage,
+        search: debouncedSearch,
+        status: availabilityFilter === 'all' ? undefined : availabilityFilter,
+      });
+
+      setDrivers(result.data);
+      setPaginationInfo(result.pagination);
+
+      if (result.statusCounts) {
+        setStatusCounts(result.statusCounts as typeof statusCounts);
+      }
     } catch (error) {
       handleError(error, 'drivers:errors.errorLoading');
     } finally {
       setLoading(false);
     }
+  }, [currentPage, itemsPerPage, debouncedSearch, availabilityFilter]);
+
+  function handlePageChange(page: number) {
+    setCurrentPage(page);
+  }
+
+  function handleLimitChange(limit: number) {
+    setItemsPerPage(limit);
+    setCurrentPage(1);
   }
 
   function openDeleteDialog(driver: any) {
@@ -87,6 +134,7 @@ export default function DriversPageContent() {
       showSuccess('drivers:toast.deleteSuccess');
       setDeleteDialogOpen(false);
       selectDriver(null);
+      loadDrivers();
     } catch (error) {
       handleError(error, 'drivers:toast.deleteError');
     } finally {
@@ -123,10 +171,8 @@ export default function DriversPageContent() {
   }
 
   function isLicenseExpiring(expiryDate: string): boolean {
-    const expiry = new Date(expiryDate);
-    const today = new Date();
-    const daysUntilExpiry = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
+    const days = getDaysUntilExpiry(expiryDate);
+    return days <= 30 && days > 0;
   }
 
   function isLicenseExpired(expiryDate: string): boolean {
@@ -134,24 +180,31 @@ export default function DriversPageContent() {
   }
 
   function getDaysUntilExpiry(expiryDate: string): number {
-    const expiry = new Date(expiryDate);
-    const today = new Date();
-    return Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
   }
 
-  const filteredDrivers = drivers.filter(d => {
-    const matchesSearch = d.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.license_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesAvailability = availabilityFilter === 'all' || d.availability === availabilityFilter;
-    return matchesSearch && matchesAvailability;
-  });
+  // Stats — counts vindos do back, independentes dos filtros activos
+  const stats = [
+    { label: t('drivers:stats.total'),                value: paginationInfo.total,   icon: Users,        color: 'text-slate-600',   bg: 'bg-slate-100/60'  },
+    { label: t('drivers:stats.available'),            value: statusCounts.available, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
+    { label: t('drivers:stats.onTrip'),               value: statusCounts.on_trip,   icon: Truck,        color: 'text-blue-600',    bg: 'bg-blue-50/60'    },
+    { label: t('drivers:status.on_leave.label'),      value: statusCounts.on_leave,  icon: Clock,        color: 'text-amber-600',   bg: 'bg-amber-50/60'   },
+    { label: t('drivers:availability.offline.label'), value: statusCounts.offline,   icon: Ban,          color: 'text-slate-500',   bg: 'bg-slate-50/60'   },
+  ];
+
+  const viewModes = [
+    { mode: 'list',  icon: List,       label: t('common:viewModes.normal') },
+    { mode: 'cards', icon: LayoutGrid, label: t('common:viewModes.cards')  },
+  ] as const;
+
+  // ---------------------------------------------------------------
+  // Views — usam "drivers" directamente (já filtrados pelo back)
+  // ---------------------------------------------------------------
 
   function renderListView() {
     return (
       <div className="grid gap-4">
-        {filteredDrivers.map((driver) => (
+        {drivers.map((driver) => (
           <Card key={driver.id} className="overflow-hidden group hover:shadow-md transition-all duration-200 bg-card">
             <CardContent className="p-0">
               <div className="flex items-start gap-4 p-5">
@@ -236,13 +289,13 @@ export default function DriversPageContent() {
   function renderCardsView() {
     return (
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredDrivers.map((driver) => (
-          <Card key={driver.id} className={cn("flex flex-col h-full group hover:shadow-lg transition-all duration-300 bg-card relative overflow-hidden")}>
+        {drivers.map((driver) => (
+          <Card key={driver.id} className="flex flex-col h-full group hover:shadow-lg transition-all duration-300 bg-card relative overflow-hidden">
             <div 
               className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full ring-2 ring-background shadow-sm"
               style={{
                 backgroundColor: driver.status === 'active' ? '#10b981' : 
-                                driver.status === 'on_leave' ? '#f59e0b' : '#64748b'
+                                  driver.status === 'on_leave' ? '#f59e0b' : '#64748b'
               }}
               title={`Status: ${driver.status}`}
             />
@@ -258,16 +311,18 @@ export default function DriversPageContent() {
                   className={cn(
                     "flex items-center gap-1.5 font-bold px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider",
                     driver.availability === 'available' && "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800",
-                    driver.availability === 'on_trip' && "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800",
-                    driver.availability === 'offline' && "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
+                    driver.availability === 'on_trip'   && "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800",
+                    driver.availability === 'offline'   && "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
                   )}
                 >
                   {driver.availability === 'available' && <CheckCircle2 className="w-3.5 h-3.5" />}
-                  {driver.availability === 'on_trip' && <Truck className="w-3.5 h-3.5" />}
-                  {driver.availability === 'offline' && <Ban className="w-3.5 h-3.5" />}
-                  {driver.availability === 'available' && t('drivers:availability.available.label')}
-                  {driver.availability === 'on_trip' && t('drivers:availability.on_trip.label')}
-                  {driver.availability === 'offline' && t('drivers:availability.offline.label')}
+                  {driver.availability === 'on_trip'   && <Truck className="w-3.5 h-3.5" />}
+                  {driver.availability === 'offline'   && <Ban className="w-3.5 h-3.5" />}
+                  <span>
+                    {driver.availability === 'available' && t('drivers:availability.available.label')}
+                    {driver.availability === 'on_trip'   && t('drivers:availability.on_trip.label')}
+                    {driver.availability === 'offline'   && t('drivers:availability.offline.label')}
+                  </span>
                 </Badge>
               </div>
               <div>
@@ -313,24 +368,10 @@ export default function DriversPageContent() {
               </div>
               <div className="mt-auto pt-4 flex gap-2 border-t">
                 <Button 
-                  className={cn(
-                    "flex-1 h-9 text-sm font-bold shadow-sm",
-                    driver.availability === 'available' && driver.status === 'active'
-                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                      : "bg-slate-100 text-slate-500"
-                  )}
-                  disabled={driver.availability !== 'available' || driver.status !== 'active'}
+                  className="flex-1 h-9 text-sm font-bold shadow-sm"
                   onClick={() => { selectDriver(driver); setViewDialogOpen(true); }}
                 >
-                  {driver.availability === 'available' && driver.status === 'active' 
-                    ? t('drivers:actions.view') 
-                    : driver.availability === 'on_trip' 
-                      ? t('drivers:availability.on_trip.label') 
-                      : driver.status === 'on_leave'
-                      ? t('drivers:status.on_leave.label')
-                      : driver.status === 'terminated'
-                        ? t('drivers:status.terminated.label')
-                        : t('drivers:availability.offline.label')}
+                  {t('drivers:actions.view')}
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -339,10 +380,10 @@ export default function DriversPageContent() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => { closeDropdownsAndOpenDialog(() => { selectDriver(driver); setViewDialogOpen(true); }); }}>
+                    <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectDriver(driver); setViewDialogOpen(true); })}>
                       <Eye className="w-4 h-4 mr-2" /> {t('drivers:actions.view')}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { closeDropdownsAndOpenDialog(() => { selectDriver(driver); setEditDialogOpen(true); }); }}>
+                    <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectDriver(driver); setEditDialogOpen(true); })}>
                       <Edit className="w-4 h-4 mr-2" /> {t('drivers:actions.edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => openDeleteDialog(driver)}>
@@ -358,13 +399,9 @@ export default function DriversPageContent() {
     );
   }
 
-  // --- Stats ---
-  const availableCount   = drivers.filter(d => d.availability === 'available').length;
-  const onTripCount      = drivers.filter(d => d.availability === 'on_trip').length;
-  const offlineCount     = drivers.filter(d => d.availability === 'offline').length;
-  const onLeaveCount     = drivers.filter(d => d.status === 'on_leave').length;
-  const terminatedCount  = drivers.filter(d => d.status === 'terminated').length;
-  const expiringLicenses = drivers.filter(d => isLicenseExpiring(d.license_expiry_date) || isLicenseExpired(d.license_expiry_date)).length;
+  // ---------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------
 
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
@@ -376,21 +413,13 @@ export default function DriversPageContent() {
             <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('drivers:title')}</h1>
             <p className="text-muted-foreground text-base">{t('drivers:description')}</p>
           </div>
-          <div className="flex items-center gap-3">
-            <NewDriverDialog />
-          </div>
+          <NewDriverDialog />
         </div>
 
-        {/* Stats — 5 cards numa linha a partir de sm */}
-        <div className="grid gap-4 grid-cols-2 sm:grid-cols-5">
-          {[
-            { label: t('drivers:stats.total'),                    value: drivers.length, icon: Users,        color: 'text-slate-600',  bg: 'bg-slate-100/60'  },
-            { label: t('drivers:stats.available'),                value: availableCount, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
-            { label: t('drivers:stats.onTrip'),                   value: onTripCount,    icon: Truck,        color: 'text-blue-600',   bg: 'bg-blue-50/60'    },
-            { label: t('drivers:status.on_leave.label'),          value: onLeaveCount,   icon: Clock,        color: 'text-amber-600',  bg: 'bg-amber-50/60'   },
-            { label: t('drivers:availability.offline.label'),     value: offlineCount,   icon: Ban,          color: 'text-slate-500',  bg: 'bg-slate-50/60'   },
-          ].map((stat, i) => (
-            <Card key={i} className="border-none shadow-sm bg-card">
+        {/* Stats — grid responsivo igual ao de veículos */}
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          {stats.map((stat, i) => (
+            <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className={cn("p-2.5 rounded-xl shrink-0", stat.bg, stat.color)}>
                   <stat.icon className="w-4 h-4" />
@@ -408,56 +437,43 @@ export default function DriversPageContent() {
           ))}
         </div>
 
-        {/* Banner de cartas a expirar — só aparece quando relevante
-        {expiringLicenses > 0 && (
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 dark:bg-red-950/30 dark:border-red-800 dark:text-red-400">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span className="text-sm font-bold">
-              {expiringLicenses === 1
-                ? t('drivers:alerts.licenseExpiringSoon', { count: 1 })
-                : `${expiringLicenses} ${t('drivers:tabs.expiringLicenses', 'cartas a vencer ou expiradas')}`}
-            </span>
-          </div>
-        )} */}
+        {/* Toolbar — linha 1: filtros + view modes | linha 2: paginação */}
+        <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
+            <div className="flex flex-col sm:flex-row gap-3 flex-1">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder={t('drivers:searchPlaceholder')}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
+                />
+              </div>
 
-        {/* Toolbar */}
-        <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between bg-card p-4 rounded-2xl border border-muted/50 shadow-sm">
-          <div className="flex flex-col sm:flex-row gap-3 flex-1">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder={t('drivers:searchPlaceholder')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
-              />
+              <Select value={availabilityFilter} onValueChange={(v) => { setAvailabilityFilter(v); setCurrentPage(1); }}>
+                <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
+                  <Filter className="w-4 h-4 text-muted-foreground" />
+                  <SelectValue placeholder={t('drivers:filters.all')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('drivers:filters.all')}</SelectItem>
+                  <SelectItem value="available">{t('drivers:availability.available.label')}</SelectItem>
+                  <SelectItem value="on_trip">{t('drivers:availability.on_trip.label')}</SelectItem>
+                  <SelectItem value="offline">{t('drivers:availability.offline.label')}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
-              <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
-                <Filter className="w-4 h-4 text-muted-foreground" />
-                <SelectValue placeholder={t('drivers:filters.all')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('drivers:filters.all')}</SelectItem>
-                <SelectItem value="available">{t('drivers:availability.available.label')}</SelectItem>
-                <SelectItem value="on_trip">{t('drivers:availability.on_trip.label')}</SelectItem>
-                <SelectItem value="offline">{t('drivers:availability.offline.label')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-3 self-center lg:self-auto">
-            <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50">
-              {[
-                { mode: 'list',  icon: List,       label: t('common:viewModes.normal') },
-                { mode: 'cards', icon: LayoutGrid, label: t('common:viewModes.cards')  },
-              ].map((item) => (
+
+            <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50 self-center sm:self-auto shrink-0">
+              {viewModes.map((item) => (
                 <Button
                   key={item.mode}
                   variant={viewMode === item.mode ? 'secondary' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode(item.mode as ViewMode)}
                   className={cn(
-                    "h-9 px-3 rounded-lg transition-all flex items-center gap-2",
+                    "h-8 px-3 rounded-lg transition-all flex items-center gap-2",
                     viewMode === item.mode ? "bg-background shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
                   )}
                   title={item.label}
@@ -468,15 +484,26 @@ export default function DriversPageContent() {
               ))}
             </div>
           </div>
+
+          {/* Linha 2: paginação — só aparece quando há mais de 1 página */}
+          {paginationInfo.totalPages > 1 && (
+            <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
+              <Pagination
+                pagination={paginationInfo}
+                onPageChange={handlePageChange}
+                onLimitChange={handleLimitChange}
+              />
+            </div>
+          )}
         </div>
 
-        {/* Content */}
+        {/* Lista */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-24 space-y-4">
             <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
             <p className="text-sm text-muted-foreground font-bold animate-pulse">{t('common:loading')}...</p>
           </div>
-        ) : filteredDrivers.length === 0 ? (
+        ) : drivers.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 bg-card rounded-3xl border-2 border-dashed border-muted/50">
             <Users className="w-12 h-12 text-muted-foreground/20 mb-4" />
             <h3 className="text-lg font-bold">{t('drivers:noDrivers')}</h3>
@@ -486,7 +513,7 @@ export default function DriversPageContent() {
           </div>
         ) : (
           <div className="animate-in fade-in duration-300">
-            {viewMode === 'list' && renderListView()}
+            {viewMode === 'list'  && renderListView()}
             {viewMode === 'cards' && renderCardsView()}
           </div>
         )}

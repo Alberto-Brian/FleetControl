@@ -2,10 +2,11 @@
 // FILE: src/helpers/trip-helpers.ts (ATUALIZADO)
 // ========================================
 import { ICreateTrip, ICompleteTrip, ITrip } from '@/lib/types/trip';
+import { IPaginationParams, IPaginatedResult } from '@/lib/types/pagination';
 
-export async function getAllTrips(): Promise<ITrip[]> {
+export async function getAllTrips(params?: IPaginationParams): Promise<IPaginatedResult<ITrip>> {
     try {
-        const result = await window._trips.getAll();
+        const result = await window._trips.getAll(params);
         return result;
     } catch (error) {
         throw error; // ✅ Propaga para useErrorHandler

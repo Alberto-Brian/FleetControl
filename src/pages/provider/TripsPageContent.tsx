@@ -1,17 +1,21 @@
-import React, { useState, useEffect } from 'react';
+// ========================================
+// FILE: src/pages/provider/TripsPageContent.tsx
+// ========================================
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Pagination } from '@/components/ui/pagination';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import {
-  Search, MapPin, Calendar, Truck, User, Flag, TrendingUp, Clock, Eye,
-  Route as RouteIcon, AlertCircle, XCircle, List, LayoutGrid, MoreHorizontal,
+  Search, MapPin, Truck, User, Flag, TrendingUp, Clock, Eye,
+  Route as RouteIcon, XCircle, List, LayoutGrid, MoreHorizontal,
   Navigation, ArrowRight, Gauge, PlayCircle, CheckCircle2, Edit, Trash2,
-  Plus
+  Filter
 } from 'lucide-react';
 import { getAllTrips, cancelTrip as cancelTripHelper } from '@/helpers/trip-helpers';
 import { getAllRoutes, deleteRoute as deleteRouteHelper } from '@/helpers/route-helpers';
@@ -50,45 +54,81 @@ export default function TripsPageContent() {
     setLoading,
   } = useTrips();
 
-  // UI states
-  const [activeTab, setActiveTab] = useState('trips');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab]       = useState('trips');
+  const [searchTerm, setSearchTerm]     = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('cards');
-  const [routeSearch, setRouteSearch] = useState('');
+  const [viewMode, setViewMode]         = useState<ViewMode>('cards');
+  const [routeSearch, setRouteSearch]   = useState('');
 
-  // Routes
-  const [routes, setRoutes] = useState<any[]>([]);
+  // Paginação
+  const [currentPage, setCurrentPage]     = useState(1);
+  const [itemsPerPage, setItemsPerPage]   = useState(20);
+  const [paginationInfo, setPaginationInfo] = useState({
+    total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false,
+  });
+
+  // Counts reais vindos do back
+  const [statusCounts, setStatusCounts] = useState({
+    in_progress:   0,
+    completed:     0,
+    cancelled:     0,
+    totalDistance: 0,
+  });
+
+  // Debounce search
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const [routes, setRoutes]                   = useState<any[]>([]);
   const [isRoutesLoading, setIsRoutesLoading] = useState(false);
-  const [selectedRoute, setSelectedRoute] = useState<any | null>(null);
+  const [selectedRoute, setSelectedRoute]     = useState<any | null>(null);
 
-  // Dialogs — trips
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen]         = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen]     = useState(false);
+  const [isCancelling, setIsCancelling]             = useState(false);
 
-  // Dialogs — routes
-  const [editRouteDialogOpen, setEditRouteDialogOpen] = useState(false);
+  const [editRouteDialogOpen, setEditRouteDialogOpen]     = useState(false);
   const [deleteRouteDialogOpen, setDeleteRouteDialogOpen] = useState(false);
-  const [isDeletingRoute, setIsDeletingRoute] = useState(false);
+  const [isDeletingRoute, setIsDeletingRoute]             = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     loadTrips();
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter]);
+
+  useEffect(() => {
     loadRoutes();
   }, []);
 
-  async function loadTrips() {
+  const loadTrips = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getAllTrips();
-      setTrips(data);
+      const result = await getAllTrips({
+        page:   currentPage,
+        limit:  itemsPerPage,
+        search: debouncedSearch,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+      });
+
+      setTrips(result.data);
+      setPaginationInfo(result.pagination);
+
+      if (result.statusCounts) {
+        setStatusCounts(result.statusCounts as typeof statusCounts);
+      }
     } catch (error) {
       handleError(error, 'trips:errors.errorLoading');
     } finally {
       setLoading(false);
     }
-  }
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter]);
 
   async function loadRoutes() {
     setIsRoutesLoading(true);
@@ -102,6 +142,9 @@ export default function TripsPageContent() {
     }
   }
 
+  function handlePageChange(page: number)  { setCurrentPage(page); }
+  function handleLimitChange(limit: number) { setItemsPerPage(limit); setCurrentPage(1); }
+
   async function handleCancelTrip() {
     if (!selectedTrip) return;
     setIsCancelling(true);
@@ -111,6 +154,7 @@ export default function TripsPageContent() {
       showSuccess('trips:toast.cancelSuccess');
       setCancelDialogOpen(false);
       selectTrip(null);
+      loadTrips();
     } catch (error) {
       handleError(error, 'trips:toast.cancelError');
     } finally {
@@ -134,83 +178,50 @@ export default function TripsPageContent() {
     }
   }
 
-  function handleRouteCreated(route: any) {
-    setRoutes((prev) => [route, ...prev]);
-  }
+  function handleRouteCreated(route: any)   { setRoutes((prev) => [route, ...prev]); }
+  function handleRouteUpdated(updated: any) { setRoutes((prev) => prev.map((r) => (r.id === updated.id ? updated : r))); }
 
-  function handleRouteUpdated(updated: any) {
-    setRoutes((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
-  }
-
-  // Status badge
   function getStatusBadge(status: string) {
     const statusMap = {
-      in_progress: {
-        label: t('trips:status.in_progress.label'),
-        icon: Clock,
-        className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800',
-      },
-      completed: {
-        label: t('trips:status.completed.label'),
-        icon: Flag,
-        className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800',
-      },
-      cancelled: {
-        label: t('trips:status.cancelled.label'),
-        icon: XCircle,
-        className: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800',
-      },
+      in_progress: { label: t('trips:status.in_progress.label'), icon: Clock,   className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800' },
+      completed:   { label: t('trips:status.completed.label'),   icon: Flag,    className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800' },
+      cancelled:   { label: t('trips:status.cancelled.label'),   icon: XCircle, className: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800' },
     };
-    const statusInfo = statusMap[status as keyof typeof statusMap] || statusMap.in_progress;
-    const Icon = statusInfo.icon;
+    const s    = statusMap[status as keyof typeof statusMap] || statusMap.in_progress;
+    const Icon = s.icon;
     return (
-      <Badge variant="outline" className={cn('flex items-center gap-1.5 font-bold px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider', statusInfo.className)}>
-        <Icon className="w-3.5 h-3.5" />
-        {statusInfo.label}
+      <Badge variant="outline" className={cn('flex items-center gap-1.5 font-bold px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider', s.className)}>
+        <Icon className="w-3.5 h-3.5" />{s.label}
       </Badge>
     );
   }
 
-  // Filters
-  const filteredTrips = trips.filter((trip) => {
-    const matchesSearch =
-      trip.trip_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trip.vehicle_license?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trip.driver_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trip.origin?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trip.destination?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || trip.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const filteredRoutes = routes.filter(
-    (r) =>
-      r.name?.toLowerCase().includes(routeSearch.toLowerCase()) ||
-      r.origin?.toLowerCase().includes(routeSearch.toLowerCase()) ||
-      r.destination?.toLowerCase().includes(routeSearch.toLowerCase())
+  // Rotas — filtro local (sem paginação)
+  const filteredRoutes = routes.filter((r) =>
+    r.name?.toLowerCase().includes(routeSearch.toLowerCase()) ||
+    r.origin?.toLowerCase().includes(routeSearch.toLowerCase()) ||
+    r.destination?.toLowerCase().includes(routeSearch.toLowerCase())
   );
 
-  // Trip stats
-  const activeCount = trips.filter((t) => t.status === 'in_progress').length;
-  const completedCount = trips.filter((t) => t.status === 'completed').length;
-  const totalDistance = trips
-    .filter((t) => t.end_mileage)
-    .reduce((sum, t) => sum + (t.end_mileage! - t.start_mileage), 0);
-
-  // Route stats
+  // Stats — vindos do back
   const activeRoutes = routes.filter((r) => r.status === 'active' || !r.status).length;
 
   const tripStats = [
-    { label: t('trips:stats.total'), value: trips.length, icon: RouteIcon, color: 'text-slate-600', bg: 'bg-slate-100/60' },
-    { label: t('trips:stats.inProgress'), value: activeCount, icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50/60' },
-    { label: t('trips:stats.completed'), value: completedCount, icon: Flag, color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
-    { label: t('trips:stats.totalDistance'), value: `${totalDistance.toLocaleString('pt-PT')} km`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50/60' },
+    { label: t('trips:stats.total'),         value: paginationInfo.total,                                          icon: RouteIcon,  color: 'text-slate-600',   bg: 'bg-slate-100/60'  },
+    { label: t('trips:stats.inProgress'),    value: statusCounts.in_progress,                                      icon: Clock,      color: 'text-blue-600',    bg: 'bg-blue-50/60'    },
+    { label: t('trips:stats.completed'),     value: statusCounts.completed,                                        icon: Flag,       color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
+    { label: t('trips:stats.cancelled'),     value: statusCounts.cancelled,                                        icon: XCircle,    color: 'text-slate-500',   bg: 'bg-slate-50/60'   },
+    { label: t('trips:stats.totalDistance'), value: `${Number(statusCounts.totalDistance).toLocaleString('pt-PT')} km`, icon: TrendingUp, color: 'text-purple-600',  bg: 'bg-purple-50/60'  },
   ];
 
   const viewModes = [
-    { mode: 'list', icon: List, label: t('trips:dialogs.view.list') },
+    { mode: 'list',  icon: List,       label: t('trips:dialogs.view.list')  },
     { mode: 'cards', icon: LayoutGrid, label: t('trips:dialogs.view.cards') },
   ] as const;
+
+  // ---------------------------------------------------------------
+  // Views — usam "trips" directamente (já filtrados pelo back)
+  // ---------------------------------------------------------------
 
   function renderListView() {
     return (
@@ -224,7 +235,7 @@ export default function TripsPageContent() {
           <div className="col-span-1 text-right">{t('trips:table.actions')}</div>
         </div>
         <div className="divide-y">
-          {filteredTrips.map((trip) => {
+          {trips.map((trip) => {
             const distance = trip.end_mileage ? trip.end_mileage - trip.start_mileage : null;
             return (
               <div key={trip.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors duration-150">
@@ -261,15 +272,15 @@ export default function TripsPageContent() {
                       <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-44">
-                      <DropdownMenuItem onClick={() => { closeDropdownsAndOpenDialog(() => { selectTrip(trip); setViewDialogOpen(true); }); }}>
+                      <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectTrip(trip); setViewDialogOpen(true); })}>
                         <Eye className="w-4 h-4 mr-2" /> {t('trips:actions.view')}
                       </DropdownMenuItem>
                       {trip.status === 'in_progress' && (
                         <>
-                          <DropdownMenuItem onClick={() => { closeDropdownsAndOpenDialog(() => { selectTrip(trip); setCompleteDialogOpen(true); }); }}>
+                          <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectTrip(trip); setCompleteDialogOpen(true); })}>
                             <Flag className="w-4 h-4 mr-2" /> {t('trips:actions.complete')}
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => { closeDropdownsAndOpenDialog(() => { selectTrip(trip); setCancelDialogOpen(true); }); }}>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => closeDropdownsAndOpenDialog(() => { selectTrip(trip); setCancelDialogOpen(true); })}>
                             <XCircle className="w-4 h-4 mr-2" /> {t('trips:actions.cancel')}
                           </DropdownMenuItem>
                         </>
@@ -288,8 +299,8 @@ export default function TripsPageContent() {
   function renderCardsView() {
     return (
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {filteredTrips.map((trip) => {
-          const distance = trip.end_mileage ? trip.end_mileage - trip.start_mileage : null;
+        {trips.map((trip) => {
+          const distance     = trip.end_mileage ? trip.end_mileage - trip.start_mileage : null;
           const isInProgress = trip.status === 'in_progress';
           return (
             <Card key={trip.id} className={cn('flex flex-col h-full group hover:shadow-xl transition-all duration-300 bg-card relative overflow-hidden', isInProgress && 'ring-1 ring-blue-600 dark:ring-blue-400')}>
@@ -386,10 +397,10 @@ export default function TripsPageContent() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => { closeDropdownsAndOpenDialog(() => { selectTrip(trip); setCompleteDialogOpen(true); }); }}>
+                          <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectTrip(trip); setCompleteDialogOpen(true); })}>
                             <Flag className="w-4 h-4 mr-2 text-emerald-600" />{t('trips:actions.complete')}
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => { closeDropdownsAndOpenDialog(() => { selectTrip(trip); setCancelDialogOpen(true); }); }}>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => closeDropdownsAndOpenDialog(() => { selectTrip(trip); setCancelDialogOpen(true); })}>
                             <XCircle className="w-4 h-4 mr-2" />{t('trips:actions.cancel')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -415,10 +426,7 @@ export default function TripsPageContent() {
         {filteredRoutes.map((route) => {
           const isActive = route.status === 'active' || !route.status;
           return (
-            <Card
-              key={route.id}
-              className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60"
-            >
+            <Card key={route.id} className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60">
               <CardHeader className="pb-3 pt-5 px-5">
                 <div className="flex justify-between items-start mb-3">
                   <div className={cn('p-2.5 rounded-xl transition-colors', isActive ? 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white' : 'bg-muted text-muted-foreground')}>
@@ -438,16 +446,13 @@ export default function TripsPageContent() {
                     </Badge>
                   </div>
                 </div>
-                <CardTitle className="text-base font-bold leading-tight truncate" title={route.name}>
-                  {route.name}
-                </CardTitle>
+                <CardTitle className="text-base font-bold leading-tight truncate" title={route.name}>{route.name}</CardTitle>
                 <CardDescription className="text-sm font-medium">
                   <span className="text-green-600 dark:text-green-400">{route.origin}</span>
                   <ArrowRight className="inline w-3 h-3 mx-1 text-muted-foreground" />
                   <span className="text-red-600 dark:text-red-400">{route.destination}</span>
                 </CardDescription>
               </CardHeader>
-
               <CardContent className="flex-1 flex flex-col gap-3 p-5 pt-0">
                 <div className="space-y-2 min-h-[48px]">
                   {(route.distance_km || route.estimated_distance) && (
@@ -469,22 +474,13 @@ export default function TripsPageContent() {
                     </div>
                   )}
                 </div>
-
                 <div className="mt-auto pt-4 border-t border-muted/50 flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 h-9 text-xs font-bold bg-background hover:bg-muted"
-                    onClick={() => { setSelectedRoute(route); setEditRouteDialogOpen(true); }}
-                  >
+                  <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold bg-background hover:bg-muted"
+                    onClick={() => { setSelectedRoute(route); setEditRouteDialogOpen(true); }}>
                     <Edit className="w-3.5 h-3.5 mr-1.5" />{t('common:actions.edit')}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 h-9 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive bg-background"
-                    onClick={() => { setSelectedRoute(route); setDeleteRouteDialogOpen(true); }}
-                  >
+                  <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive bg-background"
+                    onClick={() => { setSelectedRoute(route); setDeleteRouteDialogOpen(true); }}>
                     <Trash2 className="w-3.5 h-3.5 mr-1.5" />{t('common:actions.delete')}
                   </Button>
                 </div>
@@ -496,93 +492,113 @@ export default function TripsPageContent() {
     );
   }
 
+  // ---------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------
+
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
       <div className="max-w-[1500px] mx-auto space-y-8 pb-10">
 
+        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('trips:title')}</h1>
             <p className="text-muted-foreground text-base">
-              {activeTab === 'trips'
-                ? t('trips:description')
-                : t('routes:description', { count: routes.length })}
+              {activeTab === 'trips' ? t('trips:description') : t('routes:description', { count: routes.length })}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <StartTripDialog />
-          </div>
+          <StartTripDialog />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full max-w-[440px] grid-cols-2 bg-muted/60 p-1 rounded-xl border border-muted/50">
             <TabsTrigger value="trips" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2">
-              <Navigation className="w-4 h-4" />
-              {t('trips:tabs.trips')}
+              <Navigation className="w-4 h-4" />{t('trips:tabs.trips')}
             </TabsTrigger>
             <TabsTrigger value="routes" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2">
-              <RouteIcon className="w-4 h-4" />
-              {t('trips:tabs.routes')}
+              <RouteIcon className="w-4 h-4" />{t('trips:tabs.routes')}
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="trips" className="space-y-8 mt-0 outline-none">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* ---- TAB: VIAGENS ---- */}
+          <TabsContent value="trips" className="space-y-6 mt-0 outline-none">
+
+            {/* Stats — 5 cards vindos do back */}
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
               {tripStats.map((stat, i) => (
-                <Card key={i} className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
-                  <CardContent className="p-5 flex items-center gap-4">
-                    <div className={cn('p-3 rounded-xl', stat.bg, stat.color)}>
-                      <stat.icon className="w-5 h-5" />
+                <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className={cn('p-2.5 rounded-xl shrink-0', stat.bg, stat.color)}>
+                      <stat.icon className="w-4 h-4" />
                     </div>
-                    <div>
-                      <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
-                      <p className="text-2xl font-black tracking-tight">{stat.value}</p>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">
+                        {stat.label}
+                      </p>
+                      <p className="text-2xl font-black tracking-tight leading-tight">{stat.value}</p>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between bg-card p-4 rounded-2xl border border-muted/50 shadow-sm">
-              <div className="flex flex-col sm:flex-row gap-3 flex-1">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input placeholder={t('trips:searchPlaceholder')} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
+            {/* Toolbar */}
+            <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
+              {/* Linha 1: filtros + view modes */}
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
+                <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input placeholder={t('trips:searchPlaceholder')} value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
+                  </div>
+                  <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
+                    <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
+                      <Filter className="w-4 h-4 text-muted-foreground" />
+                      <SelectValue placeholder={t('trips:filters.all')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('trips:filters.all')}</SelectItem>
+                      <SelectItem value="in_progress">{t('trips:filters.in_progress')}</SelectItem>
+                      <SelectItem value="completed">{t('trips:filters.completed')}</SelectItem>
+                      <SelectItem value="cancelled">{t('trips:filters.cancelled')}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
-                    <SelectValue placeholder={t('trips:filters.all')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('trips:filters.all')}</SelectItem>
-                    <SelectItem value="in_progress">{t('trips:filters.in_progress')}</SelectItem>
-                    <SelectItem value="completed">{t('trips:filters.completed')}</SelectItem>
-                    <SelectItem value="cancelled">{t('trips:filters.cancelled')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-3 self-center lg:self-auto">
-                <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50">
+                <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50 self-center sm:self-auto shrink-0">
                   {viewModes.map((item) => (
                     <Button key={item.mode} variant={viewMode === item.mode ? 'secondary' : 'ghost'} size="sm"
                       onClick={() => setViewMode(item.mode as ViewMode)}
-                      className={cn('h-9 px-3 rounded-lg transition-all flex items-center gap-2', viewMode === item.mode ? 'bg-background shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground')}
-                      title={item.label}
-                    >
+                      className={cn('h-8 px-3 rounded-lg transition-all flex items-center gap-2', viewMode === item.mode ? 'bg-background shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground')}
+                      title={item.label}>
                       <item.icon className="w-4 h-4" />
                       <span className="hidden sm:inline text-xs">{item.label}</span>
                     </Button>
                   ))}
                 </div>
               </div>
+
+              {/* Linha 2: paginação */}
+              {paginationInfo.totalPages > 1 && (
+                <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
+                  <Pagination
+                    pagination={paginationInfo}
+                    onPageChange={handlePageChange}
+                    onLimitChange={handleLimitChange}
+                  />
+                </div>
+              )}
             </div>
 
+            {/* Lista */}
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-24 space-y-4">
                 <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
                 <p className="text-sm text-muted-foreground font-bold animate-pulse">{t('common:loading')}...</p>
               </div>
-            ) : filteredTrips.length === 0 ? (
+            ) : trips.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 bg-card rounded-3xl border-2 border-dashed border-muted/50">
                 <RouteIcon className="w-12 h-12 text-muted-foreground/20 mb-4" />
                 <h3 className="text-lg font-bold">{t('trips:noTrips')}</h3>
@@ -595,38 +611,41 @@ export default function TripsPageContent() {
             )}
           </TabsContent>
 
+          {/* ---- TAB: ROTAS ---- */}
           <TabsContent value="routes" className="space-y-6 mt-0 outline-none">
-            <div className="grid gap-4 sm:grid-cols-3">
+
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
               {[
-                { label: t('routes:stats.total'), value: routes.length, icon: RouteIcon, color: 'text-blue-600', bg: 'bg-blue-50/60 dark:bg-blue-900/20' },
-                { label: t('routes:stats.active'), value: activeRoutes, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50/60 dark:bg-green-900/20' },
-                { label: t('routes:stats.inactive'), value: routes.length - activeRoutes, icon: XCircle, color: 'text-slate-600', bg: 'bg-slate-50/60 dark:bg-slate-800/50' },
+                { label: t('routes:stats.total'),    value: routes.length,                icon: RouteIcon,    color: 'text-blue-600',    bg: 'bg-blue-50/60'    },
+                { label: t('routes:stats.active'),   value: activeRoutes,                 icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
+                { label: t('routes:stats.inactive'), value: routes.length - activeRoutes, icon: XCircle,      color: 'text-slate-500',   bg: 'bg-slate-50/60'   },
               ].map((stat, i) => (
-                <Card key={i} className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
-                  <CardContent className="p-5 flex items-center gap-4">
-                    <div className={cn('p-3 rounded-xl', stat.bg, stat.color)}>
-                      <stat.icon className="w-5 h-5" />
+                <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className={cn('p-2.5 rounded-xl shrink-0', stat.bg, stat.color)}>
+                      <stat.icon className="w-4 h-4" />
                     </div>
-                    <div>
-                      <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
-                      <p className="text-2xl font-black tracking-tight">{stat.value}</p>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">{stat.label}</p>
+                      <p className="text-2xl font-black tracking-tight leading-tight">{stat.value}</p>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between bg-card p-4 rounded-2xl border border-muted/50 shadow-sm">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder={t('routes:searchPlaceholder')}
-                  value={routeSearch}
-                  onChange={(e) => setRouteSearch(e.target.value)}
-                  className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
-                />
+            <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input placeholder={t('routes:searchPlaceholder')} value={routeSearch}
+                    onChange={(e) => setRouteSearch(e.target.value)}
+                    className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
+                </div>
+                <div className="sm:ml-auto">
+                  <NewRouteDialog onRouteCreated={handleRouteCreated} />
+                </div>
               </div>
-              <NewRouteDialog onRouteCreated={handleRouteCreated} />
             </div>
 
             {isRoutesLoading ? (
@@ -646,8 +665,9 @@ export default function TripsPageContent() {
           </TabsContent>
         </Tabs>
 
+        {/* Dialogs */}
         <CompleteTripDialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen} />
-        <ViewTripDialog open={viewDialogOpen} onOpenChange={setViewDialogOpen} />
+        <ViewTripDialog     open={viewDialogOpen}     onOpenChange={setViewDialogOpen}     />
         <ConfirmDeleteDialog
           open={cancelDialogOpen}
           onOpenChange={setCancelDialogOpen}
@@ -657,7 +677,6 @@ export default function TripsPageContent() {
           itemName={selectedTrip?.trip_code}
           isLoading={isCancelling}
         />
-
         <EditRouteDialog
           open={editRouteDialogOpen}
           onOpenChange={setEditRouteDialogOpen}
