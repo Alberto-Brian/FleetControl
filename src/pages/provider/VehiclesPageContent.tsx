@@ -392,6 +392,13 @@ export default function VehiclesPageContent() {
               <CardTitle className="text-xl font-mono font-bold">{vehicle.license_plate}</CardTitle>
               <CardDescription className="text-sm font-bold text-foreground/70">
                 {vehicle.brand} {vehicle.model} ({vehicle.year})
+
+                {vehicle.tire_size && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono px-1">
+                    <span className="font-bold text-foreground/60">{t('vehicles:fields.tireSize')}:</span>
+                    <span>{vehicle.tire_size}</span>
+                  </div>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col gap-4 p-5 pt-2">

@@ -20,6 +20,7 @@ import { refuelings } from "./refuelings";
 import { workshops } from "./workshops";
 import { vehicle_categories } from "./vehicle_categories";
 import { generatedReports } from "./generated-reports";
+import { driver_leaves } from "./driver_leaves";
 
 
 export {
@@ -43,5 +44,6 @@ export {
     fuel_stations,
     refuelings,
     workshops,
-    generatedReports
+    generatedReports,
+    driver_leaves
 }

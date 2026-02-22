@@ -1,4 +1,6 @@
-// src/lib/db/queries/vehicles.queries.ts
+// ========================================
+// FILE: // src/lib/db/queries/vehicles.queries.ts
+// ========================================
 import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { vehicles, VehicleStatus, vehicleStatus } from '@/lib/db/schemas/vehicles';
 import { vehicle_categories } from '@/lib/db/schemas/vehicle_categories';
@@ -28,6 +30,7 @@ export async function createVehicle(vehicleData: ICreateVehicle): Promise<IVehic
             chassis_number: vehicleData.chassis_number,
             engine_number: vehicleData.engine_number,
             fuel_tank_capacity: vehicleData.fuel_tank_capacity,
+            tire_size: vehicleData.tire_size,
             current_mileage: vehicleData.current_mileage || 0,
             acquisition_date: vehicleData.acquisition_date,
             acquisition_value: vehicleData.acquisition_value,
@@ -49,6 +52,7 @@ export async function createVehicle(vehicleData: ICreateVehicle): Promise<IVehic
             photo: vehicles.photo,
             notes: vehicles.notes,
             fuel_tank_capacity: vehicles.fuel_tank_capacity,
+            tire_size: vehicles.tire_size,
             chassis_number: vehicles.chassis_number,
             engine_number: vehicles.engine_number,
             current_mileage: vehicles.current_mileage,
@@ -136,6 +140,7 @@ export async function getAllVehicles(params: IPaginationParams = {}): Promise<IP
             is_active:         vehicles.is_active,
             notes:             vehicles.notes,
             fuel_tank_capacity:  vehicles.fuel_tank_capacity,
+            tire_size: vehicles.tire_size,
             chassis_number:    vehicles.chassis_number,
             engine_number:     vehicles.engine_number,
             current_mileage:   vehicles.current_mileage,
@@ -205,7 +210,7 @@ export async function findVehicleById(vehicleId: string): Promise<IVehicle> {
         .select({
             id: vehicles.id,
             category_id: vehicles.category_id,
-            category_name: vehicle_categories?.name ?? undefined,
+            category_name: vehicle_categories?.name,
             license_plate: vehicles.license_plate,
             brand: vehicles.brand,
             model: vehicles.model,
@@ -214,6 +219,7 @@ export async function findVehicleById(vehicleId: string): Promise<IVehicle> {
             chassis_number: vehicles.chassis_number,
             engine_number: vehicles.engine_number,
             fuel_tank_capacity: vehicles.fuel_tank_capacity,
+            tire_size: vehicles.tire_size,
             current_mileage: vehicles.current_mileage,
             acquisition_date: vehicles.acquisition_date,
             acquisition_value: vehicles.acquisition_value,
@@ -243,8 +249,6 @@ export async function findVehicleById(vehicleId: string): Promise<IVehicle> {
  * Actualizar veículo
  */
 export async function updateVehicle(vehicleId: string, vehicleData: IUpdateVehicle) {
-
-    console.log("Update Vehicle: ", vehicleData);
     const { db } = useDb();
     const result = await db
         .update(vehicles)

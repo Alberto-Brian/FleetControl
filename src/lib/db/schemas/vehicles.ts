@@ -1,3 +1,6 @@
+// ========================================
+// FILE: // src/lib/db/schemas/vehicles.ts
+// ========================================
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 import { relations } from 'drizzle-orm';
@@ -23,6 +26,7 @@ export const vehicles = sqliteTable('vehicles', {
   chassis_number: text('chassis_number'),
   engine_number: text('engine_number'),
   fuel_tank_capacity: integer('fuel_tank_capacity'),
+  tire_size: text('tire_size'),
   current_mileage: integer('current_mileage').notNull().default(0),
   acquisition_date: text('acquisition_date'),
   acquisition_value: integer('acquisition_value'),

@@ -71,8 +71,8 @@ export default function NewRefuelingDialog() {
         getActiveTrips(),
       ]);
       setVehicles(vehiclesData.data.filter((v: any) => v.status !== 'inactive'));
-      setDrivers(driversData.filter((d: any) => d.is_active === true));
-      setTrips(tripsData || []);
+      setDrivers(driversData.data.filter((d: any) => d.is_active === true));
+      setTrips(tripsData.data || []);
     } catch (error) {
       handleError(error, 'common:errors.loadingData');
     }

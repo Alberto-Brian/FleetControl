@@ -9,7 +9,7 @@ export async function getAllVehicles(params?: IPaginationParams): Promise<IPagin
         return result;
     } catch (error) {
         console.error(error);
-        throw error;
+        // throw error;
         return {
             data: [],
             pagination: { total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false }

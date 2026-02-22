@@ -187,6 +187,15 @@ interface IFines {
     delete: (id: string) => Promise<string>;
     getPending: () => Promise<IFine[]>;
 }
+interface IDriverLeaves {
+    getAll: (params?: IPaginationParams) => Promise<IPaginatedResult<IDriverLeave>>;
+    getById: (id: string) => Promise<IDriverLeave | null>;
+    getByDriver: (driverId: string) => Promise<IDriverLeave | null>;
+    create: (data: ICreateDriverLeave) => Promise<IDriverLeave | null>;
+    update: (id: string, data: IUpdateDriverLeave) => Promise<IDriverLeave | null>;
+    runScheduler: () => Promise<void>;
+    cancel: (id: string, data: IDriverLeave) => Promise<IDriverLeave | null>;
+}
 
 interface IDashboard {
     getStats: () => Promise<any>;
@@ -248,4 +257,5 @@ declare interface Window {
     _fines: IFines;
     _dashboard: IDashboard;
     _reports: IReports;
+    _driverLeaves: IDriverLeaves;
 }

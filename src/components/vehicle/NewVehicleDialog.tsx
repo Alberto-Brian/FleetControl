@@ -99,6 +99,7 @@ const filteredCategories = categories.filter(cat =>
       license_plate: '',
       brand: '',
       model: '',
+      tire_size: '',
       year: new Date().getFullYear(),
       color: '',
       current_mileage: 0,
@@ -297,6 +298,16 @@ const filteredCategories = categories.filter(cat =>
                 onChange={(e) => setFormData({ ...formData, current_mileage: parseInt(e.target.value) })}
               />
             </div>
+
+            <div className="space-y-2">
+            <Label htmlFor="tire_size">{t('vehicles:fields.tireSize')}</Label>
+            <Input
+              id="tire_size"
+              placeholder={t('vehicles:placeholders.tireSize')}
+              value={formData.tire_size}
+              onChange={(e) => setFormData({ ...formData, tire_size: e.target.value.toUpperCase() })}
+            />
+          </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

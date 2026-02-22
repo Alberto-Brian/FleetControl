@@ -7,6 +7,7 @@ import { VersionManager } from '@/system/version_manager';
 import { APP_NAME } from "@/system/system.config";
 import { RestoreController } from '@/system/restore_manager';
 import { logoutAllUsers } from "./helpers/service-auth-helpers";
+import { startLeaveScheduler } from "./lib/db/schedulers/leave-scheduler";
 
 const inDevelopment = process.env.NODE_ENV === "development";
 
@@ -177,6 +178,9 @@ app.whenReady().then(async () => {
         365, // 30,   // maxAgeInDays: Rotação mensal - idade da base de dados em dias 
         60 // 30    // transitionPeriodDays: Copiar último mês
       );
+
+      // INIICIALIZAR OS SCHEDULERS
+      startLeaveScheduler();
     console.log(' __ DatabaseManager inicializado');
     console.log('________________________________________________________');
     console.log('');

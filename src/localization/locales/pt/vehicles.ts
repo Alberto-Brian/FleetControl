@@ -59,12 +59,13 @@ export const ptVehicles = {
     chassisNumber: "Número do Chassi",
     engineNumber: "Número do Motor",
     fuelTankCapacity: "Capacidade do Tanque",
+    tireSize: "M. Pneumática",
     acquisitionDate: "Data de Aquisição",
     acquisitionValue: "Valor de Aquisição",
     notes: "Observações",
     status: "Estado",
     createdAt: "Data de Cadastro",
-    updatedAt: "Última Actualização"
+    updatedAt: "Última Actualização",
   },
 
   placeholders: {
@@ -80,6 +81,7 @@ export const ptVehicles = {
     categoryName: "Ex: Utilitário, Passeio, Carga...",
     categoryDescription: "Ex: Veículos para transporte de carga leve...",
     searchCategory: 'Pesquisar categoria...',
+    tireSize: "Ex: 205/55 R16"
   },
 
   actions: {

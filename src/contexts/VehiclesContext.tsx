@@ -20,6 +20,7 @@ export interface Vehicle {
   chassis_number: string | null;
   engine_number: string | null;
   fuel_tank_capacity: number | null;
+  tire_size: string | null;
   acquisition_date: string | null;
   acquisition_value: number | null;
   photo: string | null;

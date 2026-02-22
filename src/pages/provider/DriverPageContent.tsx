@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/driver/DriversPageContent.tsx
+// FILE: src/pages/provider/DriversPageContent.tsx
 // ========================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -8,21 +8,24 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Pagination } from '@/components/ui/pagination';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { 
   Search, Users, Edit, Trash2, Eye, Phone, Mail, Calendar, AlertTriangle, Truck,
-  LayoutGrid, List, Filter, MoreHorizontal, CheckCircle2, Clock, UserX, Ban
+  LayoutGrid, List, Filter, MoreHorizontal, CheckCircle2, Clock, UserX, Ban, CalendarDays
 } from 'lucide-react';
 import { getAllDrivers, deleteDriver as deleteDriverHelper } from '@/helpers/driver-helpers';
 import { cn } from '@/lib/utils';
 import { useDrivers } from '@/contexts/DriversContext';
+import { DriverLeavesProvider } from '@/contexts/DriverLeavesContext';
 
 // Dialogs
 import NewDriverDialog from '@/components/driver/NewDriverDialog';
 import EditDriverDialog from '@/components/driver/EditDriverDialog';
 import ViewDriverDialog from '@/components/driver/ViewDriverDialog';
+import DriversLeavesTab from '@/components/driver/DriverLeavesTab';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 import { 
   DropdownMenu, 
@@ -46,18 +49,18 @@ export default function DriversPageContent() {
     setLoading,
   } = useDrivers();
 
+  const [activeTab, setActiveTab]                   = useState('drivers');
   const [searchTerm, setSearchTerm]                 = useState('');
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('all');
   const [viewMode, setViewMode]                     = useState<ViewMode>('cards');
 
   // Paginação
-  const [currentPage, setCurrentPage]     = useState(1);
-  const [itemsPerPage, setItemsPerPage]   = useState(20);
+  const [currentPage, setCurrentPage]       = useState(1);
+  const [itemsPerPage, setItemsPerPage]     = useState(20);
   const [paginationInfo, setPaginationInfo] = useState({
     total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false,
   });
 
-  // Counts reais vindos do back — independentes dos filtros
   const [statusCounts, setStatusCounts] = useState({
     available:  0,
     on_trip:    0,
@@ -66,7 +69,6 @@ export default function DriversPageContent() {
     terminated: 0,
   });
 
-  // Debounce search
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const [editDialogOpen, setEditDialogOpen]     = useState(false);
@@ -109,14 +111,8 @@ export default function DriversPageContent() {
     }
   }, [currentPage, itemsPerPage, debouncedSearch, availabilityFilter]);
 
-  function handlePageChange(page: number) {
-    setCurrentPage(page);
-  }
-
-  function handleLimitChange(limit: number) {
-    setItemsPerPage(limit);
-    setCurrentPage(1);
-  }
+  function handlePageChange(page: number) { setCurrentPage(page); }
+  function handleLimitChange(limit: number) { setItemsPerPage(limit); setCurrentPage(1); }
 
   function openDeleteDialog(driver: any) {
     closeDropdownsAndOpenDialog(() => {
@@ -171,24 +167,20 @@ export default function DriversPageContent() {
   }
 
   function isLicenseExpiring(expiryDate: string): boolean {
-    const days = getDaysUntilExpiry(expiryDate);
-    return days <= 30 && days > 0;
+    return getDaysUntilExpiry(expiryDate) <= 30 && getDaysUntilExpiry(expiryDate) > 0;
   }
-
   function isLicenseExpired(expiryDate: string): boolean {
     return new Date(expiryDate) < new Date();
   }
-
   function getDaysUntilExpiry(expiryDate: string): number {
     return Math.ceil((new Date(expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
   }
 
-  // Stats — counts vindos do back, independentes dos filtros activos
   const stats = [
     { label: t('drivers:stats.total'),                value: paginationInfo.total,   icon: Users,        color: 'text-slate-600',   bg: 'bg-slate-100/60'  },
     { label: t('drivers:stats.available'),            value: statusCounts.available, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
     { label: t('drivers:stats.onTrip'),               value: statusCounts.on_trip,   icon: Truck,        color: 'text-blue-600',    bg: 'bg-blue-50/60'    },
-    { label: t('drivers:status.on_leave.label'),      value: statusCounts.on_leave,  icon: Clock,        color: 'text-amber-600',   bg: 'bg-amber-50/60'   },
+    { label: t('drivers:status.on_leave.label'),      value: statusCounts.on_leave,  icon: CalendarDays, color: 'text-purple-600',  bg: 'bg-purple-50/60'  },
     { label: t('drivers:availability.offline.label'), value: statusCounts.offline,   icon: Ban,          color: 'text-slate-500',   bg: 'bg-slate-50/60'   },
   ];
 
@@ -197,9 +189,7 @@ export default function DriversPageContent() {
     { mode: 'cards', icon: LayoutGrid, label: t('common:viewModes.cards')  },
   ] as const;
 
-  // ---------------------------------------------------------------
-  // Views — usam "drivers" directamente (já filtrados pelo back)
-  // ---------------------------------------------------------------
+  // ── Views ────────────────────────────────────────────────────────────────
 
   function renderListView() {
     return (
@@ -221,7 +211,16 @@ export default function DriversPageContent() {
                         {t('drivers:fields.licenseNumber')}: {driver.license_number} - {t('drivers:categories.' + driver.license_category)}
                       </p>
                     </div>
-                    {getStatusBadge(driver.status)}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {getStatusBadge(driver.status)}
+                      {/* Badge extra de férias */}
+                      {driver.status === 'on_leave' && (
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full">
+                          <CalendarDays className="w-3.5 h-3.5" />
+                          {t('drivers:leaves.status.active')}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                     {driver.phone && (
@@ -291,13 +290,14 @@ export default function DriversPageContent() {
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {drivers.map((driver) => (
           <Card key={driver.id} className="flex flex-col h-full group hover:shadow-lg transition-all duration-300 bg-card relative overflow-hidden">
+            {/* Indicador de status no canto */}
             <div 
               className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full ring-2 ring-background shadow-sm"
               style={{
-                backgroundColor: driver.status === 'active' ? '#10b981' : 
-                                  driver.status === 'on_leave' ? '#f59e0b' : '#64748b'
+                backgroundColor: driver.status === 'active'    ? '#10b981' : 
+                                  driver.status === 'on_leave'  ? '#a855f7' :
+                                  driver.availability === 'on_trip'   ? '#3b82f6' : '#64748b'
               }}
-              title={`Status: ${driver.status}`}
             />
             <CardContent className="flex flex-col gap-4 p-6">
               <div className="flex items-start justify-between">
@@ -306,6 +306,7 @@ export default function DriversPageContent() {
                     {driver.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
+                {/* Badge de availability */}
                 <Badge 
                   variant="outline" 
                   className={cn(
@@ -325,12 +326,23 @@ export default function DriversPageContent() {
                   </span>
                 </Badge>
               </div>
+
               <div>
                 <h3 className="font-bold text-lg tracking-tight mb-1">{driver.name}</h3>
                 <p className="text-xs text-muted-foreground">
                   {driver.license_number} - {t('drivers:categories.' + driver.license_category)}
                 </p>
               </div>
+
+              {/* Badge de férias — aparece quando on_leave */}
+              {driver.status === 'on_leave' && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 text-xs text-purple-700 dark:text-purple-400 font-semibold">
+                  <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+                  {t('drivers:leaves.status.active')}
+                </div>
+              )}
+
+              {/* Alerta carta */}
               {(isLicenseExpiring(driver.license_expiry_date) || isLicenseExpired(driver.license_expiry_date)) && (
                 <div className={cn(
                   "flex items-center gap-2 p-2 rounded-lg text-xs font-semibold",
@@ -346,6 +358,7 @@ export default function DriversPageContent() {
                   </span>
                 </div>
               )}
+
               <div className="space-y-2 text-sm">
                 {driver.phone && (
                   <div className="flex items-center gap-2">
@@ -366,6 +379,7 @@ export default function DriversPageContent() {
                   </span>
                 </div>
               </div>
+
               <div className="mt-auto pt-4 flex gap-2 border-t">
                 <Button 
                   className="flex-1 h-9 text-sm font-bold shadow-sm"
@@ -399,137 +413,160 @@ export default function DriversPageContent() {
     );
   }
 
-  // ---------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------
+  // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
-      <div className="max-w-[1500px] mx-auto space-y-8 pb-10">
+    <DriverLeavesProvider>
+      <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
+        <div className="max-w-[1500px] mx-auto space-y-8 pb-10">
 
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('drivers:title')}</h1>
-            <p className="text-muted-foreground text-base">{t('drivers:description')}</p>
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('drivers:title')}</h1>
+              <p className="text-muted-foreground text-base">{t('drivers:description')}</p>
+            </div>
+            {activeTab === 'drivers' && <NewDriverDialog />}
           </div>
-          <NewDriverDialog />
-        </div>
 
-        {/* Stats — grid responsivo igual ao de veículos */}
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-          {stats.map((stat, i) => (
-            <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className={cn("p-2.5 rounded-xl shrink-0", stat.bg, stat.color)}>
-                  <stat.icon className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">
-                    {stat.label}
-                  </p>
-                  <p className="text-2xl font-black tracking-tight leading-tight">
-                    {stat.value}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+          {/* ── TABS ─────────────────────────────────────────────────────── */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full max-w-[360px] grid-cols-2 bg-muted/60 p-1 rounded-xl border border-muted/50">
+              <TabsTrigger value="drivers" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                {t('drivers:tabs.drivers', 'Motoristas')}
+              </TabsTrigger>
+              <TabsTrigger value="leaves" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2">
+                <CalendarDays className="w-4 h-4" />
+                {t('drivers:tabs.leaves', 'Férias')}
+              </TabsTrigger>
+            </TabsList>
 
-        {/* Toolbar — linha 1: filtros + view modes | linha 2: paginação */}
-        <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
-            <div className="flex flex-col sm:flex-row gap-3 flex-1">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder={t('drivers:searchPlaceholder')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
-                />
+            {/* ── TAB: MOTORISTAS ────────────────────────────────────────── */}
+            <TabsContent value="drivers" className="space-y-6 mt-0 outline-none">
+
+              {/* Stats */}
+              <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+                {stats.map((stat, i) => (
+                  <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className={cn("p-2.5 rounded-xl shrink-0", stat.bg, stat.color)}>
+                        <stat.icon className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">
+                          {stat.label}
+                        </p>
+                        <p className="text-2xl font-black tracking-tight leading-tight">{stat.value}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
 
-              <Select value={availabilityFilter} onValueChange={(v) => { setAvailabilityFilter(v); setCurrentPage(1); }}>
-                <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
-                  <Filter className="w-4 h-4 text-muted-foreground" />
-                  <SelectValue placeholder={t('drivers:filters.all')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('drivers:filters.all')}</SelectItem>
-                  <SelectItem value="available">{t('drivers:availability.available.label')}</SelectItem>
-                  <SelectItem value="on_trip">{t('drivers:availability.on_trip.label')}</SelectItem>
-                  <SelectItem value="offline">{t('drivers:availability.offline.label')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              {/* Toolbar */}
+              <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
+                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
+                  <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                    <div className="relative flex-1 max-w-sm">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder={t('drivers:searchPlaceholder')}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
+                      />
+                    </div>
 
-            <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50 self-center sm:self-auto shrink-0">
-              {viewModes.map((item) => (
-                <Button
-                  key={item.mode}
-                  variant={viewMode === item.mode ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode(item.mode as ViewMode)}
-                  className={cn(
-                    "h-8 px-3 rounded-lg transition-all flex items-center gap-2",
-                    viewMode === item.mode ? "bg-background shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
-                  )}
-                  title={item.label}
-                >
-                  <item.icon className="w-4 h-4" />
-                  <span className="hidden sm:inline text-xs">{item.label}</span>
-                </Button>
-              ))}
-            </div>
-          </div>
+                    <Select value={availabilityFilter} onValueChange={(v) => { setAvailabilityFilter(v); setCurrentPage(1); }}>
+                      <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
+                        <Filter className="w-4 h-4 text-muted-foreground" />
+                        <SelectValue placeholder={t('drivers:filters.all')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t('drivers:filters.all')}</SelectItem>
+                        <SelectItem value="available">{t('drivers:availability.available.label')}</SelectItem>
+                        <SelectItem value="on_trip">{t('drivers:availability.on_trip.label')}</SelectItem>
+                        <SelectItem value="offline">{t('drivers:availability.offline.label')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-          {/* Linha 2: paginação — só aparece quando há mais de 1 página */}
-          {paginationInfo.totalPages > 1 && (
-            <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
-              <Pagination
-                pagination={paginationInfo}
-                onPageChange={handlePageChange}
-                onLimitChange={handleLimitChange}
+                  <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50 self-center sm:self-auto shrink-0">
+                    {viewModes.map((item) => (
+                      <Button
+                        key={item.mode}
+                        variant={viewMode === item.mode ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode(item.mode as ViewMode)}
+                        className={cn(
+                          "h-8 px-3 rounded-lg transition-all flex items-center gap-2",
+                          viewMode === item.mode ? "bg-background shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
+                        )}
+                        title={item.label}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span className="hidden sm:inline text-xs">{item.label}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {paginationInfo.totalPages > 1 && (
+                  <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
+                    <Pagination
+                      pagination={paginationInfo}
+                      onPageChange={handlePageChange}
+                      onLimitChange={handleLimitChange}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Lista */}
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-24 space-y-4">
+                  <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
+                  <p className="text-sm text-muted-foreground font-bold animate-pulse">{t('common:loading')}...</p>
+                </div>
+              ) : drivers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-24 bg-card rounded-3xl border-2 border-dashed border-muted/50">
+                  <Users className="w-12 h-12 text-muted-foreground/20 mb-4" />
+                  <h3 className="text-lg font-bold">{t('drivers:noDrivers')}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {searchTerm ? t('common:noResults') : t('common:noData')}
+                  </p>
+                </div>
+              ) : (
+                <div className="animate-in fade-in duration-300">
+                  {viewMode === 'list'  && renderListView()}
+                  {viewMode === 'cards' && renderCardsView()}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* ── TAB: FÉRIAS ────────────────────────────────────────────── */}
+            <TabsContent value="leaves" className="mt-0 outline-none">
+              <DriversLeavesTab
+                drivers={drivers.map(d => ({ id: d.id, name: d.name }))}
               />
-            </div>
-          )}
+            </TabsContent>
+
+          </Tabs>
+
+          {/* Dialogs */}
+          <EditDriverDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} />
+          <ViewDriverDialog open={viewDialogOpen} onOpenChange={setViewDialogOpen} />
+          <ConfirmDeleteDialog
+            open={deleteDialogOpen}
+            onOpenChange={setDeleteDialogOpen}
+            onConfirm={handleDeleteDriver}
+            title={t('drivers:dialogs.delete.title')}
+            itemName={selectedDriver?.name}
+            isLoading={isDeleting}
+          />
         </div>
-
-        {/* Lista */}
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-24 space-y-4">
-            <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
-            <p className="text-sm text-muted-foreground font-bold animate-pulse">{t('common:loading')}...</p>
-          </div>
-        ) : drivers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 bg-card rounded-3xl border-2 border-dashed border-muted/50">
-            <Users className="w-12 h-12 text-muted-foreground/20 mb-4" />
-            <h3 className="text-lg font-bold">{t('drivers:noDrivers')}</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              {searchTerm ? t('common:noResults') : t('common:noData')}
-            </p>
-          </div>
-        ) : (
-          <div className="animate-in fade-in duration-300">
-            {viewMode === 'list'  && renderListView()}
-            {viewMode === 'cards' && renderCardsView()}
-          </div>
-        )}
-
-        {/* Dialogs */}
-        <EditDriverDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} />
-        <ViewDriverDialog open={viewDialogOpen} onOpenChange={setViewDialogOpen} />
-        <ConfirmDeleteDialog
-          open={deleteDialogOpen}
-          onOpenChange={setDeleteDialogOpen}
-          onConfirm={handleDeleteDriver}
-          title={t('drivers:dialogs.delete.title')}
-          itemName={selectedDriver?.name}
-          isLoading={isDeleting}
-        />
       </div>
-    </div>
+    </DriverLeavesProvider>
   );
 }

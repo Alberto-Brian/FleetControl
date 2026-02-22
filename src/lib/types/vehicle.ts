@@ -1,3 +1,6 @@
+// ========================================
+// FILE: // src/lib/db/types/vehicles.ts
+// ========================================
 import { IBase } from "./base";
 import { VehicleStatus } from "../db/schemas/vehicles";
 export interface IVehicle extends IBase {
@@ -12,6 +15,7 @@ export interface IVehicle extends IBase {
     chassis_number: string | null;
     engine_number: string | null;
     fuel_tank_capacity: number | null;
+    tire_size: string | null;
     current_mileage: number;
     acquisition_date: string | null;
     acquisition_value: number | null;
@@ -32,6 +36,7 @@ export interface ICreateVehicle {
     chassis_number?: string;
     engine_number?: string;
     fuel_tank_capacity?: number;
+    tire_size?: string;
     current_mileage?: number;
     acquisition_date?: string;
     acquisition_value?: number;
@@ -49,6 +54,7 @@ export interface IUpdateVehicle {
     chassis_number?: string;
     engine_number?: string;
     fuel_tank_capacity?: number;
+    tire_size?: string;
     current_mileage?: number;
     acquisition_date?: string;
     acquisition_value?: number;

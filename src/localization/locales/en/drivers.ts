@@ -224,5 +224,104 @@ export const enDrivers = {
     registeredOn: "Registered on",
     lastUpdate: "Last update",
     noNotes: "No notes registered"
-  }
+  },
+  leaves: {
+    title: 'Leaves',
+    description: 'Management and scheduling of driver leaves',
+
+    status: {
+      scheduled: 'Scheduled',
+      pending_trip: 'Pending trip',
+      active: 'Active',
+      completed: 'Completed',
+      cancelled: 'Cancelled',
+    },
+
+    reasons: {
+      annual_leave: 'Annual leave',
+      medical_leave: 'Medical leave',
+      personal_leave: 'Personal leave',
+      other: 'Other reason',
+    },
+
+    fields: {
+      driver: 'Driver',
+      startDate: 'Start date',
+      endDate: 'End date',
+      reason: 'Reason',
+      notes: 'Notes',
+      cancelledReason: 'Cancellation reason',
+    },
+
+    placeholders: {
+      selectDriver: 'Select driver',
+      reason: 'Select reason',
+      notes: 'Optional notes...',
+      search: 'Search by driver...',
+    },
+
+    actions: {
+      schedule: 'Schedule leave',
+      scheduling: 'Scheduling...',
+      cancel: 'Cancel leave',
+      confirmCancel: 'Yes, cancel',
+    },
+
+    info: {
+      duration: 'Duration: {{days}} day(s)',
+      days: 'days',
+      schedulingNote: 'Scheduling note',
+      schedulingNoteDetail: 'The driver status will be updated automatically on the start date. If on a trip, the leave will wait for the trip to end.',
+      pendingTripNote: 'Waiting for trip to end to activate',
+    },
+
+    sections: {
+      upcoming: 'Upcoming / Active',
+      history: 'History',
+    },
+
+    filters: {
+      all: 'All statuses',
+    },
+
+    dialogs: {
+      new: {
+        title: 'Schedule leave',
+        description: 'Schedule a leave period for a driver',
+        descriptionFor: 'Schedule leave for {{name}}',
+      },
+      list: {
+        title: '{{name}}\'s Leaves',
+      },
+      cancel: {
+        title: 'Cancel leave',
+        description: 'This action will cancel the selected leave period.',
+        warning: 'If the leave is active, the driver will return to Available status.',
+      },
+    },
+
+    toast: {
+      createSuccess: 'Leave scheduled successfully',
+      createError: 'Error scheduling leave',
+      cancelSuccess: 'Leave cancelled successfully',
+      cancelError: 'Error cancelling leave',
+    },
+
+    empty: {
+      noLeaves: 'No leaves registered',
+      noLeavesHint: 'Click \'Schedule leave\' to create a leave period',
+      adjustFilters: 'Try adjusting the search filters',
+    },
+
+    errors: {
+      loadError: 'Error loading leaves',
+      startDateInPast: 'Start date cannot be in the past',
+      endBeforeStart: 'End date must be after start date',
+      overlapping: 'This driver already has leave scheduled for this period',
+      cannotEditNonScheduled: 'Only scheduled leaves can be edited',
+      notFound: 'Leave record not found',
+    },
+  },
 } as const;
+
+export default enDrivers;

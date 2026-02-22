@@ -218,7 +218,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
               </div>
 
               {/* Dados Técnicos */}
-              {(selectedVehicle.chassis_number || selectedVehicle.engine_number || selectedVehicle.fuel_tank_capacity) && (
+              {(selectedVehicle.chassis_number || selectedVehicle.engine_number || selectedVehicle.fuel_tank_capacity || selectedVehicle.tire_size) && (
                 <div className="p-4 bg-muted/30 rounded-xl">
                   <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
                     <Hash className="w-3 h-3" /> {t('vehicles:dialogs.view.technicalData')}
@@ -236,10 +236,16 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
                         <span className="font-mono font-medium text-xs">{selectedVehicle.engine_number}</span>
                       </div>
                     )}
-                    {selectedVehicle.fuel_tank_capacity && (
+                    {!!selectedVehicle.fuel_tank_capacity && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground text-xs">{t('vehicles:fields.fuelTankCapacity')}</span>
                         <span className="font-medium">{selectedVehicle.fuel_tank_capacity} L</span>
+                      </div>
+                    )}
+                     {selectedVehicle.tire_size && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground text-xs">{t('vehicles:fields.tireSize')}</span>
+                        <span className="font-mono font-medium text-xs">{selectedVehicle.tire_size}</span>
                       </div>
                     )}
                   </div>
@@ -247,13 +253,13 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
               )}
 
               {/* Aquisição */}
-              {(selectedVehicle.acquisition_date || selectedVehicle.acquisition_value) && (
+              {(!!selectedVehicle.acquisition_date || !!selectedVehicle.acquisition_value) && (
                 <div className="p-4 bg-muted/30 rounded-xl">
                   <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
                     <DollarSign className="w-3 h-3" /> {t('vehicles:dialogs.view.acquisition')}
                   </h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
-                    {selectedVehicle.acquisition_date && (
+                    {!!selectedVehicle.acquisition_date && (
                       <div>
                         <p className="text-muted-foreground text-xs">{t('vehicles:fields.acquisitionDate')}</p>
                         <p className="font-medium">
@@ -261,7 +267,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
                         </p>
                       </div>
                     )}
-                    {selectedVehicle.acquisition_value && (
+                    {!!selectedVehicle.acquisition_value && (
                       <div>
                         <p className="text-muted-foreground text-xs">{t('vehicles:fields.acquisitionValue')}</p>
                         <p className="font-medium">

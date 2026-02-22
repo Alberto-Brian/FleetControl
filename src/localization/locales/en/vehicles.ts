@@ -59,6 +59,7 @@ export const enVehicles = {
     chassisNumber: "Chassis Number",
     engineNumber: "Engine Number",
     fuelTankCapacity: "Fuel Tank Capacity",
+     tireSize: "Tire Size",
     acquisitionDate: "Acquisition Date",
     acquisitionValue: "Acquisition Value",
     notes: "Notes",
@@ -80,6 +81,7 @@ export const enVehicles = {
     categoryName: "Ex: Utility, Passenger, Cargo...",
     categoryDescription: "Ex: Vehicles for light cargo transport...",
     searchCategory: 'Search category...',
+    tireSize: "Ex: 205/55 R16"
   },
 
   actions: {

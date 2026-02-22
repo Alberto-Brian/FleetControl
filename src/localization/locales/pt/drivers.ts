@@ -224,5 +224,105 @@ export const ptDrivers = {
     registeredOn: "Registado a",
     lastUpdate: "Última actualização",
     noNotes: "Sem observações registadas"
-  }
+  },
+
+   leaves: {
+    title: 'Férias',
+    description: 'Gestão e agendamento de férias dos motoristas',
+
+    status: {
+      scheduled: 'Agendada',
+      pending_trip: 'Aguarda viagem',
+      active: 'Em curso',
+      completed: 'Concluída',
+      cancelled: 'Cancelada',
+    },
+
+    reasons: {
+      annual_leave: 'Férias anuais',
+      medical_leave: 'Licença médica',
+      personal_leave: 'Licença pessoal',
+      other: 'Outro motivo',
+    },
+
+    fields: {
+      driver: 'Motorista',
+      startDate: 'Data de início',
+      endDate: 'Data de fim',
+      reason: 'Motivo',
+      notes: 'Observações',
+      cancelledReason: 'Motivo de cancelamento',
+    },
+
+    placeholders: {
+      selectDriver: 'Seleccionar motorista',
+      reason: 'Seleccionar motivo',
+      notes: 'Observações opcionais...',
+      search: 'Pesquisar por motorista...',
+    },
+
+    actions: {
+      schedule: 'Agendar férias',
+      scheduling: 'A agendar...',
+      cancel: 'Cancelar férias',
+      confirmCancel: 'Sim, cancelar',
+    },
+
+    info: {
+      duration: 'Duração: {{days}} dia(s)',
+      days: 'dias',
+      schedulingNote: 'Nota sobre agendamento',
+      schedulingNoteDetail: 'O estado do motorista será actualizado automaticamente na data de início. Se estiver em viagem, as férias aguardam o fim da viagem.',
+      pendingTripNote: 'A aguardar fim de viagem para activar',
+    },
+
+    sections: {
+      upcoming: 'Próximas / Em curso',
+      history: 'Histórico',
+    },
+
+    filters: {
+      all: 'Todos os estados',
+    },
+
+    dialogs: {
+      new: {
+        title: 'Agendar férias',
+        description: 'Agendar período de férias para um motorista',
+        descriptionFor: 'Agendar férias para {{name}}',
+      },
+      list: {
+        title: 'Férias de {{name}}',
+      },
+      cancel: {
+        title: 'Cancelar férias',
+        description: 'Esta acção irá cancelar o período de férias seleccionado.',
+        warning: 'Se as férias estiverem activas, o motorista voltará ao estado Disponível.',
+      },
+    },
+
+    toast: {
+      createSuccess: 'Férias agendadas com sucesso',
+      createError: 'Erro ao agendar férias',
+      cancelSuccess: 'Férias canceladas com sucesso',
+      cancelError: 'Erro ao cancelar férias',
+    },
+
+    empty: {
+      noLeaves: 'Sem férias registadas',
+      noLeavesHint: 'Clica em \'Agendar férias\' para criar um período de férias',
+      adjustFilters: 'Tenta ajustar os filtros de pesquisa',
+    },
+
+    errors: {
+      loadError: 'Erro ao carregar férias',
+      startDateInPast: 'A data de início não pode ser no passado',
+      endBeforeStart: 'A data de fim deve ser posterior à data de início',
+      overlapping: 'Este motorista já tem férias agendadas neste período',
+      cannotEditNonScheduled: 'Só é possível editar férias ainda agendadas',
+      notFound: 'Registo de férias não encontrado',
+    },
+  },
 } as const;
+
+export default ptDrivers;

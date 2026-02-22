@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { FileText, Wrench, DollarSign, StickyNote } from 'lucide-react';
-import { updateVehicle as updateBdVehicle } from '@/helpers/vehicle-helpers';
+import { updateVehicle as updateVehiclesHelper } from '@/helpers/vehicle-helpers';
 import { getAllVehicleCategories } from '@/helpers/vehicle-category-helpers';
 import { IUpdateVehicle } from '@/lib/types/vehicle';
 import { useVehicles } from '@/contexts/VehiclesContext';
@@ -43,6 +43,7 @@ export default function EditVehicleDialog({
     chassis_number: '',
     engine_number: '',
     fuel_tank_capacity: 0,
+    tire_size: '',
     acquisition_date: '',
     acquisition_value: 0,
     notes: '',
@@ -67,6 +68,7 @@ export default function EditVehicleDialog({
         chassis_number: selectedVehicle.chassis_number || '',
         engine_number: selectedVehicle.engine_number || '',
         fuel_tank_capacity: selectedVehicle.fuel_tank_capacity || 0,
+        tire_size: selectedVehicle.tire_size || '',
         acquisition_date: selectedVehicle.acquisition_date || '',
         acquisition_value: selectedVehicle.acquisition_value || 0,
         notes: selectedVehicle.notes || '',
@@ -88,10 +90,15 @@ export default function EditVehicleDialog({
     setIsLoading(true);
     
     try {
-      const updated = await updateBdVehicle(selectedVehicle!.id, formData);
+      const updated = await updateVehiclesHelper(selectedVehicle!.id, formData);
       
       if (updated) {
-        updateVehicle(updated);
+        const updatedVehicle = {
+          ...updated,
+          category_name: selectedVehicle?.category_name,
+          category_color: selectedVehicle?.category_color
+        }
+        updateVehicle(updatedVehicle);
         showSuccess(t('vehicles:toast.updateSuccess'));
         onOpenChange(false);
       }
@@ -259,6 +266,17 @@ export default function EditVehicleDialog({
                       placeholder={t('vehicles:placeholders.fuelTankCapacity')}
                     />
                   </div>
+
+                  <div className="space-y-2">
+                  <Label htmlFor="tire_size">{t('vehicles:fields.tireSize')}</Label>
+                  <Input
+                    id="tire_size"
+                    value={formData.tire_size}
+                    onChange={(e) => setFormData({ ...formData, tire_size: e.target.value.toUpperCase() })}
+                    placeholder={t('vehicles:placeholders.tireSize')}
+                    className="font-mono"
+                  />
+                </div>
                 </div>
 
                 <div className="p-4 bg-muted/50 rounded-lg border border-muted">
