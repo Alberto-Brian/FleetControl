@@ -111,60 +111,62 @@ export default function EditMaintenanceCategoryDialog({
             />
           </div>
 
-          {/* Tipo */}
-          <div className="space-y-2">
-            <Label>{t('maintenances:fields.categoryType')} *</Label>
-            <Select
-              value={formData.type}
-              onValueChange={(value: any) => setFormData({ ...formData, type: value })}
-              required
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {CATEGORY_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {t(type.label)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex items-center gap-4">
+            {/* Tipo */}
+            <div className="space-y-2">
+              <Label>{t('maintenances:fields.categoryType')} *</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value: any) => setFormData({ ...formData, type: value })}
+                required
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CATEGORY_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {t(type.label)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Cor */}
-          <div className="space-y-2">
-            <Label>{t('maintenances:fields.categoryColor')}</Label>
-            <Select
-              value={formData.color}
-              onValueChange={(value) => setFormData({ ...formData, color: value })}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {COLORS.map((color) => (
-                  <SelectItem key={color.value} value={color.value}>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: color.value }} />
-                      {t(color.label)}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            {/* Cor */}
+            <div className="space-y-2">
+              <Label>{t('maintenances:fields.categoryColor')}</Label>
+              <Select
+                value={formData.color}
+                onValueChange={(value) => setFormData({ ...formData, color: value })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {COLORS.map((color) => (
+                    <SelectItem key={color.value} value={color.value}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: color.value }} />
+                        {t(color.label)}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Estado activo/inactivo */}
-          <div className="space-y-2">
-            <Label>{t('common:status.label', 'Estado')}</Label>
-            <Select
-              value={formData.is_active ? 'active' : 'inactive'}
-              onValueChange={(v) => setFormData({ ...formData, is_active: v === 'active' })}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">{t('common:status.active', 'Activa')}</SelectItem>
-                <SelectItem value="inactive">{t('common:status.inactive', 'Inactiva')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            {/* Estado activo/inactivo */}
+            <div className="space-y-2">
+              <Label>{t('common:status.label', 'Estado')}</Label>
+              <Select
+                value={formData.is_active ? 'active' : 'inactive'}
+                onValueChange={(v) => setFormData({ ...formData, is_active: v === 'active' })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">{t('common:status.active', 'Activa')}</SelectItem>
+                  <SelectItem value="inactive">{t('common:status.inactive', 'Inactiva')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+        </div>
 
           {/* Descrição */}
           <div className="space-y-2">

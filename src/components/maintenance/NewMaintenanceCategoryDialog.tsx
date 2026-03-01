@@ -122,6 +122,9 @@ export default function NewMaintenanceCategoryDialog() {
             />
           </div>
 
+
+        <div className="flex items-center gap-4">
+          {/* Tipo */}
           <div className="space-y-2">
             <Label>{t('maintenances:fields.categoryType')} *</Label>
             <Select
@@ -141,7 +144,7 @@ export default function NewMaintenanceCategoryDialog() {
               </SelectContent>
             </Select>
           </div>
-
+          {/* Cor */}
           <div className="space-y-2">
             <Label>{t('maintenances:fields.categoryColor')}</Label>
             <Select
@@ -166,6 +169,7 @@ export default function NewMaintenanceCategoryDialog() {
               </SelectContent>
             </Select>
           </div>
+        </div>
 
           <div className="space-y-2">
             <Label>{t('maintenances:fields.categoryDescription')}</Label>

@@ -233,50 +233,55 @@ export default function EditVehicleDialog({
 
               <TabsContent value="technical" className="space-y-4 mt-0">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="chassis_number">{t('vehicles:fields.chassisNumber')}</Label>
+                  <div className="">
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="chassis_number">{t('vehicles:fields.chassisNumber')}</Label>
+                      <Input
+                        id="chassis_number"
+                        value={formData.chassis_number}
+                        onChange={(e) => setFormData({ ...formData, chassis_number: e.target.value.toUpperCase() })}
+                        placeholder={t('vehicles:placeholders.chassisNumber')}
+                        className="font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="engine_number">{t('vehicles:fields.engineNumber')}</Label>
+                      <Input
+                        id="engine_number"
+                        value={formData.engine_number}
+                        onChange={(e) => setFormData({ ...formData, engine_number: e.target.value.toUpperCase() })}
+                        placeholder={t('vehicles:placeholders.engineNumber')}
+                        className="font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="">
+                    <div className="space-y-2">
+                      <Label htmlFor="fuel_capacity">{t('vehicles:fields.fuelTankCapacity')} (L)</Label>
+                      <Input
+                        id="fuel_capacity"
+                        type="number"
+                        min="0"
+                        value={formData.fuel_tank_capacity}
+                        onChange={(e) => setFormData({ ...formData, fuel_tank_capacity: parseInt(e.target.value) || 0 })}
+                        placeholder={t('vehicles:placeholders.fuelTankCapacity')}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                    <Label htmlFor="tire_size">{t('vehicles:fields.tireSize')}</Label>
                     <Input
-                      id="chassis_number"
-                      value={formData.chassis_number}
-                      onChange={(e) => setFormData({ ...formData, chassis_number: e.target.value.toUpperCase() })}
-                      placeholder={t('vehicles:placeholders.chassisNumber')}
+                      id="tire_size"
+                      value={formData.tire_size}
+                      onChange={(e) => setFormData({ ...formData, tire_size: e.target.value.toUpperCase() })}
+                      placeholder={t('vehicles:placeholders.tireSize')}
                       className="font-mono"
                     />
+                    </div>
                   </div>
 
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="engine_number">{t('vehicles:fields.engineNumber')}</Label>
-                    <Input
-                      id="engine_number"
-                      value={formData.engine_number}
-                      onChange={(e) => setFormData({ ...formData, engine_number: e.target.value.toUpperCase() })}
-                      placeholder={t('vehicles:placeholders.engineNumber')}
-                      className="font-mono"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="fuel_capacity">{t('vehicles:fields.fuelTankCapacity')} (L)</Label>
-                    <Input
-                      id="fuel_capacity"
-                      type="number"
-                      min="0"
-                      value={formData.fuel_tank_capacity}
-                      onChange={(e) => setFormData({ ...formData, fuel_tank_capacity: parseInt(e.target.value) || 0 })}
-                      placeholder={t('vehicles:placeholders.fuelTankCapacity')}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                  <Label htmlFor="tire_size">{t('vehicles:fields.tireSize')}</Label>
-                  <Input
-                    id="tire_size"
-                    value={formData.tire_size}
-                    onChange={(e) => setFormData({ ...formData, tire_size: e.target.value.toUpperCase() })}
-                    placeholder={t('vehicles:placeholders.tireSize')}
-                    className="font-mono"
-                  />
-                </div>
                 </div>
 
                 <div className="p-4 bg-muted/50 rounded-lg border border-muted">

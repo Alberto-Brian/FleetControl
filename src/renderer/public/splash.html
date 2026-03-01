@@ -1,3 +1,6 @@
+<!-- ======================= -->
+<!-- FILE: src/renderer/public/splash.html -->
+<!-- ======================= -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -144,7 +147,7 @@
         
         <div class="title">FleetControl</div>
         <div class="description">Sistema de Gestão de Frotas (SGF)</div>
-        <div class="version" id="app-version">Versão 1.1.0</div>
+        <div class="version" id="app-version">A carregar...</div>
         
         <div class="sk-chase">
             <div class="sk-chase-dot"></div>
@@ -157,15 +160,33 @@
     </div>
 
     <script>
-        async function loadVersion() {
-            try {
-                const systemVersion = await window.system.getSystemVersion();
-                const schemaVersion = await window.system.getSchemaVersion();
-                document.getElementById('app-version').textContent = `Versão ${systemVersion} (${schemaVersion})`;
-            } catch (error) {
-                document.getElementById('app-version').textContent = 'Versão 1.0.0';
+        // ─────────────────────────────────────────────────────────
+        // Versão injectada pelo main process como query string.
+        // Não usa IPC — disponível imediatamente sem timing issues.
+        // ─────────────────────────────────────────────────────────
+        function loadVersion() {
+            const params  = new URLSearchParams(window.location.search);
+            const version = params.get('version');
+
+            if (version) {
+                document.getElementById('app-version').textContent = `Versão ${version}`;
+            } else {
+                // Fallback: tentar IPC caso a query string não venha
+                // (compatibilidade com chamadas directas sem query string)
+                if (window.system && typeof window.system.getSystemVersion === 'function') {
+                    window.system.getSystemVersion()
+                        .then(v => {
+                            document.getElementById('app-version').textContent = `Versão ${v}`;
+                        })
+                        .catch(() => {
+                            document.getElementById('app-version').textContent = 'FleetControl SGF';
+                        });
+                } else {
+                    document.getElementById('app-version').textContent = 'FleetControl SGF';
+                }
             }
         }
+
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', loadVersion);
         } else {

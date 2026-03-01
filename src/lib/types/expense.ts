@@ -14,13 +14,13 @@ export interface IExpense {
     description: string;
     amount: number;
     expense_date: string;
-    due_date?: string;
-    payment_date?: string;
-    payment_method?: PaymentMethod;
+    due_date: string | null;
+    payment_date: string | null;
+    payment_method: PaymentMethod | null;
     status: ExpenseStatus;
-    document_number?: string;
-    supplier?: string;
-    notes?: string;
+    document_number: string | null;
+    supplier: string | null;
+    notes: string | null;
     created_at: string;
 }
 

@@ -13,6 +13,7 @@ const inDevelopment = process.env.NODE_ENV === "development";
 
 if (require("electron-squirrel-startup")) {
     app.quit();
+    process.exit(0);
 }
 
 let splashWindow: BrowserWindow | null = null;
@@ -22,7 +23,11 @@ let mainWindow: BrowserWindow | null = null;
  * Criar janela de splash
  */
 async function createSplashWindow() {
-  const preload = path.join(__dirname, "preload.js");
+  const preload = path.join(__dirname, 'preload.js');
+
+  // Versão disponível imediatamente no main process — sem precisar de IPC
+  const appVersion = app.getVersion();
+
   splashWindow = new BrowserWindow({
     width: 500,
     height: 370,
@@ -40,11 +45,19 @@ async function createSplashWindow() {
     },
   });
 
+  // Versão injectada como query string — disponível antes de qualquer IPC
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    await splashWindow.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}/splash.html`);
+    await splashWindow.loadURL(
+      `${MAIN_WINDOW_VITE_DEV_SERVER_URL}/splash.html?version=${appVersion}`
+    );
   } else {
-    const splashPath = path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/splash.html`);
-    await splashWindow.loadFile(splashPath);
+    const splashPath = path.join(
+      __dirname,
+      `../renderer/${MAIN_WINDOW_VITE_NAME}/splash.html`
+    );
+    await splashWindow.loadFile(splashPath, {
+      query: { version: appVersion },
+    });
   }
 }
 

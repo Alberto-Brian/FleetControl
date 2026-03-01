@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
@@ -36,6 +36,8 @@ import {
     exportBackup,
     restoreBackup,
 } from "@/helpers/backup-helpers";
+import { getSystemVersion } from '@/helpers/system-helpers';
+
 
 import { forceDbRotation } from "@/helpers/system-helpers";
 
@@ -209,6 +211,13 @@ interface SettingsDialogProps {
 export default function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState("appearance");
+    const [systemVersion, setSystemVersion] = useState('');
+
+    useEffect(() => {
+        if (open) {
+            getSystemVersion().then(version => setSystemVersion(version));
+        }
+    }, [open]);
 
     // Estados de operação
     const [operation, setOperation] = useState<'idle' | 'exporting' | 'restoring'>('idle');
@@ -731,7 +740,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                                                     Sistema de Gestão de Frotas
                                                 </p>
                                                 <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
-                                                    Versão 1.0.0 • Build 2026.02.01
+                                                    {systemVersion ? `Versão ${systemVersion} • ` : ''}Build 2026.02.25
                                                 </span>
                                             </div>
 
@@ -741,7 +750,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                                                 <div className="p-4 rounded-lg border bg-card/50 space-y-3 text-sm">
                                                     <div className="flex justify-between">
                                                         <span className="text-muted-foreground">Versão</span>
-                                                        <span className="font-medium">1.0.0</span>
+                                                        <span className="font-medium">{systemVersion ? systemVersion : 'Carregando...'}</span>
                                                     </div>
                                                     <div className="flex justify-between">
                                                         <span className="text-muted-foreground">Build</span>

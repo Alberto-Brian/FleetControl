@@ -24,7 +24,7 @@ import {
     getExpensesByPeriod,
 } from '@/lib/db/queries/expenses.queries';
 
-import { getExpenseCategoryById } from "@/helpers/expense-category-helpers";
+import { getExpenseCategoryById } from "@/lib/db/queries/expense-categories.queries";
 
 import { WarningError, NotFoundError } from "@/lib/errors/AppError";
 

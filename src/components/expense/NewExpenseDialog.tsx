@@ -48,7 +48,7 @@ export default function NewExpenseDialog() {
     try {
       const [vehiclesData, driversData] = await Promise.all([getAllVehicles(), getAllDrivers()]);
       setVehicles(vehiclesData.data.filter((v: any) => v.status !== 'inactive'));
-      setDrivers(driversData.filter((d: any) => d.is_active === true));
+      setDrivers(driversData.data.filter((d: any) => d.is_active === true));
     } catch (error) {
       handleError(error, 'common:errors.loadingData');
     }

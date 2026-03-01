@@ -682,12 +682,12 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
             <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
                 <Package className="w-10 h-10 text-primary-foreground" />
             </div>
-            <h3 className="text-2xl font-bold mb-1">MarketPro</h3>
+            <h3 className="text-2xl font-bold mb-1">FleetControl</h3>
             <p className="text-sm text-muted-foreground mb-3">
                 Sistema de Gestão de Mercado (SGM)
             </p>
             <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
-                Versão 1.0.0 • Build 2025.01.08
+                Versão 1.1.1 • Build 2026.02.25
             </span>
         </div>
 
@@ -697,7 +697,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
             <div className="p-4 rounded-lg border bg-card/50 space-y-3 text-sm">
                 <div className="flex justify-between">
                     <span className="text-muted-foreground">Versão</span>
-                    <span className="font-medium">1.0.0</span>
+                    <span className="font-medium">1.1.1</span>
                 </div>
                 <div className="flex justify-between">
                     <span className="text-muted-foreground">Build</span>

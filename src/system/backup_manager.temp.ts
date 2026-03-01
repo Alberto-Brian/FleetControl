@@ -149,7 +149,7 @@ export class BackupManager {
           title: 'Exportar Backup Completo',
           defaultPath: path.join(
             app.getPath('documents'),
-            `marketpro-backup-${new Date().toISOString().split('T')[0]}.zip`
+            `fleetcontrol-backup-${new Date().toISOString().split('T')[0]}.zip`
           ),
           filters: [
             { name: 'Arquivo ZIP', extensions: ['zip'] },

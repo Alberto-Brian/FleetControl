@@ -5,7 +5,7 @@ import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { expenses, expense_categories, vehicles } from '@/lib/db/schemas';
 import { generateUuid } from '@/lib/utils/cripto';
 import { eq, and, isNull, desc, gte, lte, or, sql, count, SQL, like } from 'drizzle-orm';
-import { ICreateExpense, IUpdateExpense, PaymentData } from '@/lib/types/expense';
+import { ICreateExpense, IUpdateExpense, PaymentData, IExpense } from '@/lib/types/expense';
 import { IPaginatedResult, IPaginationParams } from '@/lib/types/pagination';
 
 export async function createExpense(expenseData: ICreateExpense) {
@@ -63,6 +63,8 @@ export async function getAllExpenses(params: IPaginationParams = {}): Promise<IP
         due_date:       expenses.due_date,
         payment_date:   expenses.payment_date,
         payment_method: expenses.payment_method,
+        notes:          expenses.notes,
+        document_number:expenses.document_number,
         status:         expenses.status,
         supplier:       expenses.supplier,
         created_at:     expenses.created_at,

@@ -342,7 +342,7 @@ export async function updateVehicleMileage(vehicleId: string, newMileage: number
             current_mileage: vehicles.current_mileage,
         });
 
-    return result[0];
+    return await findVehicleById(vehicleId);
 }
 
 /**

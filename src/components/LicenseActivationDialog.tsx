@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/ui/use-toast";
 import { AlertCircle, Key, Loader2, Copy, Check, Package, Mail, Phone, Globe, MapPin, Building2 } from 'lucide-react';
 import { getMachineId, validateLicense } from '@/helpers/license-helpers';
+import { getSystemVersion } from '@/helpers/system-helpers';
 
 interface LicenseActivationDialogProps {
   open: boolean;
@@ -23,7 +24,14 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Licen
   const [licenseKey, setLicenseKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(false); 
+  const [systemVersion, setSystemVersion] = useState('');
+  
+  useEffect(() => {
+      if (open) {
+          getSystemVersion().then(version => setSystemVersion(version));
+      }
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -116,7 +124,7 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Licen
             <DialogHeader className="p-6 pb-4">
               <DialogTitle className="flex items-center gap-2 text-lg">
                 <Package className="w-5 h-5" />
-                MarketPro
+                FleetControl
               </DialogTitle>
               <p className="text-xs text-muted-foreground mt-1">
                 Activação de Licença
@@ -151,8 +159,8 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Licen
                 <div className="w-12 h-12 mx-auto mb-2 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg">
                   <Package className="w-6 h-6 text-primary-foreground" />
                 </div>
-                <p className="text-xs font-medium">MarketPro</p>
-                <p className="text-[10px] text-muted-foreground">v1.0.0</p>
+                <p className="text-xs font-medium">FleetControl</p>
+                <p className="text-[10px] text-muted-foreground">{systemVersion ? `V${systemVersion}` : ''}</p>
               </div>
             </div>
           </aside>

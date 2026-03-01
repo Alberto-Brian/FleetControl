@@ -5,7 +5,6 @@ import { IPaginatedResult, IPaginationParams } from '@/lib/types/pagination';
 export async function getAllExpenses(params?: IPaginationParams): Promise<IPaginatedResult<IExpense>> {
     try {
         const result = await window._expenses.getAll(params);
-        console.log("Lista vazia: ", result);
         return result;
     } catch (error) {
         console.log("Entramos aqui: ", error);

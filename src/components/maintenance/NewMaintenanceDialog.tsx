@@ -182,6 +182,7 @@ export default function NewMaintenanceDialog() {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Veículo */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
@@ -206,10 +207,9 @@ export default function NewMaintenanceDialog() {
             )}
           </div>
 
-          {/* Tipo e Categoria — categorias vêm do contexto, podem crescer */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>{t('maintenances:fields.category')} *</Label>
+          {/*Categoria — categorias vêm do contexto, podem crescer */}
+          <div className="space-y-2">
+              <Label className="flex items-center gap-2">{t('maintenances:fields.category')} *</Label>
               <SearchableSelect
                 options={categoryOptions}
                 value={formData.category_id}
@@ -221,38 +221,10 @@ export default function NewMaintenanceDialog() {
                 searchPlaceholder="Pesquisar por nome ou tipo..."
                 emptyMessage={t('maintenances:alerts.noCategories')}
               />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>{t('maintenances:fields.type')} *</Label>
-                {formData.category_id && (
-                  <Badge variant="secondary" className="text-[10px] h-5">
-                    <Link2 className="w-3 h-3 mr-1" />
-                    {t('maintenances:info.auto')}
-                  </Badge>
-                )}
-              </div>
-              {/* Tipo — lista estática de 2 itens, Select normal */}
-              <Select value={formData.type} onValueChange={(value: any) => setFormData({ ...formData, type: value })} required>
-                <SelectTrigger className={cn(formData.category_id && 'border-primary/50 bg-primary/5 opacity-75')}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MAINTENANCE_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>{t(type.label)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {formData.category_id && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Link2 className="w-3 h-3" />
-                  {t('maintenances:info.typeAutoFilled')}
-                </p>
-              )}
-            </div>
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Quilometragem */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -282,7 +254,7 @@ export default function NewMaintenanceDialog() {
 
           {/* Oficina */}
           <div className="space-y-2">
-            <Label>{t('maintenances:fields.workshop')}</Label>
+            <Label className="flex items-center gap-2">{t('maintenances:fields.workshop')}</Label>
             <SearchableSelect
               options={workshopOptions}
               value={formData.workshop_id || 'none'}
@@ -293,7 +265,10 @@ export default function NewMaintenanceDialog() {
               noneOption={{ value: 'none', label: t('common:none') }}
             />
           </div>
+        </div>
 
+
+        <div className="flex items-center gap-4">
           {/* Prioridade — lista estática de 4 itens, Select normal */}
           <div className="space-y-2">
             <Label>{t('maintenances:fields.priority')}</Label>
@@ -308,6 +283,37 @@ export default function NewMaintenanceDialog() {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Tipo */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label>{t('maintenances:fields.type')} *</Label>
+                {formData.category_id && (
+                  <Badge variant="secondary" className="text-[10px] h-5">
+                    <Link2 className="w-3 h-3 mr-1" />
+                    {t('maintenances:info.auto')}
+                  </Badge>
+                )}
+              </div>
+              {/* Tipo — lista estática de 2 itens, Select normal */}
+              <Select value={formData.type} onValueChange={(value: any) => setFormData({ ...formData, type: value })} required>
+                <SelectTrigger className={cn(formData.category_id && 'border-primary/50 bg-primary/5 opacity-75')}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MAINTENANCE_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>{t(type.label)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formData.category_id && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Link2 className="w-3 h-3" />
+                  {t('maintenances:info.typeAutoFilled')}
+                </p>
+              )}
+            </div>
+        </div>
 
           {/* Custos */}
           <div className="space-y-3">
