@@ -20,7 +20,7 @@ export async function addBackupEventListeners() {
             });
 
         } catch(err: unknown){
-            console.log("Erro ao ouvir o evento de backup: ", err)
+            // console.log("Erro ao ouvir o evento de backup: ", err)
         }
 
         return backup_manager.createManualBackup()
@@ -32,7 +32,7 @@ export async function addBackupEventListeners() {
              event.sender.send(BACKUP_RESTORE_PROGRESS_CHANNEL, progress);
             });
         } catch(err: unknown){
-            console.log("Erro ao ouvir o evento de restauração de backup: ", err);
+            // console.log("Erro ao ouvir o evento de restauração de backup: ", err);
         }
         
         const { filePaths } = await dialog.showOpenDialog({

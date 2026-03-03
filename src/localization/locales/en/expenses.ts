@@ -14,6 +14,7 @@ export const enExpenses = {
   },
 
   stats: {
+    count: 'Total',
     total: 'Monthly Total',
     paid: 'Paid Expenses',
     pending: 'Pending',

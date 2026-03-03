@@ -21,6 +21,7 @@ import { workshops } from "./workshops";
 import { vehicle_categories } from "./vehicle_categories";
 import { generatedReports } from "./generated-reports";
 import { driver_leaves } from "./driver_leaves";
+import { system_settings } from "./system_settings";
 
 
 export {
@@ -45,5 +46,6 @@ export {
     refuelings,
     workshops,
     generatedReports,
-    driver_leaves
+    driver_leaves,
+    system_settings
 }

@@ -23,6 +23,7 @@ import { addExpenseCategoriesEventListeners } from "./db/expense_categories/expe
 import { addDashboardEventListeners } from "./db/dashboard/dashboard-listeners";
 import { addReportsEventListeners } from "./reports/reports-listeners";
 import { addDriverLeavesEventListeners } from "./db/driver-leaves/driver-leaves-listeners";
+import { addCompanyEventListeners } from "./db/company/company-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
     addWindowEventListeners(mainWindow);
@@ -48,4 +49,5 @@ export default function registerListeners(mainWindow: BrowserWindow) {
     addDashboardEventListeners();
     addReportsEventListeners();
     addDriverLeavesEventListeners();
+    addCompanyEventListeners();
 }

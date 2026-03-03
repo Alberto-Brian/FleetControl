@@ -14,6 +14,7 @@ export const ptExpenses = {
   },
 
   stats: {
+    count: 'Total',
     total: 'Total do Mês',
     paid: 'Despesas Pagas',
     pending: 'Pendentes',

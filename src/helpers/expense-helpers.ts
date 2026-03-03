@@ -7,7 +7,6 @@ export async function getAllExpenses(params?: IPaginationParams): Promise<IPagin
         const result = await window._expenses.getAll(params);
         return result;
     } catch (error) {
-        console.log("Entramos aqui: ", error);
         throw error; // ✨ Propaga
     }
 }

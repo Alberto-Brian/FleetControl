@@ -257,8 +257,6 @@ export async function getTripsReportData(startDate: string, endDate: string) {
     avgDistance: tripsList.length > 0 ? totalDistance / tripsList.length : 0,
   };
 
-  console.log( tripsWithDistance, stats )
-
   return {
     trips: tripsWithDistance,
     stats,

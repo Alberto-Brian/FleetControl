@@ -1,36 +1,37 @@
 // ========================================
-// FILE: src/lib/pdf/pdf-generator-react.ts (COM DETECÇÃO DE IDIOMA)
+// FILE: src/lib/pdf/pdf-generator-react.ts
 // ========================================
 import React from 'react';
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import { setPDFLanguage, Language } from './pdf-translations';
+import { setPDFCompany } from './pdf-config-react';
+import { getCompanySettings, getCompanyLogoBase64 } from '@/helpers/company-helpers';
 
-// Import templates
-import { VehiclesReportPDF } from './templates/VehiclesReportPDF';
-import { DriversReportPDF } from './templates/DriversReportPDF';
-import { TripsReportPDF } from './templates/TripsReportPDF';
-import { FuelReportPDF } from './templates/FuelReportPDF';
+// Templates
+import { VehiclesReportPDF }    from './templates/VehiclesReportPDF';
+import { DriversReportPDF }     from './templates/DriversReportPDF';
+import { TripsReportPDF }       from './templates/TripsReportPDF';
+import { FuelReportPDF }        from './templates/FuelReportPDF';
 import { MaintenanceReportPDF } from './templates/MaintenanceReportPDF';
-import { FinancialReportPDF } from './templates/FinancialReportPDF';
-import { GeneralReportPDF } from './templates/GeneralReportPDF';
+import { FinancialReportPDF }   from './templates/FinancialReportPDF';
+import { GeneralReportPDF }     from './templates/GeneralReportPDF';
+import { languageLocalStorageKey } from '@/helpers/language-helpers';
 
-export type ReportType = 'vehicles' | 'drivers' | 'trips' | 'fuel' | 'maintenance' | 'financial' | 'general';
+export type ReportType =
+  | 'vehicles' | 'drivers' | 'trips' | 'fuel'
+  | 'maintenance' | 'financial' | 'general';
 
 export interface ReportOptions {
-  type: ReportType;
-  dateRange: {
-    start: string;
-    end: string;
-  };
-  data: any;
+  type:      ReportType;
+  dateRange: { start: string; end: string };
+  data:      any;
   fileName?: string;
-  language?: Language; // ✅ ADICIONAR: idioma opcional
+  language?: Language;
 }
 
-// ==================== GERADOR PRINCIPAL ====================
+// ─────────────────────────────────────────────────────────────────────────────
 
-import { languageLocalStorageKey } from "@/helpers/language-helpers";
 export class ReactPDFGenerator {
   private static instance: ReactPDFGenerator;
 
@@ -43,198 +44,130 @@ export class ReactPDFGenerator {
     return ReactPDFGenerator.instance;
   }
 
-  /**
-   * Detecta o idioma do i18n ou usa o padrão
-   */
-  private getLanguage(options: ReportOptions): Language {
-    if (options.language) {
-      return options.language;
-    }
+  // ── Idioma ───────────────────────────────────────────────────────────────
 
-    // Tentar detectar do i18n
+  private getLanguage(options: ReportOptions): Language {
+    if (options.language) return options.language;
     try {
-      const i18nLang = localStorage.getItem(languageLocalStorageKey);
-      if (i18nLang?.startsWith('en')) return 'en';
-      return 'pt';
-    } catch {
-      return 'pt';
+      const lang = localStorage.getItem(languageLocalStorageKey);
+      if (lang?.startsWith('en')) return 'en';
+    } catch { /* noop */ }
+    return 'pt';
+  }
+
+  // ── Dados da empresa ─────────────────────────────────────────────────────
+  // Carrega as configurações da empresa e o logo (base64) antes de gerar o PDF.
+  // Injecta tudo em setPDFCompany() para o Header e Footer terem acesso.
+
+  private async loadCompanyData(): Promise<void> {
+    try {
+      const [settings, logoBase64] = await Promise.all([
+        getCompanySettings(),
+        getCompanyLogoBase64(),
+      ]);
+
+      setPDFCompany({
+        name:    settings?.company_name ?? 'FleetControl',
+        tagline: 'Gestão de Frotas',
+        address: [settings?.city, settings?.state].filter(Boolean).join(', ') || settings?.address || undefined,
+        phone:   settings?.phone   ?? undefined,
+        email:   settings?.email   ?? undefined,
+        logo:    logoBase64 ?? null,
+      });
+    } catch (err) {
+      console.warn('[PDFGenerator] Não foi possível carregar dados da empresa:', err);
+      // Fallback — valores padrão
+      setPDFCompany({ name: 'FleetControl', tagline: 'Gestão de Frotas' });
     }
   }
 
-  /**
-   * Gera o componente React-PDF baseado no tipo de relatório
-   */
+  // ── Componente por tipo ───────────────────────────────────────────────────
+
   private getReportComponent(options: ReportOptions): React.ReactElement {
     const { type, dateRange, data } = options;
-
-    // ✅ Definir idioma antes de gerar o PDF
-    const language = this.getLanguage(options);
-    setPDFLanguage(language);
+    setPDFLanguage(this.getLanguage(options));
 
     switch (type) {
       case 'vehicles':
-        return React.createElement(VehiclesReportPDF, {
-          vehicles: data.vehicles,
-          stats: data.stats,
-          dateRange: dateRange,
-        });
-
+        return React.createElement(VehiclesReportPDF, { vehicles: data.vehicles, stats: data.stats, dateRange });
       case 'drivers':
-        return React.createElement(DriversReportPDF, {
-          drivers: data.drivers,
-          stats: data.stats,
-          dateRange: dateRange,
-        });
-      
+        return React.createElement(DriversReportPDF, { drivers: data.drivers, stats: data.stats, dateRange });
       case 'trips':
-        return React.createElement(TripsReportPDF, {
-          trips: data.trips,
-          stats: data.stats,
-          dateRange: dateRange,
-        });
-      
+        return React.createElement(TripsReportPDF, { trips: data.trips, stats: data.stats, dateRange });
       case 'fuel':
-        return React.createElement(FuelReportPDF, {
-          refuelings: data.refuelings,
-          stats: data.stats,
-          dateRange: dateRange,
-        });
-      
+        return React.createElement(FuelReportPDF, { refuelings: data.refuelings, stats: data.stats, dateRange });
       case 'maintenance':
-        return React.createElement(MaintenanceReportPDF, {
-          maintenances: data.maintenances,
-          stats: data.stats,
-          dateRange: dateRange,
-        });
-      
+        return React.createElement(MaintenanceReportPDF, { maintenances: data.maintenances, stats: data.stats, dateRange });
       case 'financial':
-        return React.createElement(FinancialReportPDF, {
-          expenses: data.expenses,
-          stats: data.stats,
-          dateRange: dateRange,
-        });
-      
+        return React.createElement(FinancialReportPDF, { expenses: data.expenses, stats: data.stats, dateRange });
       case 'general':
-        return React.createElement(GeneralReportPDF, {
-          dashboard: data.dashboard,
-          dateRange: dateRange,
-        });
-      
+        return React.createElement(GeneralReportPDF, { dashboard: data.dashboard, dateRange });
       default:
         throw new Error(`Tipo de relatório desconhecido: ${type}`);
     }
   }
 
-  /**
-   * Gera e baixa o PDF
-   */
+  // ── API pública ───────────────────────────────────────────────────────────
+
   async generateReport(options: ReportOptions): Promise<void> {
-    try {
-      const component = this.getReportComponent(options);
-      // @ts-ignore - React-PDF tem problemas de tipagem com React.createElement
-      const blob = await pdf(component).toBlob();
-      const fileName = options.fileName || this.getDefaultFileName(options.type);
-      
-      saveAs(blob, fileName);
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-      throw new Error('Falha ao gerar relatório PDF');
-    }
+    await this.loadCompanyData(); // ← carrega empresa + logo
+    const component = this.getReportComponent(options);
+    // @ts-ignore
+    const blob = await pdf(component).toBlob();
+    saveAs(blob, options.fileName ?? this.defaultFileName(options.type));
   }
 
-  /**
-   * Abre preview do PDF em nova aba
-   */
   async previewReport(options: ReportOptions): Promise<void> {
-    try {
-      const component = this.getReportComponent(options);
-      // @ts-ignore - React-PDF tem problemas de tipagem com React.createElement
-      const blob = await pdf(component).toBlob();
-      const url = URL.createObjectURL(blob);
-      
-      window.open(url, '_blank');
-    } catch (error) {
-      console.error('Erro ao gerar preview:', error);
-      throw new Error('Falha ao gerar preview do relatório');
-    }
+    await this.loadCompanyData();
+    const component = this.getReportComponent(options);
+    // @ts-ignore
+    const blob = await pdf(component).toBlob();
+    window.open(URL.createObjectURL(blob), '_blank');
   }
 
-  /**
-   * Imprime o PDF diretamente
-   */
   async printReport(options: ReportOptions): Promise<void> {
-    try {
-      const component = this.getReportComponent(options);
-      // @ts-ignore - React-PDF tem problemas de tipagem com React.createElement
-      const blob = await pdf(component).toBlob();
-      const url = URL.createObjectURL(blob);
-      
-      // Criar iframe invisível para impressão
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = url;
-      document.body.appendChild(iframe);
-      
-      iframe.onload = () => {
-        iframe.contentWindow?.print();
-        // Remover iframe após impressão
-        setTimeout(() => {
-          document.body.removeChild(iframe);
-          URL.revokeObjectURL(url);
-        }, 100);
-      };
-    } catch (error) {
-      console.error('Erro ao imprimir:', error);
-      throw new Error('Falha ao imprimir relatório');
-    }
+    await this.loadCompanyData();
+    const component = this.getReportComponent(options);
+    // @ts-ignore
+    const blob = await pdf(component).toBlob();
+    const url  = URL.createObjectURL(blob);
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = url;
+    document.body.appendChild(iframe);
+    iframe.onload = () => {
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+        URL.revokeObjectURL(url);
+      }, 100);
+    };
   }
 
-  /**
-   * Retorna o PDF como base64 (útil para salvar no Electron)
-   */
   async getReportAsBase64(options: ReportOptions): Promise<string> {
-    try {
-      const component = this.getReportComponent(options);
-      // @ts-ignore - React-PDF tem problemas de tipagem com React.createElement
-      const blob = await pdf(component).toBlob();
-      
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = reader.result as string;
-          resolve(base64.split(',')[1]); // Remove o prefixo "data:application/pdf;base64,"
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      console.error('Erro ao gerar base64:', error);
-      throw new Error('Falha ao gerar PDF em base64');
-    }
+    await this.loadCompanyData();
+    const component = this.getReportComponent(options);
+    // @ts-ignore
+    const blob = await pdf(component).toBlob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+      reader.onerror   = reject;
+      reader.readAsDataURL(blob);
+    });
   }
 
-  /**
-   * Nome padrão do arquivo
-   */
-  private getDefaultFileName(type: ReportType): string {
-    const date = new Date().toISOString().split('T')[0];
-    return `relatorio-${type}-${date}.pdf`;
+  private defaultFileName(type: ReportType): string {
+    return `relatorio-${type}-${new Date().toISOString().split('T')[0]}.pdf`;
   }
 }
 
-// ==================== EXPORTS ====================
+// ─────────────────────────────────────────────────────────────────────────────
+// Exports
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const reactPdfGenerator = ReactPDFGenerator.getInstance();
 
-// Helper functions
-export async function generatePDFReport(options: ReportOptions): Promise<void> {
-  await reactPdfGenerator.generateReport(options);
-}
-
-export async function previewPDFReport(options: ReportOptions): Promise<void> {
-  await reactPdfGenerator.previewReport(options);
-}
-
-export async function printPDFReport(options: ReportOptions): Promise<void> {
-  await reactPdfGenerator.printReport(options);
-}
+export const generatePDFReport = (o: ReportOptions) => reactPdfGenerator.generateReport(o);
+export const previewPDFReport  = (o: ReportOptions) => reactPdfGenerator.previewReport(o);
+export const printPDFReport    = (o: ReportOptions) => reactPdfGenerator.printReport(o);

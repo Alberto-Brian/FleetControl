@@ -49,8 +49,6 @@ async function createVehicleCategoryEvent(data: ICreateVehicleCategory): Promise
             );
         }
         
-        console.log("Chegamos até aqui")
-
         throw new Error(
                 new WarningError(
                     'vehicles:warnings.categoryExistsInactive',

@@ -54,8 +54,7 @@ export function useDb(): {
                 'Falha ao obter instâncias do banco. ' +
                 'Certifique-se que initializeDatabase() foi chamado.'
             );
-        }
-    }
+        }    }
 
     return {
         db: dbCache,

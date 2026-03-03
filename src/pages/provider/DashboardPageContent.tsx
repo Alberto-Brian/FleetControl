@@ -142,7 +142,7 @@ export function DashboardPageContent() {
           icon={AlertTriangle}
           title="Pending Alerts"
           value={stats.overdueFines + stats.scheduledMaintenances}
-          subtitle={`${stats.scheduledMaintenances} maintenances`}
+          subtitle={`${stats.scheduledMaintenances} ${t('dashboard:stats.maintenances.inProgress')}`}
           trend={1}
           color="bg-amber-600"
         />

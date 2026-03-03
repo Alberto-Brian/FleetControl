@@ -22,6 +22,7 @@ import { exposeExpenseCategoriesContext } from "./db/expense_categories/expense_
 import { exposeDashboardContext } from "./db/dashboard/dashboard-context";
 import { exposeReportsContext } from "./reports/reports-context";
 import { exposeDriverLeavesContext } from "./db/driver-leaves/driver-leaves-context";
+import { exposeCompanyContext } from "./db/company/company-context";
 
 export default function exposeContexts() {
     exposeWindowContext();
@@ -47,4 +48,5 @@ export default function exposeContexts() {
     exposeDashboardContext();
     exposeReportsContext();
     exposeDriverLeavesContext();
+    exposeCompanyContext();
 }

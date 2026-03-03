@@ -49,7 +49,7 @@ export const ptDashboard = {
       liters: "Litros",
       avgPrice: "Preço Médio"
     },
-    maintenance: {
+    maintenances: {
       total: "Manutenções",
       pending: "Pendentes",
       inProgress: "Em Andamento",

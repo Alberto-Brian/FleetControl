@@ -49,7 +49,7 @@ export const enDashboard = {
       liters: "Liters",
       avgPrice: "Average Price"
     },
-    maintenance: {
+    maintenances: {
       total: "Maintenances",
       pending: "Pending",
       inProgress: "In Progress",
