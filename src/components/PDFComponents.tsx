@@ -2,7 +2,7 @@
 // FILE: src/components/PDFComponents.tsx
 // ========================================
 import React from 'react';
-import { Text, View, Image, Page } from '@react-pdf/renderer';
+import { Text, View, Image, Svg, Rect } from '@react-pdf/renderer';
 import {
   commonStyles,
   PDF_CONFIG,
@@ -17,9 +17,27 @@ import { pdfT } from '@/lib/pdf/pdf-translations';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const Watermark: React.FC = () => {
-  const s = getPDFSettings();
+  const s       = getPDFSettings();
+  const company = getPDFCompany();
   if (!s.watermarkEnabled) return null;
 
+  // Modo logo — usa o logo da empresa centrado com opacidade
+  if (s.watermarkUseLogo && company.logo) {
+    return (
+      <View style={commonStyles.watermarkContainer} fixed>
+        <Image
+          src={company.logo}
+          style={{
+            width:   200,
+            height:  200,
+            opacity: s.watermarkOpacity,
+          }}
+        />
+      </View>
+    );
+  }
+
+  // Modo texto (default)
   return (
     <View style={commonStyles.watermarkContainer} fixed>
       <Text

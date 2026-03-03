@@ -7,10 +7,12 @@ export interface ISystemSettings {
 
   // PDF
   pdf_watermark_enabled:   boolean;
+  pdf_watermark_use_logo:  boolean;
   pdf_watermark_text:      string;
   pdf_watermark_opacity:   string;
   pdf_primary_color:       string;
   pdf_secondary_color:     string;
+  pdf_show_charts:         boolean;
   pdf_show_footer:         boolean;
   pdf_show_summary:        boolean;
   pdf_paper_size:          'A4' | 'Letter';
@@ -53,10 +55,12 @@ export type IUpdateSystemSettings = Partial<Omit<ISystemSettings, 'id' | 'create
 // ─────────────────────────────────────────────
 export const SYSTEM_SETTINGS_DEFAULTS: Omit<ISystemSettings, 'id' | 'created_at' | 'updated_at'> = {
   pdf_watermark_enabled:       false,
+  pdf_watermark_use_logo:      false,
   pdf_watermark_text:          'CONFIDENCIAL',
   pdf_watermark_opacity:       '0.10',
   pdf_primary_color:           '#2563eb',
   pdf_secondary_color:         '#64748b',
+  pdf_show_charts:             true,
   pdf_show_footer:             true,
   pdf_show_summary:            true,
   pdf_paper_size:              'A4',

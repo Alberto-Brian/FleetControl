@@ -31,10 +31,12 @@ export interface PDFSettingsData {
   primaryColor:     string;
   secondaryColor:   string;
   watermarkEnabled: boolean;
+  watermarkUseLogo: boolean;  // true = usa logo da empresa; false = usa texto
   watermarkText:    string;
   watermarkOpacity: number;   // 0.0 – 1.0
   showFooter:       boolean;
   showSummary:      boolean;
+  showCharts:       boolean;
   paperSize:        'A4' | 'LETTER';
   orientation:      'portrait' | 'landscape';
 }
@@ -43,10 +45,12 @@ const DEFAULT_PDF_SETTINGS: PDFSettingsData = {
   primaryColor:     '#2563eb',
   secondaryColor:   '#64748b',
   watermarkEnabled: false,
+  watermarkUseLogo: false,
   watermarkText:    'CONFIDENCIAL',
   watermarkOpacity: 0.10,
   showFooter:       true,
   showSummary:      true,
+  showCharts:       true,
   paperSize:        'A4',
   orientation:      'portrait',
 };

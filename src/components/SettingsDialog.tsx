@@ -8,6 +8,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import ToggleTheme from '@/components/ToggleTheme';
 import LangToggle from '@/components/LangToggle';
+import { toast } from 'sonner';
 import {
   Settings, Globe, Palette, Info, Package, AlertCircle,
   Mail, Phone, MapPin, Building2, HardDrive, Download, Upload,
@@ -189,7 +190,7 @@ function ResultModal({ open, onOpenChange, type, title, message }: { open: boole
 // ─────────────────────────────────────────────────────────────────────────────
 // Hook genérico para guardar alterações
 // ─────────────────────────────────────────────────────────────────────────────
-function useSaveStatus() {
+function useSaveStatus(successMsg?: string) {
   const [status, setStatus] = useState<'idle'|'saving'|'saved'|'error'>('idle');
   const [isDirty, setIsDirty] = useState(false);
 
@@ -201,9 +202,11 @@ function useSaveStatus() {
       await fn();
       setIsDirty(false);
       setStatus('saved');
+      toast.success(successMsg ?? 'Configurações guardadas com sucesso.');
       setTimeout(() => setStatus('idle'), 2500);
-    } catch {
+    } catch (err: any) {
       setStatus('error');
+      toast.error(err?.message ?? 'Erro ao guardar configurações.');
     }
   }
 
@@ -421,12 +424,14 @@ function PdfTab() {
   useEffect(() => {
     getSystemSettings().then(s => setForm({
       pdf_watermark_enabled:  s.pdf_watermark_enabled,
+      pdf_watermark_use_logo: s.pdf_watermark_use_logo,
       pdf_watermark_text:     s.pdf_watermark_text,
       pdf_watermark_opacity:  s.pdf_watermark_opacity,
       pdf_primary_color:      s.pdf_primary_color,
       pdf_secondary_color:    s.pdf_secondary_color,
       pdf_show_footer:        s.pdf_show_footer,
       pdf_show_summary:       s.pdf_show_summary,
+      pdf_show_charts:        s.pdf_show_charts,
       pdf_paper_size:         s.pdf_paper_size,
       pdf_orientation:        s.pdf_orientation,
     }));
@@ -454,10 +459,15 @@ function PdfTab() {
         </SettingRow>
         {form.pdf_watermark_enabled && (
           <>
-            <SettingRow label={t('pdf.watermarkText')}>
-              <Input value={form.pdf_watermark_text ?? ''} onChange={e => set('pdf_watermark_text', e.target.value)}
-                placeholder={t('pdf.watermarkTextPlaceholder')} className="h-8 w-48 text-sm" />
+            <SettingRow label={t('pdf.watermarkUseLogo')} description={t('pdf.watermarkUseLogoDesc')}>
+              <Switch checked={!!form.pdf_watermark_use_logo} onCheckedChange={v => set('pdf_watermark_use_logo', v)} />
             </SettingRow>
+            {!form.pdf_watermark_use_logo && (
+              <SettingRow label={t('pdf.watermarkText')}>
+                <Input value={form.pdf_watermark_text ?? ''} onChange={e => set('pdf_watermark_text', e.target.value)}
+                  placeholder={t('pdf.watermarkTextPlaceholder')} className="h-8 w-48 text-sm" />
+              </SettingRow>
+            )}
             <SettingRow label={t('pdf.watermarkOpacity')} description={t('pdf.watermarkOpacityHint')}>
               <Input value={form.pdf_watermark_opacity ?? '0.10'} onChange={e => set('pdf_watermark_opacity', e.target.value)}
                 placeholder="0.10" className="h-8 w-24 text-sm text-right" />
@@ -500,6 +510,9 @@ function PdfTab() {
 
       {/* Layout */}
       <SettingSection title={t('pdf.layout')} description={t('pdf.layoutDesc')}>
+        <SettingRow label={t('pdf.showCharts')} description={t('pdf.showChartsDesc')}>
+          <Switch checked={!!form.pdf_show_charts} onCheckedChange={v => set('pdf_show_charts', v)} />
+        </SettingRow>
         <SettingRow label={t('pdf.showFooter')}>
           <Switch checked={!!form.pdf_show_footer} onCheckedChange={v => set('pdf_show_footer', v)} />
         </SettingRow>
@@ -722,14 +735,6 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                           <ToggleTheme />
                         </div>
                       </div>
-                      <div className="pt-4 border-t border-border">
-                        <h3 className="text-base font-semibold mb-1">{t('appearance.customization')}</h3>
-                        <p className="text-sm text-muted-foreground mb-4">{t('appearance.customSubtitle')}</p>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50"><span className="text-sm">{t('appearance.animations')}</span><span className="text-xs text-muted-foreground">{t('appearance.enabled')}</span></div>
-                          <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50"><span className="text-sm">{t('appearance.transparency')}</span><span className="text-xs text-muted-foreground">{t('appearance.enabled')}</span></div>
-                        </div>
-                      </div>
                     </div>
                   )}
 
@@ -745,14 +750,6 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                             <div><p className="text-sm font-medium">{t('language.label')}</p><p className="text-xs text-muted-foreground">{t('language.subtitle')}</p></div>
                           </div>
                           <LangToggle />
-                        </div>
-                      </div>
-                      <div className="pt-4 border-t border-border">
-                        <h3 className="text-base font-semibold mb-1">{t('language.region')}</h3>
-                        <p className="text-sm text-muted-foreground mb-4">{t('language.regionSubtitle')}</p>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50"><span className="text-sm">{t('language.dateFormat')}</span><span className="text-xs text-muted-foreground">{t('language.dateValue')}</span></div>
-                          <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50"><span className="text-sm">{t('language.timeFormat')}</span><span className="text-xs text-muted-foreground">{t('language.timeValue')}</span></div>
                         </div>
                       </div>
                     </div>

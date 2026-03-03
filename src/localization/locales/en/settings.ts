@@ -96,6 +96,8 @@ export const enSettings = {
     watermark:          'Watermark',
     watermarkDesc:      'Add diagonal text to all PDF reports',
     watermarkEnabled:   'Enable watermark',
+    watermarkUseLogo:   'Use logo as watermark',
+    watermarkUseLogoDesc: 'Uses the configured logo instead of text. If no logo is set, text will be used.',
     watermarkText:      'Watermark text',
     watermarkTextPlaceholder: 'Ex: CONFIDENTIAL, DRAFT',
     watermarkOpacity:   'Opacity',
@@ -111,6 +113,8 @@ export const enSettings = {
 
     layout:             'Layout & Content',
     layoutDesc:         'Configure what is displayed in the reports',
+    showCharts:         'Include charts',
+    showChartsDesc:     'Adds visual charts (bar, pie, line) to PDF reports',
     showFooter:         'Show footer with pagination',
     showSummary:        'Show executive summary',
     paperSize:          'Paper size',

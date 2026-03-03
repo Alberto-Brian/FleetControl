@@ -101,6 +101,8 @@ export const ptSettings = {
     watermark:          'Marca de Água',
     watermarkDesc:      'Adiciona texto diagonal em todos os relatórios PDF',
     watermarkEnabled:   'Activar marca de água',
+    watermarkUseLogo:   'Usar logótipo como marca de água',
+    watermarkUseLogoDesc: 'Usa o logo configurado em vez de texto. Se não houver logo, será usado o texto.',
     watermarkText:      'Texto da marca de água',
     watermarkTextPlaceholder: 'Ex: CONFIDENCIAL, RASCUNHO',
     watermarkOpacity:   'Opacidade',
@@ -116,6 +118,8 @@ export const ptSettings = {
 
     layout:             'Layout e Conteúdo',
     layoutDesc:         'Configure o que é apresentado nos relatórios',
+    showCharts:         'Incluir gráficos',
+    showChartsDesc:     'Adiciona gráficos visuais (barras, pizza, linhas) aos relatórios PDF',
     showFooter:         'Mostrar rodapé com paginação',
     showSummary:        'Mostrar resumo executivo',
     paperSize:          'Tamanho do papel',

@@ -18,7 +18,9 @@ export const system_settings = sqliteTable('system_settings', {
   // ── PDF / Relatórios ──────────────────────────────────────────────────────
   /** Mostrar marca de água nos relatórios PDF */
   pdf_watermark_enabled:  integer('pdf_watermark_enabled', { mode: 'boolean' }).notNull().default(false),
-  /** Texto da marca de água (ex: "CONFIDENCIAL", "RASCUNHO") */
+  /** Usar o logo da empresa como marca de água (em vez de texto) */
+  pdf_watermark_use_logo: integer('pdf_watermark_use_logo', { mode: 'boolean' }).notNull().default(false),
+  /** Texto da marca de água (ex: "CONFIDENCIAL", "RASCUNHO") — ignorado se use_logo=true */
   pdf_watermark_text:     text('pdf_watermark_text').default('CONFIDENCIAL'),
   /** Opacidade da marca de água: 0.0 - 1.0 (guardado como texto "0.15") */
   pdf_watermark_opacity:  text('pdf_watermark_opacity').default('0.10'),
@@ -26,8 +28,10 @@ export const system_settings = sqliteTable('system_settings', {
   pdf_primary_color:      text('pdf_primary_color').default('#2563eb'),
   /** Cor secundária dos relatórios (hex) — textos auxiliares */
   pdf_secondary_color:    text('pdf_secondary_color').default('#64748b'),
+  /** Incluir gráficos visuais nos relatórios PDF */
+  pdf_show_charts:        integer('pdf_show_charts',  { mode: 'boolean' }).notNull().default(true),
   /** Mostrar rodapé com nome da empresa e paginação */
-  pdf_show_footer:        integer('pdf_show_footer', { mode: 'boolean' }).notNull().default(true),
+  pdf_show_footer:        integer('pdf_show_footer',  { mode: 'boolean' }).notNull().default(true),
   /** Mostrar secção de resumo executivo nos relatórios gerais */
   pdf_show_summary:       integer('pdf_show_summary', { mode: 'boolean' }).notNull().default(true),
   /** Tamanho do papel: A4 | Letter */

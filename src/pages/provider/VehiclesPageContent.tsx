@@ -516,7 +516,7 @@ export default function VehiclesPageContent() {
                   </div>
 
                   <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
-                    <SelectTrigger className="w-full sm:w-[160px] h-10 text-sm bg-muted/20 border-none">
+                    <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
                       <Filter className="w-4 h-4 text-muted-foreground" />
                       <SelectValue placeholder={t('vehicles:filters.status')} />
                     </SelectTrigger>
@@ -530,7 +530,7 @@ export default function VehiclesPageContent() {
                   </Select>
 
                   <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setCurrentPage(1); }}>
-                    <SelectTrigger className="w-full sm:w-[200px] h-10 text-sm bg-muted/20 border-none">
+                    <SelectTrigger className="w-full sm:w-[225px] h-10 text-sm bg-muted/20 border-none">
                       <Tag className="w-4 h-4 text-muted-foreground" />
                       <SelectValue placeholder={t('vehicles:filters.category')} />
                     </SelectTrigger>

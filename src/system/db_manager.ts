@@ -577,10 +577,10 @@ private sortTablesByDependency(tables: TableConfig[]): TableConfig[] {
     // 4️⃣ Documentos (dependem de vehicles)
     'vehicle_documents',
 
-    // As licenças (dependem de drivers)
+    // 5️⃣ Licenças dos motoristas (dependem de drivers)
     'driver_leaves',
     
-    // 5️⃣ Transacionais (dependem de tudo acima)
+    // 6️⃣ Transacionais (dependem de tudo acima)
     'trips', // depende de vehicle, driver, route
     'refuelings', // depende de vehicle, driver, trip, fuel_station
     'maintenances',
