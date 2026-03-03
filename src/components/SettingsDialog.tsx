@@ -1,950 +1,1040 @@
-import React, { useState, useEffect, useRef } from "react";
+// ========================================
+// FILE: src/components/SettingsDialog.tsx
+// ========================================
+import React, { useState, useEffect, useRef } from 'react';
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from "@/components/ui/dialog";
-import { useTranslation } from "react-i18next";
-import ToggleTheme from "@/components/ToggleTheme";
-import LangToggle from "@/components/LangToggle";
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import { useTranslation } from 'react-i18next';
+import ToggleTheme from '@/components/ToggleTheme';
+import LangToggle from '@/components/LangToggle';
 import {
-    Settings, Globe, Palette, Info, Package, AlertCircle,
-    Mail, Phone, MapPin, Building2, HardDrive, Download,
-    Upload, Clock, Loader2, CheckCircle, XCircle,
-    Camera, Trash2, Save, Building, Hash, AtSign,
-    FileText, RefreshCw, ImageIcon, X,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
-import { exportBackup, restoreBackup } from "@/helpers/backup-helpers";
-import { getSystemVersion, forceDbRotation } from "@/helpers/system-helpers";
-import {
-    getCompanySettings,
-    updateCompanySettings,
-    uploadCompanyLogo,
-    removeCompanyLogo,
-} from "@/helpers/company-helpers";
-import { ICompanySettings, IUpdateCompanySettings } from "@/lib/types/company";
-import { cn } from "@/lib/utils";
+  Settings, Globe, Palette, Info, Package, AlertCircle,
+  Mail, Phone, MapPin, Building2, HardDrive, Download, Upload,
+  Clock, Loader2, CheckCircle, XCircle, Camera, Trash2, Save,
+  Building, Hash, AtSign, ImageIcon, FileText, Bell, Car,
+  Fuel, Sliders, RotateCcw, Eye, EyeOff, Droplets,
+} from 'lucide-react';
+import { Button }   from '@/components/ui/button';
+import { Switch }   from '@/components/ui/switch';
+import { Input }    from '@/components/ui/input';
+import { Label }    from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
+import { cn }       from '@/lib/utils';
 
-// ────────────────────────────────────────────────────────────────────────────
-//   Modais Auxiliares (sem alterações)
-// ────────────────────────────────────────────────────────────────────────────
+import { exportBackup, restoreBackup }           from '@/helpers/backup-helpers';
+import { getSystemVersion, forceDbRotation }      from '@/helpers/system-helpers';
+import { getCompanySettings, updateCompanySettings, uploadCompanyLogo, removeCompanyLogo } from '@/helpers/company-helpers';
+import { getSystemSettings, updateSystemSettings, resetSystemSettings }                    from '@/helpers/system-settings-helpers';
+
+import { ICompanySettings, IUpdateCompanySettings }           from '@/lib/types/company';
+import { ISystemSettings, IUpdateSystemSettings }             from '@/lib/types/system-settings';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers reutilizáveis
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface RowProps {
+  label: string;
+  description?: string;
+  children: React.ReactNode;
+}
+function SettingRow({ label, description, children }: RowProps) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50 last:border-0">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium">{label}</p>
+        {description && <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{description}</p>}
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+interface SectionProps {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}
+function SettingSection({ title, description, children }: SectionProps) {
+  return (
+    <div className="space-y-1">
+      <div className="mb-3">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{title}</p>
+        {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
+      </div>
+      <div className="px-1">{children}</div>
+    </div>
+  );
+}
+
+interface NumberInputProps {
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  max?: number;
+  unit?: string;
+  hint?: string;
+  disabled?: boolean;
+}
+function NumberInput({ value, onChange, min = 0, max, unit, hint, disabled }: NumberInputProps) {
+  return (
+    <div className="flex items-center gap-2">
+      <Input
+        type="number"
+        value={value}
+        min={min}
+        max={max}
+        disabled={disabled}
+        onChange={e => onChange(Number(e.target.value))}
+        className="h-8 w-24 text-sm text-right"
+      />
+      {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modais Auxiliares de Backup (com traduções)
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface ProgressModalProps {
-    open: boolean;
-    type: 'backup' | 'restore';
-    progress: number;
-    phase: string;
-    message: string;
-    status: 'loading' | 'success' | 'error';
+  open: boolean; type: 'backup'|'restore'; progress: number;
+  phase: string; message: string; status: 'loading'|'success'|'error';
 }
-
 function ProgressModal({ open, type, progress, phase, message, status }: ProgressModalProps) {
-    const getIcon = () => {
-        if (status === 'error')   return <XCircle className="w-12 h-12 text-destructive" />;
-        if (status === 'success') return <CheckCircle className="w-12 h-12 text-green-500" />;
-        return <Loader2 className="w-12 h-12 text-primary animate-spin" />;
-    };
-    const title = type === 'backup' ? 'A criar backup...' : 'A restaurar backup...';
-    return (
-        <Dialog open={open} onOpenChange={() => {}}>
-            <DialogContent className="sm:max-w-md" onPointerDownOutside={e => e.preventDefault()}>
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <HardDrive className="w-5 h-5" />{title}
-                    </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-6 py-6">
-                    <div className="flex justify-center">{getIcon()}</div>
-                    <div className="text-center space-y-1.5">
-                        <p className="text-base font-semibold">{phase}</p>
-                        <p className="text-sm text-muted-foreground">{message}</p>
-                    </div>
-                    {status === 'loading' && (
-                        <div className="space-y-3">
-                            <Progress value={progress} className="h-2.5" />
-                            <p className="text-sm text-center text-muted-foreground font-medium">{progress.toFixed(0)}%</p>
-                        </div>
-                    )}
-                    {status === 'error' && (
-                        <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30 text-center text-sm text-destructive">{message}</div>
-                    )}
-                    {status === 'success' && (
-                        <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30 text-center text-sm text-green-700 dark:text-green-400">{message}</div>
-                    )}
-                </div>
-                {status === 'loading' && (
-                    <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-2">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />Não feche esta janela
-                    </p>
-                )}
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-function ConfirmRestoreModal({ open, onOpenChange, onConfirm }: { open: boolean; onOpenChange: (o: boolean) => void; onConfirm: () => void }) {
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-amber-600">
-                        <AlertCircle className="w-5 h-5" />Confirmar restauração
-                    </DialogTitle>
-                </DialogHeader>
-                <div className="py-4 space-y-4">
-                    <p className="text-sm">Tem a certeza que deseja restaurar um backup?</p>
-                    <div className="text-sm text-muted-foreground space-y-1.5">
-                        <p>• Os dados actuais serão substituídos</p>
-                        <p>• Será necessário reactivar a licença</p>
-                        <p>• A aplicação será reiniciada automaticamente</p>
-                        <p className="font-medium text-foreground pt-2">Esta acção não pode ser desfeita.</p>
-                    </div>
-                </div>
-                <DialogFooter className="gap-3 sm:gap-3">
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                    <Button variant="destructive" onClick={onConfirm}>Sim, restaurar</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-function ResultModal({ open, onOpenChange, type, title, message, needsReactivation }: {
-    open: boolean; onOpenChange: (o: boolean) => void; type: 'success' | 'error';
-    title: string; message: string; needsReactivation?: boolean;
-}) {
-    const Icon  = type === 'success' ? CheckCircle : XCircle;
-    const color = type === 'success' ? 'text-green-600' : 'text-destructive';
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle className={`flex items-center gap-2 ${color}`}>
-                        <Icon className="w-5 h-5" />{title}
-                    </DialogTitle>
-                </DialogHeader>
-                <div className="py-6 space-y-4">
-                    <p className="text-sm leading-relaxed text-center">{message}</p>
-                    {needsReactivation && (
-                        <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-700">
-                            <strong>Atenção:</strong> Será necessário reactivar a licença após o reinício.
-                        </div>
-                    )}
-                </div>
-                <DialogFooter>
-                    <Button onClick={() => onOpenChange(false)} className="w-full">Fechar</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-//   Tab Empresa
-// ────────────────────────────────────────────────────────────────────────────
-
-function CompanyTab() {
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const [settings, setSettings]   = useState<ICompanySettings | null>(null);
-    const [form, setForm]           = useState<IUpdateCompanySettings>({});
-    const [logoPreview, setLogoPreview] = useState<string | null>(null);
-    const [isDirty, setIsDirty]     = useState(false);
-    const [isSaving, setIsSaving]   = useState(false);
-    const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-    const [isRemovingLogo, setIsRemovingLogo]   = useState(false);
-    const [isDragging, setIsDragging] = useState(false);
-    const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
-
-    // Carregar dados ao montar
-    useEffect(() => {
-        loadSettings();
-    }, []);
-
-    async function loadSettings() {
-        try {
-            const data = await getCompanySettings();
-            if (data) {
-                setSettings(data);
-                setForm({
-                    company_name: data.company_name,
-                    tax_id:       data.tax_id       ?? '',
-                    phone:        data.phone        ?? '',
-                    email:        data.email        ?? '',
-                    address:      data.address      ?? '',
-                    city:         data.city         ?? '',
-                    state:        data.state        ?? '',
-                    postal_code:  data.postal_code  ?? '',
-                    currency:     data.currency,
-                    timezone:     data.timezone,
-                });
-                setLogoPreview(data.logo_base64 ?? null);
-            }
-        } catch (err) {
-            console.error('[CompanyTab] Erro ao carregar:', err);
-        }
-    }
-
-    function handleChange(field: keyof IUpdateCompanySettings, value: string) {
-        setForm(prev => ({ ...prev, [field]: value }));
-        setIsDirty(true);
-        setSaveStatus('idle');
-    }
-
-    async function handleSave() {
-        setIsSaving(true);
-        try {
-            const updated = await updateCompanySettings(form);
-            setSettings(updated);
-            setIsDirty(false);
-            setSaveStatus('saved');
-            setTimeout(() => setSaveStatus('idle'), 2500);
-        } catch (err) {
-            setSaveStatus('error');
-        } finally {
-            setIsSaving(false);
-        }
-    }
-
-    async function handleLogoFile(file: File) {
-        setIsUploadingLogo(true);
-        try {
-            const { settings: updated, logo } = await uploadCompanyLogo(file);
-            setSettings(updated);
-            setLogoPreview(logo.base64);
-        } catch (err: any) {
-            alert(err.message ?? 'Erro ao carregar logo.');
-        } finally {
-            setIsUploadingLogo(false);
-        }
-    }
-
-    function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
-        const file = e.target.files?.[0];
-        if (file) handleLogoFile(file);
-        e.target.value = '';
-    }
-
-    function handleDrop(e: React.DragEvent) {
-        e.preventDefault();
-        setIsDragging(false);
-        const file = e.dataTransfer.files?.[0];
-        if (file && file.type.startsWith('image/')) handleLogoFile(file);
-    }
-
-    async function handleRemoveLogo() {
-        setIsRemovingLogo(true);
-        try {
-            const updated = await removeCompanyLogo();
-            if (updated) setSettings(updated);
-            setLogoPreview(null);
-        } catch (err) {
-            console.error('[CompanyTab] Erro ao remover logo:', err);
-        } finally {
-            setIsRemovingLogo(false);
-        }
-    }
-
-    const companyInitial = form.company_name?.charAt(0)?.toUpperCase() ?? 'E';
-
-    return (
-        <div className="space-y-7">
-
-            {/* ── Cabeçalho ── */}
-            <div className="flex items-start justify-between">
-                <div>
-                    <h3 className="text-base font-semibold mb-0.5">Dados da Empresa</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Informações que aparecem nos relatórios PDF e documentos gerados
-                    </p>
-                </div>
-
-                {/* Botão Guardar */}
-                <Button
-                    onClick={handleSave}
-                    disabled={!isDirty || isSaving}
-                    size="sm"
-                    className={cn(
-                        "gap-2 min-w-[110px] transition-all",
-                        saveStatus === 'saved' && "bg-emerald-600 hover:bg-emerald-700",
-                        saveStatus === 'error' && "bg-destructive hover:bg-destructive/90",
-                    )}
-                >
-                    {isSaving ? (
-                        <><Loader2 className="w-4 h-4 animate-spin" />A guardar...</>
-                    ) : saveStatus === 'saved' ? (
-                        <><CheckCircle className="w-4 h-4" />Guardado</>
-                    ) : saveStatus === 'error' ? (
-                        <><XCircle className="w-4 h-4" />Erro</>
-                    ) : (
-                        <><Save className="w-4 h-4" />Guardar</>
-                    )}
-                </Button>
+  const { t } = useTranslation('settings');
+  const getIcon = () => {
+    if (status === 'error')   return <XCircle className="w-12 h-12 text-destructive" />;
+    if (status === 'success') return <CheckCircle className="w-12 h-12 text-green-500" />;
+    return <Loader2 className="w-12 h-12 text-primary animate-spin" />;
+  };
+  return (
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent className="sm:max-w-md" onPointerDownOutside={e => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <HardDrive className="w-5 h-5" />
+            {type === 'backup' ? t('backups.progressBackup') : t('backups.progressRestore')}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6 py-6">
+          <div className="flex justify-center">{getIcon()}</div>
+          <div className="text-center space-y-1.5">
+            <p className="text-base font-semibold">{phase}</p>
+            <p className="text-sm text-muted-foreground">{message}</p>
+          </div>
+          {status === 'loading' && (
+            <div className="space-y-3">
+              <Progress value={progress} className="h-2.5" />
+              <p className="text-sm text-center text-muted-foreground font-medium">{progress.toFixed(0)}%</p>
             </div>
-
-            {/* ── Logo ── */}
-            <div className="flex items-start gap-6 p-4 rounded-xl border border-border bg-card/50">
-                {/* Preview / Drop zone */}
-                <div
-                    className={cn(
-                        "relative group w-24 h-24 rounded-xl border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden transition-all flex-shrink-0",
-                        isDragging
-                            ? "border-primary bg-primary/10 scale-105"
-                            : "border-border hover:border-primary/50 hover:bg-muted/50",
-                        (isUploadingLogo) && "pointer-events-none opacity-60"
-                    )}
-                    onClick={() => fileInputRef.current?.click()}
-                    onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
-                    onDragLeave={() => setIsDragging(false)}
-                    onDrop={handleDrop}
-                >
-                    {isUploadingLogo ? (
-                        <Loader2 className="w-7 h-7 text-primary animate-spin" />
-                    ) : logoPreview ? (
-                        <>
-                            <img
-                                src={logoPreview}
-                                alt="Logo"
-                                className="w-full h-full object-contain p-1"
-                            />
-                            {/* overlay no hover */}
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <Camera className="w-5 h-5 text-white" />
-                            </div>
-                        </>
-                    ) : (
-                        <div className="flex flex-col items-center gap-1.5 text-center px-2">
-                            {isDragging ? (
-                                <ImageIcon className="w-7 h-7 text-primary" />
-                            ) : (
-                                <>
-                                    <div
-                                        className="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-black text-white"
-                                        style={{ background: 'hsl(var(--primary))' }}
-                                    >
-                                        {companyInitial}
-                                    </div>
-                                    <span className="text-[9px] text-muted-foreground leading-tight">
-                                        Clique ou arraste
-                                    </span>
-                                </>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                {/* Info + acções */}
-                <div className="flex-1 space-y-3">
-                    <div>
-                        <p className="text-sm font-semibold">Logótipo da empresa</p>
-                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                            Aparece no cabeçalho de todos os relatórios PDF.<br />
-                            PNG, JPG, WEBP ou SVG · Máximo 2 MB
-                        </p>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5 text-xs"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isUploadingLogo || isRemovingLogo}
-                        >
-                            <Upload className="w-3.5 h-3.5" />
-                            {logoPreview ? 'Alterar' : 'Carregar'}
-                        </Button>
-                        {logoPreview && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="gap-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={handleRemoveLogo}
-                                disabled={isRemovingLogo || isUploadingLogo}
-                            >
-                                {isRemovingLogo
-                                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    : <Trash2 className="w-3.5 h-3.5" />
-                                }
-                                Remover
-                            </Button>
-                        )}
-                    </div>
-                </div>
-
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
-                    className="hidden"
-                    onChange={handleFileInput}
-                />
-            </div>
-
-            {/* ── Dados principais ── */}
-            <div className="space-y-4">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                    Identificação
-                </p>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2 space-y-1.5">
-                        <Label className="text-xs font-semibold flex items-center gap-1.5">
-                            <Building className="w-3.5 h-3.5 text-muted-foreground" />
-                            Nome da Empresa *
-                        </Label>
-                        <Input
-                            value={form.company_name ?? ''}
-                            onChange={e => handleChange('company_name', e.target.value)}
-                            placeholder="Ex: Empresa ABC, Lda"
-                            className="h-9 text-sm"
-                        />
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold flex items-center gap-1.5">
-                            <Hash className="w-3.5 h-3.5 text-muted-foreground" />
-                            NIF / Contribuinte
-                        </Label>
-                        <Input
-                            value={form.tax_id ?? ''}
-                            onChange={e => handleChange('tax_id', e.target.value)}
-                            placeholder="Ex: 5401234567"
-                            className="h-9 text-sm"
-                        />
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold flex items-center gap-1.5">
-                            <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                            Telefone
-                        </Label>
-                        <Input
-                            value={form.phone ?? ''}
-                            onChange={e => handleChange('phone', e.target.value)}
-                            placeholder="+244 923 000 000"
-                            className="h-9 text-sm"
-                        />
-                    </div>
-
-                    <div className="col-span-2 space-y-1.5">
-                        <Label className="text-xs font-semibold flex items-center gap-1.5">
-                            <AtSign className="w-3.5 h-3.5 text-muted-foreground" />
-                            Email
-                        </Label>
-                        <Input
-                            value={form.email ?? ''}
-                            onChange={e => handleChange('email', e.target.value)}
-                            placeholder="info@empresa.ao"
-                            type="email"
-                            className="h-9 text-sm"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* ── Morada ── */}
-            <div className="space-y-4 pt-1 border-t border-border">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground pt-3">
-                    Morada
-                </p>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2 space-y-1.5">
-                        <Label className="text-xs font-semibold flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-                            Endereço
-                        </Label>
-                        <Input
-                            value={form.address ?? ''}
-                            onChange={e => handleChange('address', e.target.value)}
-                            placeholder="Rua / Avenida, Nº"
-                            className="h-9 text-sm"
-                        />
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold">Cidade</Label>
-                        <Input
-                            value={form.city ?? ''}
-                            onChange={e => handleChange('city', e.target.value)}
-                            placeholder="Luanda"
-                            className="h-9 text-sm"
-                        />
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold">Província / Estado</Label>
-                        <Input
-                            value={form.state ?? ''}
-                            onChange={e => handleChange('state', e.target.value)}
-                            placeholder="Luanda"
-                            className="h-9 text-sm"
-                        />
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold">Código Postal</Label>
-                        <Input
-                            value={form.postal_code ?? ''}
-                            onChange={e => handleChange('postal_code', e.target.value)}
-                            placeholder="0000-000"
-                            className="h-9 text-sm"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* ── Moeda / Fuso ── */}
-            <div className="space-y-4 pt-1 border-t border-border">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground pt-3">
-                    Regionalização
-                </p>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold">Moeda</Label>
-                        <Input
-                            value={form.currency ?? 'AOA'}
-                            onChange={e => handleChange('currency', e.target.value)}
-                            placeholder="AOA"
-                            className="h-9 text-sm"
-                        />
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold">Fuso Horário</Label>
-                        <Input
-                            value={form.timezone ?? 'Africa/Luanda'}
-                            onChange={e => handleChange('timezone', e.target.value)}
-                            placeholder="Africa/Luanda"
-                            className="h-9 text-sm"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Aviso unsaved */}
-            {isDirty && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    Há alterações não guardadas. Clique em <strong>Guardar</strong> para aplicar.
-                </div>
-            )}
+          )}
+          {status === 'error'   && <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30 text-center text-sm text-destructive">{message}</div>}
+          {status === 'success' && <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30 text-center text-sm text-green-700 dark:text-green-400">{message}</div>}
         </div>
-    );
+        {status === 'loading' && (
+          <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-2">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />{t('backups.dontClose')}
+          </p>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-//   Componente Principal — SettingsDialog
-// ────────────────────────────────────────────────────────────────────────────
+function ConfirmRestoreModal({ open, onOpenChange, onConfirm }: { open: boolean; onOpenChange: (o: boolean)=>void; onConfirm: ()=>void }) {
+  const { t } = useTranslation('settings');
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-amber-600">
+            <AlertCircle className="w-5 h-5" />{t('backups.confirmRestore')}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="py-4 space-y-4">
+          <p className="text-sm">{t('backups.confirmRestoreText')}</p>
+          <div className="text-sm text-muted-foreground space-y-1.5">
+            <p>• {t('backups.confirmBullet1')}</p>
+            <p>• {t('backups.confirmBullet2')}</p>
+            <p>• {t('backups.confirmBullet3')}</p>
+            <p className="font-medium text-foreground pt-2">{t('backups.confirmIrreversible')}</p>
+          </div>
+        </div>
+        <DialogFooter className="gap-3 sm:gap-3">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t('backups.confirmCancel')}</Button>
+          <Button variant="destructive" onClick={onConfirm}>{t('backups.confirmYes')}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
+function ResultModal({ open, onOpenChange, type, title, message }: { open: boolean; onOpenChange: (o: boolean)=>void; type: 'success'|'error'; title: string; message: string }) {
+  const { t } = useTranslation('settings');
+  const Icon  = type === 'success' ? CheckCircle : XCircle;
+  const color = type === 'success' ? 'text-green-600' : 'text-destructive';
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader><DialogTitle className={`flex items-center gap-2 ${color}`}><Icon className="w-5 h-5" />{title}</DialogTitle></DialogHeader>
+        <div className="py-6"><p className="text-sm leading-relaxed text-center">{message}</p></div>
+        <DialogFooter><Button onClick={() => onOpenChange(false)} className="w-full">{t('backups.confirmCancel').replace('Cancelar','Fechar').replace('Cancel','Close')}</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hook genérico para guardar alterações
+// ─────────────────────────────────────────────────────────────────────────────
+function useSaveStatus() {
+  const [status, setStatus] = useState<'idle'|'saving'|'saved'|'error'>('idle');
+  const [isDirty, setIsDirty] = useState(false);
+
+  function markDirty() { setIsDirty(true); setStatus('idle'); }
+
+  async function save(fn: () => Promise<void>) {
+    setStatus('saving');
+    try {
+      await fn();
+      setIsDirty(false);
+      setStatus('saved');
+      setTimeout(() => setStatus('idle'), 2500);
+    } catch {
+      setStatus('error');
+    }
+  }
+
+  return { status, isDirty, markDirty, save };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Botão Guardar reutilizável
+// ─────────────────────────────────────────────────────────────────────────────
+function SaveButton({ status, isDirty, onClick }: { status: string; isDirty: boolean; onClick: ()=>void }) {
+  const { t } = useTranslation('settings');
+  return (
+    <Button
+      onClick={onClick}
+      disabled={!isDirty || status === 'saving'}
+      size="sm"
+      className={cn(
+        'gap-2 min-w-[110px] transition-all',
+        status === 'saved' && 'bg-emerald-600 hover:bg-emerald-700',
+        status === 'error' && 'bg-destructive hover:bg-destructive/90',
+      )}
+    >
+      {status === 'saving' ? <><Loader2 className="w-4 h-4 animate-spin" />{t('saving')}</>
+      : status === 'saved' ? <><CheckCircle className="w-4 h-4" />{t('saved')}</>
+      : status === 'error' ? <><XCircle className="w-4 h-4" />{t('error')}</>
+      : <><Save className="w-4 h-4" />{t('save')}</>}
+    </Button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tab: Empresa
+// ─────────────────────────────────────────────────────────────────────────────
+function CompanyTab() {
+  const { t } = useTranslation('settings');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [settings, setSettings]   = useState<ICompanySettings | null>(null);
+  const [form, setForm]           = useState<IUpdateCompanySettings>({});
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isRemovingLogo, setIsRemovingLogo]   = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const { status, isDirty, markDirty, save } = useSaveStatus();
+
+  useEffect(() => { loadSettings(); }, []);
+
+  async function loadSettings() {
+    const data = await getCompanySettings();
+    if (data) {
+      setSettings(data);
+      setForm({
+        company_name: data.company_name, tax_id: data.tax_id ?? '',
+        phone: data.phone ?? '', email: data.email ?? '',
+        address: data.address ?? '', city: data.city ?? '',
+        state: data.state ?? '', postal_code: data.postal_code ?? '',
+        currency: data.currency, timezone: data.timezone,
+      });
+      setLogoPreview(data.logo_base64 ?? null);
+    }
+  }
+
+  function handleChange(field: keyof IUpdateCompanySettings, value: string) {
+    setForm(prev => ({ ...prev, [field]: value }));
+    markDirty();
+  }
+
+  async function handleLogoFile(file: File) {
+    setIsUploadingLogo(true);
+    try {
+      const { settings: updated, logo } = await uploadCompanyLogo(file);
+      setSettings(updated);
+      setLogoPreview(logo.base64);
+    } catch (err: any) { alert(err.message ?? t('company.errors.logoFormat')); }
+    finally { setIsUploadingLogo(false); }
+  }
+
+  async function handleRemoveLogo() {
+    setIsRemovingLogo(true);
+    try {
+      const updated = await removeCompanyLogo();
+      if (updated) setSettings(updated);
+      setLogoPreview(null);
+    } finally { setIsRemovingLogo(false); }
+  }
+
+  const companyInitial = form.company_name?.charAt(0)?.toUpperCase() ?? 'E';
+
+  return (
+    <div className="space-y-7">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="text-base font-semibold mb-0.5">{t('company.title')}</h3>
+          <p className="text-sm text-muted-foreground">{t('company.description')}</p>
+        </div>
+        <SaveButton status={status} isDirty={isDirty} onClick={() => save(() => updateCompanySettings(form).then(s => setSettings(s)))} />
+      </div>
+
+      {/* Logo */}
+      <div className="flex items-start gap-6 p-4 rounded-xl border border-border bg-card/50">
+        <div
+          className={cn('relative group w-24 h-24 rounded-xl border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden transition-all flex-shrink-0',
+            isDragging ? 'border-primary bg-primary/10 scale-105' : 'border-border hover:border-primary/50 hover:bg-muted/50',
+            isUploadingLogo && 'pointer-events-none opacity-60')}
+          onClick={() => fileInputRef.current?.click()}
+          onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={e => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files?.[0]; if (f?.type.startsWith('image/')) handleLogoFile(f); }}
+        >
+          {isUploadingLogo ? <Loader2 className="w-7 h-7 text-primary animate-spin" />
+          : logoPreview ? (
+            <><img src={logoPreview} alt="Logo" className="w-full h-full object-contain p-1" />
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><Camera className="w-5 h-5 text-white" /></div></>
+          ) : (
+            <div className="flex flex-col items-center gap-1.5 text-center px-2">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-black text-white" style={{ background: 'hsl(var(--primary))' }}>{companyInitial}</div>
+              <span className="text-[9px] text-muted-foreground leading-tight">{t('company.logoClick')}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex-1 space-y-3">
+          <div>
+            <p className="text-sm font-semibold">{t('company.logo')}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{t('company.logoDescription')}<br />{t('company.logoHint')}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => fileInputRef.current?.click()} disabled={isUploadingLogo || isRemovingLogo}>
+              <Upload className="w-3.5 h-3.5" />{logoPreview ? t('company.logoChange') : t('company.logoUpload')}
+            </Button>
+            {logoPreview && (
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleRemoveLogo} disabled={isRemovingLogo || isUploadingLogo}>
+                {isRemovingLogo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}{t('company.logoRemove')}
+              </Button>
+            )}
+          </div>
+        </div>
+        <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoFile(f); e.target.value=''; }} />
+      </div>
+
+      {/* Identificação */}
+      <SettingSection title={t('company.identification')}>
+        <div className="grid grid-cols-2 gap-4 pt-2">
+          <div className="col-span-2 space-y-1.5">
+            <Label className="text-xs font-semibold flex items-center gap-1.5"><Building className="w-3.5 h-3.5 text-muted-foreground" />{t('company.name')} *</Label>
+            <Input value={form.company_name ?? ''} onChange={e => handleChange('company_name', e.target.value)} placeholder={t('company.namePlaceholder')} className="h-9 text-sm" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold flex items-center gap-1.5"><Hash className="w-3.5 h-3.5 text-muted-foreground" />{t('company.taxId')}</Label>
+            <Input value={form.tax_id ?? ''} onChange={e => handleChange('tax_id', e.target.value)} placeholder={t('company.taxIdPlaceholder')} className="h-9 text-sm" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-muted-foreground" />{t('company.phone')}</Label>
+            <Input value={form.phone ?? ''} onChange={e => handleChange('phone', e.target.value)} placeholder={t('company.phonePlaceholder')} className="h-9 text-sm" />
+          </div>
+          <div className="col-span-2 space-y-1.5">
+            <Label className="text-xs font-semibold flex items-center gap-1.5"><AtSign className="w-3.5 h-3.5 text-muted-foreground" />{t('company.email')}</Label>
+            <Input value={form.email ?? ''} onChange={e => handleChange('email', e.target.value)} placeholder={t('company.emailPlaceholder')} type="email" className="h-9 text-sm" />
+          </div>
+        </div>
+      </SettingSection>
+
+      {/* Morada */}
+      <SettingSection title={t('company.address')}>
+        <div className="grid grid-cols-2 gap-4 pt-2">
+          <div className="col-span-2 space-y-1.5">
+            <Label className="text-xs font-semibold flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-muted-foreground" />{t('company.street')}</Label>
+            <Input value={form.address ?? ''} onChange={e => handleChange('address', e.target.value)} placeholder={t('company.streetPlaceholder')} className="h-9 text-sm" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">{t('company.city')}</Label>
+            <Input value={form.city ?? ''} onChange={e => handleChange('city', e.target.value)} placeholder={t('company.cityPlaceholder')} className="h-9 text-sm" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">{t('company.state')}</Label>
+            <Input value={form.state ?? ''} onChange={e => handleChange('state', e.target.value)} placeholder={t('company.statePlaceholder')} className="h-9 text-sm" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">{t('company.postalCode')}</Label>
+            <Input value={form.postal_code ?? ''} onChange={e => handleChange('postal_code', e.target.value)} placeholder={t('company.postalPlaceholder')} className="h-9 text-sm" />
+          </div>
+        </div>
+      </SettingSection>
+
+      {/* Regionalização */}
+      <SettingSection title={t('company.regionalization')}>
+        <div className="grid grid-cols-2 gap-4 pt-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">{t('company.currency')}</Label>
+            <Input value={form.currency ?? 'AOA'} onChange={e => handleChange('currency', e.target.value)} placeholder="AOA" className="h-9 text-sm" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">{t('company.timezone')}</Label>
+            <Input value={form.timezone ?? 'Africa/Luanda'} onChange={e => handleChange('timezone', e.target.value)} placeholder="Africa/Luanda" className="h-9 text-sm" />
+          </div>
+        </div>
+      </SettingSection>
+
+      {isDirty && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+          <span dangerouslySetInnerHTML={{ __html: t('unsavedChanges') }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tab: Relatórios PDF
+// ─────────────────────────────────────────────────────────────────────────────
+function PdfTab() {
+  const { t } = useTranslation('settings');
+  const [form, setForm] = useState<IUpdateSystemSettings>({});
+  const { status, isDirty, markDirty, save } = useSaveStatus();
+
+  useEffect(() => {
+    getSystemSettings().then(s => setForm({
+      pdf_watermark_enabled:  s.pdf_watermark_enabled,
+      pdf_watermark_text:     s.pdf_watermark_text,
+      pdf_watermark_opacity:  s.pdf_watermark_opacity,
+      pdf_primary_color:      s.pdf_primary_color,
+      pdf_secondary_color:    s.pdf_secondary_color,
+      pdf_show_footer:        s.pdf_show_footer,
+      pdf_show_summary:       s.pdf_show_summary,
+      pdf_paper_size:         s.pdf_paper_size,
+      pdf_orientation:        s.pdf_orientation,
+    }));
+  }, []);
+
+  function set<K extends keyof IUpdateSystemSettings>(k: K, v: IUpdateSystemSettings[K]) {
+    setForm(p => ({ ...p, [k]: v }));
+    markDirty();
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="text-base font-semibold mb-0.5">{t('pdf.title')}</h3>
+          <p className="text-sm text-muted-foreground">{t('pdf.description')}</p>
+        </div>
+        <SaveButton status={status} isDirty={isDirty} onClick={() => save(() => updateSystemSettings(form).then(() => {}))} />
+      </div>
+
+      {/* Marca de água */}
+      <SettingSection title={t('pdf.watermark')} description={t('pdf.watermarkDesc')}>
+        <SettingRow label={t('pdf.watermarkEnabled')}>
+          <Switch checked={!!form.pdf_watermark_enabled} onCheckedChange={v => set('pdf_watermark_enabled', v)} />
+        </SettingRow>
+        {form.pdf_watermark_enabled && (
+          <>
+            <SettingRow label={t('pdf.watermarkText')}>
+              <Input value={form.pdf_watermark_text ?? ''} onChange={e => set('pdf_watermark_text', e.target.value)}
+                placeholder={t('pdf.watermarkTextPlaceholder')} className="h-8 w-48 text-sm" />
+            </SettingRow>
+            <SettingRow label={t('pdf.watermarkOpacity')} description={t('pdf.watermarkOpacityHint')}>
+              <Input value={form.pdf_watermark_opacity ?? '0.10'} onChange={e => set('pdf_watermark_opacity', e.target.value)}
+                placeholder="0.10" className="h-8 w-24 text-sm text-right" />
+            </SettingRow>
+          </>
+        )}
+      </SettingSection>
+
+      {/* Cores */}
+      <SettingSection title={t('pdf.colors')} description={t('pdf.colorsDesc')}>
+        <SettingRow label={t('pdf.primaryColor')} description={t('pdf.primaryColorHint')}>
+          <div className="flex items-center gap-2">
+            <input type="color" value={form.pdf_primary_color ?? '#2563eb'}
+              onChange={e => set('pdf_primary_color', e.target.value)}
+              className="w-9 h-8 rounded border border-border cursor-pointer p-0.5 bg-transparent" />
+            <Input value={form.pdf_primary_color ?? '#2563eb'} onChange={e => set('pdf_primary_color', e.target.value)}
+              className="h-8 w-28 text-sm font-mono" maxLength={7} />
+          </div>
+        </SettingRow>
+        <SettingRow label={t('pdf.secondaryColor')} description={t('pdf.secondaryColorHint')}>
+          <div className="flex items-center gap-2">
+            <input type="color" value={form.pdf_secondary_color ?? '#64748b'}
+              onChange={e => set('pdf_secondary_color', e.target.value)}
+              className="w-9 h-8 rounded border border-border cursor-pointer p-0.5 bg-transparent" />
+            <Input value={form.pdf_secondary_color ?? '#64748b'} onChange={e => set('pdf_secondary_color', e.target.value)}
+              className="h-8 w-28 text-sm font-mono" maxLength={7} />
+          </div>
+        </SettingRow>
+
+        {/* Preview */}
+        <div className="mt-3 p-3 rounded-lg border border-border bg-card/50">
+          <p className="text-xs text-muted-foreground mb-2">{t('pdf.colorPreview')}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="px-3 py-1 rounded text-white text-xs font-bold" style={{ backgroundColor: form.pdf_primary_color ?? '#2563eb' }}>Cabeçalho</div>
+            <div className="px-3 py-1 rounded text-white text-xs font-bold" style={{ backgroundColor: form.pdf_secondary_color ?? '#64748b' }}>Auxiliar</div>
+            <div className="h-1 flex-1 rounded" style={{ backgroundColor: form.pdf_primary_color ?? '#2563eb' }} />
+          </div>
+        </div>
+      </SettingSection>
+
+      {/* Layout */}
+      <SettingSection title={t('pdf.layout')} description={t('pdf.layoutDesc')}>
+        <SettingRow label={t('pdf.showFooter')}>
+          <Switch checked={!!form.pdf_show_footer} onCheckedChange={v => set('pdf_show_footer', v)} />
+        </SettingRow>
+        <SettingRow label={t('pdf.showSummary')}>
+          <Switch checked={!!form.pdf_show_summary} onCheckedChange={v => set('pdf_show_summary', v)} />
+        </SettingRow>
+        <SettingRow label={t('pdf.paperSize')}>
+          <select value={form.pdf_paper_size ?? 'A4'} onChange={e => set('pdf_paper_size', e.target.value as any)}
+            className="h-8 px-2 text-sm rounded border border-input bg-background">
+            <option value="A4">A4</option>
+            <option value="Letter">Letter</option>
+          </select>
+        </SettingRow>
+        <SettingRow label={t('pdf.orientation')}>
+          <select value={form.pdf_orientation ?? 'portrait'} onChange={e => set('pdf_orientation', e.target.value as any)}
+            className="h-8 px-2 text-sm rounded border border-input bg-background">
+            <option value="portrait">{t('pdf.portrait')}</option>
+            <option value="landscape">{t('pdf.landscape')}</option>
+          </select>
+        </SettingRow>
+      </SettingSection>
+
+      {isDirty && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+          <span dangerouslySetInnerHTML={{ __html: t('unsavedChanges') }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tab genérica para Alertas / Viagens / Combustível / Sistema
+// Partilham o mesmo padrão de carregar/guardar system_settings
+// ─────────────────────────────────────────────────────────────────────────────
+function SystemSettingsTab({ children, tabTitle, tabDesc, fields }: {
+  children: (form: IUpdateSystemSettings, set: <K extends keyof IUpdateSystemSettings>(k: K, v: IUpdateSystemSettings[K]) => void) => React.ReactNode;
+  tabTitle: string; tabDesc: string;
+  fields: (keyof ISystemSettings)[];
+}) {
+  const [form, setForm] = useState<IUpdateSystemSettings>({});
+  const { status, isDirty, markDirty, save } = useSaveStatus();
+
+  useEffect(() => {
+    getSystemSettings().then(s => {
+      const partial: IUpdateSystemSettings = {};
+      fields.forEach(k => { (partial as any)[k] = (s as any)[k]; });
+      setForm(partial);
+    });
+  }, []);
+
+  function set<K extends keyof IUpdateSystemSettings>(k: K, v: IUpdateSystemSettings[K]) {
+    setForm(p => ({ ...p, [k]: v }));
+    markDirty();
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="text-base font-semibold mb-0.5">{tabTitle}</h3>
+          <p className="text-sm text-muted-foreground">{tabDesc}</p>
+        </div>
+        <SaveButton status={status} isDirty={isDirty} onClick={() => save(() => updateSystemSettings(form).then(() => {}))} />
+      </div>
+      {children(form, set)}
+      {isDirty && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Componente Principal
+// ─────────────────────────────────────────────────────────────────────────────
 interface SettingsDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 export default function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-    const { t } = useTranslation();
-    const [activeTab, setActiveTab]       = useState("appearance");
-    const [systemVersion, setSystemVersion] = useState('');
-    const [operation, setOperation]       = useState<'idle' | 'exporting' | 'restoring'>('idle');
-    const [showProgress, setShowProgress] = useState(false);
-    const [showConfirmRestore, setShowConfirmRestore] = useState(false);
-    const [showResult, setShowResult]     = useState(false);
+  const { t } = useTranslation('settings');
+  const [activeTab, setActiveTab] = useState('appearance');
+  const [systemVersion, setSystemVersion] = useState('');
 
-    const [progressData, setProgressData] = useState({
-        type: 'backup' as 'backup' | 'restore',
-        progress: 0, phase: '', message: '', status: 'loading' as 'loading' | 'success' | 'error',
-    });
+  // Backup states
+  const [operation, setOperation]           = useState<'idle'|'exporting'|'restoring'>('idle');
+  const [showProgress, setShowProgress]     = useState(false);
+  const [showConfirmRestore, setShowConfirmRestore] = useState(false);
+  const [showResult, setShowResult]         = useState(false);
+  const [progressData, setProgressData]     = useState({ type: 'backup' as 'backup'|'restore', progress: 0, phase: '', message: '', status: 'loading' as 'loading'|'success'|'error' });
+  const [result, setResult]                 = useState({ type: 'success' as 'success'|'error', title: '', message: '' });
+  const isBusy = operation !== 'idle';
 
-    const [result, setResult] = useState({
-        type: 'success' as 'success' | 'error',
-        title: '', message: '', needsReactivation: false,
-    });
+  useEffect(() => {
+    if (open) getSystemVersion().then(setSystemVersion);
+  }, [open]);
 
-    const isBusy = operation !== 'idle';
+  const navSections = [
+    { id: 'appearance', icon: Palette,   label: t('nav.appearance') },
+    { id: 'language',   icon: Globe,     label: t('nav.language')   },
+    { id: 'company',    icon: Building2, label: t('nav.company')    },
+    { id: 'pdf',        icon: FileText,  label: t('nav.pdf')        },
+    { id: 'alerts',     icon: Bell,      label: t('nav.alerts')     },
+    { id: 'trips',      icon: Car,       label: t('nav.trips')      },
+    { id: 'fuel',       icon: Fuel,      label: t('nav.fuel')       },
+    { id: 'system',     icon: Sliders,   label: t('nav.system')     },
+    { id: 'backups',    icon: HardDrive, label: t('nav.backups')    },
+    { id: 'about',      icon: Info,      label: t('nav.about')      },
+  ];
 
-    useEffect(() => {
-        if (open) getSystemVersion().then(v => setSystemVersion(v));
-    }, [open]);
+  // ── Backup handlers ─────────────────────────────────────────────────────────
+  const handleExportBackup = async () => {
+    setOperation('exporting');
+    try {
+      const res = await exportBackup();
+      if (!res.success && res.error === 'Cancelado pelo usuário') { setOperation('idle'); return; }
+      setProgressData({ type: 'backup', progress: 0, phase: t('backups.progressInit'), message: t('backups.progressPrepare'), status: 'loading' });
+      setShowProgress(true);
+      for (const [phase, msg, pct] of [
+        [t('backups.progressDb'),     t('backups.progressDbMsg'),     30],
+        [t('backups.progressConfig'), t('backups.progressConfigMsg'), 60],
+        [t('backups.progressZip'),    t('backups.progressZipMsg'),    85],
+      ] as [string,string,number][]) {
+        await new Promise(r => setTimeout(r, 600));
+        setProgressData(p => ({ ...p, phase, message: msg, progress: pct }));
+      }
+      setProgressData(p => ({ ...p, progress: 100, phase: t('backups.progressDone'), message: t('backups.progressSuccess'), status: 'success' }));
+      await new Promise(r => setTimeout(r, 1200));
+      setShowProgress(false);
+      const mb = res.size ? (res.size / 1024 / 1024).toFixed(2) : '?';
+      setResult({ type: res.success ? 'success' : 'error', title: res.success ? t('backups.exportSuccess') : t('backups.exportError'), message: res.success ? t('backups.exportSuccessMsg').replace('{{size}}', mb) : (res.error || '') });
+      setShowResult(true);
+    } catch (err: any) {
+      setProgressData(p => ({ ...p, phase: t('error'), message: err.message, status: 'error' }));
+      await new Promise(r => setTimeout(r, 1800));
+      setShowProgress(false);
+      setResult({ type: 'error', title: t('backups.exportError'), message: err.message });
+      setShowResult(true);
+    } finally { setOperation('idle'); }
+  };
 
-    const settingsSections = [
-        { id: "appearance", icon: Palette,    label: "Aparência"  },
-        { id: "language",   icon: Globe,      label: "Idioma"     },
-        { id: "company",    icon: Building2,  label: "Empresa"    },
-        { id: "backups",    icon: HardDrive,  label: "Backups"    },
-        { id: "about",      icon: Info,       label: "Sobre"      },
-    ];
+  const handleDoRestore = async () => {
+    setShowConfirmRestore(false);
+    setOperation('restoring');
+    try {
+      const res = await restoreBackup();
+      if (!res?.success) { setOperation('idle'); return; }
+      setProgressData({ type: 'restore', progress: 0, phase: t('backups.progressInit'), message: t('backups.progressPrepare'), status: 'loading' });
+      setShowProgress(true);
+      for (const [phase, msg, pct] of [
+        [t('backups.progressValidate'),  t('backups.progressValidateMsg'),  20],
+        [t('backups.progressExtract'),   t('backups.progressExtractMsg'),   45],
+        [t('backups.progressRestoreDb'), t('backups.progressRestoreDbMsg'), 80],
+        [t('backups.progressFinalize'),  t('backups.progressFinalizeMsg'),  95],
+      ] as [string,string,number][]) {
+        await new Promise(r => setTimeout(r, 800));
+        setProgressData(p => ({ ...p, phase, message: msg, progress: pct }));
+      }
+      setProgressData(p => ({ ...p, progress: 100, phase: t('backups.progressDone'), message: t('backups.progressRestoreDone'), status: 'success' }));
+      await new Promise(r => setTimeout(r, 1400));
+      setShowProgress(false);
+      setResult({ type: 'success', title: t('backups.restoreSuccess'), message: res.requiresRestart ? t('backups.restoreSuccessMsg') : t('backups.restoreSuccessMsgNoRestart') });
+      setShowResult(true);
+      if (res.requiresRestart) setTimeout(() => window.location.reload(), 2200);
+    } catch (err: any) {
+      setShowProgress(false);
+      setResult({ type: 'error', title: t('backups.restoreError'), message: err.message });
+      setShowResult(true);
+    } finally { setOperation('idle'); }
+  };
 
-    // ── Backup handlers (sem alterações) ──────────────────────────────────
+  // ── Render ───────────────────────────────────────────────────────────────────
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl h-[640px] max-h-[90vh] p-0 gap-0 flex flex-col">
+          <div className="flex flex-1 min-h-0">
 
-    const handleExportBackup = async () => {
-        setOperation('exporting');
-        try {
-            const result = await exportBackup();
-            if (!result.success && result.error === 'Cancelado pelo usuário') { setOperation('idle'); return; }
-            setProgressData({ type: 'backup', progress: 0, phase: 'A iniciar...', message: 'A preparar ficheiros...', status: 'loading' });
-            setShowProgress(true);
-            const phases = [
-                { phase: 'Bases de dados', msg: 'A copiar bases de dados...', pct: 30 },
-                { phase: 'Configurações',  msg: 'A copiar ficheiros do utilizador...', pct: 60 },
-                { phase: 'Compactação',    msg: 'A criar arquivo ZIP...', pct: 85 },
-            ];
-            for (const step of phases) {
-                await new Promise(r => setTimeout(r, 600));
-                setProgressData(prev => ({ ...prev, phase: step.phase, message: step.msg, progress: step.pct }));
-            }
-            setProgressData(prev => ({ ...prev, progress: 100, phase: 'Concluído', message: 'Backup criado com sucesso', status: 'success' }));
-            await new Promise(r => setTimeout(r, 1200));
-            setShowProgress(false);
-            const sizeInMB = result.size ? (result.size / 1024 / 1024).toFixed(2) : '?';
-            setResult({
-                type: result.success ? 'success' : 'error',
-                title: result.success ? '✅ Backup exportado' : '❌ Erro ao exportar',
-                message: result.success ? `Backup criado com sucesso! (${sizeInMB} MB)` : (result.error || 'Falha ao criar backup'),
-                needsReactivation: false,
-            });
-            setShowResult(true);
-        } catch (error: any) {
-            setProgressData(prev => ({ ...prev, phase: 'Erro', message: error.message || 'Erro inesperado', status: 'error' }));
-            await new Promise(r => setTimeout(r, 1800));
-            setShowProgress(false);
-            setResult({ type: 'error', title: '❌ Erro', message: error.message || 'Falha ao criar backup', needsReactivation: false });
-            setShowResult(true);
-        } finally { setOperation('idle'); }
-    };
+            {/* Sidebar */}
+            <aside className="w-56 border-r border-border bg-muted/30 flex flex-col shrink-0">
+              <DialogHeader className="p-5 pb-3 shrink-0">
+                <DialogTitle className="flex items-center gap-2 text-base">
+                  <Settings className="w-4 h-4" />{t('title')}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="flex-1 min-h-0 overflow-y-auto px-2">
+                <nav className="space-y-0.5 py-2">
+                  {navSections.map(({ id, icon: Icon, label }) => (
+                    <button key={id} onClick={() => setActiveTab(id)}
+                      className={cn('w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all',
+                        activeTab === id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}>
+                      <Icon className="w-4 h-4 shrink-0" />{label}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            </aside>
 
-    const handleRestoreConfirm = () => setShowConfirmRestore(true);
+            {/* Conteúdo */}
+            <main className="flex-1 min-h-0 min-w-0 flex flex-col">
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-6 space-y-6">
 
-    const handleDoRestore = async () => {
-        setShowConfirmRestore(false);
-        setOperation('restoring');
-        try {
-            const result = await restoreBackup();
-            if (!result?.success) { setOperation('idle'); return; }
-            setProgressData({ type: 'restore', progress: 0, phase: 'A iniciar...', message: 'A validar o ficheiro seleccionado...', status: 'loading' });
-            setShowProgress(true);
-            const phases = [
-                { phase: 'Validação',   msg: 'A verificar integridade...', pct: 20 },
-                { phase: 'Extração',    msg: 'A extrair conteúdos...',     pct: 45 },
-                { phase: 'Restauração', msg: 'A restaurar bases de dados e configurações...', pct: 80 },
-                { phase: 'Finalização', msg: 'A aplicar alterações...',    pct: 95 },
-            ];
-            for (const step of phases) {
-                await new Promise(r => setTimeout(r, 800));
-                setProgressData(prev => ({ ...prev, phase: step.phase, message: step.msg, progress: step.pct }));
-            }
-            setProgressData(prev => ({ ...prev, progress: 100, phase: 'Concluído', message: 'Restauração finalizada', status: 'success' }));
-            await new Promise(r => setTimeout(r, 1400));
-            setShowProgress(false);
-            setResult({
-                type: 'success', title: 'Backup restaurado',
-                message: result.requiresRestart ? 'Restauração concluída. A aplicação será reiniciada em breve...' : 'Restauração concluída com sucesso.',
-                needsReactivation: false,
-            });
-            setShowResult(true);
-            if (result.requiresRestart) setTimeout(() => window.location.reload(), 2200);
-        } catch (err: any) {
-            setShowProgress(false);
-            setResult({ type: 'error', title: 'Erro durante a restauração', message: err.message || 'Ocorreu um problema inesperado.', needsReactivation: false });
-            setShowResult(true);
-        } finally { setOperation('idle'); }
-    };
-
-    const handleRotation = async () => {
-        try { await forceDbRotation(); } catch (e: any) { console.log("Erro ao forçar rotation:", e); }
-    };
-
-    // ── Render ────────────────────────────────────────────────────────────
-
-    return (
-        <>
-            <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-4xl h-[600px] max-h-[85vh] p-0 gap-0 flex flex-col">
-                    <div className="flex flex-1 min-h-0">
-
-                        {/* Sidebar */}
-                        <aside className="w-64 border-r border-border bg-muted/30 flex flex-col shrink-0">
-                            <DialogHeader className="p-6 pb-4 shrink-0">
-                                <DialogTitle className="flex items-center gap-2 text-lg">
-                                    <Settings className="w-5 h-5" />Definições
-                                </DialogTitle>
-                            </DialogHeader>
-                            <div className="flex-1 min-h-0 overflow-y-auto px-3">
-                                <nav className="space-y-1 py-2">
-                                    {settingsSections.map((section) => {
-                                        const Icon = section.icon;
-                                        return (
-                                            <button
-                                                key={section.id}
-                                                onClick={() => setActiveTab(section.id)}
-                                                className={cn(
-                                                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                                                    activeTab === section.id
-                                                        ? "bg-primary/10 text-primary"
-                                                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                                                )}
-                                            >
-                                                <Icon className="w-4 h-4" />
-                                                {section.label}
-                                            </button>
-                                        );
-                                    })}
-                                </nav>
-                            </div>
-                        </aside>
-
-                        {/* Conteúdo */}
-                        <main className="flex-1 min-h-0 min-w-0 flex flex-col">
-                            <div className="flex-1 overflow-y-auto">
-                                <div className="p-6 space-y-6">
-
-                                    {/* ── Aparência ── */}
-                                    {activeTab === "appearance" && (
-                                        <div className="space-y-6">
-                                            <div>
-                                                <h3 className="text-base font-semibold mb-1">Tema</h3>
-                                                <p className="text-sm text-muted-foreground mb-4">Escolha entre tema claro ou escuro</p>
-                                                <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                                                            <Palette className="w-5 h-5" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-medium">Aparência</p>
-                                                            <p className="text-xs text-muted-foreground">Modo claro ou escuro</p>
-                                                        </div>
-                                                    </div>
-                                                    <ToggleTheme />
-                                                </div>
-                                            </div>
-                                            <div className="pt-4 border-t border-border">
-                                                <h3 className="text-base font-semibold mb-1">Personalização</h3>
-                                                <p className="text-sm text-muted-foreground mb-4">Ajuste a interface de acordo com suas preferências</p>
-                                                <div className="space-y-3">
-                                                    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                                                        <span className="text-sm">Animações</span>
-                                                        <span className="text-xs text-muted-foreground">Ativado</span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                                                        <span className="text-sm">Efeitos de transparência</span>
-                                                        <span className="text-xs text-muted-foreground">Ativado</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* ── Idioma ── */}
-                                    {activeTab === "language" && (
-                                        <div className="space-y-6">
-                                            <div>
-                                                <h3 className="text-base font-semibold mb-1">Idioma da aplicação</h3>
-                                                <p className="text-sm text-muted-foreground mb-4">Selecione o idioma preferido para a interface</p>
-                                                <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                                                            <Globe className="w-5 h-5" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-medium">Idioma</p>
-                                                            <p className="text-xs text-muted-foreground">Português / English</p>
-                                                        </div>
-                                                    </div>
-                                                    <LangToggle />
-                                                </div>
-                                            </div>
-                                            <div className="pt-4 border-t border-border">
-                                                <h3 className="text-base font-semibold mb-1">Região e formato</h3>
-                                                <p className="text-sm text-muted-foreground mb-4">Configurações de localização</p>
-                                                <div className="space-y-3">
-                                                    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                                                        <span className="text-sm">Formato de data</span>
-                                                        <span className="text-xs text-muted-foreground">DD/MM/AAAA</span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                                                        <span className="text-sm">Formato de hora</span>
-                                                        <span className="text-xs text-muted-foreground">24 horas</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* ── Empresa ── */}
-                                    {activeTab === "company" && <CompanyTab />}
-
-                                    {/* ── Backups ── */}
-                                    {activeTab === "backups" && (
-                                        <div className="space-y-6">
-                                            <div>
-                                                <h3 className="text-base font-semibold mb-1">Gestão de Backups</h3>
-                                                <p className="text-sm text-muted-foreground">Configure e gerencie os backups do sistema</p>
-                                            </div>
-                                            <div className="p-4 rounded-lg border border-border bg-card/50 space-y-4">
-                                                <div className="flex items-start gap-3">
-                                                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                                        <Clock className="w-5 h-5 text-primary" />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <h4 className="text-sm font-semibold mb-1">Backup Automático</h4>
-                                                        <p className="text-xs text-muted-foreground leading-relaxed">
-                                                            Backups diários automáticos das bases de dados. Os últimos 7 backups são mantidos automaticamente.
-                                                        </p>
-                                                    </div>
-                                                    <Switch defaultChecked />
-                                                </div>
-                                                <div className="pl-13 space-y-2">
-                                                    <div className="flex items-center justify-between text-xs">
-                                                        <span className="text-muted-foreground">Frequência</span>
-                                                        <span className="font-medium">Diário</span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between text-xs">
-                                                        <span className="text-muted-foreground">Backups mantidos</span>
-                                                        <span className="font-medium">7 últimos</span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between text-xs">
-                                                        <span className="text-muted-foreground">Último backup</span>
-                                                        <span className="font-medium">Hoje, 03:00</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="pt-4 border-t border-border space-y-4">
-                                                <div>
-                                                    <h4 className="text-sm font-semibold mb-1">Backup Manual</h4>
-                                                    <p className="text-xs text-muted-foreground">Exporte ou restaure backups completos do sistema</p>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <Button onClick={handleExportBackup} disabled={isBusy} className="h-auto flex flex-col items-start gap-2 p-4" variant="outline">
-                                                        <div className="flex items-center gap-2 w-full">
-                                                            {operation === 'exporting' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-                                                            <span className="font-semibold text-sm">Exportar Backup</span>
-                                                        </div>
-                                                        <p className="text-xs text-muted-foreground text-left whitespace-normal break-words max-w-full">
-                                                            Cria arquivo ZIP com todos os dados para transferir para outro computador
-                                                        </p>
-                                                    </Button>
-                                                    <Button onClick={handleRestoreConfirm} disabled={isBusy} className="h-auto flex flex-col items-start gap-2 p-4" variant="outline">
-                                                        <div className="flex items-center gap-2 w-full">
-                                                            {operation === 'restoring' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-                                                            <span className="font-semibold text-sm">Restaurar Backup</span>
-                                                        </div>
-                                                        <p className="text-xs text-muted-foreground text-left whitespace-normal break-words max-w-full">
-                                                            Importa backup de outro computador. Requer reativação da licença.
-                                                        </p>
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                                                <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                                                <div className="text-xs text-amber-600 leading-relaxed">
-                                                    <strong>Importante:</strong> Ao restaurar um backup em outro computador, será necessário reativar a licença com o novo Machine ID.
-                                                </div>
-                                            </div>
-                                            <div className="pt-6 border-t border-border space-y-4">
-                                                <div>
-                                                    <h4 className="text-sm font-semibold text-destructive mb-1">Ferramentas Avançadas (Testes)</h4>
-                                                    <p className="text-xs text-muted-foreground">Estas ações são apenas para testes e manutenção. Não utilize em produção sem orientação técnica.</p>
-                                                </div>
-                                                <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5 space-y-3">
-                                                    <div className="flex items-start gap-3">
-                                                        <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
-                                                        <div className="space-y-1">
-                                                            <p className="text-sm font-medium text-destructive">Forçar rotação da base de dados</p>
-                                                            <p className="text-xs text-muted-foreground leading-relaxed">Cria uma nova base de dados ativa e arquiva a atual. Útil apenas para testes de rotação e backup.</p>
-                                                        </div>
-                                                    </div>
-                                                    <Button variant="destructive" size="sm" onClick={handleRotation} disabled={isBusy} className="w-full flex items-center gap-2">
-                                                        <HardDrive className="w-4 h-4" />Forçar rotação agora
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* ── Sobre ── */}
-                                    {activeTab === "about" && (
-                                        <div className="space-y-6">
-                                            <div className="text-center pb-6 border-b border-border">
-                                                <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
-                                                    <Package className="w-10 h-10 text-primary-foreground" />
-                                                </div>
-                                                <h3 className="text-2xl font-bold mb-1">FleetControl</h3>
-                                                <p className="text-sm text-muted-foreground mb-3">Sistema de Gestão de Frotas</p>
-                                                <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
-                                                    {systemVersion ? `Versão ${systemVersion} • ` : ''}Build 2026.02.25
-                                                </span>
-                                            </div>
-                                            <div className="space-y-4">
-                                                <h3 className="text-base font-semibold">Informações do Sistema</h3>
-                                                <div className="p-4 rounded-lg border bg-card/50 space-y-3 text-sm">
-                                                    <div className="flex justify-between"><span className="text-muted-foreground">Versão</span><span className="font-medium">{systemVersion || 'Carregando...'}</span></div>
-                                                    <div className="flex justify-between"><span className="text-muted-foreground">Build</span><span className="font-medium">2026.02.01</span></div>
-                                                    <div className="flex justify-between"><span className="text-muted-foreground">Última atualização</span><span className="font-medium">1 de Fevereiro de 2026</span></div>
-                                                    <div className="flex justify-between"><span className="text-muted-foreground">Licença</span><span className="font-medium">Proprietária</span></div>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-4 pt-2">
-                                                <h3 className="text-base font-semibold">Desenvolvido por</h3>
-                                                <div className="p-5 rounded-xl border bg-gradient-to-br from-primary/5 to-primary/10 space-y-4">
-                                                    <div>
-                                                        <h4 className="text-lg font-bold flex items-center gap-2 mb-2">
-                                                            <Building2 className="w-5 h-5 text-primary" />TechSoft Solutions
-                                                        </h4>
-                                                        <p className="text-sm text-muted-foreground leading-relaxed">
-                                                            Empresa angolana especializada no desenvolvimento de software de gestão empresarial, oferecendo soluções tecnológicas modernas e adaptadas ao mercado nacional.
-                                                        </p>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm pt-2">
-                                                        <div><p className="text-xs text-muted-foreground uppercase">Localização</p><p className="font-medium">Luanda, Angola</p></div>
-                                                        <div><p className="text-xs text-muted-foreground uppercase">Fundação</p><p className="font-medium">2025</p></div>
-                                                        <div><p className="text-xs text-muted-foreground uppercase">NIF</p><p className="font-medium">5401234567</p></div>
-                                                        <div><p className="text-xs text-muted-foreground uppercase">Reg. Comercial</p><p className="font-medium">RC-123456</p></div>
-                                                    </div>
-                                                    <div className="pt-4 border-t border-border/50 space-y-3">
-                                                        <p className="text-xs font-medium text-muted-foreground uppercase">Contactos</p>
-                                                        <div className="space-y-2 text-sm">
-                                                            <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-muted-foreground" /><span className="truncate">suporte.techsoft@gmail.com</span></div>
-                                                            <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-muted-foreground" /><span className="truncate">comercial@techsoft.ao</span></div>
-                                                            <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-muted-foreground" /><span>+244 923 456 789</span></div>
-                                                            <div className="flex items-center gap-2"><Globe className="w-4 h-4 text-muted-foreground" /><span>www.techsoft.ao</span></div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="pt-3 border-t border-border/50">
-                                                        <p className="text-xs font-medium text-muted-foreground uppercase mb-2">Endereço</p>
-                                                        <div className="flex items-start gap-2 text-sm">
-                                                            <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                                                            <div className="leading-relaxed">
-                                                                <p>Avenida 4 de Fevereiro, Torre Executiva</p>
-                                                                <p>7º Andar, Escritório 705 - Luanda, Angola</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="text-center pt-6 text-xs text-muted-foreground border-t border-border">
-                                                <p>© 2025–2026 TechSoft Solutions. Todos os direitos reservados.</p>
-                                                <p className="mt-1">Desenvolvido em Angola para Angola</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </main>
+                  {/* ── Aparência ── */}
+                  {activeTab === 'appearance' && (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-base font-semibold mb-1">{t('appearance.title')}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">{t('appearance.description')}</p>
+                        <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center"><Palette className="w-5 h-5" /></div>
+                            <div><p className="text-sm font-medium">{t('appearance.label')}</p><p className="text-xs text-muted-foreground">{t('appearance.subtitle')}</p></div>
+                          </div>
+                          <ToggleTheme />
+                        </div>
+                      </div>
+                      <div className="pt-4 border-t border-border">
+                        <h3 className="text-base font-semibold mb-1">{t('appearance.customization')}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">{t('appearance.customSubtitle')}</p>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50"><span className="text-sm">{t('appearance.animations')}</span><span className="text-xs text-muted-foreground">{t('appearance.enabled')}</span></div>
+                          <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50"><span className="text-sm">{t('appearance.transparency')}</span><span className="text-xs text-muted-foreground">{t('appearance.enabled')}</span></div>
+                        </div>
+                      </div>
                     </div>
-                </DialogContent>
-            </Dialog>
+                  )}
 
-            <ProgressModal open={showProgress} type={progressData.type} progress={progressData.progress} phase={progressData.phase} message={progressData.message} status={progressData.status} />
-            <ConfirmRestoreModal open={showConfirmRestore} onOpenChange={setShowConfirmRestore} onConfirm={handleDoRestore} />
-            <ResultModal open={showResult} onOpenChange={setShowResult} type={result.type} title={result.title} message={result.message} needsReactivation={result.needsReactivation} />
-        </>
-    );
+                  {/* ── Idioma ── */}
+                  {activeTab === 'language' && (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-base font-semibold mb-1">{t('language.title')}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">{t('language.description')}</p>
+                        <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center"><Globe className="w-5 h-5" /></div>
+                            <div><p className="text-sm font-medium">{t('language.label')}</p><p className="text-xs text-muted-foreground">{t('language.subtitle')}</p></div>
+                          </div>
+                          <LangToggle />
+                        </div>
+                      </div>
+                      <div className="pt-4 border-t border-border">
+                        <h3 className="text-base font-semibold mb-1">{t('language.region')}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">{t('language.regionSubtitle')}</p>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50"><span className="text-sm">{t('language.dateFormat')}</span><span className="text-xs text-muted-foreground">{t('language.dateValue')}</span></div>
+                          <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50"><span className="text-sm">{t('language.timeFormat')}</span><span className="text-xs text-muted-foreground">{t('language.timeValue')}</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Empresa ── */}
+                  {activeTab === 'company' && <CompanyTab />}
+
+                  {/* ── PDF ── */}
+                  {activeTab === 'pdf' && <PdfTab />}
+
+                  {/* ── Alertas ── */}
+                  {activeTab === 'alerts' && (
+                    <SystemSettingsTab tabTitle={t('alerts.title')} tabDesc={t('alerts.description')}
+                      fields={['alert_mileage_threshold','alert_license_days_before','alert_insurance_days_before','alert_maintenance_enabled','alert_fines_enabled']}>
+                      {(form, set) => (
+                        <div className="space-y-6">
+                          <SettingSection title={t('alerts.mileage')} description={t('alerts.mileageDesc')}>
+                            <SettingRow label={t('alerts.mileageThreshold')}>
+                              <NumberInput value={form.alert_mileage_threshold ?? 10000} onChange={v => set('alert_mileage_threshold', v)} min={1000} unit={t('alerts.mileageUnit')} />
+                            </SettingRow>
+                          </SettingSection>
+                          <SettingSection title={t('alerts.license')} description={t('alerts.licenseDesc')}>
+                            <SettingRow label={t('alerts.licenseDays')}>
+                              <NumberInput value={form.alert_license_days_before ?? 30} onChange={v => set('alert_license_days_before', v)} min={1} max={365} unit={t('alerts.daysUnit')} />
+                            </SettingRow>
+                          </SettingSection>
+                          <SettingSection title={t('alerts.insurance')} description={t('alerts.insuranceDesc')}>
+                            <SettingRow label={t('alerts.insuranceDays')}>
+                              <NumberInput value={form.alert_insurance_days_before ?? 30} onChange={v => set('alert_insurance_days_before', v)} min={1} max={365} unit={t('alerts.daysUnit')} />
+                            </SettingRow>
+                          </SettingSection>
+                          <SettingSection title={t('alerts.maintenance')} description={t('alerts.maintenanceDesc')}>
+                            <SettingRow label={t('alerts.maintenanceEnabled')}>
+                              <Switch checked={!!form.alert_maintenance_enabled} onCheckedChange={v => set('alert_maintenance_enabled', v)} />
+                            </SettingRow>
+                          </SettingSection>
+                          <SettingSection title={t('alerts.fines')} description={t('alerts.finesDesc')}>
+                            <SettingRow label={t('alerts.finesEnabled')}>
+                              <Switch checked={!!form.alert_fines_enabled} onCheckedChange={v => set('alert_fines_enabled', v)} />
+                            </SettingRow>
+                          </SettingSection>
+                        </div>
+                      )}
+                    </SystemSettingsTab>
+                  )}
+
+                  {/* ── Viagens ── */}
+                  {activeTab === 'trips' && (
+                    <SystemSettingsTab tabTitle={t('trips.title')} tabDesc={t('trips.description')}
+                      fields={['trips_require_approval','trips_require_signature','trips_max_speed']}>
+                      {(form, set) => (
+                        <div className="space-y-6">
+                          <SettingSection title={t('trips.approval')} description={t('trips.approvalDesc')}>
+                            <SettingRow label={t('trips.approvalEnabled')}>
+                              <Switch checked={!!form.trips_require_approval} onCheckedChange={v => set('trips_require_approval', v)} />
+                            </SettingRow>
+                          </SettingSection>
+                          <SettingSection title={t('trips.signature')} description={t('trips.signatureDesc')}>
+                            <SettingRow label={t('trips.signatureEnabled')}>
+                              <Switch checked={!!form.trips_require_signature} onCheckedChange={v => set('trips_require_signature', v)} />
+                            </SettingRow>
+                          </SettingSection>
+                          <SettingSection title={t('trips.speed')} description={t('trips.speedDesc')}>
+                            <SettingRow label={t('trips.speedLabel')} description={t('trips.speedHint')}>
+                              <NumberInput value={form.trips_max_speed ?? 0} onChange={v => set('trips_max_speed', v)} min={0} max={300} unit={t('trips.speedUnit')} />
+                            </SettingRow>
+                          </SettingSection>
+                        </div>
+                      )}
+                    </SystemSettingsTab>
+                  )}
+
+                  {/* ── Combustível ── */}
+                  {activeTab === 'fuel' && (
+                    <SystemSettingsTab tabTitle={t('fuel.title')} tabDesc={t('fuel.description')}
+                      fields={['fuel_level_control','fuel_min_level_alert']}>
+                      {(form, set) => (
+                        <div className="space-y-6">
+                          <SettingSection title={t('fuel.levelControl')} description={t('fuel.levelControlDesc')}>
+                            <SettingRow label={t('fuel.levelEnabled')}>
+                              <Switch checked={!!form.fuel_level_control} onCheckedChange={v => set('fuel_level_control', v)} />
+                            </SettingRow>
+                          </SettingSection>
+                          <SettingSection title={t('fuel.minLevel')} description={t('fuel.minLevelDesc')}>
+                            <SettingRow label={t('fuel.minLevelLabel')}>
+                              <NumberInput value={form.fuel_min_level_alert ?? 20} onChange={v => set('fuel_min_level_alert', v)} min={0} max={100} unit={t('fuel.minLevelUnit')} disabled={!form.fuel_level_control} />
+                            </SettingRow>
+                          </SettingSection>
+                        </div>
+                      )}
+                    </SystemSettingsTab>
+                  )}
+
+                  {/* ── Sistema ── */}
+                  {activeTab === 'system' && (
+                    <SystemSettingsTab tabTitle={t('system.title')} tabDesc={t('system.description')}
+                      fields={['session_timeout_minutes','session_multi_login','notifications_enabled','audit_log_enabled','audit_log_retention_days']}>
+                      {(form, set) => (
+                        <div className="space-y-6">
+                          <SettingSection title={t('system.session')} description={t('system.sessionDesc')}>
+                            <SettingRow label={t('system.timeout')} description={t('system.timeoutHint')}>
+                              <NumberInput value={form.session_timeout_minutes ?? 0} onChange={v => set('session_timeout_minutes', v)} min={0} unit={t('system.timeoutUnit')} />
+                            </SettingRow>
+                            <SettingRow label={t('system.multiLogin')} description={t('system.multiLoginDesc')}>
+                              <Switch checked={!!form.session_multi_login} onCheckedChange={v => set('session_multi_login', v)} />
+                            </SettingRow>
+                          </SettingSection>
+                          <SettingSection title={t('system.notifications')} description={t('system.notificationsDesc')}>
+                            <SettingRow label={t('system.notificationsEnabled')}>
+                              <Switch checked={!!form.notifications_enabled} onCheckedChange={v => set('notifications_enabled', v)} />
+                            </SettingRow>
+                          </SettingSection>
+                          <SettingSection title={t('system.audit')} description={t('system.auditDesc')}>
+                            <SettingRow label={t('system.auditEnabled')}>
+                              <Switch checked={!!form.audit_log_enabled} onCheckedChange={v => set('audit_log_enabled', v)} />
+                            </SettingRow>
+                            <SettingRow label={t('system.auditRetentionLabel')}>
+                              <NumberInput value={form.audit_log_retention_days ?? 90} onChange={v => set('audit_log_retention_days', v)} min={7} max={365} unit={t('system.auditRetentionUnit')} disabled={!form.audit_log_enabled} />
+                            </SettingRow>
+                          </SettingSection>
+                          {/* Reset */}
+                          <div className="pt-4 border-t border-border space-y-3">
+                            <div>
+                              <p className="text-sm font-semibold text-destructive">{t('system.reset')}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{t('system.resetDesc')}</p>
+                            </div>
+                            <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5">
+                              <div className="flex items-center gap-2 mb-3">
+                                <AlertCircle className="w-4 h-4 text-destructive" />
+                                <p className="text-xs text-destructive font-medium">{t('system.resetWarning')}</p>
+                              </div>
+                              <Button variant="destructive" size="sm" className="gap-2 w-full"
+                                onClick={() => { if (confirm(t('resetConfirm'))) resetSystemSettings(); }}>
+                                <RotateCcw className="w-4 h-4" />{t('system.resetButton')}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </SystemSettingsTab>
+                  )}
+
+                  {/* ── Backups ── */}
+                  {activeTab === 'backups' && (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-base font-semibold mb-1">{t('backups.title')}</h3>
+                        <p className="text-sm text-muted-foreground">{t('backups.description')}</p>
+                      </div>
+                      <div className="p-4 rounded-lg border border-border bg-card/50 space-y-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><Clock className="w-5 h-5 text-primary" /></div>
+                          <div className="flex-1">
+                            <h4 className="text-sm font-semibold mb-1">{t('backups.auto')}</h4>
+                            <p className="text-xs text-muted-foreground leading-relaxed">{t('backups.autoDesc')}</p>
+                          </div>
+                          <Switch defaultChecked />
+                        </div>
+                        <div className="space-y-2 text-xs">
+                          {[['frequency','frequencyValue'],['kept','keptValue'],['lastBackup','lastBackupValue']].map(([lk, vk]) => (
+                            <div key={lk} className="flex items-center justify-between">
+                              <span className="text-muted-foreground">{t(`backups.${lk}`)}</span>
+                              <span className="font-medium">{t(`backups.${vk}`)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="pt-4 border-t border-border space-y-4">
+                        <div>
+                          <h4 className="text-sm font-semibold mb-1">{t('backups.manual')}</h4>
+                          <p className="text-xs text-muted-foreground">{t('backups.manualDesc')}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <Button onClick={handleExportBackup} disabled={isBusy} className="h-auto flex flex-col items-start gap-2 p-4" variant="outline">
+                            <div className="flex items-center gap-2 w-full">
+                              {operation === 'exporting' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                              <span className="font-semibold text-sm">{t('backups.export')}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground text-left whitespace-normal">{t('backups.exportDesc')}</p>
+                          </Button>
+                          <Button onClick={() => setShowConfirmRestore(true)} disabled={isBusy} className="h-auto flex flex-col items-start gap-2 p-4" variant="outline">
+                            <div className="flex items-center gap-2 w-full">
+                              {operation === 'restoring' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                              <span className="font-semibold text-sm">{t('backups.restore')}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground text-left whitespace-normal">{t('backups.restoreDesc')}</p>
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <p className="text-xs text-amber-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: t('backups.warning') }} />
+                      </div>
+                      <div className="pt-4 border-t border-border space-y-4">
+                        <div>
+                          <h4 className="text-sm font-semibold text-destructive mb-1">{t('backups.advanced')}</h4>
+                          <p className="text-xs text-muted-foreground">{t('backups.advancedDesc')}</p>
+                        </div>
+                        <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5 space-y-3">
+                          <div className="flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-destructive">{t('backups.rotation')}</p>
+                              <p className="text-xs text-muted-foreground leading-relaxed">{t('backups.rotationDesc')}</p>
+                            </div>
+                          </div>
+                          <Button variant="destructive" size="sm" onClick={async () => { try { await forceDbRotation(); } catch {} }} disabled={isBusy} className="w-full gap-2">
+                            <HardDrive className="w-4 h-4" />{t('backups.rotationButton')}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Sobre ── */}
+                  {activeTab === 'about' && (
+                    <div className="space-y-6">
+                      <div className="text-center pb-6 border-b border-border">
+                        <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
+                          <Package className="w-10 h-10 text-primary-foreground" />
+                        </div>
+                        <h3 className="text-2xl font-bold mb-1">{t('about.appName')}</h3>
+                        <p className="text-sm text-muted-foreground mb-3">{t('about.appSubtitle')}</p>
+                        <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
+                          {systemVersion ? `${t('about.version')} ${systemVersion} · ` : ''}{t('about.build')} {t('about.buildValue')}
+                        </span>
+                      </div>
+                      <div className="space-y-3">
+                        <h3 className="text-base font-semibold">{t('about.systemInfo')}</h3>
+                        <div className="p-4 rounded-lg border bg-card/50 space-y-3 text-sm">
+                          {[['version',systemVersion||t('about.loading')],['build',t('about.buildValue')],['lastUpdate',t('about.lastUpdateValue')],['license',t('about.licenseValue')]].map(([k,v])=>(
+                            <div key={k} className="flex justify-between"><span className="text-muted-foreground">{t(`about.${k}`)}</span><span className="font-medium">{v}</span></div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <h3 className="text-base font-semibold">{t('about.developedBy')}</h3>
+                        <div className="p-5 rounded-xl border bg-gradient-to-br from-primary/5 to-primary/10 space-y-4">
+                          <div>
+                            <h4 className="text-lg font-bold flex items-center gap-2 mb-2"><Building2 className="w-5 h-5 text-primary" />{t('about.companyName')}</h4>
+                            <p className="text-sm text-muted-foreground leading-relaxed">{t('about.companyDesc')}</p>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm pt-2">
+                            {[['location','locationValue'],['founded','foundedValue'],['nif','nifValue'],['commercial','commercialValue']].map(([lk,vk])=>(
+                              <div key={lk}><p className="text-xs text-muted-foreground uppercase">{t(`about.${lk}`)}</p><p className="font-medium">{t(`about.${vk}`)}</p></div>
+                            ))}
+                          </div>
+                          <div className="pt-3 border-t border-border/50 space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground uppercase">{t('about.contacts')}</p>
+                            <div className="space-y-1.5 text-sm">
+                              <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-muted-foreground" /><span>suporte.techsoft@gmail.com</span></div>
+                              <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-muted-foreground" /><span>+244 923 456 789</span></div>
+                              <div className="flex items-center gap-2"><Globe className="w-4 h-4 text-muted-foreground" /><span>www.techsoft.ao</span></div>
+                            </div>
+                          </div>
+                          <div className="pt-3 border-t border-border/50">
+                            <p className="text-xs font-medium text-muted-foreground uppercase mb-2">{t('about.addressLabel')}</p>
+                            <div className="flex items-start gap-2 text-sm">
+                              <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                              <div><p>{t('about.addressLine1')}</p><p>{t('about.addressLine2')}</p></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-center pt-4 text-xs text-muted-foreground border-t border-border">
+                        <p>{t('about.copyright')}</p>
+                        <p className="mt-1">{t('about.madeIn')}</p>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+            </main>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <ProgressModal open={showProgress} type={progressData.type} progress={progressData.progress} phase={progressData.phase} message={progressData.message} status={progressData.status} />
+      <ConfirmRestoreModal open={showConfirmRestore} onOpenChange={setShowConfirmRestore} onConfirm={handleDoRestore} />
+      <ResultModal open={showResult} onOpenChange={setShowResult} type={result.type} title={result.title} message={result.message} />
+    </>
+  );
 }

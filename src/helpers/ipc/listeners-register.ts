@@ -24,6 +24,7 @@ import { addDashboardEventListeners } from "./db/dashboard/dashboard-listeners";
 import { addReportsEventListeners } from "./reports/reports-listeners";
 import { addDriverLeavesEventListeners } from "./db/driver-leaves/driver-leaves-listeners";
 import { addCompanyEventListeners } from "./db/company/company-listeners";
+import { addSystemSettingsEventListeners } from "./db/system_settings/system-settings-listeners";
 
 export default function registerListeners(mainWindow: BrowserWindow) {
     addWindowEventListeners(mainWindow);
@@ -50,4 +51,5 @@ export default function registerListeners(mainWindow: BrowserWindow) {
     addReportsEventListeners();
     addDriverLeavesEventListeners();
     addCompanyEventListeners();
+    addSystemSettingsEventListeners();
 }

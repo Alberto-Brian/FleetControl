@@ -98,7 +98,7 @@ export async function saveLogo(base64Data: string): Promise<IUploadLogoResult> {
   await removeLogoFile();
 
   // Guardar
-  fs.writeFileSync(logoPath, buffer);
+  fs.writeFileSync(logoPath, new Uint8Array(buffer));
 
   return {
     path:      logoPath,

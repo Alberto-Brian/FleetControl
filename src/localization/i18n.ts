@@ -27,6 +27,8 @@ import { ptReport } from "./locales/pt/reports";
 import { enReport } from "./locales/en/reports";
 import { ptRoutes } from "./locales/pt/routes";
 import { enRoutes } from "./locales/en/routes";
+import { ptSettings } from "./locales/pt/settings";
+import { enSettings } from "./locales/en/settings";
 
 i18n.use(initReactI18next).init({
     fallbackLng: "en",
@@ -46,6 +48,7 @@ i18n.use(initReactI18next).init({
             // vehicles: vehicleTranslations.en.vehicles,
             auth: authTranslations.en.auth,
             common: enCommon,
+            settings: enSettings,
             homePage: {
                 registerNewClientButton: "Register new client",
                 idTableColumn: "ID",
@@ -86,6 +89,7 @@ i18n.use(initReactI18next).init({
             // vehicles: vehicleTranslations.pt.vehicles,
             auth: authTranslations.pt.auth,
             common: ptCommon,
+            settings: ptSettings,
             homePage: {
                 registerNewClientButton: "Cadastrar novo cliente",
                 idTableColumn: "ID",

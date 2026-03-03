@@ -239,6 +239,12 @@ interface ICompany {
     getLogoBase64: () => Promise<string | null>;
 }
 
+interface ISystemSettings {
+  get:    () => Promise<import('./lib/types/system-settings').ISystemSettings>;
+  update: (data: import('./lib/types/system-settings').IUpdateSystemSettings) => Promise<import('./lib/types/system-settings').ISystemSettings>;
+  reset:  () => Promise<import('./lib/types/system-settings').ISystemSettings>;
+}
+
 declare interface Window {
     system:                  System;
     license:                 License;
@@ -264,4 +270,5 @@ declare interface Window {
     _reports:                IReports;
     _driverLeaves:           IDriverLeaves;
     _company:                ICompany;
+    _system_settings: ISystemSettings;
 }
