@@ -103,7 +103,12 @@ export const ptDrivers = {
       onTripDescription: "{{name}} está em viagem. Não é possível alterar o estado.",
       onTripAlertTitle: "Motorista em serviço",
       onTripAlertDescription: "Não é possível alterar o estado contratual enquanto o motorista estiver em viagem.",
-      willSetOffline: "Ao definir este estado, a disponibilidade será automaticamente alterada para 'Indisponível'."
+      willSetOffline: "Ao definir este estado, a disponibilidade será automaticamente alterada para 'Indisponível'.",
+      blockedDescription: "Alteração de estado bloqueada para {{name}}",
+      onLeaveAlertTitle: "Motorista de licença",
+      onLeaveAlertDescription: "O estado 'De Licença' é gerido automaticamente pelo sistema de férias.",
+      auto: "AUTO",
+      viaLeaveSystem: "Via sistema de férias"
     },
     new: {
       title: "Novo Motorista",
@@ -323,6 +328,13 @@ export const ptDrivers = {
       notFound: 'Registo de férias não encontrado',
     },
   },
+
+  tooltips: {
+    statusBlockedOnLeave: "Não é possível alterar o estado contratual enquanto o motorista estiver de licença",
+    statusBlockedOnTrip: "Não é possível alterar o estado contratual enquanto o motorista estiver em viagem",
+    availabilityBlockedOnTrip: "A disponibilidade é gerida automaticamente durante viagens",
+    availabilityBlockedOnLeave: "A disponibilidade é definida automaticamente durante licenças"
+  }
 } as const;
 
 export default ptDrivers;

@@ -5,9 +5,10 @@ import React from 'react';
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import { setPDFLanguage, Language }       from './pdf-translations';
-import { setPDFCompany, setPDFSettings }  from './pdf-config-react';
+import { setPDFCompany, setPDFSettings, setPDFAppVersion }  from './pdf-config-react';
 import { getCompanySettings, getCompanyLogoBase64 } from '@/helpers/company-helpers';
-import { getSystemSettings }              from '@/helpers/system-settings-helpers';
+import { getSystemSettings } from '@/helpers/system-settings-helpers';
+import { getSystemVersion } from '@/helpers/system-helpers';
 
 // Templates
 import { VehiclesReportPDF }    from './templates/VehiclesReportPDF';
@@ -97,6 +98,10 @@ export class ReactPDFGenerator {
         paperSize:        (sysSettings.pdf_paper_size as 'A4' | 'LETTER') ?? 'A4',
         orientation:      (sysSettings.pdf_orientation as 'portrait' | 'landscape') ?? 'portrait',
       });
+
+      // ✅ NOVO: Injetar versão do app
+      const version = await getSystemVersion();
+      setPDFAppVersion(version);
 
     } catch (err) {
       console.warn('[PDFGenerator] Erro ao carregar definições:', err);

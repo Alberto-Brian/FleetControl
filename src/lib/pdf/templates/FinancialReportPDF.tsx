@@ -94,6 +94,9 @@ export const FinancialReportPDF: React.FC<FinancialReportProps> = ({ expenses, s
           </View>
         )}
 
+         {/* ✅ Espaçador opcional com quebra de página inteligente */}
+        <View style={{ height: 100 }} minPresenceAhead={0} />
+
         {/* Por categoria */}
         {categoryBreakdown.length > 0 && (
           <View style={commonStyles.section}>

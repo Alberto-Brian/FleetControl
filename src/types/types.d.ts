@@ -245,6 +245,16 @@ interface ISystemSettings {
   reset:  () => Promise<import('./lib/types/system-settings').ISystemSettings>;
 }
 
+interface IScheduledTrip {
+    getAll:       (params?: any) => Promise<any>;
+    getById:      (id: string)   => Promise<any>;
+    getByDriver:  (driverId: string) => Promise<any[]>;
+    create:       (data: any)    => Promise<any>;
+    update:       (id: string, data: any) => Promise<any>;
+    cancel:       (id: string, data?: any) => Promise<any>;
+    runScheduler: () => Promise<void>;
+  };
+
 declare interface Window {
     system:                  System;
     license:                 License;
@@ -271,4 +281,5 @@ declare interface Window {
     _driverLeaves:           IDriverLeaves;
     _company:                ICompany;
     _system_settings: ISystemSettings;
+    _scheduled_trips: IScheduledTrip;
 }

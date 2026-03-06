@@ -4,7 +4,7 @@
 export const ptNavigation = {
   // Menu Principal
   menu: {
-    dashboard: 'Dashboard',
+    dashboard: 'Painel Inicial',
     vehicles: 'Veículos',
     drivers: 'Motoristas',
     trips: 'Viagens',

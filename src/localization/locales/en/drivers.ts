@@ -98,12 +98,17 @@ export const enDrivers = {
 
   dialogs: {
      status: {
-      title: "Change Driver Status",
-      description: "Set contractual status for {{name}}",
-      onTripDescription: "{{name}} is on a trip. Cannot change status.",
-      onTripAlertTitle: "Driver in service",
-      onTripAlertDescription: "Cannot change contractual status while driver is on a trip.",
-      willSetOffline: "Setting this status will automatically change availability to 'Offline'."
+    title: "Change Driver Status",
+    description: "Set contractual status for {{name}}",
+    onTripDescription: "{{name}} is on a trip. Cannot change status.",
+    onTripAlertTitle: "Driver in service",
+    onTripAlertDescription: "Cannot change contractual status while driver is on a trip.",
+    willSetOffline: "Setting this status will automatically change availability to 'Offline'.",
+    blockedDescription: "Status change blocked for {{name}}",
+    onLeaveAlertTitle: "Driver on leave",
+    onLeaveAlertDescription: "The 'On Leave' status is managed automatically by the leave system.",
+    auto: "AUTO",
+    viaLeaveSystem: "Via leave system"
     },
     new: {
       title: "New Driver",
@@ -129,7 +134,10 @@ export const enDrivers = {
       updateContact: "Update phone/email",
       onTripInfoTitle: "Driver in service.",
       onTripInfoDescription: "Availability will be updated automatically when the trip is completed.",
-      fullEditHint: "For full editing, use the \"Edit\" button in the main list"
+      fullEditHint: "For full editing, use the \"Edit\" button in the main list",
+      onLeaveLocked: "On Leave - Locked",
+      onLeaveInfoTitle: "Driver on leave.",
+      onLeaveInfoDescription: "The contractual status is managed automatically by the leave system."
     },
     delete: {
       title: "Delete Driver",
@@ -322,6 +330,13 @@ export const enDrivers = {
       notFound: 'Leave record not found',
     },
   },
+
+  tooltips: {
+    statusBlockedOnLeave: "Cannot change contractual status while driver is on leave",
+    statusBlockedOnTrip: "Cannot change contractual status while driver is on trip",
+    availabilityBlockedOnTrip: "Availability is managed automatically during trips",
+    availabilityBlockedOnLeave: "Availability is set automatically during leaves"
+  }
 } as const;
 
 export default enDrivers;

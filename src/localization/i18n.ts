@@ -29,6 +29,8 @@ import { ptRoutes } from "./locales/pt/routes";
 import { enRoutes } from "./locales/en/routes";
 import { ptSettings } from "./locales/pt/settings";
 import { enSettings } from "./locales/en/settings";
+import { ptScheduledTrips } from "./locales/pt/scheduled-trips";
+import { enScheduledTrips } from "./locales/en/scheduled-trips";
 
 i18n.use(initReactI18next).init({
     fallbackLng: "en",
@@ -49,6 +51,7 @@ i18n.use(initReactI18next).init({
             auth: authTranslations.en.auth,
             common: enCommon,
             settings: enSettings,
+            scheduledTrips: enScheduledTrips,
             homePage: {
                 registerNewClientButton: "Register new client",
                 idTableColumn: "ID",
@@ -90,6 +93,7 @@ i18n.use(initReactI18next).init({
             auth: authTranslations.pt.auth,
             common: ptCommon,
             settings: ptSettings,
+            scheduledTrips: ptScheduledTrips,
             homePage: {
                 registerNewClientButton: "Cadastrar novo cliente",
                 idTableColumn: "ID",

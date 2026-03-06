@@ -1,8 +1,9 @@
 // ========================================
-// FILE: src/lib/pdf/pdf-translations.ts
+// FILE: src/lib/pdf/pdf-translations.ts (COMPLETO)
 // ========================================
 
 export type Language = 'pt' | 'en';
+import { getSystemVersion } from "@/helpers/system-helpers";
 
 // ==================== TRADUÇÕES PT ====================
 
@@ -35,13 +36,14 @@ const ptTranslations = {
   
   // Stats
   stats: {
-    totalVehicles: 'Total de Veículos',
+    totalVehicles: 'Total de\nVeículos',
     available: 'Disponíveis',
+    offline: 'Indisponíveis',
     inUse: 'Em Uso',
     maintenance: 'Em Manutenção',
     inactive: 'Inactivos',
     totalMileage: 'Quilometragem Total',
-    totalTrips: 'Viagens Realizadas',
+    totalTrips: 'Viagens\nRealizadas',
     completed: 'Concluídas',
     inProgress: 'Em Andamento',
     cancelled: 'Canceladas',
@@ -60,10 +62,11 @@ const ptTranslations = {
     generalExpenses: 'Despesas Gerais',
     fines: 'Multas',
     totalGeneral: 'TOTAL GERAL',
-    distanceTraveled: 'Distância Percorrida',
+    distanceTraveled: 'Distância\nPercorrida',
     totalDrivers: 'Total de Motoristas',
     active: 'Activos',
     onLeave: 'De Férias',
+    terminated: 'Suspensos',    // ✅ Terminado (encerrado)
     onTrip: 'Em Viagem',
     pending: 'Pendentes',
   },
@@ -113,6 +116,8 @@ const ptTranslations = {
     topDrivers: 'Top Motoristas por Viagens',
     topDistance: 'Top Distância Percorrida',
     topMileage: 'Top Quilometragem',
+    distributionByAvailability: 'Disponibilidade dos Activos',
+    topVehicles: 'Top Veículos por Custo',
   },
   
   // Charts
@@ -139,6 +144,8 @@ const ptTranslations = {
     active: 'ACTIVO',
     on_leave: 'DE FÉRIAS',
     on_trip: 'EM VIAGEM',
+    offline: 'INDISPONÍVEL',
+    terminated: 'SUSPENSO' 
   },
   
   // Types
@@ -197,6 +204,7 @@ const enTranslations = {
   stats: {
     totalVehicles: 'Total Vehicles',
     available: 'Available',
+    offline: 'Offline',
     inUse: 'In Use',
     maintenance: 'In Maintenance',
     inactive: 'Inactive',
@@ -223,6 +231,7 @@ const enTranslations = {
     distanceTraveled: 'Distance Traveled',
     totalDrivers: 'Total Drivers',
     active: 'Active',
+    terminated: 'Suspended',    // ✅ Terminado (encerrado)
     onLeave: 'On Leave',
     onTrip: 'On Trip',
     pending: 'Pending',
@@ -273,6 +282,8 @@ const enTranslations = {
     topDrivers: 'Top Drivers by Trips',
     topDistance: 'Top Distance Traveled',
     topMileage: 'Top Mileage',
+    distributionByAvailability: 'Asset Availability',
+    topVehicles: 'Top Vehicles by Cost',
   },
   
   // Charts
@@ -299,6 +310,8 @@ const enTranslations = {
     active: 'ACTIVE',
     on_leave: 'ON LEAVE',
     on_trip: 'ON TRIP',
+    offline: 'OFFLINE',
+    terminated: 'SUSPENDED'
   },
   
   // Types

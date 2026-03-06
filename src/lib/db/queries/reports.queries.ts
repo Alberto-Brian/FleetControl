@@ -89,14 +89,50 @@ export async function getDriversReportData(startDate: string, endDate: string) {
   try {
     const { db } = useDb();
 
-    // Buscar todos os motoristas activos
+    // Buscar apenas motoristas ATIVOS NO SISTEMA (is_active = true)
+    // Isso exclui registros "apagados"
     const allDrivers = await db
       .select()
       .from(drivers)
-      .where(eq(drivers.is_active, true));
+      .where(eq(drivers.is_active, true));  // ✅ Filtro de existência
 
-    // Buscar viagens do período agrupadas por motorista
-    // CORREÇÃO: Remover ::integer, SQLite não suporta essa sintaxe
+    // Se não houver motoristas, retornar estrutura vazia
+  if (allDrivers.length === 0) {
+      return {
+        drivers: [],
+        stats: {
+          total: 0,
+          active: 0,
+          onLeave: 0,
+          terminated: 0,  // ✅ Renomeado de 'inactive' para 'terminated'
+          available: 0,
+          onTrip: 0,
+          offline: 0,
+          totalTrips: 0,
+          totalDistance: 0,
+          topDrivers: [],
+          byAvailability: [],
+        },
+      };
+    }
+
+    // Buscar viagens EM ANDAMENTO (para determinar quem está on_trip agora)
+    const activeTrips = await db
+      .select({
+        driver_id: trips.driver_id,
+      })
+      .from(trips)
+      .where(
+        and(
+          eq(trips.status, 'in_progress'),
+          isNotNull(trips.driver_id),
+          isNull(trips.end_date)
+        )
+      );
+
+    const driversOnTripNow = new Set(activeTrips.map(t => t.driver_id));
+
+    // Buscar viagens do PERÍODO solicitado (para estatísticas)
     const tripsByDriver = await db
       .select({
         driver_id: trips.driver_id,
@@ -113,7 +149,6 @@ export async function getDriversReportData(startDate: string, endDate: string) {
       )
       .groupBy(trips.driver_id);
 
-    // Criar mapa de viagens por motorista
     const tripsMap = new Map(
       tripsByDriver.map(t => [
         t.driver_id,
@@ -124,26 +159,53 @@ export async function getDriversReportData(startDate: string, endDate: string) {
       ])
     );
 
-    // Combinar dados
-    const driversList = allDrivers.map(driver => ({
-      id: String(driver.id),
-      name: String(driver.name || ''),
-      license_number: String(driver.license_number || ''),
-      phone: String(driver.phone || ''),
-      status: String(driver.status || 'inactive'),
-      availability: String(driver.availability || 'unavailable'),
-      total_trips: Number(tripsMap.get(driver.id)?.total_trips || 0),
-      total_distance: Number(tripsMap.get(driver.id)?.total_distance || 0),
-    }))
-    .sort((a, b) => b.total_distance - a.total_distance);
+    // Processar motoristas com lógica correta de estados
+    const driversList = allDrivers.map(driver => {
+      // Determinar availability REAL baseada nas regras de negócio
+      let realAvailability: 'available' | 'on_trip' | 'offline';
+      
+      if (driver.status === 'terminated') {
+        // Terminado = sempre offline (não trabalha mais)
+        realAvailability = 'offline';
+      } else if (driver.status === 'on_leave') {
+        // De licença = sempre offline (afastado)
+        realAvailability = 'offline';
+      } else if (driversOnTripNow.has(driver.id)) {
+        // Em viagem ativa agora
+        realAvailability = 'on_trip';
+      } else {
+        // Usar availability do DB ou default offline
+        const dbAvailability = driver.availability as 'available' | 'on_trip' | 'offline' | null;
+        realAvailability = dbAvailability && dbAvailability !== 'on_trip' 
+          ? dbAvailability 
+          : 'offline';
+      }
 
-    // Estatísticas gerais
-    const totalDrivers = Number(allDrivers.length);
-    const activeCount = Number(allDrivers.filter(d => d.status === 'active').length);
-    const onLeaveCount = Number(allDrivers.filter(d => d.status === 'on_leave').length);
-    const terminatedCount = Number(allDrivers.filter(d => d.status === 'terminated').length);
+      return {
+        id: String(driver.id),
+        name: String(driver.name || ''),
+        license_number: String(driver.license_number || ''),
+        phone: String(driver.phone || ''),
+        status: String(driver.status || 'active') as 'active' | 'on_leave' | 'terminated',
+        availability: realAvailability,
+        total_trips: Number(tripsMap.get(driver.id)?.total_trips || 0),
+        total_distance: Number(tripsMap.get(driver.id)?.total_distance || 0),
+      };
+    }).sort((a, b) => b.total_distance - a.total_distance);
 
-    // Total de viagens no período - CORREÇÃO: Remover ::integer
+    // ESTATÍSTICAS CONTRATUAIS (todos os is_active = true)
+    const totalDrivers = allDrivers.length;
+    const activeCount = allDrivers.filter(d => d.status === 'active').length;
+    const onLeaveCount = allDrivers.filter(d => d.status === 'on_leave').length;
+    const terminatedCount = allDrivers.filter(d => d.status === 'terminated').length;
+
+    // ESTATÍSTICAS DE AVAILABILITY (apenas status = active)
+    const activeContractDrivers = driversList.filter(d => d.status === 'active');
+    const onTripCount = activeContractDrivers.filter(d => d.availability === 'on_trip').length;
+    const availableCount = activeContractDrivers.filter(d => d.availability === 'available').length;
+    const offlineCount = activeContractDrivers.filter(d => d.availability === 'offline').length;
+
+    // Total de viagens no período
     const totalTripsResult = await db
       .select({
         count: count(),
@@ -160,7 +222,7 @@ export async function getDriversReportData(startDate: string, endDate: string) {
     const totalTrips = Number(totalTripsResult[0]?.count || 0);
     const totalDistance = Number(totalTripsResult[0]?.distance || 0);
 
-    // Top 5 motoristas
+    // Top 5 motoristas (com viagens no período)
     const topDrivers = driversList
       .filter(d => d.total_trips > 0)
       .slice(0, 5)
@@ -170,36 +232,44 @@ export async function getDriversReportData(startDate: string, endDate: string) {
         totalDistance: Number(d.total_distance),
       }));
 
-    // Distribuição por status
-    const byStatus = [
+    // Dados para gráfico de availability (apenas ativos contratualmente)
+    const byAvailability = [
       {
-        status: 'active',
-        count: activeCount,
-        percentage: Math.round((activeCount / (totalDrivers || 1)) * 100 * 10) / 10,
+        status: 'available',
+        count: availableCount,
+        percentage: Math.round((availableCount / (activeCount || 1)) * 100 * 10) / 10,
       },
       {
-        status: 'on_leave',
-        count: onLeaveCount,
-        percentage: Math.round((onLeaveCount / (totalDrivers || 1)) * 100 * 10) / 10,
+        status: 'on_trip',
+        count: onTripCount,
+        percentage: Math.round((onTripCount / (activeCount || 1)) * 100 * 10) / 10,
       },
       {
-        status: 'terminated',
-        count: terminatedCount,
-        percentage: Math.round((terminatedCount / (totalDrivers || 1)) * 100 * 10) / 10,
+        status: 'offline',
+        count: offlineCount,
+        percentage: Math.round((offlineCount / (activeCount || 1)) * 100 * 10) / 10,
       },
     ].filter(s => s.count > 0);
 
     return {
       drivers: driversList,
       stats: {
+        // Status contratuais (todos is_active = true)
         total: totalDrivers,
         active: activeCount,
-        inactive: terminatedCount,
         onLeave: onLeaveCount,
-        totalTrips: totalTrips,
-        totalDistance: totalDistance,
-        topDrivers: topDrivers,
-        byStatus: byStatus,
+        terminated: terminatedCount,  // ✅ Terminado, não "inativo genérico"
+        
+        // Availability (apenas status = active)
+        available: availableCount,
+        onTrip: onTripCount,
+        offline: offlineCount,
+        
+        // Métricas
+        totalTrips,
+        totalDistance,
+        topDrivers,
+        byAvailability,
       },
     };
   } catch (error) {
@@ -207,7 +277,6 @@ export async function getDriversReportData(startDate: string, endDate: string) {
     throw error;
   }
 }
-
 // ==================== TRIPS REPORT ====================
 
 export async function getTripsReportData(startDate: string, endDate: string) {
@@ -358,6 +427,8 @@ export async function getMaintenanceReportData(startDate: string, endDate: strin
     inProgress: maintenancesList.filter(m => m.status === 'in_progress').length,
     totalCost,
   };
+
+  console.log(stats)
 
   return {
     maintenances: maintenancesList,

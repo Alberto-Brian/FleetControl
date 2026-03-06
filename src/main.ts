@@ -8,6 +8,7 @@ import { APP_NAME } from "@/system/system.config";
 import { RestoreController } from '@/system/restore_manager';
 import { logoutAllUsers } from "./helpers/service-auth-helpers";
 import { startLeaveScheduler } from "./lib/db/schedulers/leave-scheduler";
+import { startTripScheduler } from "./lib/db/schedulers/trip-scheduler";
 
 const inDevelopment = process.env.NODE_ENV === "development";
 
@@ -194,6 +195,9 @@ app.whenReady().then(async () => {
 
       // INIICIALIZAR OS SCHEDULERS
       startLeaveScheduler();
+      startTripScheduler();
+
+      
     console.log(' __ DatabaseManager inicializado');
     console.log('________________________________________________________');
     console.log('');

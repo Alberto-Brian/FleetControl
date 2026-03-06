@@ -25,6 +25,7 @@ import { addReportsEventListeners } from "./reports/reports-listeners";
 import { addDriverLeavesEventListeners } from "./db/driver-leaves/driver-leaves-listeners";
 import { addCompanyEventListeners } from "./db/company/company-listeners";
 import { addSystemSettingsEventListeners } from "./db/system_settings/system-settings-listeners";
+import { addScheduledTripsEventListeners } from "./db/scheduled-trips/scheduled–trips-listerners"
 
 export default function registerListeners(mainWindow: BrowserWindow) {
     addWindowEventListeners(mainWindow);
@@ -52,4 +53,5 @@ export default function registerListeners(mainWindow: BrowserWindow) {
     addDriverLeavesEventListeners();
     addCompanyEventListeners();
     addSystemSettingsEventListeners();
+    addScheduledTripsEventListeners();
 }

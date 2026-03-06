@@ -31,7 +31,7 @@ function getSeriesColor(index: number, primary: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// KPI Card Row — linha de cartões de métricas no topo
+// KPI Card Row — linha de cartões de métricas no topo (design aprimorado)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface KPICardData {
@@ -48,10 +48,16 @@ interface KPICardsProps {
 export const KPICards: React.FC<KPICardsProps> = ({ cards }) => {
   const s = getPDFSettings();
   const count = cards.length;
-  const cardW = count === 3 ? 165 : count === 4 ? 120 : 94;
+  
+  // Distribuição flexível baseada na quantidade de cards
+  const getFlex = (idx: number) => {
+    if (count <= 3) return 1;
+    if (count === 4) return idx < 2 ? 1.2 : 0.8;
+    return 1;
+  };
 
   return (
-    <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
+    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
       {cards.map((card, i) => {
         const bg = card.color ?? getSeriesColor(i, s.primaryColor);
         const { r, g, b } = hexToRgb(bg);
@@ -59,21 +65,40 @@ export const KPICards: React.FC<KPICardsProps> = ({ cards }) => {
           <View
             key={i}
             style={{
-              flex: 1,
+              flex: getFlex(i),
               backgroundColor: bg,
-              borderRadius: 6,
-              padding: 10,
-              minHeight: 52,
+              borderRadius: 8,
+              padding: 12,
+              minHeight: 60,
+              shadowColor: '#000000',
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
             }}
           >
-            <Text style={{ fontSize: 7, color: `rgba(255,255,255,0.8)`, marginBottom: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <Text style={{ 
+              fontSize: 7, 
+              color: `rgba(255,255,255,0.85)`, 
+              marginBottom: 4, 
+              textTransform: 'uppercase', 
+              letterSpacing: 0.8,
+              fontWeight: 'bold'
+            }}>
               {card.label}
             </Text>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#ffffff', lineHeight: 1 }}>
+            <Text style={{ 
+              fontSize: 20, 
+              fontWeight: 'bold', 
+              color: '#ffffff', 
+              lineHeight: 1 
+            }}>
               {String(card.value)}
             </Text>
             {card.sub && (
-              <Text style={{ fontSize: 7, color: `rgba(255,255,255,0.75)`, marginTop: 2 }}>
+              <Text style={{ 
+                fontSize: 7, 
+                color: `rgba(255,255,255,0.75)`, 
+                marginTop: 4 
+              }}>
                 {card.sub}
               </Text>
             )}
@@ -85,7 +110,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ cards }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Bar Chart — gráfico de barras vertical
+// Bar Chart — gráfico de barras vertical (com cantos arredondados e gradiente)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface BarChartData {
@@ -104,31 +129,45 @@ interface BarChartProps {
 }
 
 export const BarChart: React.FC<BarChartProps> = ({
-  data, title, width = 515, height = 130,
+  data, title, width = 515, height = 140,
   formatValue = (v) => String(v), showValues = true,
 }) => {
   const s       = getPDFSettings();
-  const padL    = 36;
-  const padR    = 8;
-  const padT    = showValues ? 18 : 8;
-  const padB    = 28;
+  const padL    = 40;
+  const padR    = 12;
+  const padT    = showValues ? 20 : 10;
+  const padB    = 32;
   const chartW  = width  - padL - padR;
   const chartH  = height - padT - padB;
 
   const values  = data.map(d => d.value);
   const maxVal  = Math.max(...values, 1);
-  const barGap  = 6;
-  const barW    = Math.max(8, (chartW - barGap * (data.length + 1)) / data.length);
-  const yTicks  = 4;
+  const barGap  = 8;
+  const barW    = Math.max(10, (chartW - barGap * (data.length + 1)) / data.length);
+  const yTicks  = 5;
 
   return (
-    <View style={{ marginBottom: 8 }}>
+    <View style={{ marginBottom: 12 }}>
       {title && (
-        <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#1e293b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        <Text style={{ 
+          fontSize: 9, 
+          fontWeight: 'bold', 
+          color: '#1e293b', 
+          marginBottom: 8, 
+          textTransform: 'uppercase', 
+          letterSpacing: 0.5 
+        }}>
           {title}
         </Text>
       )}
-      <View style={{ borderRadius: 4, overflow: 'hidden', backgroundColor: '#f8fafc', borderWidth: 0.5, borderColor: '#e2e8f0' }}>
+      <View style={{ 
+        borderRadius: 8, 
+        overflow: 'hidden', 
+        backgroundColor: '#ffffff', 
+        borderWidth: 1, 
+        borderColor: '#e2e8f0',
+        padding: 8
+      }}>
         <Svg width={width} height={height}>
           {/* Grid lines */}
           {Array.from({ length: yTicks + 1 }, (_, i) => {
@@ -136,11 +175,11 @@ export const BarChart: React.FC<BarChartProps> = ({
             const val = maxVal - (maxVal / yTicks) * i;
             return (
               <G key={i}>
-                <Line x1={padL} y1={y} x2={width - padR} y2={y} stroke="#e2e8f0" strokeWidth={0.5} />
+                <Line x1={padL} y1={y} x2={width - padR} y2={y} stroke="#f1f5f9" strokeWidth={1} />
                 <Text
                   style={{ fontSize: 6, fill: '#94a3b8' }}
                   // @ts-ignore
-                  x={padL - 3} y={y + 2} textAnchor="end"
+                  x={padL - 4} y={y + 2} textAnchor="end"
                 >
                   {val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val.toFixed(0)}
                 </Text>
@@ -148,29 +187,29 @@ export const BarChart: React.FC<BarChartProps> = ({
             );
           })}
 
-          {/* Bars */}
+          {/* Bars com cantos arredondados */}
           {data.map((d, i) => {
-            const barH  = Math.max(2, (d.value / maxVal) * chartH);
+            const barH  = Math.max(4, (d.value / maxVal) * chartH);
             const x     = padL + barGap + i * (barW + barGap);
             const y     = padT + chartH - barH;
             const color = d.color ?? getSeriesColor(i, s.primaryColor);
             return (
               <G key={i}>
-                <Rect x={x} y={y} width={barW} height={barH} fill={color} rx={2} />
+                <Rect x={x} y={y} width={barW} height={barH} fill={color} rx={4} ry={4} />
                 {/* Label abaixo */}
                 <Text
-                  style={{ fontSize: 6, fill: '#64748b' }}
+                  style={{ fontSize: 6, fill: '#64748b', fontWeight: 'bold' }}
                   // @ts-ignore
-                  x={x + barW / 2} y={padT + chartH + 10} textAnchor="middle"
+                  x={x + barW / 2} y={padT + chartH + 14} textAnchor="middle"
                 >
                   {d.label.length > 8 ? d.label.slice(0, 7) + '…' : d.label}
                 </Text>
                 {/* Valor em cima */}
                 {showValues && d.value > 0 && (
                   <Text
-                    style={{ fontSize: 6, fill: '#1e293b', fontWeight: 'bold' }}
+                    style={{ fontSize: 7, fill: '#1e293b', fontWeight: 'bold' }}
                     // @ts-ignore
-                    x={x + barW / 2} y={y - 3} textAnchor="middle"
+                    x={x + barW / 2} y={y - 4} textAnchor="middle"
                   >
                     {formatValue(d.value)}
                   </Text>
@@ -180,9 +219,9 @@ export const BarChart: React.FC<BarChartProps> = ({
           })}
 
           {/* Axis X */}
-          <Line x1={padL} y1={padT + chartH} x2={width - padR} y2={padT + chartH} stroke="#cbd5e1" strokeWidth={0.8} />
+          <Line x1={padL} y1={padT + chartH} x2={width - padR} y2={padT + chartH} stroke="#cbd5e1" strokeWidth={1} />
           {/* Axis Y */}
-          <Line x1={padL} y1={padT} x2={padL} y2={padT + chartH} stroke="#cbd5e1" strokeWidth={0.8} />
+          <Line x1={padL} y1={padT} x2={padL} y2={padT + chartH} stroke="#cbd5e1" strokeWidth={1} />
         </Svg>
       </View>
     </View>
@@ -190,7 +229,7 @@ export const BarChart: React.FC<BarChartProps> = ({
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Horizontal Bar Chart — ideal para rankings (top veículos, motoristas)
+// Horizontal Bar Chart — ideal para rankings (com barras gradientes)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface HBarChartData {
@@ -211,47 +250,69 @@ export const HBarChart: React.FC<HBarChartProps> = ({
   formatValue = (v) => String(v),
 }) => {
   const s      = getPDFSettings();
-  const rowH   = 18;
-  const labelW = 90;
-  const padX   = 8;
-  const barAreaW = width - labelW - padX * 2 - 40;
+  const rowH   = 22;
+  const labelW = 100;
+  const padX   = 12;
+  const barAreaW = width - labelW - padX * 2 - 50;
   const maxVal = Math.max(...data.map(d => d.value), 1);
-  const svgH   = data.length * rowH + 12;
+  const svgH   = data.length * rowH + 16;
 
   return (
-    <View style={{ marginBottom: 8 }}>
+    <View style={{ marginBottom: 12 }}>
       {title && (
-        <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#1e293b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        <Text style={{ 
+          fontSize: 9, 
+          fontWeight: 'bold', 
+          color: '#1e293b', 
+          marginBottom: 8, 
+          textTransform: 'uppercase', 
+          letterSpacing: 0.5 
+        }}>
           {title}
         </Text>
       )}
-      <View style={{ borderRadius: 4, overflow: 'hidden', backgroundColor: '#f8fafc', borderWidth: 0.5, borderColor: '#e2e8f0' }}>
+      <View style={{ 
+        borderRadius: 8, 
+        overflow: 'hidden', 
+        backgroundColor: '#ffffff', 
+        borderWidth: 1, 
+        borderColor: '#e2e8f0',
+        padding: 8
+      }}>
         <Svg width={width} height={svgH}>
           {data.map((d, i) => {
-            const y      = 6 + i * rowH;
-            const barW   = Math.max(4, (d.value / maxVal) * barAreaW);
+            const y      = 8 + i * rowH;
+            const barW   = Math.max(6, (d.value / maxVal) * barAreaW);
             const color  = d.color ?? getSeriesColor(i, s.primaryColor);
             const bgBand = i % 2 === 0 ? '#f8fafc' : '#ffffff';
             return (
               <G key={i}>
                 <Rect x={0} y={y} width={width} height={rowH} fill={bgBand} />
+                {/* Posição no ranking */}
+                <Text
+                  style={{ fontSize: 8, fill: '#94a3b8', fontWeight: 'bold' }}
+                  // @ts-ignore
+                  x={8} y={y + rowH / 2 + 3} textAnchor="start"
+                >
+                  #{i + 1}
+                </Text>
                 {/* Label */}
                 <Text
-                  style={{ fontSize: 7, fill: '#1e293b', fontWeight: 'bold' }}
+                  style={{ fontSize: 8, fill: '#1e293b', fontWeight: 'bold' }}
                   // @ts-ignore
-                  x={padX} y={y + rowH / 2 + 2.5} textAnchor="start"
+                  x={24} y={y + rowH / 2 + 3} textAnchor="start"
                 >
-                  {d.label.length > 14 ? d.label.slice(0, 13) + '…' : d.label}
+                  {d.label.length > 16 ? d.label.slice(0, 15) + '…' : d.label}
                 </Text>
                 {/* Background track */}
-                <Rect x={labelW} y={y + 5} width={barAreaW} height={8} fill="#e2e8f0" rx={4} />
-                {/* Bar */}
-                <Rect x={labelW} y={y + 5} width={barW} height={8} fill={color} rx={4} />
+                <Rect x={labelW} y={y + 6} width={barAreaW} height={10} fill="#e2e8f0" rx={5} ry={5} />
+                {/* Bar com gradiente visual */}
+                <Rect x={labelW} y={y + 6} width={barW} height={10} fill={color} rx={5} ry={5} />
                 {/* Value */}
                 <Text
-                  style={{ fontSize: 6.5, fill: '#64748b' }}
+                  style={{ fontSize: 7, fill: '#64748b', fontWeight: 'bold' }}
                   // @ts-ignore
-                  x={labelW + barAreaW + 4} y={y + rowH / 2 + 2.5} textAnchor="start"
+                  x={labelW + barAreaW + 8} y={y + rowH / 2 + 3} textAnchor="start"
                 >
                   {formatValue(d.value)}
                 </Text>
@@ -265,7 +326,7 @@ export const HBarChart: React.FC<HBarChartProps> = ({
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Donut / Pie Chart
+// Donut / Pie Chart (com legenda aprimorada e centro informativo)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface DonutChartData {
@@ -282,13 +343,13 @@ interface DonutChartProps {
 }
 
 export const DonutChart: React.FC<DonutChartProps> = ({
-  data, title, size = 110, donut = true,
+  data, title, size = 120, donut = true,
 }) => {
   const s      = getPDFSettings();
   const cx     = size / 2;
   const cy     = size / 2;
-  const R      = size / 2 - 8;
-  const r      = donut ? R * 0.55 : 0;
+  const R      = size / 2 - 10;
+  const r      = donut ? R * 0.5 : 0;
   const total  = data.reduce((s, d) => s + d.value, 0) || 1;
 
   // Gerar paths de sector
@@ -318,42 +379,57 @@ export const DonutChart: React.FC<DonutChartProps> = ({
   let currentAngle = 0;
   const sectors = data.map((d, i) => {
     const angle = (d.value / total) * 360;
-    const path  = sectorPath(currentAngle, currentAngle + angle - 0.5, R, r);
+    const path  = sectorPath(currentAngle, currentAngle + angle - 1, R, r);
     currentAngle += angle;
-    return { ...d, path, color: d.color ?? getSeriesColor(i, s.primaryColor) };
+    return { ...d, path, color: d.color ?? getSeriesColor(i, s.primaryColor), angle };
   });
 
-  const legendW = 130;
-  const totalW  = size + 12 + legendW;
+  const legendW = 140;
+  const totalW  = size + 16 + legendW;
 
   return (
-    <View style={{ marginBottom: 8 }}>
+    <View style={{ marginBottom: 12 }}>
       {title && (
-        <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#1e293b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        <Text style={{ 
+          fontSize: 9, 
+          fontWeight: 'bold', 
+          color: '#1e293b', 
+          marginBottom: 8, 
+          textTransform: 'uppercase', 
+          letterSpacing: 0.5 
+        }}>
           {title}
         </Text>
       )}
-      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 4, borderWidth: 0.5, borderColor: '#e2e8f0', padding: 8 }}>
+      <View style={{ 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        backgroundColor: '#ffffff', 
+        borderRadius: 8, 
+        borderWidth: 1, 
+        borderColor: '#e2e8f0', 
+        padding: 12 
+      }}>
         <Svg width={size} height={size}>
           {sectors.map((sec, i) => (
-            <Path key={i} d={sec.path} fill={sec.color} />
+            <Path key={i} d={sec.path} fill={sec.color} stroke="#ffffff" strokeWidth={2} />
           ))}
           {donut && (
-            <Circle cx={cx} cy={cy} r={r - 1} fill="#f8fafc" />
+            <Circle cx={cx} cy={cy} r={r - 2} fill="#ffffff" />
           )}
           {donut && (
             <>
               <Text
-                style={{ fontSize: 10, fontWeight: 'bold', fill: '#1e293b' }}
+                style={{ fontSize: 11, fontWeight: 'bold', fill: '#1e293b' }}
                 // @ts-ignore
-                x={cx} y={cy - 3} textAnchor="middle"
+                x={cx} y={cy - 4} textAnchor="middle"
               >
                 {total >= 1000 ? `${(total / 1000).toFixed(1)}k` : String(total)}
               </Text>
               <Text
                 style={{ fontSize: 6, fill: '#94a3b8' }}
                 // @ts-ignore
-                x={cx} y={cy + 8} textAnchor="middle"
+                x={cx} y={cy + 10} textAnchor="middle"
               >
                 total
               </Text>
@@ -361,14 +437,20 @@ export const DonutChart: React.FC<DonutChartProps> = ({
           )}
         </Svg>
 
-        {/* Legenda lateral */}
-        <View style={{ flex: 1, marginLeft: 12 }}>
+        {/* Legenda lateral aprimorada */}
+        <View style={{ flex: 1, marginLeft: 16 }}>
           {sectors.map((sec, i) => (
-            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-              <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: sec.color, marginRight: 6 }} />
+            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+              <View style={{ 
+                width: 12, 
+                height: 12, 
+                borderRadius: 3, 
+                backgroundColor: sec.color, 
+                marginRight: 8 
+              }} />
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 7, color: '#1e293b', fontWeight: 'bold' }}>{sec.label}</Text>
-                <Text style={{ fontSize: 6.5, color: '#64748b' }}>
+                <Text style={{ fontSize: 8, color: '#1e293b', fontWeight: 'bold' }}>{sec.label}</Text>
+                <Text style={{ fontSize: 7, color: '#64748b' }}>
                   {sec.value} ({((sec.value / total) * 100).toFixed(1)}%)
                 </Text>
               </View>
@@ -381,7 +463,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Line Chart — evolução ao longo do tempo
+// Line Chart — evolução ao longo do tempo (com área preenchida e pontos)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface LineChartSeries {
@@ -401,14 +483,14 @@ interface LineChartProps {
 
 export const LineChart: React.FC<LineChartProps> = ({
   labels, series, title,
-  width = 515, height = 120,
+  width = 515, height = 130,
   formatValue = (v) => String(v),
 }) => {
   const s    = getPDFSettings();
-  const padL = 38;
-  const padR = 12;
-  const padT = 14;
-  const padB = 24;
+  const padL = 42;
+  const padR = 16;
+  const padT = 16;
+  const padB = 28;
   const cW   = width  - padL - padR;
   const cH   = height - padT - padB;
 
@@ -416,7 +498,7 @@ export const LineChart: React.FC<LineChartProps> = ({
   const maxVal   = Math.max(...allVals, 1);
   const minVal   = Math.min(...allVals, 0);
   const range    = maxVal - minVal || 1;
-  const yTicks   = 4;
+  const yTicks   = 5;
   const xStep    = cW / Math.max(labels.length - 1, 1);
 
   function toSvgCoord(val: number, idx: number) {
@@ -442,13 +524,27 @@ export const LineChart: React.FC<LineChartProps> = ({
   }
 
   return (
-    <View style={{ marginBottom: 8 }}>
+    <View style={{ marginBottom: 12 }}>
       {title && (
-        <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#1e293b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        <Text style={{ 
+          fontSize: 9, 
+          fontWeight: 'bold', 
+          color: '#1e293b', 
+          marginBottom: 8, 
+          textTransform: 'uppercase', 
+          letterSpacing: 0.5 
+        }}>
           {title}
         </Text>
       )}
-      <View style={{ borderRadius: 4, overflow: 'hidden', backgroundColor: '#f8fafc', borderWidth: 0.5, borderColor: '#e2e8f0' }}>
+      <View style={{ 
+        borderRadius: 8, 
+        overflow: 'hidden', 
+        backgroundColor: '#ffffff', 
+        borderWidth: 1, 
+        borderColor: '#e2e8f0',
+        padding: 8
+      }}>
         <Svg width={width} height={height}>
           {/* Grid horizontais */}
           {Array.from({ length: yTicks + 1 }, (_, i) => {
@@ -456,10 +552,10 @@ export const LineChart: React.FC<LineChartProps> = ({
             const y   = padT + (cH / yTicks) * i;
             return (
               <G key={i}>
-                <Line x1={padL} y1={y} x2={width - padR} y2={y} stroke="#e2e8f0" strokeWidth={0.5} strokeDasharray="3,3" />
+                <Line x1={padL} y1={y} x2={width - padR} y2={y} stroke="#f1f5f9" strokeWidth={1} />
                 <Text style={{ fontSize: 6, fill: '#94a3b8' }}
                   // @ts-ignore
-                  x={padL - 3} y={y + 2} textAnchor="end">
+                  x={padL - 4} y={y + 2} textAnchor="end">
                   {val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val.toFixed(0)}
                 </Text>
               </G>
@@ -470,19 +566,24 @@ export const LineChart: React.FC<LineChartProps> = ({
           {series.length > 0 && (
             <Path d={makeAreaPath(series[0].data)}
               fill={series[0].color ?? s.primaryColor}
-              fillOpacity={0.08} stroke="none" />
+              fillOpacity={0.1} stroke="none" />
           )}
 
-          {/* Linhas */}
+          {/* Linhas e pontos */}
           {series.map((ser, si) => {
             const color = ser.color ?? getSeriesColor(si, s.primaryColor);
             return (
               <G key={si}>
-                <Path d={makePath(ser.data)} fill="none" stroke={color} strokeWidth={1.5} />
-                {/* Pontos */}
+                <Path d={makePath(ser.data)} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                {/* Pontos maiores e com borda branca */}
                 {ser.data.map((v, i) => {
                   const { x, y } = toSvgCoord(v, i);
-                  return <Circle key={i} cx={x} cy={y} r={2.5} fill={color} />;
+                  return (
+                    <G key={i}>
+                      <Circle cx={x} cy={y} r={4} fill="#ffffff" />
+                      <Circle cx={x} cy={y} r={3} fill={color} />
+                    </G>
+                  );
                 })}
               </G>
             );
@@ -492,26 +593,31 @@ export const LineChart: React.FC<LineChartProps> = ({
           {labels.map((lbl, i) => {
             const x = padL + i * xStep;
             return (
-              <Text key={i} style={{ fontSize: 6, fill: '#64748b' }}
+              <Text key={i} style={{ fontSize: 6, fill: '#64748b', fontWeight: 'bold' }}
                 // @ts-ignore
-                x={x} y={padT + cH + 11} textAnchor="middle">
+                x={x} y={padT + cH + 16} textAnchor="middle">
                 {lbl.length > 6 ? lbl.slice(0, 5) + '…' : lbl}
               </Text>
             );
           })}
 
           {/* Axes */}
-          <Line x1={padL} y1={padT} x2={padL} y2={padT + cH} stroke="#cbd5e1" strokeWidth={0.8} />
-          <Line x1={padL} y1={padT + cH} x2={width - padR} y2={padT + cH} stroke="#cbd5e1" strokeWidth={0.8} />
+          <Line x1={padL} y1={padT} x2={padL} y2={padT + cH} stroke="#cbd5e1" strokeWidth={1} />
+          <Line x1={padL} y1={padT + cH} x2={width - padR} y2={padT + cH} stroke="#cbd5e1" strokeWidth={1} />
         </Svg>
 
         {/* Legenda */}
         {series.length > 1 && (
-          <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 8, paddingBottom: 6 }}>
+          <View style={{ flexDirection: 'row', gap: 16, paddingHorizontal: 8, paddingBottom: 8, marginTop: 4 }}>
             {series.map((ser, i) => (
-              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <View style={{ width: 12, height: 2, backgroundColor: ser.color ?? getSeriesColor(i, s.primaryColor) }} />
-                <Text style={{ fontSize: 6.5, color: '#64748b' }}>{ser.label}</Text>
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={{ 
+                  width: 16, 
+                  height: 3, 
+                  backgroundColor: ser.color ?? getSeriesColor(i, s.primaryColor),
+                  borderRadius: 2
+                }} />
+                <Text style={{ fontSize: 7, color: '#64748b', fontWeight: 'bold' }}>{ser.label}</Text>
               </View>
             ))}
           </View>
@@ -532,25 +638,35 @@ interface ProgressBarProps {
   height?: number;
 }
 
-export const ProgressBar: React.FC<ProgressBarProps> = ({ value, label, color, height = 8 }) => {
+export const ProgressBar: React.FC<ProgressBarProps> = ({ value, label, color, height = 10 }) => {
   const s   = getPDFSettings();
   const clr = color ?? s.primaryColor;
   const pct = Math.min(100, Math.max(0, value));
   return (
-    <View style={{ marginBottom: 5 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
-        <Text style={{ fontSize: 7, color: '#1e293b' }}>{label}</Text>
-        <Text style={{ fontSize: 7, color: '#64748b', fontWeight: 'bold' }}>{pct.toFixed(1)}%</Text>
+    <View style={{ marginBottom: 8 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+        <Text style={{ fontSize: 8, color: '#1e293b', fontWeight: 'bold' }}>{label}</Text>
+        <Text style={{ fontSize: 8, color: clr, fontWeight: 'bold' }}>{pct.toFixed(1)}%</Text>
       </View>
-      <View style={{ backgroundColor: '#e2e8f0', borderRadius: height / 2, height, overflow: 'hidden' }}>
-        <View style={{ backgroundColor: clr, height, borderRadius: height / 2, width: `${pct}%` as any }} />
+      <View style={{ 
+        backgroundColor: '#e2e8f0', 
+        borderRadius: height / 2, 
+        height, 
+        overflow: 'hidden' 
+      }}>
+        <View style={{ 
+          backgroundColor: clr, 
+          height, 
+          borderRadius: height / 2, 
+          width: `${pct}%` as any 
+        }} />
       </View>
     </View>
   );
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Two-Column Charts Layout
+// Two-Column Charts Layout (com gap ajustável)
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface TwoColProps {
@@ -559,9 +675,55 @@ interface TwoColProps {
   gap?:  number;
 }
 
-export const TwoColLayout: React.FC<TwoColProps> = ({ left, right, gap = 10 }) => (
-  <View style={{ flexDirection: 'row', gap, marginBottom: 4 }}>
+export const TwoColLayout: React.FC<TwoColProps> = ({ left, right, gap = 12 }) => (
+  <View style={{ flexDirection: 'row', gap, marginBottom: 8 }}>
     <View style={{ flex: 1 }}>{left}</View>
     <View style={{ flex: 1 }}>{right}</View>
   </View>
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Metric Card — card individual de métrica (alternativa ao KPICards)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface MetricCardProps {
+  label: string;
+  value: string | number;
+  trend?: { value: number; positive: boolean };
+  color?: string;
+}
+
+export const MetricCard: React.FC<MetricCardProps> = ({ label, value, trend, color }) => {
+  const s = getPDFSettings();
+  const bgColor = color ?? s.primaryColor;
+  
+  return (
+    <View style={{
+      backgroundColor: '#ffffff',
+      borderRadius: 8,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: '#e2e8f0',
+      borderLeftWidth: 4,
+      borderLeftColor: bgColor,
+    }}>
+      <Text style={{ fontSize: 7, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+        {label}
+      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+        <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1e293b' }}>
+          {String(value)}
+        </Text>
+        {trend && (
+          <Text style={{ 
+            fontSize: 8, 
+            color: trend.positive ? '#10b981' : '#ef4444',
+            fontWeight: 'bold'
+          }}>
+            {trend.positive ? '↑' : '↓'} {Math.abs(trend.value)}%
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+};

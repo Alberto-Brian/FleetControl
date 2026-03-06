@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/driver/ViewDriverDialog.tsx (ATUALIZADO - SEM TEXTOS ESTÁTICOS)
+// FILE: src/components/driver/ViewDriverDialog.tsx (ATUALIZADO COMPLETO)
 // ========================================
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -12,6 +12,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useDrivers } from '@/contexts/DriversContext';
 import { cn } from '@/lib/utils';
+import { driverStatus, driverAvailability } from '@/lib/db/schemas/drivers';
 
 // Sub-diálogos parciais
 import UpdateDriverStatusDialog from './UpdateDriverStatusDialog';
@@ -78,7 +79,8 @@ export default function ViewDriverDialog({ open, onOpenChange }: ViewDriverDialo
     return new Date(expiryDate) < new Date();
   }
 
-  const isOnTrip = selectedDriver.availability === 'on_trip';
+  const isOnTrip = selectedDriver.availability === driverAvailability.ON_TRIP;
+  const isOnLeave = selectedDriver.status === driverStatus.ON_LEAVE;
 
   return (
     <>
@@ -139,18 +141,37 @@ export default function ViewDriverDialog({ open, onOpenChange }: ViewDriverDialo
                   )}
                 </button>
 
-                {/* Estado Contratual - Sempre disponível */}
+                {/* Estado Contratual - Desabilitado quando em licença */}
                 <button
-                  onClick={() => setStatusDialogOpen(true)}
-                  className="flex items-center gap-3 p-4 rounded-xl border-2 border-border bg-card hover:border-amber-500/50 hover:bg-amber-50/50 transition-all text-left group"
+                  onClick={() => !isOnLeave && setStatusDialogOpen(true)}
+                  className={cn(
+                    "flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left group relative overflow-hidden",
+                    isOnLeave
+                      ? "border-slate-200 bg-slate-50/50 cursor-not-allowed opacity-60"
+                      : "border-border bg-card hover:border-amber-500/50 hover:bg-amber-50/50"
+                  )}
                 >
-                  <div className="p-2 rounded-lg bg-amber-100 text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-colors">
-                    <CreditCard className="w-5 h-5" />
+                  <div className={cn(
+                    "p-2 rounded-lg transition-colors",
+                    isOnLeave
+                      ? "bg-slate-200 text-slate-500"
+                      : "bg-amber-100 text-amber-600 group-hover:bg-amber-500 group-hover:text-white"
+                  )}>
+                    {isOnLeave ? <Lock className="w-5 h-5" /> : <CreditCard className="w-5 h-5" />}
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{t('drivers:fields.status')}</p>
-                    <p className="font-bold text-sm mt-0.5">{t('drivers:dialogs.view.changeStatus')}</p>
+                    <p className="font-bold text-sm mt-0.5 truncate">
+                      {isOnLeave ? t('drivers:dialogs.view.onLeaveLocked') : t('drivers:dialogs.view.changeStatus')}
+                    </p>
                   </div>
+                  {isOnLeave && (
+                    <div className="absolute top-2 right-2">
+                      <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">
+                        {t('drivers:dialogs.status.auto')}
+                      </span>
+                    </div>
+                  )}
                 </button>
 
                 {/* Carta */}
@@ -202,6 +223,16 @@ export default function ViewDriverDialog({ open, onOpenChange }: ViewDriverDialo
                   <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   <p>
                     <span className="font-semibold">{t('drivers:dialogs.view.onTripInfoTitle')}</span> {t('drivers:dialogs.view.onTripInfoDescription')}
+                  </p>
+                </div>
+              )}
+
+              {/* Info quando em licença */}
+              {isOnLeave && (
+                <div className="mt-3 flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
+                  <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <p>
+                    <span className="font-semibold">{t('drivers:dialogs.view.onLeaveInfoTitle')}</span> {t('drivers:dialogs.view.onLeaveInfoDescription')}
                   </p>
                 </div>
               )}
