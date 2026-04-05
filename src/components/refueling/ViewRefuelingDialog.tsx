@@ -1,305 +1,330 @@
 // ========================================
-// FILE: src/components/refueling/ViewRefuelingDialog.tsx (ATUALIZADO)
+// FILE: src/components/refueling/ViewRefuelingDialog.tsx
 // ========================================
-import React from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React, { useState } from 'react';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { useTranslation } from 'react-i18next';
-import { 
-  Fuel, Truck, User, MapPin, Calendar, TrendingUp, FileText, 
-  Route, Droplets, DollarSign, Gauge, CheckCircle2, StickyNote,
-  Navigation, Clock, Flag
-} from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { useRefuelings } from '@/contexts/RefuelingsContext';
+import { useTranslation } from 'react-i18next';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { cn } from '@/lib/utils';
+import {
+  Fuel, Car, User, MapPin, Gauge, Calendar, FileText,
+  Route, CheckCircle2, Pencil, Trash2, Loader2, Hash,
+  TrendingUp, Droplets, StickyNote,
+} from 'lucide-react';
+import { deleteRefueling } from '@/helpers/refueling-helpers';
+import { useRefuelings } from '@/contexts/RefuelingsContext';
+import EditRefuelingDialog from '@/components/refueling/EditRefuelingDialog';
 
 interface ViewRefuelingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+const FUEL_TYPE_META: Record<string, { label: string; icon: string; color: string }> = {
+  gasoline: { label: 'Gasolina',  icon: '⛽', color: 'bg-amber-50  text-amber-700  border-amber-200'  },
+  diesel:   { label: 'Gasóleo',   icon: '🛢️', color: 'bg-blue-50   text-blue-700   border-blue-200'   },
+  ethanol:  { label: 'Etanol',    icon: '🌱', color: 'bg-green-50  text-green-700  border-green-200'  },
+  cng:      { label: 'GNV',       icon: '🔥', color: 'bg-orange-50 text-orange-700 border-orange-200' },
+};
+
 export default function ViewRefuelingDialog({ open, onOpenChange }: ViewRefuelingDialogProps) {
   const { t } = useTranslation();
-  const { state: { selectedRefueling } } = useRefuelings();
+  const { showSuccess, handleError } = useErrorHandler();
+  const {
+    state: { selectedRefueling },
+    deleteRefueling: deleteFromContext,
+    selectRefueling,
+  } = useRefuelings();
 
-  if (!selectedRefueling || !open) return null;
+  const [editOpen,       setEditOpen]       = useState(false);
+  const [confirmDelete,  setConfirmDelete]  = useState(false);
+  const [isDeleting,     setIsDeleting]     = useState(false);
 
-  // Helper para formatar data
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('pt-PT', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  async function handleDelete() {
+    if (!selectedRefueling) return;
 
-  // Helper para status da viagem
-  const getTripStatusColor = (status?: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
-      case 'in_progress': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'cancelled': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400';
+    setIsDeleting(true);
+    try {
+      const ok = await deleteRefueling(selectedRefueling.id);
+      if (ok) {
+        deleteFromContext(selectedRefueling.id);
+        showSuccess('refuelings:toast.deleteSuccess');
+        setConfirmDelete(false);
+        onOpenChange(false);
+        selectRefueling(null);
+      }
+    } catch (error) {
+      handleError(error, 'refuelings:toast.deleteError');
+    } finally {
+      setIsDeleting(false);
     }
-  };
+  }
+
+  if (!selectedRefueling) return null;
+
+  const r         = selectedRefueling;
+  const fuelMeta  = FUEL_TYPE_META[r.fuel_type] ?? { label: r.fuel_type, icon: '⛽', color: 'bg-muted text-muted-foreground border-muted' };
+  const dateStr   = new Date(r.refueling_date).toLocaleDateString('pt-PT', {
+    day: '2-digit', month: 'long', year: 'numeric',
+  });
+  const timeStr   = new Date(r.refueling_date).toLocaleTimeString('pt-PT', {
+    hour: '2-digit', minute: '2-digit',
+  });
+
+  // ── Helper: linha de detalhe ──────────────────────────────────────────────
+  function DetailRow({
+    icon: Icon, label, value, mono = false, className = '',
+  }: {
+    icon: React.ElementType;
+    label: string;
+    value?: string | number | null;
+    mono?: boolean;
+    className?: string;
+  }) {
+    if (!value && value !== 0) return null;
+    return (
+      <div className={cn('flex items-start gap-3 py-2.5', className)}>
+        <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center shrink-0 mt-0.5">
+          <Icon className="w-4 h-4 text-muted-foreground" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+          <p className={cn('text-sm font-semibold mt-0.5 break-words', mono && 'font-mono')}>{value}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
-        {/* Header */}
-        <DialogHeader className="px-6 pt-6 pb-4 bg-gradient-to-br from-primary/5 to-transparent border-b">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-primary/10 text-primary">
-              <Fuel className="w-6 h-6" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <DialogTitle className="text-xl font-bold tracking-tight">
-                {t('refuelings:dialogs.view.title')}
-              </DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground">
-                {formatDate(selectedRefueling.refueling_date)}
-              </DialogDescription>
-            </div>
-            <div className="text-right shrink-0">
-              <p className="text-2xl sm:text-3xl font-black text-primary tracking-tight font-mono">
-                {selectedRefueling.total_cost.toLocaleString('pt-PT')}
-                <span className="text-sm ml-1">Kz</span>
-              </p>
-            </div>
-          </div>
-        </DialogHeader>
-
-        <div className="p-6 space-y-6">
-          {/* Vehicle Info */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <Truck className="w-4 h-4" />
-              {t('refuelings:sections.identification')}
-            </h4>
-            
-            <Card className="p-4 border-l-4 border-l-primary bg-muted/20">
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground mb-1">{t('refuelings:fields.vehicle')}</p>
-                  <p className="text-xl sm:text-2xl font-bold font-mono truncate">{selectedRefueling.vehicle_license}</p>
-                  {(selectedRefueling.vehicle_brand || selectedRefueling.vehicle_model) && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {selectedRefueling.vehicle_brand} {selectedRefueling.vehicle_model}
-                    </p>
-                  )}
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            {/* Header: ícone + título + acções */}
+            <div className="flex items-start justify-between pr-8">
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  'w-12 h-12 rounded-xl flex items-center justify-center text-2xl border shrink-0',
+                  r.is_full_tank ? 'bg-green-50 border-green-200' : 'bg-primary/10 border-primary/20'
+                )}>
+                  {fuelMeta.icon}
                 </div>
-                <div className="flex flex-wrap gap-2 shrink-0">
-                  <Badge variant="outline" className="capitalize text-xs">
-                    {t(`refuelings:fuelTypes.${selectedRefueling.fuel_type}`)}
-                  </Badge>
-                  {selectedRefueling.is_full_tank && (
-                    <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                      {t('refuelings:info.fullTank')}
-                    </Badge>
-                  )}
+                <div>
+                  <DialogTitle className="text-xl font-black font-mono">
+                    {r.vehicle_license ?? '—'}
+                  </DialogTitle>
+                  <DialogDescription className="flex items-center gap-2 mt-0.5">
+                    <Calendar className="w-3.5 h-3.5" />
+                    {dateStr} {timeStr !== '00:00' && `· ${timeStr}`}
+                  </DialogDescription>
                 </div>
               </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <Gauge className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <span className="text-muted-foreground">{t('refuelings:fields.mileage')}:</span>
-                  <span className="font-mono font-medium">{selectedRefueling.current_mileage.toLocaleString('pt-PT')} km</span>
-                </div>
-                {selectedRefueling.driver_name && (
-                  <div className="flex items-center gap-2 min-w-0">
-                    <User className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground">{t('refuelings:fields.driver')}:</span>
-                    <span className="font-medium truncate">{selectedRefueling.driver_name}</span>
-                  </div>
-                )}
+
+              {/* Acções rápidas */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 h-8"
+                  onClick={() => { onOpenChange(false); setTimeout(() => setEditOpen(true), 100); }}
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  {t('common:actions.edit')}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  {t('common:actions.delete')}
+                </Button>
               </div>
-            </Card>
+            </div>
+          </DialogHeader>
 
-            {/* Trip Info (ATUALIZADO) */}
-            {selectedRefueling.trip_id && (
-              <Card className={cn(
-                "p-4 border-l-4 bg-blue-50/30 dark:bg-blue-900/10",
-                selectedRefueling.trip_status === 'completed' ? "border-l-green-500 bg-green-50/30 dark:bg-green-900/10" :
-                selectedRefueling.trip_status === 'in_progress' ? "border-l-blue-500" :
-                "border-l-slate-500 bg-slate-50/30 dark:bg-slate-900/10"
-              )}>
-                <div className="flex items-start gap-3">
-                  <div className={cn(
-                    "p-2 rounded-lg shrink-0",
-                    selectedRefueling.trip_status === 'completed' ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400" :
-                    selectedRefueling.trip_status === 'in_progress' ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" :
-                    "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                  )}>
-                    <Route className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <p className="text-xs text-muted-foreground">{t('refuelings:fields.trip')}</p>
-                      {selectedRefueling.trip_status && (
-                        <Badge className={cn("text-[10px]", getTripStatusColor(selectedRefueling.trip_status))}>
-                          {t(`trips:status.${selectedRefueling.trip_status}.label`)}
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    {/* Nome da viagem */}
-                    <p className="font-bold text-lg truncate">
-                      {selectedRefueling.route_name || selectedRefueling.trip_code || selectedRefueling.trip_destination || t('refuelings:info.unnamedTrip')}
-                    </p>
-                    
-                    {/* Origem -> Destino */}
-                    {(selectedRefueling.trip_origin || selectedRefueling.trip_destination) && (
-                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                        <Navigation className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">
-                          {selectedRefueling.trip_origin || '...'} 
-                          <span className="mx-2 text-border">→</span> 
-                          {selectedRefueling.trip_destination || '...'}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {/* Data da viagem */}
-                    {selectedRefueling.trip_start_date && (
-                      <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
-                        <Clock className="w-3.5 h-3.5 shrink-0" />
-                        <span>{formatDate(selectedRefueling.trip_start_date)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            )}
-          </div>
+          <div className="space-y-5 mt-4">
 
-          <Separator className="bg-border/50" />
+            {/* ── KPIs principais ─────────────────────────────────────────── */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="text-center p-4 rounded-xl bg-primary/5 border border-primary/10">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  {t('refuelings:fields.liters')}
+                </p>
+                <p className="text-2xl font-black font-mono text-primary">
+                  {r.liters}
+                  <span className="text-sm font-bold ml-1">L</span>
+                </p>
+              </div>
+              <div className="text-center p-4 rounded-xl bg-orange-50/60 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  {t('refuelings:fields.pricePerLiter')}
+                </p>
+                <p className="text-2xl font-black font-mono text-orange-600">
+                  {r.price_per_liter.toFixed(2)}
+                  <span className="text-sm font-bold ml-1">Kz</span>
+                </p>
+              </div>
+              <div className="text-center p-4 rounded-xl bg-green-50/60 dark:bg-green-950/20 border border-green-100 dark:border-green-900">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  {t('refuelings:fields.totalCost')}
+                </p>
+                <p className="text-2xl font-black font-mono text-green-700 dark:text-green-400">
+                  {r.total_cost.toLocaleString('pt-PT')}
+                  <span className="text-sm font-bold ml-1">Kz</span>
+                </p>
+              </div>
+            </div>
 
-          {/* Location */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
-              {t('refuelings:sections.location')}
-            </h4>
-            
-            <div className="grid gap-3">
-              {selectedRefueling.station_name ? (
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/30 border border-muted">
-                  <div className="p-2 rounded-lg bg-background shadow-sm shrink-0">
-                    <MapPin className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{selectedRefueling.station_name}</p>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                      {selectedRefueling.station_brand && (
-                        <span className="text-xs text-muted-foreground">{selectedRefueling.station_brand}</span>
-                      )}
-                      {selectedRefueling.station_city && (
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Flag className="w-3 h-3" />
-                          {selectedRefueling.station_city}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/20 border border-dashed border-muted text-muted-foreground">
-                  <MapPin className="w-4 h-4" />
-                  <span className="text-sm">{t('refuelings:info.noStation')}</span>
-                </div>
+            {/* ── Badges de estado ────────────────────────────────────────── */}
+            <div className="flex flex-wrap gap-2">
+              <Badge className={cn('gap-1.5 px-3 py-1 border font-semibold', fuelMeta.color)}>
+                <Droplets className="w-3.5 h-3.5" />
+                {fuelMeta.label}
+              </Badge>
+              {r.is_full_tank && (
+                <Badge className="gap-1.5 px-3 py-1 border font-semibold bg-green-50 text-green-700 border-green-200">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {t('refuelings:info.fullTank')}
+                </Badge>
+              )}
+              {r.trip_code && (
+                <Badge variant="outline" className="gap-1.5 px-3 py-1 font-semibold">
+                  <Route className="w-3.5 h-3.5" />
+                  {r.trip_code}
+                </Badge>
               )}
             </div>
-          </div>
 
-          <Separator className="bg-border/50" />
+            <Separator />
 
-          {/* Costs */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              {t('refuelings:sections.quantities')}
-            </h4>
-            
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 sm:p-4 rounded-xl bg-muted/30 border border-muted text-center">
-                <div className="flex items-center justify-center gap-1.5 mb-2 text-muted-foreground">
-                  <Droplets className="w-4 h-4" />
-                  <span className="text-[10px] sm:text-xs font-medium uppercase tracking-wider">{t('refuelings:fields.liters')}</span>
-                </div>
-                <p className="text-xl sm:text-2xl font-black font-mono text-foreground">{selectedRefueling.liters}</p>
-                <span className="text-[10px] sm:text-xs text-muted-foreground">Litros</span>
+            {/* ── Detalhes em duas colunas ─────────────────────────────────── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-0 divide-y sm:divide-y-0">
+              {/* Coluna 1 */}
+              <div className="divide-y">
+                <DetailRow icon={Car}   label={t('refuelings:fields.vehicle')} value={
+                  r.vehicle_brand
+                    ? `${r.vehicle_license} — ${r.vehicle_brand} ${r.vehicle_model ?? ''}`
+                    : r.vehicle_license
+                } mono />
+                <DetailRow icon={User}  label={t('refuelings:fields.driver')}  value={r.driver_name} />
+                <DetailRow icon={MapPin} label={t('refuelings:fields.station')} value={
+                  r.station_name
+                    ? `${r.station_name}${r.station_brand ? ` (${r.station_brand})` : ''}${r.station_city ? ` · ${r.station_city}` : ''}`
+                    : null
+                } />
+                <DetailRow icon={Gauge} label={t('refuelings:fields.mileage')} value={
+                  r.current_mileage ? `${r.current_mileage.toLocaleString('pt-PT')} km` : null
+                } />
               </div>
-              
-              <div className="p-3 sm:p-4 rounded-xl bg-muted/30 border border-muted text-center">
-                <div className="flex items-center justify-center gap-1.5 mb-2 text-muted-foreground">
-                  <DollarSign className="w-4 h-4" />
-                  <span className="text-[10px] sm:text-xs font-medium uppercase tracking-wider">{t('refuelings:fields.pricePerLiter')}</span>
-                </div>
-                <p className="text-xl sm:text-2xl font-black font-mono text-foreground">
-                  {selectedRefueling.price_per_liter.toFixed(2)}
-                </p>
-                <span className="text-[10px] sm:text-xs text-muted-foreground">Kz/L</span>
-              </div>
-              
-              <div className="p-3 sm:p-4 rounded-xl bg-primary/10 border border-primary/20 text-center">
-                <div className="flex items-center justify-center gap-1.5 mb-2 text-primary/70">
-                  <TrendingUp className="w-4 h-4" />
-                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider">{t('refuelings:fields.totalCost')}</span>
-                </div>
-                <p className="text-xl sm:text-2xl font-black font-mono text-primary">
-                  {selectedRefueling.total_cost.toLocaleString('pt-PT')}
-                </p>
-                <span className="text-[10px] sm:text-xs text-primary/70">Kz</span>
+
+              {/* Coluna 2 */}
+              <div className="divide-y">
+                {r.trip_code && (
+                  <DetailRow icon={Route} label={t('refuelings:fields.trip')} value={
+                    [r.trip_code, r.route_name ?? r.trip_destination]
+                      .filter(Boolean).join(' · ')
+                  } />
+                )}
+                {r.route_origin && r.route_destination && (
+                  <DetailRow icon={TrendingUp} label={t('refuelings:fields.route')} value={
+                    `${r.route_origin} → ${r.route_destination}`
+                  } />
+                )}
+                {r.invoice_number && (
+                  <DetailRow icon={Hash} label={t('refuelings:fields.invoiceNumber')} value={r.invoice_number} mono />
+                )}
+                <DetailRow icon={FileText} label={t('refuelings:fields.registeredAt')} value={
+                  new Date(r.created_at).toLocaleDateString('pt-PT', {
+                    day: '2-digit', month: 'short', year: 'numeric',
+                  })
+                } />
               </div>
             </div>
-          </div>
 
-          {/* Additional Info */}
-          {(selectedRefueling.invoice_number || selectedRefueling.notes) && (
-            <>
-              <Separator className="bg-border/50" />
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  {t('refuelings:sections.details')}
-                </h4>
-                
-                <div className="space-y-3">
-                  {selectedRefueling.invoice_number && (
-                    <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/30 border border-muted">
-                      <div className="p-2 rounded-lg bg-background shadow-sm shrink-0">
-                        <FileText className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">{t('refuelings:fields.invoiceNumber')}</p>
-                        <p className="text-sm text-muted-foreground font-mono truncate">{selectedRefueling.invoice_number}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedRefueling.notes && (
-                    <div className="p-4 rounded-xl bg-muted/30 border border-muted">
-                      <div className="flex items-center gap-2 mb-2 text-muted-foreground">
-                        <StickyNote className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase tracking-wider">{t('refuelings:fields.notes')}</span>
-                      </div>
-                      <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                        {selectedRefueling.notes}
-                      </p>
-                    </div>
-                  )}
+            {/* ── Notas ───────────────────────────────────────────────────── */}
+            {r.notes && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                    <StickyNote className="w-4 h-4" />
+                    {t('refuelings:fields.notes')}
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed bg-muted/30 rounded-lg p-3 border">
+                    {r.notes}
+                  </p>
                 </div>
-              </div>
-            </>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+              </>
+            )}
+
+            {/* ── Rodapé: botões de acção ─────────────────────────────────── */}
+            <Separator />
+            <div className="flex justify-end gap-3 pt-1">
+              <Button
+                variant="outline"
+                className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 className="w-4 h-4" />
+                {t('common:actions.delete')}
+              </Button>
+              <Button
+                className="gap-2"
+                onClick={() => { onOpenChange(false); setTimeout(() => setEditOpen(true), 100); }}
+              >
+                <Pencil className="w-4 h-4" />
+                {t('common:actions.edit')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── EditRefuelingDialog — abre após fechar o View ────────────────── */}
+      <EditRefuelingDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onDeleted={() => onOpenChange(false)}
+      />
+
+      {/* ── AlertDialog de confirmação de eliminação ──────────────────────── */}
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" />
+              {t('refuelings:dialogs.delete.title', 'Eliminar abastecimento')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('refuelings:dialogs.delete.description',
+                'Esta acção não pode ser desfeita. O registo será permanentemente eliminado.')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>{t('common:actions.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting
+                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t('common:deleting', 'A eliminar...')}</>
+                : t('common:actions.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

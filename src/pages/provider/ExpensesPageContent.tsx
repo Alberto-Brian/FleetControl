@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/expense/ExpensesPageContent.tsx
+// FILE: src/components/expense/ExpensesPageContent.tsx (ATUALIZADO COMPLETO)
 // ========================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { useExpenses } from '@/contexts/ExpensesContext';
@@ -16,10 +16,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Pagination } from '@/components/ui/pagination';
 import {
   DollarSign, TrendingUp, AlertCircle, Calendar, Tag, Eye, Edit,
-  Trash2, CheckCircle2, Search, LayoutGrid, List, Rows, Filter
+  Trash2, CheckCircle2, Search, LayoutGrid, List, Rows, Filter,
+  MoreHorizontal, X
 } from 'lucide-react';
 import { RESTORE_EXPENSE_CATEGORY } from '@/helpers/ipc/db/expense_categories/expense-categories-channels';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuTrigger, closeDropdownsAndOpenDialog,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 import NewExpenseDialog from '@/components/expense/NewExpenseDialog';
 import EditExpenseDialog from '@/components/expense/EditExpenseDialog';
@@ -35,22 +45,22 @@ export default function ExpensesPageContent() {
   const { handleError, showSuccess } = useErrorHandler();
 
   const {
-    state: { expenses, categories, isLoading, isCategoriesLoading },
+    state: { expenses, categories, isLoading, isCategoriesLoading, selectedExpense, selectedCategory },
     setExpenses, setCategories, selectExpense, selectCategory,
     deleteExpense: removeExpenseFromContext,
     deleteCategory: removeCategoryFromContext,
     setLoading, setCategoriesLoading, updateCategory,
   } = useExpenses();
 
-  const [activeTab, setActiveTab]         = useState('expenses');
-  const [searchTerm, setSearchTerm]       = useState('');
-  const [statusFilter, setStatusFilter]   = useState<string>('all');
+  const [activeTab, setActiveTab] = useState('expenses');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [viewMode, setViewMode]           = useState<ViewMode>('cards');
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Paginação
-  const [currentPage, setCurrentPage]   = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   const [paginationInfo, setPaginationInfo] = useState({
     total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false,
@@ -63,10 +73,16 @@ export default function ExpensesPageContent() {
   });
 
   // Dialogs
-  const [viewDialogOpen, setViewDialogOpen]         = useState(false);
-  const [editDialogOpen, setEditDialogOpen]         = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [markAsPaidDialogOpen, setMarkAsPaidDialogOpen] = useState(false);
   const [editCategoryDialogOpen, setEditCategoryDialogOpen] = useState(false);
+  
+  // NOVO: Dialogs de confirmação de exclusão
+  const [deleteExpenseDialogOpen, setDeleteExpenseDialogOpen] = useState(false);
+  const [deleteCategoryDialogOpen, setDeleteCategoryDialogOpen] = useState(false);
+  const [isDeletingExpense, setIsDeletingExpense] = useState(false);
+  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => { setDebouncedSearch(searchTerm); setCurrentPage(1); }, 500);
@@ -92,8 +108,8 @@ export default function ExpensesPageContent() {
     setLoading(true);
     try {
       const result = await getAllExpenses({
-        page:   currentPage,
-        limit:  itemsPerPage,
+        page: currentPage,
+        limit: itemsPerPage,
         search: debouncedSearch,
         status: statusFilter === 'all' ? undefined : statusFilter,
         category_id: categoryFilter === 'all' ? undefined : categoryFilter,
@@ -120,7 +136,7 @@ export default function ExpensesPageContent() {
     }
   }
 
-  // Overdue helpers (lógica local — depende de due_date, não de status do back)
+  // Overdue helpers
   function isOverdue(expense: any): boolean {
     if (expense.status === 'paid' || expense.status === 'cancelled') return false;
     if (!expense.due_date) return false;
@@ -136,32 +152,54 @@ export default function ExpensesPageContent() {
       );
     }
     const map = {
-      pending:   { label: t('expenses:status.pending.label'),   className: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-400' },
-      paid:      { label: t('expenses:status.paid.label'),      className: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400'     },
-      cancelled: { label: t('expenses:status.cancelled.label'), className: 'bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-900 dark:text-gray-400'             },
+      pending: { label: t('expenses:status.pending.label'), className: 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-400' },
+      paid: { label: t('expenses:status.paid.label'), className: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400' },
+      cancelled: { label: t('expenses:status.cancelled.label'), className: 'bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-900 dark:text-gray-400' },
     };
     const s = map[expense.status as keyof typeof map] || map.pending;
     return <Badge variant="outline" className={cn('rounded-full text-[10px] font-bold px-2.5 py-0.5', s.className)}>{s.label}</Badge>;
   }
 
-  async function handleDeleteExpense(id: string) {
+  // NOVO: Handlers de exclusão com diálogo de confirmação (igual DriversPageContent)
+  function openDeleteExpenseDialog(expense: any) {
+    closeDropdownsAndOpenDialog(() => { selectExpense(expense); setDeleteExpenseDialogOpen(true); });
+  }
+
+  function openDeleteCategoryDialog(category: any) {
+    closeDropdownsAndOpenDialog(() => { selectCategory(category); setDeleteCategoryDialogOpen(true); });
+  }
+
+  async function handleDeleteExpense() {
+    if (!selectedExpense) return;
+    setIsDeletingExpense(true);
     try {
-      await deleteExpenseHelper(id);
-      removeExpenseFromContext(id);
+      await deleteExpenseHelper(selectedExpense.id);
+      removeExpenseFromContext(selectedExpense.id);
       showSuccess('expenses:toast.deleteSuccess');
+      setDeleteExpenseDialogOpen(false);
+      selectExpense(null);
       loadExpenses();
     } catch (error) {
       handleError(error, 'expenses:toast.deleteError');
+    } finally {
+      setIsDeletingExpense(false);
     }
   }
 
-  async function handleDeleteCategory(id: string) {
+  async function handleDeleteCategory() {
+    if (!selectedCategory) return;
+    setIsDeletingCategory(true);
     try {
-      await deleteExpenseCategory(id);
-      removeCategoryFromContext(id);
+      await deleteExpenseCategory(selectedCategory.id);
+      removeCategoryFromContext(selectedCategory.id);
       showSuccess('expenses:toast.categoryDeleteSuccess');
+      setDeleteCategoryDialogOpen(false);
+      selectCategory(null);
+      loadCategories();
     } catch (error) {
       handleError(error, 'expenses:toast.categoryDeleteError');
+    } finally {
+      setIsDeletingCategory(false);
     }
   }
 
@@ -169,122 +207,197 @@ export default function ExpensesPageContent() {
     !searchTerm || c.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const activeCategories        = categories.filter(c => c.is_active).length;
-  const operationalCategories   = categories.filter(c => c.type === 'operational').length;
+  const activeCategories = categories.filter(c => c.is_active).length;
+  const operationalCategories = categories.filter(c => c.type === 'operational').length;
   const administrativeCategories = categories.filter(c => c.type === 'administrative').length;
   const extraordinaryCategories = categories.filter(c => c.type === 'extraordinary').length;
 
   const viewModes = [
-    { mode: 'compact', icon: Rows,       label: t('common:viewModes.compact') },
-    { mode: 'normal',  icon: List,       label: t('common:viewModes.normal')  },
-    { mode: 'cards',   icon: LayoutGrid, label: t('common:viewModes.cards')   },
+    { mode: 'compact', icon: Rows, label: t('common:viewModes.compact') },
+    { mode: 'normal', icon: List, label: t('common:viewModes.normal') },
+    { mode: 'cards', icon: LayoutGrid, label: t('common:viewModes.cards') },
   ] as const;
 
   // ---------------------------------------------------------------
-  // Views
+  // Views atualizadas com ações de edição/exclusão
   // ---------------------------------------------------------------
 
   function renderCompactView() {
-    return (
-      <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
-        <div className="bg-muted/50 px-6 py-4 grid grid-cols-12 gap-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground border-b">
-          <div className="col-span-3">{t('expenses:fields.description')}</div>
-          <div className="col-span-2">{t('expenses:fields.category')}</div>
-          <div className="col-span-2">{t('expenses:fields.dueDate')}</div>
-          <div className="col-span-2">{t('expenses:fields.status')}</div>
-          <div className="col-span-2">{t('expenses:fields.amount')}</div>
-          <div className="col-span-1 text-right">{t('expenses:table.actions')}</div>
-        </div>
-        <div className="divide-y">
-          {expenses.map((expense) => (
-            <div key={expense.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors duration-150">
-              <div className="col-span-3">
-                <span className="text-sm font-medium truncate block">{expense.description}</span>
-                {expense.vehicle_license && <span className="text-xs text-muted-foreground font-mono">{expense.vehicle_license}</span>}
-              </div>
-              <div className="col-span-2">
-                <div className="flex items-center gap-2">
-                  {expense.category_color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: expense.category_color }} />}
-                  <span className="text-sm text-muted-foreground truncate">{expense.category_name}</span>
-                </div>
-              </div>
-              <div className="col-span-2">
-                <span className="text-sm">{expense.due_date ? new Date(expense.due_date).toLocaleDateString('pt-PT') : '-'}</span>
-              </div>
-              <div className="col-span-2">{getStatusBadge(expense)}</div>
-              <div className="col-span-2">
-                <span className="text-sm font-bold">{expense.amount.toLocaleString('pt-PT')} Kz</span>
-              </div>
-              <div className="col-span-1 flex justify-end gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { selectExpense(expense); setViewDialogOpen(true); }}>
-                  <Eye className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); selectExpense(expense); setEditDialogOpen(true); }}>
-                  <Edit className="w-4 h-4" />
-                </Button>
+  return (
+    <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-muted/50 px-6 py-4 grid grid-cols-12 gap-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground border-b">
+        <div className="col-span-3">{t('expenses:fields.description')}</div>
+        <div className="col-span-2">{t('expenses:fields.category')}</div>
+        <div className="col-span-2">{t('expenses:fields.dueDate')}</div>
+        <div className="col-span-2">{t('expenses:fields.status')}</div>
+        <div className="col-span-2">{t('expenses:fields.amount')}</div>
+        <div className="col-span-1 text-right">{t('expenses:table.actions')}</div>
+      </div>
+      <div className="divide-y">
+        {expenses.map((expense) => (
+          <div 
+            key={expense.id} 
+            className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors duration-150"
+          >
+            <div className="col-span-3">
+              <span className="text-sm font-medium truncate block">{expense.description}</span>
+              {expense.vehicle_license && <span className="text-xs text-muted-foreground font-mono">{expense.vehicle_license}</span>}
+            </div>
+            <div className="col-span-2">
+              <div className="flex items-center gap-2">
+                {expense.category_color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: expense.category_color }} />}
+                <span className="text-sm text-muted-foreground truncate">{expense.category_name}</span>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  function renderNormalView() {
-    return (
-      <div className="grid gap-4">
-        {expenses.map((expense) => (
-          <Card key={expense.id} className="overflow-hidden border-l-4 group hover:shadow-md transition-all duration-200 bg-card cursor-pointer"
-            style={{ borderLeftColor: expense.category_color }}
-            onClick={() => { selectExpense(expense); setViewDialogOpen(true); }}>
-            <CardContent className="p-0">
-              <div className="flex items-center p-5 gap-5">
-                <div className="hidden sm:flex h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${expense.category_color}20` }}>
-                  <DollarSign className="w-6 h-6" style={{ color: expense.category_color }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="font-bold text-lg tracking-tight truncate">{expense.description}</h3>
-                    {getStatusBadge(expense)}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1.5"><Tag className="w-4 h-4" />{expense.category_name}</span>
-                    <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" />{new Date(expense.expense_date).toLocaleDateString('pt-PT')}</span>
-                    {expense.vehicle_license && <span className="font-mono">{expense.vehicle_license}</span>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">{t('expenses:fields.amount')}</p>
-                    <p className="text-xl font-bold text-primary">{expense.amount.toLocaleString('pt-PT')} Kz</p>
-                  </div>
-                  <div className="flex gap-1">
-                    {expense.status === 'pending' && !isOverdue(expense) && (
-                      <Button size="icon" variant="ghost" className="h-10 w-10 text-green-600 hover:bg-green-50"
-                        onClick={(e) => { e.stopPropagation(); selectExpense(expense); setMarkAsPaidDialogOpen(true); }}>
-                        <CheckCircle2 className="w-5 h-5" />
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="icon" className="h-10 w-10"
-                      onClick={(e) => { e.stopPropagation(); selectExpense(expense); setEditDialogOpen(true); }}>
-                      <Edit className="w-5 h-5" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            <div className="col-span-2">
+              <span className="text-sm">{expense.due_date ? new Date(expense.due_date).toLocaleDateString('pt-PT') : '-'}</span>
+            </div>
+            <div className="col-span-2">{getStatusBadge(expense)}</div>
+            <div className="col-span-2">
+              <span className="text-sm font-bold">{expense.amount.toLocaleString('pt-PT')} Kz</span>
+            </div>
+            {/* BOTÕES DIRETAMENTE VISÍVEIS */}
+            <div className="col-span-1 flex justify-end gap-1">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8" 
+                onClick={() => { selectExpense(expense); setViewDialogOpen(true); }}
+                title={t('expenses:actions.view')}
+              >
+                <Eye className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8" 
+                onClick={() => { selectExpense(expense); setEditDialogOpen(true); }}
+                title={t('expenses:actions.edit')}
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+              {expense.status === 'pending' && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" 
+                  onClick={() => { selectExpense(expense); setMarkAsPaidDialogOpen(true); }}
+                  title={t('expenses:actions.markAsPaid')}
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                </Button>
+              )}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" 
+                onClick={() => openDeleteExpenseDialog(expense)}
+                title={t('expenses:actions.delete')}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
         ))}
       </div>
-    );
-  }
+    </div>
+  );
+}
 
-  function renderCardsView() {
-    return (
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {expenses.map((expense) => (
-          <Card key={expense.id} className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60 cursor-pointer"
-            onClick={() => { selectExpense(expense); setViewDialogOpen(true); }}>
+function renderNormalView() {
+  return (
+    <div className="grid gap-4">
+      {expenses.map((expense) => (
+        <Card 
+          key={expense.id} 
+          className="overflow-hidden border-l-4 hover:shadow-md transition-all duration-200 bg-card"
+          style={{ borderLeftColor: expense.category_color }}
+        >
+          <CardContent className="p-0">
+            <div className="flex items-center p-5 gap-5">
+              <div className="hidden sm:flex h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${expense.category_color}20` }}>
+                <DollarSign className="w-6 h-6" style={{ color: expense.category_color }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-1">
+                  <h3 className="font-bold text-lg tracking-tight truncate">{expense.description}</h3>
+                  {getStatusBadge(expense)}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5"><Tag className="w-4 h-4" />{expense.category_name}</span>
+                  <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" />{new Date(expense.expense_date).toLocaleDateString('pt-PT')}</span>
+                  {expense.vehicle_license && <span className="font-mono">{expense.vehicle_license}</span>}
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">{t('expenses:fields.amount')}</p>
+                  <p className="text-xl font-bold text-primary">{expense.amount.toLocaleString('pt-PT')} Kz</p>
+                </div>
+                {/* BOTÕES DIRETAMENTE VISÍVEIS */}
+                <div className="flex gap-1">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-10 w-10"
+                    onClick={() => { selectExpense(expense); setViewDialogOpen(true); }}
+                    title={t('expenses:actions.view')}
+                  >
+                    <Eye className="w-5 h-5" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-10 w-10"
+                    onClick={() => { selectExpense(expense); setEditDialogOpen(true); }}
+                    title={t('expenses:actions.edit')}
+                  >
+                    <Edit className="w-5 h-5" />
+                  </Button>
+                  {expense.status === 'pending' && (
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="h-10 w-10 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200"
+                      onClick={() => { selectExpense(expense); setMarkAsPaidDialogOpen(true); }}
+                      title={t('expenses:actions.markAsPaid')}
+                    >
+                      <CheckCircle2 className="w-5 h-5" />
+                    </Button>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => openDeleteExpenseDialog(expense)}
+                    title={t('expenses:actions.delete')}
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function renderCardsView() {
+  return (
+    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {expenses.map((expense) => {
+        // CORREÇÃO: Simplificado - só verifica se está pendente
+        const isPending = expense.status === 'pending';
+        const isPaid = expense.status === 'paid';
+        
+        return (
+          <Card 
+            key={expense.id} 
+            className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60 cursor-pointer flex flex-col h-full"
+            onClick={() => { selectExpense(expense); setViewDialogOpen(true); }}
+          >
             <CardHeader className="pb-3 pt-5 px-5">
               <div className="flex justify-between items-start mb-3">
                 <div className="p-2.5 rounded-xl transition-colors" style={{ backgroundColor: `${expense.category_color}20` }}>
@@ -292,7 +405,9 @@ export default function ExpensesPageContent() {
                 </div>
                 {getStatusBadge(expense)}
               </div>
-              <CardTitle className="text-lg font-bold leading-tight line-clamp-2" title={expense.description}>{expense.description}</CardTitle>
+              <CardTitle className="text-lg font-bold leading-tight line-clamp-2" title={expense.description}>
+                {expense.description}
+              </CardTitle>
               <CardDescription className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Tag className="w-3.5 h-3.5" />{expense.category_name}
               </CardDescription>
@@ -300,12 +415,18 @@ export default function ExpensesPageContent() {
             <CardContent className="flex-1 flex flex-col gap-3 p-5 pt-0">
               <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/50 border border-muted/50">
                 <div className="space-y-0.5">
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('expenses:fields.expenseDate')}</p>
-                  <p className="text-sm font-bold">{new Date(expense.expense_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}</p>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                    {t('expenses:fields.expenseDate')}
+                  </p>
+                  <p className="text-sm font-bold">
+                    {new Date(expense.expense_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}
+                  </p>
                 </div>
                 <div className="h-8 w-px bg-muted-foreground/10" />
                 <div className="text-right space-y-0.5">
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('expenses:fields.dueDate')}</p>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                    {t('expenses:fields.dueDate')}
+                  </p>
                   <p className="text-sm font-bold">
                     {expense.due_date ? new Date(expense.due_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }) : '-'}
                   </p>
@@ -321,28 +442,95 @@ export default function ExpensesPageContent() {
               </div>
               <div className="mt-auto pt-4 border-t border-muted/50">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider">{t('expenses:fields.amount')}</span>
-                  <span className="text-xl font-black text-primary">{expense.amount.toLocaleString('pt-PT')} <span className="text-sm font-bold">Kz</span></span>
+                  <span className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider">
+                    {t('expenses:fields.amount')}
+                  </span>
+                  <span className="text-xl font-black text-primary">
+                    {expense.amount.toLocaleString('pt-PT')} <span className="text-sm font-bold">Kz</span>
+                  </span>
                 </div>
+                
+                {/* BOTÕES: Lógica condicional simplificada */}
                 <div className="flex gap-2">
-                  {expense.status === 'pending' && !isOverdue(expense) && (
-                    <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold text-green-600 border-green-200 hover:bg-green-50"
-                      onClick={(e) => { e.stopPropagation(); selectExpense(expense); setMarkAsPaidDialogOpen(true); }}>
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />{t('expenses:actions.markAsPaid')}
+                  {isPending ? (
+                    // PENDENTE (inclui atrasadas): Marcar como Pago (prioridade) + Ver
+                    <>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1 h-9 text-xs font-bold text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          selectExpense(expense); 
+                          setMarkAsPaidDialogOpen(true); 
+                        }}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                        {t('expenses:actions.markAsPaid')}
+                      </Button>
+                      <Button 
+                        className="flex-[2] h-9 text-xs font-bold shadow-sm"
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          selectExpense(expense); 
+                          setViewDialogOpen(true); 
+                        }}
+                      >
+                        <Eye className="w-3.5 h-3.5 mr-1.5" />
+                        {t('expenses:actions.view')}
+                      </Button>
+                    </>
+                  ) : isPaid ? (
+                    // PAGO: Editar + Ver
+                    <>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1 h-9 text-xs font-bold bg-background hover:bg-muted"
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          selectExpense(expense); 
+                          setEditDialogOpen(true); 
+                        }}
+                      >
+                        <Edit className="w-3.5 h-3.5 mr-1.5" />
+                        {t('expenses:actions.edit')}
+                      </Button>
+                      <Button 
+                        className="flex-[2] h-9 text-xs font-bold shadow-sm"
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          selectExpense(expense); 
+                          setViewDialogOpen(true); 
+                        }}
+                      >
+                        <Eye className="w-3.5 h-3.5 mr-1.5" />
+                        {t('expenses:actions.view')}
+                      </Button>
+                    </>
+                  ) : (
+                    // OUTROS (cancelado): Só Ver
+                    <Button 
+                      className="flex-1 h-9 text-xs font-bold shadow-sm"
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        selectExpense(expense); 
+                        setViewDialogOpen(true); 
+                      }}
+                    >
+                      <Eye className="w-3.5 h-3.5 mr-1.5" />
+                      {t('expenses:actions.view')}
                     </Button>
                   )}
-                  <Button className={cn('h-9 text-xs font-bold shadow-sm', expense.status === 'pending' && !isOverdue(expense) ? 'flex-[2]' : 'flex-1')}
-                    onClick={(e) => { e.stopPropagation(); selectExpense(expense); setViewDialogOpen(true); }}>
-                    <Eye className="w-3.5 h-3.5 mr-1.5" />{t('expenses:actions.view')}
-                  </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
-    );
-  }
+        );
+      })}
+    </div>
+  );
+}
 
   // ---------------------------------------------------------------
   // Render
@@ -377,13 +565,13 @@ export default function ExpensesPageContent() {
           {/* ---- TAB: DESPESAS ---- */}
           <TabsContent value="expenses" className="space-y-6 mt-0 outline-none">
 
-            {/* Stats — vindas do back */}
+            {/* Stats */}
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { label: t('expenses:stats.total'),   value: `${Number(stats.totalAmount).toLocaleString('pt-PT')} Kz`,   icon: DollarSign,  color: 'text-blue-600',   bg: 'bg-blue-50/60'   },
-                { label: t('expenses:stats.paid'),    value: `${Number(stats.paidAmount).toLocaleString('pt-PT')} Kz`,    icon: CheckCircle2, color: 'text-green-600',  bg: 'bg-green-50/60'  },
-                { label: t('expenses:stats.pending'), value: `${Number(stats.pendingAmount).toLocaleString('pt-PT')} Kz`, icon: Calendar,    color: 'text-yellow-600', bg: 'bg-yellow-50/60' },
-                { label: t('expenses:stats.count'),   value: paginationInfo.total,                                        icon: TrendingUp,  color: 'text-purple-600', bg: 'bg-purple-50/60' },
+                { label: t('expenses:stats.total'), value: `${Number(stats.totalAmount).toLocaleString('pt-PT')} Kz`, icon: DollarSign, color: 'text-blue-600', bg: 'bg-blue-50/60' },
+                { label: t('expenses:stats.paid'), value: `${Number(stats.paidAmount).toLocaleString('pt-PT')} Kz`, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50/60' },
+                { label: t('expenses:stats.pending'), value: `${Number(stats.pendingAmount).toLocaleString('pt-PT')} Kz`, icon: Calendar, color: 'text-yellow-600', bg: 'bg-yellow-50/60' },
+                { label: t('expenses:stats.count'), value: paginationInfo.total, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50/60' },
               ].map((stat, i) => (
                 <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
                   <CardContent className="p-4 flex items-center gap-3">
@@ -470,8 +658,8 @@ export default function ExpensesPageContent() {
             ) : (
               <div className="animate-in fade-in duration-300">
                 {viewMode === 'compact' && renderCompactView()}
-                {viewMode === 'normal'  && renderNormalView()}
-                {viewMode === 'cards'   && renderCardsView()}
+                {viewMode === 'normal' && renderNormalView()}
+                {viewMode === 'cards' && renderCardsView()}
               </div>
             )}
           </TabsContent>
@@ -480,10 +668,10 @@ export default function ExpensesPageContent() {
           <TabsContent value="categories" className="space-y-6 mt-0 outline-none">
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { label: t('expenses:categories.stats.total'),          value: categories.length,         icon: Tag,       color: 'text-blue-600',   bg: 'bg-blue-50/60'   },
-                { label: t('expenses:categories.stats.operational'),    value: operationalCategories,     icon: TrendingUp, color: 'text-green-600',  bg: 'bg-green-50/60'  },
-                { label: t('expenses:categories.stats.administrative'), value: administrativeCategories,  icon: DollarSign, color: 'text-purple-600', bg: 'bg-purple-50/60' },
-                { label: t('expenses:categories.stats.extraordinary'),  value: extraordinaryCategories,   icon: AlertCircle, color: 'text-orange-600', bg: 'bg-orange-50/60' },
+                { label: t('expenses:categories.stats.total'), value: categories.length, icon: Tag, color: 'text-blue-600', bg: 'bg-blue-50/60' },
+                { label: t('expenses:categories.stats.operational'), value: operationalCategories, icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50/60' },
+                { label: t('expenses:categories.stats.administrative'), value: administrativeCategories, icon: DollarSign, color: 'text-purple-600', bg: 'bg-purple-50/60' },
+                { label: t('expenses:categories.stats.extraordinary'), value: extraordinaryCategories, icon: AlertCircle, color: 'text-orange-600', bg: 'bg-orange-50/60' },
               ].map((stat, i) => (
                 <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
                   <CardContent className="p-4 flex items-center gap-3">
@@ -539,7 +727,7 @@ export default function ExpensesPageContent() {
                           <Edit className="w-3.5 h-3.5 mr-1.5" />{t('common:actions.edit')}
                         </Button>
                         <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive bg-background"
-                          onClick={(e) => { e.stopPropagation(); if (confirm(t('expenses:dialogs.deleteCategory.warning'))) handleDeleteCategory(category.id); }}>
+                          onClick={(e) => { e.stopPropagation(); openDeleteCategoryDialog(category); }}>
                           <Trash2 className="w-3.5 h-3.5 mr-1.5" />{t('common:actions.delete')}
                         </Button>
                       </div>
@@ -551,10 +739,55 @@ export default function ExpensesPageContent() {
           </TabsContent>
         </Tabs>
 
-        <ViewExpenseDialog   open={viewDialogOpen}       onOpenChange={setViewDialogOpen}       />
-        <EditExpenseDialog   open={editDialogOpen}       onOpenChange={setEditDialogOpen}       />
-        <MarkAsPaidDialog    open={markAsPaidDialogOpen} onOpenChange={setMarkAsPaidDialogOpen} />
+        {/* Dialogs de Visualização e Edição */}
+        <ViewExpenseDialog open={viewDialogOpen} onOpenChange={setViewDialogOpen} />
+        <EditExpenseDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} />
+        <MarkAsPaidDialog open={markAsPaidDialogOpen} onOpenChange={setMarkAsPaidDialogOpen} />
         <EditExpenseCategoryDialog open={editCategoryDialogOpen} onOpenChange={setEditCategoryDialogOpen} />
+
+        {/* NOVO: Dialogs de Confirmação de Exclusão (igual DriversPageContent) */}
+        <AlertDialog open={deleteExpenseDialogOpen} onOpenChange={setDeleteExpenseDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('expenses:dialogs.delete.title', 'Eliminar despesa?')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('expenses:dialogs.delete.description', 'Esta acção não pode ser revertida.')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeletingExpense}>{t('common:cancel')}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteExpense}
+                disabled={isDeletingExpense}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {isDeletingExpense ? t('common:processing') : t('common:actions.delete')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={deleteCategoryDialogOpen} onOpenChange={setDeleteCategoryDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('expenses:dialogs.deleteCategory.title', 'Eliminar categoria?')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('expenses:dialogs.deleteCategory.description', 'Todas as despesas desta categoria ficarão sem categoria. Esta acção não pode ser revertida.')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeletingCategory}>{t('common:cancel')}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteCategory}
+                disabled={isDeletingCategory}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {isDeletingCategory ? t('common:processing') : t('common:actions.delete')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
       </div>
     </div>
   );

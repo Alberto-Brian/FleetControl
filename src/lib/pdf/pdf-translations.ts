@@ -117,7 +117,7 @@ const ptTranslations = {
     topDistance: 'Top Distância Percorrida',
     topMileage: 'Top Quilometragem',
     distributionByAvailability: 'Disponibilidade dos Activos',
-    topVehicles: 'Top Veículos por Custo',
+    // topVehicles: 'Top Veículos por Custo',
   },
   
   // Charts
@@ -283,7 +283,7 @@ const enTranslations = {
     topDistance: 'Top Distance Traveled',
     topMileage: 'Top Mileage',
     distributionByAvailability: 'Asset Availability',
-    topVehicles: 'Top Vehicles by Cost',
+    // topVehicles: 'Top Vehicles by Cost',
   },
   
   // Charts

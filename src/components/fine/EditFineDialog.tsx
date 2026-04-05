@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/fine/EditFineDialog.tsx
+// FILE: src/components/fine/EditFineDialog.tsx (ATUALIZADO)
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { Edit, AlertCircle, Car, User, FileText, MapPin, DollarSign, Calendar } from 'lucide-react';
@@ -55,14 +56,14 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
     notes: '',
   });
 
-  // ✅ useEffect para carregar dados
+  // useEffect para carregar dados
   useEffect(() => {
     if (open) {
       loadData();
     }
   }, [open]);
 
-  // ✅ useEffect para preencher formulário
+  // useEffect para preencher formulário
   useEffect(() => {
     if (open && selectedFine) {
       setFormData({
@@ -82,7 +83,7 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
     }
   }, [open, selectedFine]);
 
-  // ✅ Early return DEPOIS dos useEffects
+  // Early return DEPOIS dos useEffects
   if (!selectedFine) return null;
 
   async function loadData() {
@@ -92,7 +93,7 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
         getAllDrivers(),
       ]);
       setVehicles(vehiclesData.data.filter((v: any) => v.status !== 'inactive'));
-      setDrivers(driversData.filter((d: any) => d.is_active === true));
+      setDrivers(driversData.data.filter((d: any) => d.is_active === true));
     } catch (error) {
       handleError(error, 'common:errors.loadingData');
     }
@@ -117,6 +118,38 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
     }
   }
 
+  // Opções para veículos — pesquisa por matrícula, marca, modelo
+  const vehicleOptions: SearchableSelectOption[] = vehicles.map((v) => ({
+    value: v.id,
+    searchText: `${v.license_plate} ${v.brand} ${v.model}`,
+    label: (
+      <div className="flex items-center gap-2">
+        <span className="font-mono font-bold">{v.license_plate}</span>
+        <span className="text-muted-foreground">—</span>
+        <span>{v.brand} {v.model}</span>
+      </div>
+    ),
+    selectedLabel: <span className="font-mono font-semibold">{v.license_plate} — {v.brand} {v.model}</span>,
+  }));
+
+  // Opções para motoristas — pesquisa por nome e carta de condução
+  const driverOptions: SearchableSelectOption[] = drivers.map((d) => ({
+    value: d.id,
+    searchText: `${d.name} ${d.license_number ?? ''}`,
+    label: (
+      <div className="flex items-center gap-2">
+        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+          {d.name.charAt(0).toUpperCase()}
+        </div>
+        <div className="flex flex-col min-w-0">
+          <span className="truncate">{d.name}</span>
+          {d.license_number && <span className="text-xs text-muted-foreground font-mono">{d.license_number}</span>}
+        </div>
+      </div>
+    ),
+    selectedLabel: <span>{d.name}</span>,
+  }));
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -140,54 +173,35 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="vehicle" className="text-sm font-medium">
+                <Label className="text-sm font-medium">
                   <Car className="w-4 h-4 inline mr-1" />
                   {t('fines:fields.vehicle')}
                   <span className="text-destructive ml-1">*</span>
                 </Label>
-                <Select
+                <SearchableSelect
+                  options={vehicleOptions}
                   value={formData.vehicle_id}
                   onValueChange={(value) => setFormData({ ...formData, vehicle_id: value })}
-                  required
-                >
-                  <SelectTrigger id="vehicle">
-                    <SelectValue placeholder={t('fines:placeholders.selectVehicle')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vehicles.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold">{v.license_plate}</span>
-                          <span className="text-muted-foreground">-</span>
-                          <span>{v.brand} {v.model}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder={t('fines:placeholders.selectVehicle')}
+                  searchPlaceholder="Pesquisar por matrícula, marca..."
+                  emptyMessage="Nenhum veículo disponível."
+                />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="driver" className="text-sm font-medium">
+                <Label className="text-sm font-medium">
                   <User className="w-4 h-4 inline mr-1" />
                   {t('fines:fields.driver')}
                 </Label>
-                <Select
+                <SearchableSelect
+                  options={driverOptions}
                   value={formData.driver_id || 'none'}
                   onValueChange={(value) => setFormData({ ...formData, driver_id: value === 'none' ? undefined : value })}
-                >
-                  <SelectTrigger id="driver">
-                    <SelectValue placeholder={t('fines:placeholders.selectDriver')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{t('fines:info.unknownDriver')}</SelectItem>
-                    {drivers.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>
-                        {d.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder={t('fines:placeholders.selectDriver')}
+                  searchPlaceholder="Pesquisar por nome ou carta..."
+                  emptyMessage="Nenhum motorista encontrado."
+                  noneOption={{ value: 'none', label: t('fines:info.unknownDriver') }}
+                />
               </div>
             </div>
           </div>
@@ -201,12 +215,11 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="fine-number" className="text-sm font-medium">
+                <Label className="text-sm font-medium">
                   {t('fines:fields.fineNumber')}
                   <span className="text-destructive ml-1">*</span>
                 </Label>
                 <Input
-                  id="fine-number"
                   placeholder={t('fines:placeholders.fineNumber')}
                   value={formData.fine_number}
                   onChange={(e) => setFormData({ ...formData, fine_number: e.target.value })}
@@ -216,13 +229,12 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="fine-date" className="text-sm font-medium">
+                <Label className="text-sm font-medium">
                   <Calendar className="w-4 h-4 inline mr-1" />
                   {t('fines:fields.fineDate')}
                   <span className="text-destructive ml-1">*</span>
                 </Label>
                 <Input
-                  id="fine-date"
                   type="date"
                   value={formData.fine_date}
                   onChange={(e) => setFormData({ ...formData, fine_date: e.target.value })}
@@ -232,7 +244,7 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="infraction-type" className="text-sm font-medium">
+              <Label className="text-sm font-medium">
                 {t('fines:fields.infractionType')}
                 <span className="text-destructive ml-1">*</span>
               </Label>
@@ -241,7 +253,7 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
                 onValueChange={(value) => setFormData({ ...formData, infraction_type: value })}
                 required
               >
-                <SelectTrigger id="infraction-type">
+                <SelectTrigger>
                   <SelectValue placeholder={t('fines:placeholders.infractionType')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -255,12 +267,11 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-medium">
+              <Label className="text-sm font-medium">
                 {t('fines:fields.description')}
                 <span className="text-destructive ml-1">*</span>
               </Label>
               <Textarea
-                id="description"
                 placeholder={t('fines:placeholders.description')}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -271,12 +282,11 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="location" className="text-sm font-medium">
+              <Label className="text-sm font-medium">
                 <MapPin className="w-4 h-4 inline mr-1" />
                 {t('fines:fields.location')}
               </Label>
               <Input
-                id="location"
                 placeholder={t('fines:placeholders.location')}
                 value={formData.location || ''}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
@@ -293,12 +303,11 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="amount" className="text-sm font-medium">
+                <Label className="text-sm font-medium">
                   {t('fines:fields.fineAmount')} (Kz)
                   <span className="text-destructive ml-1">*</span>
                 </Label>
                 <Input
-                  id="amount"
                   type="number"
                   min="0"
                   step="1"
@@ -311,11 +320,10 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="points" className="text-sm font-medium">
+                <Label className="text-sm font-medium">
                   {t('fines:fields.points')}
                 </Label>
                 <Input
-                  id="points"
                   type="number"
                   min="0"
                   placeholder={t('fines:placeholders.points')}
@@ -326,11 +334,10 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="due-date" className="text-sm font-medium">
+                <Label className="text-sm font-medium">
                   {t('fines:fields.dueDate')}
                 </Label>
                 <Input
-                  id="due-date"
                   type="date"
                   value={formData.due_date || ''}
                   onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
@@ -342,11 +349,10 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
           {/* Seção 4: Informações Adicionais */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="authority" className="text-sm font-medium">
+              <Label className="text-sm font-medium">
                 {t('fines:fields.authority')}
               </Label>
               <Input
-                id="authority"
                 placeholder={t('fines:placeholders.authority')}
                 value={formData.authority || ''}
                 onChange={(e) => setFormData({ ...formData, authority: e.target.value })}
@@ -354,11 +360,10 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes" className="text-sm font-medium">
+              <Label className="text-sm font-medium">
                 {t('fines:fields.notes')}
               </Label>
               <Textarea
-                id="notes"
                 placeholder={t('fines:placeholders.notes')}
                 value={formData.notes || ''}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}

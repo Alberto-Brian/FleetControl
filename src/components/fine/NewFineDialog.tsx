@@ -284,7 +284,7 @@ export default function NewFineDialog() {
                 <span className="text-sm font-medium text-red-700 dark:text-red-400">{t('fines:fields.fineAmount')}</span>
                 <span className="text-2xl font-bold text-red-600 dark:text-red-400 font-mono">{totalAmount.toLocaleString('pt-PT')} Kz</span>
               </div>
-              {formData.points && formData.points > 0 && (
+              {formData.points !== '' && formData.points > 0 && (
                 <p className="text-xs text-red-600 dark:text-red-500 mt-2">{t('fines:info.totalPoints', { points: formData.points })}</p>
               )}
             </div>

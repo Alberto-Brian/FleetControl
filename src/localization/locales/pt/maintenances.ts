@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/locales/pt/maintenances.ts (COMPLETO)
+// FILE: src/locales/pt/maintenances.ts (ATUALIZADO)
 // ========================================
 export const ptMaintenances = {
   title: 'Gestão de Manutenções',
@@ -114,6 +114,15 @@ export const ptMaintenances = {
     notes: 'Informações adicionais...',
     categoryName: 'Ex: Troca de Óleo, Revisão de Freios',
     categoryDescription: 'Descrição opcional da categoria...',
+    // NOVOS PLACEHOLDERS PARA EDIT
+    selectVehicle: 'Seleccione o veículo',
+    searchVehicle: 'Pesquisar por matrícula, marca...',
+    selectCategory: 'Seleccione a categoria',
+    searchCategory: 'Pesquisar por nome...',
+    selectWorkshop: 'Seleccione a oficina',
+    searchWorkshop: 'Pesquisar por nome ou cidade...',
+    selectStatus: 'Seleccione o estado',
+    selectPriority: 'Seleccione a prioridade',
   },
 
   actions: {
@@ -142,6 +151,10 @@ export const ptMaintenances = {
     new: {
       title: 'Registar Manutenção',
       description: 'Preencha os dados da manutenção a ser realizada',
+    },
+    edit: {  // NOVO
+      title: 'Editar Manutenção',
+      description: 'Actualize os dados da manutenção seleccionada',
     },
     start: {
       title: 'Iniciar Manutenção',
@@ -176,7 +189,7 @@ export const ptMaintenances = {
     editCategory: {
       title: 'Editar Categoria',
       description: 'Altere os dados da categoria seleccionada.',
-  },
+    },
   },
 
   alerts: {
@@ -285,6 +298,15 @@ export const ptMaintenances = {
     },
   },
 
+  // NOVAS SEÇÕES PARA O DIÁLOGO DE EDIÇÃO
+  sections: {
+    identification: 'Identificação',
+    workshop: 'Oficina e Estado',
+    schedule: 'Agendamento',
+    costs: 'Custos',
+    details: 'Detalhes',
+  },
+
   workshops: {
     title: 'Oficinas',
     newWorkshop: 'Nova Oficina',
@@ -308,7 +330,7 @@ export const ptMaintenances = {
       address: 'Ex: Rua da Missão, 123',
       city: 'Ex: Luanda',
       state: 'Ex: Luanda',
-      specialties: 'Ex: Mecânica geral, Elétrica, Funilaria',
+      specialties: 'Ex: Mecânica geral, Eléctrica, Funilaria',
       notes: 'Informações adicionais sobre a oficina...',
       categoryNamePreview: 'Nome da Categoria'
     },

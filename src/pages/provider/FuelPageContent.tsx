@@ -14,24 +14,23 @@ import { cn } from '@/lib/utils';
 import {
   Fuel, Search, TrendingUp, MapPin, Eye, Edit, Trash2,
   LayoutGrid, List, Rows, Building2, Phone, Mail, TrendingDown,
-  Calendar, Gauge, MoreHorizontal, Filter
+  Calendar, Gauge, MoreHorizontal,
 } from 'lucide-react';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 import { useRefuelings } from '@/contexts/RefuelingsContext';
-import { getAllRefuelings } from '@/helpers/refueling-helpers';
+import { getAllRefuelings, deleteRefueling as deleteRefuelingHelper } from '@/helpers/refueling-helpers';
 import { getAllFuelStations, deleteFuelStation as deleteFuelStationHelper } from '@/helpers/fuel-station-helpers';
 
-import NewRefuelingDialog from '@/components/refueling/NewRefuelingDialog';
-import ViewRefuelingDialog from '@/components/refueling/ViewRefuelingDialog';
-import NewFuelStationDialog from '@/components/refueling/NewFuelStationDialog';
+import NewRefuelingDialog    from '@/components/refueling/NewRefuelingDialog';
+import ViewRefuelingDialog   from '@/components/refueling/ViewRefuelingDialog';
+import EditRefuelingDialog   from '@/components/refueling/EditRefuelingDialog';
+import NewFuelStationDialog  from '@/components/refueling/NewFuelStationDialog';
 import EditFuelStationDialog from '@/components/refueling/EditFuelStationDialog';
-import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
-import { RESTORE_FUEL_STATION } from '@/helpers/ipc/db/fuel_stations/fuel-stations-channels';
-
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-  closeDropdownsAndOpenDialog
-} from '@/components/ui/dropdown-menu';
+import ConfirmDeleteDialog   from '@/components/ConfirmDeleteDialog';
 
 type ViewMode = 'compact' | 'normal' | 'cards';
 
@@ -40,69 +39,59 @@ export default function FuelPageContent() {
   const { handleError, showSuccess } = useErrorHandler();
 
   const {
-    state: { refuelings, fuelStations, selectedRefueling, selectedFuelStation, isLoading, isFuelStationsLoading },
-    setRefuelings, setFuelStations, selectRefueling, selectFuelStation,
-    deleteFuelStation: removeStationFromContext, setLoading, setFuelStationsLoading,
+    state: {
+      refuelings, fuelStations, selectedRefueling, selectedFuelStation,
+      isLoading, isFuelStationsLoading,
+    },
+    setRefuelings, setFuelStations,
+    selectRefueling, selectFuelStation,
+    deleteRefueling:   removeRefuelingFromContext,
+    deleteFuelStation: removeStationFromContext,
+    setLoading, setFuelStationsLoading,
     updateFuelStation,
   } = useRefuelings();
 
-  const [activeTab, setActiveTab]     = useState('refuelings');
-  const [searchTerm, setSearchTerm]   = useState('');
-  const [viewMode, setViewMode]       = useState<ViewMode>('cards');
+  const [activeTab,    setActiveTab]   = useState('refuelings');
+  const [searchTerm,   setSearchTerm]  = useState('');
+  const [viewMode,     setViewMode]    = useState<ViewMode>('cards');
   const [stationSearch, setStationSearch] = useState('');
 
   // Paginação
-  const [currentPage, setCurrentPage]   = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [currentPage,    setCurrentPage]   = useState(1);
+  const [itemsPerPage,   setItemsPerPage]  = useState(20);
   const [paginationInfo, setPaginationInfo] = useState({
     total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false,
   });
-
-  // Stats vindos do back
-  const [stats, setStats] = useState({
-    totalCost: 0, totalLiters: 0, avgPrice: 0, totalCount: 0,
-  });
-
+  const [stats, setStats] = useState({ totalCost: 0, totalLiters: 0, avgPrice: 0, totalCount: 0 });
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const [viewDialogOpen, setViewDialogOpen]             = useState(false);
-  const [stationDeleteDialogOpen, setStationDeleteDialogOpen] = useState(false);
-  const [isDeletingStation, setIsDeletingStation]       = useState(false);
-  const [editStationDialogOpen, setEditStationDialogOpen] = useState(false);
+  // Dialogs de abastecimentos
+  const [viewDialogOpen,   setViewDialogOpen]   = useState(false);
+  const [editDialogOpen,   setEditDialogOpen]   = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeletingRefueling, setIsDeletingRefueling] = useState(false);
 
+  // Dialogs de postos
+  const [editStationDialogOpen,   setEditStationDialogOpen]   = useState(false);
+  const [stationDeleteDialogOpen, setStationDeleteDialogOpen] = useState(false);
+  const [isDeletingStation,       setIsDeletingStation]       = useState(false);
+
+  // Debounce da pesquisa
   useEffect(() => {
     const timer = setTimeout(() => { setDebouncedSearch(searchTerm); setCurrentPage(1); }, 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  useEffect(() => {
-    loadRefuelings();
-  }, [currentPage, itemsPerPage, debouncedSearch]);
-
-  useEffect(() => {
-    loadStations();
-    window.addEventListener('action-completed', handleStationRestored);
-    return () => window.removeEventListener('action-completed', handleStationRestored);
-  }, []);
-
-  const handleStationRestored = useCallback((event: any) => {
-    const { handler, result } = event.detail;
-    if (handler === RESTORE_FUEL_STATION && result) updateFuelStation(result);
-  }, [updateFuelStation]);
+  useEffect(() => { loadRefuelings(); }, [currentPage, itemsPerPage, debouncedSearch]);
+  useEffect(() => { loadStations(); },  []);
 
   const loadRefuelings = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getAllRefuelings({
-        page:   currentPage,
-        limit:  itemsPerPage,
-        search: debouncedSearch,
-      });
+      const result = await getAllRefuelings({ page: currentPage, limit: itemsPerPage, search: debouncedSearch });
       setRefuelings(result.data);
       setPaginationInfo(result.pagination);
-      if (result.statusCounts) {
-        setStats(result.statusCounts as typeof stats);
-      }
+      if (result.statusCounts) setStats(result.statusCounts as typeof stats);
     } catch (error) {
       handleError(error, 'refuelings:errors.errorLoading');
     } finally {
@@ -113,8 +102,7 @@ export default function FuelPageContent() {
   async function loadStations() {
     setFuelStationsLoading(true);
     try {
-      const data = await getAllFuelStations();
-      setFuelStations(data);
+      setFuelStations(await getAllFuelStations());
     } catch (error) {
       handleError(error, 'refuelings:errors.errorLoadingStations');
     } finally {
@@ -122,8 +110,43 @@ export default function FuelPageContent() {
     }
   }
 
+  // ── Acções sobre abastecimentos ────────────────────────────────────────────
+  function openView(refueling: any) {
+    selectRefueling(refueling);
+    setViewDialogOpen(true);
+  }
+
+  function openEdit(refueling: any) {
+    selectRefueling(refueling);
+    setEditDialogOpen(true);
+  }
+
+  function openDelete(refueling: any) {
+    selectRefueling(refueling);
+    setDeleteDialogOpen(true);
+  }
+
+  async function handleDeleteRefueling() {
+    if (!selectedRefueling) return;
+
+    setIsDeletingRefueling(true);
+    try {
+      await deleteRefuelingHelper(selectedRefueling.id);
+      removeRefuelingFromContext(selectedRefueling.id);
+      showSuccess('refuelings:toast.deleteSuccess');
+      setDeleteDialogOpen(false);
+      selectRefueling(null);
+    } catch (error) {
+      handleError(error, 'refuelings:toast.deleteError');
+    } finally {
+      setIsDeletingRefueling(false);
+    }
+  }
+
+  // ── Acções sobre postos ────────────────────────────────────────────────────
   async function handleDeleteStation() {
     if (!selectedFuelStation) return;
+
     setIsDeletingStation(true);
     try {
       await deleteFuelStationHelper(selectedFuelStation.id);
@@ -142,7 +165,6 @@ export default function FuelPageContent() {
     s.name?.toLowerCase().includes(stationSearch.toLowerCase()) ||
     s.city?.toLowerCase().includes(stationSearch.toLowerCase())
   );
-
   const activeStations = fuelStations.filter(s => s.is_active).length;
 
   const viewModes = [
@@ -151,10 +173,7 @@ export default function FuelPageContent() {
     { mode: 'cards',   icon: LayoutGrid, label: t('common:viewModes.cards')   },
   ] as const;
 
-  // ---------------------------------------------------------------
-  // Views
-  // ---------------------------------------------------------------
-
+  // ── COMPACT VIEW ──────────────────────────────────────────────────────────
   function renderCompactView() {
     return (
       <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
@@ -168,33 +187,50 @@ export default function FuelPageContent() {
           <div className="col-span-1 text-right">{t('refuelings:table.actions')}</div>
         </div>
         <div className="divide-y">
-          {refuelings.map((refueling) => (
-            <div key={refueling.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors duration-150">
-              <div className="col-span-2">
-                <span className="text-sm font-medium">
-                  {new Date(refueling.refueling_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: '2-digit' })}
-                </span>
+          {refuelings.map((r) => (
+            <div key={r.id} className="px-6 py-3 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors">
+              <div className="col-span-2 text-sm font-medium">
+                {new Date(r.refueling_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: '2-digit' })}
               </div>
               <div className="col-span-2">
-                <span className="font-mono font-bold text-sm">{refueling.vehicle_license}</span>
+                <span className="font-mono font-bold text-sm">{r.vehicle_license}</span>
               </div>
               <div className="col-span-2">
-                <span className="text-sm text-muted-foreground truncate block">{refueling.station_name || '-'}</span>
+                <span className="text-sm text-muted-foreground truncate block">{r.station_name || '—'}</span>
               </div>
               <div className="col-span-1">
-                <span className="text-sm font-semibold">{refueling.liters}L</span>
+                <span className="text-sm font-semibold">{r.liters}L</span>
               </div>
               <div className="col-span-2">
-                <span className="text-sm text-muted-foreground">{refueling.price_per_liter.toFixed(2)} Kz</span>
+                <span className="text-sm text-muted-foreground">{r.price_per_liter.toFixed(2)} Kz</span>
               </div>
               <div className="col-span-2">
-                <span className="text-sm font-bold text-primary">{refueling.total_cost.toLocaleString('pt-PT')} Kz</span>
+                <span className="text-sm font-bold text-primary">{r.total_cost.toLocaleString('pt-PT')} Kz</span>
               </div>
+              {/* Dropdown com as 3 acções */}
               <div className="col-span-1 flex justify-end">
-                <Button variant="ghost" size="icon" className="h-8 w-8"
-                  onClick={() => { selectRefueling(refueling); setViewDialogOpen(true); }}>
-                  <Eye className="w-4 h-4" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => openView(r)}>
+                      <Eye className="w-4 h-4 mr-2" />{t('common:actions.view')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEdit(r)}>
+                      <Edit className="w-4 h-4 mr-2" />{t('common:actions.edit')}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => openDelete(r)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />{t('common:actions.delete')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           ))}
@@ -203,37 +239,159 @@ export default function FuelPageContent() {
     );
   }
 
+  // ── NORMAL VIEW ───────────────────────────────────────────────────────────
   function renderNormalView() {
     return (
       <div className="grid gap-4">
-        {refuelings.map((refueling) => (
-          <Card key={refueling.id} className="overflow-hidden border-l-4 group hover:shadow-md transition-all duration-200 bg-card border-l-primary">
+        {refuelings.map((r) => (
+          <Card key={r.id} className="overflow-hidden border-l-4 group hover:shadow-md transition-all duration-200 bg-card border-l-primary">
             <CardContent className="p-0">
               <div className="flex items-center p-5 gap-5">
-                <div className="hidden sm:flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                <div className="hidden sm:flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors shrink-0">
                   <Fuel className="w-6 h-6" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1">
-                    <h3 className="font-bold text-lg tracking-tight font-mono">{refueling.vehicle_license}</h3>
-                    {refueling.is_full_tank && (
+                    <h3 className="font-bold text-lg tracking-tight font-mono">{r.vehicle_license}</h3>
+                    {r.is_full_tank && (
                       <Badge variant="outline" className="text-[10px]">{t('refuelings:info.fullTank')}</Badge>
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" />{new Date(refueling.refueling_date).toLocaleDateString('pt-PT')}</span>
-                    <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" />{refueling.station_name || t('refuelings:info.noStation')}</span>
-                    <span className="flex items-center gap-1.5"><Gauge className="w-4 h-4" />{refueling.current_mileage?.toLocaleString('pt-PT')} km</span>
+                    <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" />{new Date(r.refueling_date).toLocaleDateString('pt-PT')}</span>
+                    <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" />{r.station_name || t('refuelings:info.noStation')}</span>
+                    <span className="flex items-center gap-1.5"><Gauge className="w-4 h-4" />{r.current_mileage?.toLocaleString('pt-PT')} km</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 shrink-0">
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">{t('refuelings:fields.totalCost')}</p>
-                    <p className="text-xl font-bold text-primary">{refueling.total_cost.toLocaleString('pt-PT')} Kz</p>
+                    <p className="text-xl font-bold text-primary">{r.total_cost.toLocaleString('pt-PT')} Kz</p>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-10 w-10"
-                    onClick={() => { selectRefueling(refueling); setViewDialogOpen(true); }}>
-                    <Eye className="w-5 h-5" />
+                  {/* Acções na view normal */}
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => openView(r)} title={t('common:actions.view')}>
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => openEdit(r)} title={t('common:actions.edit')}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => openDelete(r)} title={t('common:actions.delete')}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  // ── CARDS VIEW ────────────────────────────────────────────────────────────
+  function renderCardsView() {
+    return (
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {refuelings.map((r) => (
+          <Card
+            key={r.id}
+            className={cn(
+              'overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60 cursor-pointer',
+              r.is_full_tank && 'border-t-4 border-t-green-500'
+            )}
+            onClick={() => openView(r)}
+          >
+            <CardHeader className="pb-3 pt-5 px-5">
+              <div className="flex justify-between items-start mb-3">
+                <div className={cn(
+                  'p-2.5 rounded-xl transition-all duration-300',
+                  r.is_full_tank
+                    ? 'bg-green-100 text-green-600 group-hover:bg-green-500 group-hover:text-white'
+                    : 'bg-amber-100 text-amber-600 group-hover:bg-amber-500 group-hover:text-white'
+                )}>
+                  <Fuel className="w-5 h-5" />
+                </div>
+                {/* Dropdown de acções (stopPropagation para não abrir o View) */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost" size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={e => { e.stopPropagation(); openView(r); }}>
+                      <Eye className="w-4 h-4 mr-2" />{t('common:actions.view')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={e => { e.stopPropagation(); openEdit(r); }}>
+                      <Edit className="w-4 h-4 mr-2" />{t('common:actions.edit')}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={e => { e.stopPropagation(); openDelete(r); }}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />{t('common:actions.delete')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <CardTitle className="text-xl font-mono font-bold">{r.vehicle_license}</CardTitle>
+              <CardDescription className="text-sm font-bold text-foreground/70 flex items-center gap-2">
+                <Calendar className="w-3.5 h-3.5" />
+                {new Date(r.refueling_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col gap-4 p-5 pt-0">
+              <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/50 border border-muted/50 group-hover:bg-muted/70 transition-colors">
+                <div className="space-y-0.5">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('refuelings:fields.liters')}</p>
+                  <p className="text-lg font-bold tracking-tight">{r.liters}<span className="ml-1 text-xs font-normal text-muted-foreground">L</span></p>
+                </div>
+                <div className="h-8 w-px bg-muted-foreground/10" />
+                <div className="text-right space-y-0.5">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('refuelings:fields.pricePerLiter')}</p>
+                  <p className="text-lg font-bold tracking-tight">{r.price_per_liter.toFixed(0)}<span className="ml-1 text-xs font-normal text-muted-foreground">Kz</span></p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <MapPin className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{r.station_name || t('refuelings:info.noStation')}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Gauge className="w-4 h-4 shrink-0" />
+                  <span>{r.current_mileage?.toLocaleString('pt-PT')} km</span>
+                </div>
+              </div>
+              <div className="mt-auto pt-4 border-t border-muted/50">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider">{t('refuelings:fields.totalCost')}</span>
+                  <span className="text-xl font-black text-primary">{r.total_cost.toLocaleString('pt-PT')} <span className="text-sm font-bold">Kz</span></span>
+                </div>
+                {/* Botões de acção no card */}
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1 h-9 text-sm font-bold shadow-sm"
+                    onClick={e => { e.stopPropagation(); openView(r); }}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />{t('refuelings:actions.view')}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 shrink-0"
+                    onClick={e => { e.stopPropagation(); openEdit(r); }}
+                    title={t('common:actions.edit')}
+                  >
+                    <Edit className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
@@ -244,79 +402,12 @@ export default function FuelPageContent() {
     );
   }
 
-  function renderCardsView() {
-    return (
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {refuelings.map((refueling) => (
-          <Card
-            key={refueling.id}
-            className={cn('overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60 cursor-pointer', refueling.is_full_tank && 'border-t-4 border-t-green-500')}
-            onClick={() => { selectRefueling(refueling); setViewDialogOpen(true); }}
-          >
-            <CardHeader className="pb-3 pt-5 px-5">
-              <div className="flex justify-between items-start mb-3">
-                <div className={cn('p-2.5 rounded-xl transition-all duration-300', refueling.is_full_tank ? 'bg-green-100 text-green-600 group-hover:bg-green-500 group-hover:text-white' : 'bg-amber-100 text-amber-600 group-hover:bg-amber-500 group-hover:text-white')}>
-                  <Fuel className="w-5 h-5" />
-                </div>
-                {refueling.is_full_tank && (
-                  <Badge className="rounded-full text-[10px] font-bold px-2.5 py-0.5 border-0 bg-green-100 text-green-700 group-hover:bg-green-200">
-                    {t('refuelings:info.fullTank')}
-                  </Badge>
-                )}
-              </div>
-              <CardTitle className="text-xl font-mono font-bold">{refueling.vehicle_license}</CardTitle>
-              <CardDescription className="text-sm font-bold text-foreground/70 flex items-center gap-2">
-                <Calendar className="w-3.5 h-3.5" />
-                {new Date(refueling.refueling_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col gap-4 p-5 pt-0">
-              <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/50 border border-muted/50 group-hover:bg-muted/70 transition-colors">
-                <div className="space-y-0.5">
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('refuelings:fields.liters')}</p>
-                  <p className="text-lg font-bold tracking-tight">{refueling.liters}<span className="ml-1 text-xs font-normal text-muted-foreground">L</span></p>
-                </div>
-                <div className="h-8 w-px bg-muted-foreground/10" />
-                <div className="text-right space-y-0.5">
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('refuelings:fields.pricePerLiter')}</p>
-                  <p className="text-lg font-bold tracking-tight">{refueling.price_per_liter.toFixed(0)}<span className="ml-1 text-xs font-normal text-muted-foreground">Kz</span></p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MapPin className="w-4 h-4 shrink-0" />
-                  <span className="truncate">{refueling.station_name || t('refuelings:info.noStation')}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Gauge className="w-4 h-4 shrink-0" />
-                  <span>{refueling.current_mileage?.toLocaleString('pt-PT')} km</span>
-                </div>
-              </div>
-              <div className="mt-auto pt-4 border-t border-muted/50">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider">{t('refuelings:fields.totalCost')}</span>
-                  <span className="text-xl font-black text-primary">{refueling.total_cost.toLocaleString('pt-PT')} <span className="text-sm font-bold">Kz</span></span>
-                </div>
-                <Button className="w-full h-10 text-sm font-bold shadow-sm"
-                  onClick={(e) => { e.stopPropagation(); selectRefueling(refueling); setViewDialogOpen(true); }}>
-                  <Eye className="w-4 h-4 mr-2" />{t('refuelings:actions.view')}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  // ---------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------
 
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
       <div className="max-w-[1500px] mx-auto space-y-8 pb-10">
 
+        {/* Cabeçalho */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('refuelings:title')}</h1>
@@ -339,11 +430,11 @@ export default function FuelPageContent() {
             </TabsTrigger>
           </TabsList>
 
-          {/* ---- TAB: ABASTECIMENTOS ---- */}
+          {/* ── TAB: ABASTECIMENTOS ─────────────────────────────────────── */}
           <TabsContent value="refuelings" className="space-y-6 mt-0 outline-none">
 
-            {/* Stats vindas do back */}
-            <div className="grid gap-3 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Stats */}
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
               {[
                 { label: t('refuelings:stats.totalSpent'),   value: `${Number(stats.totalCost).toLocaleString('pt-PT')} Kz`, icon: TrendingUp,  color: 'text-blue-600',   bg: 'bg-blue-50/60'   },
                 { label: t('refuelings:stats.totalLiters'),  value: `${Number(stats.totalLiters).toFixed(1)}L`,              icon: Fuel,         color: 'text-green-600',  bg: 'bg-green-50/60'  },
@@ -369,16 +460,21 @@ export default function FuelPageContent() {
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input placeholder={t('refuelings:searchPlaceholder')} value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
+                  <Input
+                    placeholder={t('refuelings:searchPlaceholder')}
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
+                  />
                 </div>
-                <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50 self-center sm:self-auto shrink-0">
-                  {viewModes.map((item) => (
-                    <Button key={item.mode} variant={viewMode === item.mode ? 'secondary' : 'ghost'} size="sm"
+                <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50 self-center shrink-0">
+                  {viewModes.map(item => (
+                    <Button
+                      key={item.mode} variant={viewMode === item.mode ? 'secondary' : 'ghost'} size="sm"
                       onClick={() => setViewMode(item.mode as ViewMode)}
                       className={cn('h-8 px-3 rounded-lg transition-all flex items-center gap-2', viewMode === item.mode ? 'bg-background shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground')}
-                      title={item.label}>
+                      title={item.label}
+                    >
                       <item.icon className="w-4 h-4" />
                       <span className="hidden sm:inline text-xs">{item.label}</span>
                     </Button>
@@ -387,9 +483,11 @@ export default function FuelPageContent() {
               </div>
               {paginationInfo.totalPages > 1 && (
                 <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
-                  <Pagination pagination={paginationInfo}
-                    onPageChange={(p) => setCurrentPage(p)}
-                    onLimitChange={(l) => { setItemsPerPage(l); setCurrentPage(1); }} />
+                  <Pagination
+                    pagination={paginationInfo}
+                    onPageChange={p => setCurrentPage(p)}
+                    onLimitChange={l => { setItemsPerPage(l); setCurrentPage(1); }}
+                  />
                 </div>
               )}
             </div>
@@ -414,13 +512,13 @@ export default function FuelPageContent() {
             )}
           </TabsContent>
 
-          {/* ---- TAB: POSTOS ---- */}
+          {/* ── TAB: POSTOS ─────────────────────────────────────────────── */}
           <TabsContent value="stations" className="space-y-6 mt-0 outline-none">
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
               {[
-                { label: t('refuelings:stations.stats.total'),    value: fuelStations.length,                icon: Building2, color: 'text-blue-600',    bg: 'bg-blue-50/60'    },
-                { label: t('refuelings:stations.stats.active'),   value: activeStations,                     icon: MapPin,    color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
-                { label: t('refuelings:stations.stats.inactive'), value: fuelStations.length - activeStations, icon: MapPin,  color: 'text-slate-500',   bg: 'bg-slate-50/60'   },
+                { label: t('refuelings:stations.stats.total'),    value: fuelStations.length,                  icon: Building2, color: 'text-blue-600',    bg: 'bg-blue-50/60'    },
+                { label: t('refuelings:stations.stats.active'),   value: activeStations,                       icon: MapPin,    color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
+                { label: t('refuelings:stations.stats.inactive'), value: fuelStations.length - activeStations, icon: MapPin,    color: 'text-slate-500',   bg: 'bg-slate-50/60'   },
               ].map((stat, i) => (
                 <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
                   <CardContent className="p-4 flex items-center gap-3">
@@ -440,9 +538,11 @@ export default function FuelPageContent() {
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input placeholder={t('common:search')} value={stationSearch}
-                    onChange={(e) => setStationSearch(e.target.value)}
-                    className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
+                  <Input
+                    placeholder={t('common:search')} value={stationSearch}
+                    onChange={e => setStationSearch(e.target.value)}
+                    className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
+                  />
                 </div>
                 <div className="sm:ml-auto"><NewFuelStationDialog /></div>
               </div>
@@ -462,15 +562,20 @@ export default function FuelPageContent() {
             ) : (
               <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in duration-300">
                 {filteredStations.map((station) => (
-                  <Card key={station.id} className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60 cursor-pointer"
-                    onClick={() => { selectFuelStation(station); setEditStationDialogOpen(true); }}>
+                  <Card
+                    key={station.id}
+                    className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-card border-muted/60 cursor-pointer"
+                    onClick={() => { selectFuelStation(station); setEditStationDialogOpen(true); }}
+                  >
                     <CardHeader className="pb-3 pt-5 px-5">
                       <div className="flex justify-between items-start mb-3">
                         <div className={cn('p-2.5 rounded-xl transition-colors', station.is_active ? 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white' : 'bg-muted text-muted-foreground')}>
                           <MapPin className="w-5 h-5" />
                         </div>
-                        <Badge variant={station.is_active ? 'outline' : 'secondary'}
-                          className={cn('rounded-full text-[10px] font-bold px-2.5 py-0.5', station.is_active ? 'border-green-200 text-green-700 bg-green-50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800' : 'border-slate-200 text-slate-600 bg-slate-50 dark:bg-slate-800 dark:text-slate-400')}>
+                        <Badge
+                          variant={station.is_active ? 'outline' : 'secondary'}
+                          className={cn('rounded-full text-[10px] font-bold px-2.5 py-0.5', station.is_active ? 'border-green-200 text-green-700 bg-green-50 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800' : 'border-slate-200 text-slate-600 bg-slate-50 dark:bg-slate-800 dark:text-slate-400')}
+                        >
                           {station.is_active ? t('common:status.active') : t('common:status.inactive')}
                         </Badge>
                       </div>
@@ -484,12 +589,16 @@ export default function FuelPageContent() {
                         {station.email && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Mail className="w-4 h-4 shrink-0" /><span className="truncate">{station.email}</span></div>}
                       </div>
                       <div className="mt-auto pt-4 border-t border-muted/50 flex gap-2">
-                        <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold bg-background hover:bg-muted"
-                          onClick={(e) => { e.stopPropagation(); selectFuelStation(station); setEditStationDialogOpen(true); }}>
+                        <Button
+                          variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold bg-background hover:bg-muted"
+                          onClick={e => { e.stopPropagation(); selectFuelStation(station); setEditStationDialogOpen(true); }}
+                        >
                           <Edit className="w-3.5 h-3.5 mr-1.5" />{t('common:actions.edit')}
                         </Button>
-                        <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive bg-background"
-                          onClick={(e) => { e.stopPropagation(); selectFuelStation(station); setStationDeleteDialogOpen(true); }}>
+                        <Button
+                          variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold text-destructive hover:bg-destructive/10 hover:text-destructive bg-background"
+                          onClick={e => { e.stopPropagation(); selectFuelStation(station); setStationDeleteDialogOpen(true); }}
+                        >
                           <Trash2 className="w-3.5 h-3.5 mr-1.5" />{t('common:actions.delete')}
                         </Button>
                       </div>
@@ -501,10 +610,24 @@ export default function FuelPageContent() {
           </TabsContent>
         </Tabs>
 
-        <ViewRefuelingDialog open={viewDialogOpen} onOpenChange={setViewDialogOpen} />
+        {/* ── Dialogs de abastecimentos ─────────────────────────────────── */}
+        <ViewRefuelingDialog   open={viewDialogOpen}   onOpenChange={setViewDialogOpen} />
+        <EditRefuelingDialog   open={editDialogOpen}   onOpenChange={setEditDialogOpen} />
+        <ConfirmDeleteDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          onConfirm={handleDeleteRefueling}
+          title={t('refuelings:dialogs.delete.title', 'Eliminar abastecimento')}
+          description={t('refuelings:dialogs.delete.description', 'Esta acção não pode ser desfeita.')}
+          itemName={selectedRefueling?.vehicle_license}
+          isLoading={isDeletingRefueling}
+        />
+
+        {/* ── Dialogs de postos ────────────────────────────────────────── */}
         <EditFuelStationDialog open={editStationDialogOpen} onOpenChange={setEditStationDialogOpen} />
         <ConfirmDeleteDialog
-          open={stationDeleteDialogOpen} onOpenChange={setStationDeleteDialogOpen}
+          open={stationDeleteDialogOpen}
+          onOpenChange={setStationDeleteDialogOpen}
           onConfirm={handleDeleteStation}
           title={t('refuelings:dialogs.deleteStation.title')}
           description={t('refuelings:dialogs.deleteStation.description')}

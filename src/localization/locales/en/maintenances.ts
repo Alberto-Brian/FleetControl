@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/locales/en/maintenances.ts (COMPLETO)
+// FILE: src/locales/en/maintenances.ts (ATUALIZADO)
 // ========================================
 export const enMaintenances = {
   title: 'Maintenance Management',
@@ -114,7 +114,16 @@ export const enMaintenances = {
     notes: 'Additional information...',
     categoryName: 'E.g.: Oil Change, Brake Inspection',
     categoryDescription: 'Optional category description...',
-    categoryNamePreview: 'Category name'
+    categoryNamePreview: 'Category name',
+    // NOVOS PLACEHOLDERS PARA EDIT
+    selectVehicle: 'Select vehicle',
+    searchVehicle: 'Search by license plate, brand...',
+    selectCategory: 'Select category',
+    searchCategory: 'Search by name...',
+    selectWorkshop: 'Select workshop',
+    searchWorkshop: 'Search by name or city...',
+    selectStatus: 'Select status',
+    selectPriority: 'Select priority',
   },
 
   actions: {
@@ -143,6 +152,10 @@ export const enMaintenances = {
     new: {
       title: 'Register Maintenance',
       description: 'Fill in the maintenance details',
+    },
+    edit: {  // NOVO
+      title: 'Edit Maintenance',
+      description: 'Update the selected maintenance details',
     },
     start: {
       title: 'Start Maintenance',
@@ -174,10 +187,10 @@ export const enMaintenances = {
       description: 'Are you sure you want to delete the category',
       warning: 'This action cannot be undone.',
     },
-     editCategory: {
+    editCategory: {
       title: 'Edit Category',
       description: 'Edit the selected category details.',
-  },
+    },
   },
 
   alerts: {
@@ -284,6 +297,15 @@ export const enMaintenances = {
       pink: 'Pink',
       gray: 'Gray',
     },
+  },
+
+  // NOVAS SEÇÕES PARA O DIÁLOGO DE EDIÇÃO
+  sections: {
+    identification: 'Identification',
+    workshop: 'Workshop & Status',
+    schedule: 'Scheduling',
+    costs: 'Costs',
+    details: 'Details',
   },
 
   workshops: {

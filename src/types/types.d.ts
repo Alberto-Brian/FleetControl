@@ -106,10 +106,17 @@ interface ITrips {
     cancel: (id: string) => Promise<string | null>;
     getActive: () => Promise<ITrip[]>;
 }
-interface IRefuelings {
-    getAll: (params?: IPaginationParams) => Promise<IPaginatedResult<IRefueling>>;
-    create: (data: ICreateRefueling) => Promise<IRefueling | null>;
-    getByVehicle: (id: string) => Promise<IRefueling[]>;
+interface IRefuelingsWindow {
+  getAll:       (params?: IRefuelingsPaginationParams)  => Promise<import('@/lib/types/pagination').IPaginatedResult<IRefueling>>;
+  getById:      (id: string)                            => Promise<IRefueling | null>;
+  getByVehicle: (vehicleId: string)                     => Promise<IRefueling[]>;
+  getByDriver:  (driverId: string)                      => Promise<IRefueling[]>;
+  getByTrip:    (tripId: string)                        => Promise<IRefueling[]>;
+  getByStation: (stationId: string)                     => Promise<IRefueling[]>;
+  getStats:     (params?: Pick<IRefuelingsPaginationParams, 'from_date' | 'to_date' | 'vehicle_id'>) => Promise<IRefuelingStats>;
+  create:       (data: ICreateRefueling)                => Promise<IRefueling>;
+  update:       (id: string, data: IUpdateRefueling)    => Promise<IRefueling | null>;
+  remove:       (id: string)                            => Promise<boolean>;
 }
 
 interface IMaintenances {

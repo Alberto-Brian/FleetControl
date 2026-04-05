@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/components/maintenance/MaintenancePageContent.tsx
+// FILE: src/components/maintenance/MaintenancePageContent.tsx (ATUALIZADO)
 // ========================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import { maintenanceStatus } from '@/lib/db/schemas/maintenances';
 import { cn } from '@/lib/utils';
 import {
   Wrench, Search, Tag, Edit, Trash2, LayoutGrid, List, Rows,
-  Building2, AlertCircle, Clock, Flag, Settings, Phone, Mail, MapPin, Eye, Play, CheckCircle2, Filter
+  Building2, AlertCircle, Clock, Flag, Settings, Phone, Mail, MapPin, Eye, Play, CheckCircle2, Filter, MoreHorizontal
 } from 'lucide-react';
 
 import { useMaintenances } from '@/contexts/MaintenancesContext';
@@ -27,12 +27,17 @@ import NewMaintenanceDialog from '@/components/maintenance/NewMaintenanceDialog'
 import StartMaintenanceDialog from '@/components/maintenance/StartMaintenanceDialog';
 import CompleteMaintenanceDialog from '@/components/maintenance/CompleteMaintenanceDialog';
 import ViewMaintenanceDialog from '@/components/maintenance/ViewMaintenanceDialog';
+import EditMaintenanceDialog from '@/components/maintenance/EditMaintenanceDialog'; // NOVO IMPORT
 import NewMaintenanceCategoryDialog from '@/components/maintenance/NewMaintenanceCategoryDialog';
 import EditMaintenanceCategoryDialog from '@/components/maintenance/EditMaintenanceCategoryDialog';
 import NewWorkshopDialog from '@/components/maintenance/NewWorkshopDialog';
 import EditWorkshopDialog from '@/components/maintenance/EditWorkshopDialog';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 import { RESTORE_MAINTENANCE_CATEGORY } from '@/helpers/ipc/db/maintenance_categories/maintenance-categories-channels';
+
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type ViewMode = 'compact' | 'normal' | 'cards';
 
@@ -70,6 +75,7 @@ export function MaintenancePageContent() {
   // Dialogs
   const [deleteDialogOpen, setDeleteDialogOpen]         = useState(false);
   const [isDeleting, setIsDeleting]                     = useState(false);
+  const [editDialogOpen, setEditDialogOpen]             = useState(false); // NOVO
   const [categoryDeleteDialogOpen, setCategoryDeleteDialogOpen] = useState(false);
   const [isDeletingCategory, setIsDeletingCategory]     = useState(false);
   const [workshopDeleteDialogOpen, setWorkshopDeleteDialogOpen] = useState(false);
@@ -216,6 +222,10 @@ export function MaintenancePageContent() {
     { mode: 'cards',   icon: LayoutGrid, label: t('common:viewModes.cards')   },
   ] as const;
 
+  // ---------------------------------------------------------------
+  // Views
+  // ---------------------------------------------------------------
+
   function renderCompactView() {
     return (
       <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
@@ -236,6 +246,7 @@ export function MaintenancePageContent() {
               <div className="col-span-3"><span className="text-sm font-medium truncate block">{m.category_name}</span></div>
               <div className="col-span-2">{getStatusBadge(m.status)}</div>
               <div className="col-span-2"><span className="text-sm font-bold">{m.total_cost.toLocaleString('pt-PT')} Kz</span></div>
+              {/* ATUALIZADO: Adicionado botão de editar e dropdown menu */}
               <div className="col-span-2 flex gap-1 justify-end items-center">
                 {m.status === maintenanceStatus.SCHEDULED && (
                   <>
@@ -246,8 +257,30 @@ export function MaintenancePageContent() {
                 {m.status === maintenanceStatus.IN_PROGRESS && (
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(m); setCompleteDialogOpen(true); }}><CheckCircle2 className="w-4 h-4" /></Button>
                 )}
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); selectMaintenance(m); }}><Eye className="w-4 h-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); selectMaintenance(m); setDeleteDialogOpen(true); }}><Trash2 className="w-4 h-4" /></Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => { selectMaintenance(m); }}>
+                      <Eye className="w-4 h-4 mr-2" />
+                      {t('common:actions.view')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { selectMaintenance(m); setEditDialogOpen(true); }}>
+                      <Edit className="w-4 h-4 mr-2" />
+                      {t('common:actions.edit')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => { selectMaintenance(m); setDeleteDialogOpen(true); }}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      {t('common:actions.delete')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           ))}
@@ -284,6 +317,7 @@ export function MaintenancePageContent() {
                     {getPriorityBadge(maintenance.priority)}
                   </div>
                 </div>
+                {/* ATUALIZADO: Adicionado botão de editar e reorganizados os botões de ação */}
                 <div className="flex items-center gap-2">
                   <div className="text-right mr-2">
                     <p className="text-xs text-muted-foreground">{t('maintenances:fields.totalCost')}</p>
@@ -298,8 +332,30 @@ export function MaintenancePageContent() {
                   {maintenance.status === maintenanceStatus.IN_PROGRESS && (
                     <Button variant="outline" size="sm" className="h-9 text-green-600 border-green-200 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setCompleteDialogOpen(true); }}><CheckCircle2 className="w-4 h-4 mr-1.5" />{t('maintenances:actions.complete')}</Button>
                   )}
-                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); }} title={t('maintenances:actions.view')}><Eye className="w-5 h-5" /></Button>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setDeleteDialogOpen(true); }}><Trash2 className="w-5 h-5" /></Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="h-10 w-10">
+                        <MoreHorizontal className="w-5 h-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => selectMaintenance(maintenance)}>
+                        <Eye className="w-4 h-4 mr-2" />
+                        {t('common:actions.view')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { selectMaintenance(maintenance); setEditDialogOpen(true); }}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        {t('common:actions.edit')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => { selectMaintenance(maintenance); setDeleteDialogOpen(true); }}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        {t('common:actions.delete')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </CardContent>
@@ -342,12 +398,13 @@ export function MaintenancePageContent() {
                 {maintenance.workshop_name && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Building2 className="w-4 h-4 shrink-0" /><span className="truncate">{maintenance.workshop_name}</span></div>}
                 <div className="flex items-center gap-2">{getPriorityBadge(maintenance.priority)}</div>
               </div>
+              {/* ATUALIZADO: Adicionado botão de editar nos cards */}
               <div className="mt-auto pt-4 border-t border-muted/50">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider">{t('maintenances:fields.totalCost')}</span>
                   <span className="text-xl font-black text-primary">{maintenance.total_cost.toLocaleString('pt-PT')} <span className="text-sm font-bold">Kz</span></span>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   {maintenance.status === maintenanceStatus.SCHEDULED && (
                     <>
                       <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setStartDialogOpen(true); }}><Play className="w-3.5 h-3.5 mr-1.5" />{t('maintenances:actions.start')}</Button>
@@ -357,12 +414,8 @@ export function MaintenancePageContent() {
                   {maintenance.status === maintenanceStatus.IN_PROGRESS && (
                     <Button variant="default" size="sm" className="flex-1 h-9 text-xs font-bold bg-green-600 hover:bg-green-700" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setCompleteDialogOpen(true); }}><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />{t('maintenances:actions.complete')}</Button>
                   )}
-                  {(maintenance.status === maintenanceStatus.COMPLETED || maintenance.status === maintenanceStatus.CANCELLED) && (
-                    <Button variant="default" size="sm" className="flex-1 h-9 text-xs font-bold" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); }}><Eye className="w-3.5 h-3.5 mr-1.5" />{t('maintenances:actions.view')}</Button>
-                  )}
-                  {(maintenance.status === maintenanceStatus.SCHEDULED || maintenance.status === maintenanceStatus.IN_PROGRESS) && (
-                    <Button variant="outline" size="sm" className="h-9 px-2" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); }} title={t('maintenances:actions.view')}><Eye className="w-3.5 h-3.5" /></Button>
-                  )}
+                  <Button variant="outline" size="sm" className="h-9 px-2" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setEditDialogOpen(true); }} title={t('common:actions.edit')}><Edit className="w-3.5 h-3.5" /></Button>
+                  <Button variant="outline" size="sm" className="h-9 px-2 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setDeleteDialogOpen(true); }} title={t('common:actions.delete')}><Trash2 className="w-3.5 h-3.5" /></Button>
                 </div>
               </div>
             </CardContent>
@@ -621,6 +674,7 @@ export function MaintenancePageContent() {
         <ViewMaintenanceDialog open={!!selectedMaintenance} onOpenChange={(open) => !open && selectMaintenance(null)} />
         <StartMaintenanceDialog open={startDialogOpen} onOpenChange={setStartDialogOpen} />
         <CompleteMaintenanceDialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen} />
+        <EditMaintenanceDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} /> {/* NOVO */}
         <EditWorkshopDialog open={editWorkshopDialogOpen} onOpenChange={setEditWorkshopDialogOpen} />
         <EditMaintenanceCategoryDialog open={editCategoryDialogOpen} onOpenChange={setEditCategoryDialogOpen} category={selectedCategory} />
         <ConfirmDeleteDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} onConfirm={handleDeleteMaintenance} title={t('maintenances:dialogs.delete.title')} description={t('maintenances:dialogs.delete.warning')} itemName={selectedMaintenance ? `${selectedMaintenance.vehicle_license} - ${selectedMaintenance.category_name}` : ''} isLoading={isDeleting} />
