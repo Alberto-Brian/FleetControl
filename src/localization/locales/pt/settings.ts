@@ -126,6 +126,14 @@ export const ptSettings = {
     orientation:        'Orientação',
     portrait:           'Vertical (Portrait)',
     landscape:          'Horizontal (Landscape)',
+
+    valueFormat: 'Formato de Valores',
+    valueFormatDesc: 'Escolha como os números grandes são exibidos nos relatórios',
+    valueFormatCompact: 'Compacto (K/M)',
+    valueFormatFull: 'Números completos',
+
+    showCurrency: 'Mostrar Símbolo da Moeda',
+    showCurrencyDesc: 'Exibir o símbolo Kz junto aos valores monetários'
   },
 
   // ── Alertas ───────────────────────────────────────────────────────────────

@@ -121,6 +121,14 @@ export const enSettings = {
     orientation:        'Orientation',
     portrait:           'Portrait',
     landscape:          'Landscape',
+
+    valueFormat: 'Value Format',
+    valueFormatDesc: 'Choose how large numbers are displayed in reports',
+    valueFormatCompact: 'Compact (K/M)',
+    valueFormatFull: 'Full numbers',
+
+    showCurrency: 'Show Currency Symbol',
+    showCurrencyDesc: 'Display the Kz symbol next to monetary values'
   },
 
   alerts: {

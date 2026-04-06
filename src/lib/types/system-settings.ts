@@ -17,6 +17,8 @@ export interface ISystemSettings {
   pdf_show_summary:        boolean;
   pdf_paper_size:          'A4' | 'Letter';
   pdf_orientation:         'portrait' | 'landscape';
+  pdf_value_format:  'compact' | 'full';
+  pdf_show_currency: boolean;
 
   // Alertas
   alert_mileage_threshold:     number;

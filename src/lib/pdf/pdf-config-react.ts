@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/lib/pdf/pdf-config-react.ts (MELHORADO)
+// FILE: src/lib/pdf/pdf-config-react.ts (CORRIGIDO)
 // ========================================
 import { StyleSheet } from '@react-pdf/renderer';
 
@@ -37,6 +37,10 @@ export interface PDFSettingsData {
   showCharts:       boolean;
   paperSize:        'A4' | 'LETTER';
   orientation:      'portrait' | 'landscape';
+   /** Formato dos valores: 'compact' usa K/M, 'full' mostra o número completo */
+  valueFormat:  'compact' | 'full';
+  /** Mostrar símbolo da moeda (Kz) nos valores */
+  showCurrency: boolean;
 }
 
 const DEFAULT_PDF_SETTINGS: PDFSettingsData = {
@@ -51,6 +55,8 @@ const DEFAULT_PDF_SETTINGS: PDFSettingsData = {
   showCharts:       true,
   paperSize:        'A4',
   orientation:      'portrait',
+  valueFormat:  'full',
+  showCurrency: true,
 };
 
 let _pdfSettings: PDFSettingsData = { ...DEFAULT_PDF_SETTINGS };
@@ -132,10 +138,10 @@ export const PDF_CONFIG = {
 
   // Espaçamento consistente
   spacing: {
-    page:      { padding: 40, paddingTop: 105, paddingBottom: 60 },
-    section:   { marginTop: 16, marginBottom: 8 },
-    card:      { padding: 16, borderRadius: 8, gap: 6 },
-    table:     { cellPadding: 8, borderRadius: 4 },
+    page:      { padding: 40, paddingTop: 80, paddingBottom: 50 },
+    section:   { marginTop: 12, marginBottom: 8 },
+    card:      { padding: 12, borderRadius: 8, gap: 4 },
+    table:     { cellPadding: 6, borderRadius: 4 },
   },
   
   // Bordas e sombras sutis
@@ -154,78 +160,78 @@ export const PDF_CONFIG = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ESTILOS GLOBAIS MELHORADOS
+// ESTILOS GLOBAIS CORRIGIDOS
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const commonStyles = StyleSheet.create({
   page: {
     padding:         40,
-    paddingTop:      105,
-    paddingBottom:   60,
+    paddingTop:      80,
+    paddingBottom:   50,
     backgroundColor: '#ffffff',
     fontFamily:      'Helvetica',
     fontSize:        10,
   },
 
-  // Header melhorado
+  // Header melhorado - altura reduzida
   header: {
     position: 'absolute',
     top: 20,
     left: 40,
     right: 40,
     flexDirection: 'column',
-    paddingBottom: 12,
+    paddingBottom: 8,
     borderBottomWidth: 2,
   },
-  headerLogo:     { width: 40, height: 40, objectFit: 'contain' },
-  companyName:    { fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
-  companyTagline: { fontSize: 8, letterSpacing: 0.5 },
-  title:          { fontSize: 20, fontWeight: 'bold' },
-  subtitle:       { fontSize: 10, marginTop: 3, opacity: 0.8 },
+  headerLogo:     { width: 32, height: 32, objectFit: 'contain' },
+  companyName:    { fontSize: 14, fontWeight: 'bold', marginBottom: 2 },
+  companyTagline: { fontSize: 7, letterSpacing: 0.5 },
+  title:          { fontSize: 16, fontWeight: 'bold' },ç
+  subtitle:       { fontSize: 9, marginTop: 2, opacity: 0.8 },
 
-  // Footer melhorado
+  // Footer melhorado - altura reduzida
   footer: {
     position:       'absolute',
-    bottom:         20,
+    bottom:         15,
     left:           40,
     right:          40,
     flexDirection:  'row',
     justifyContent: 'space-between',
     alignItems:     'center',
-    fontSize:       8,
-    paddingTop:     8,
+    fontSize:       7,
+    paddingTop:     6,
     borderTopWidth: 0.5,
   },
 
-  // Sections com hierarquia visual
-  section:      { marginTop: 20, marginBottom: 12 },
+  // Sections com hierarquia visual - margens reduzidas
+  section:      { marginTop: 12, marginBottom: 8 },
   sectionTitle: { 
-    fontSize: 13, 
+    fontSize: 11, 
     fontWeight: 'bold', 
     color: '#1e293b', 
-    marginBottom: 10, 
-    paddingBottom: 6,
+    marginBottom: 8, 
+    paddingBottom: 4,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
     letterSpacing: 0.3,
   },
 
-  // Info Section com design de cards
+  // Info Section com design de cards - padding reduzido
   infoSection: {
     flexDirection: 'row', 
     justifyContent: 'space-between',
-    padding: 12, 
+    padding: 10, 
     backgroundColor: '#f8fafc', 
     borderRadius: 6, 
-    marginBottom: 16,
+    marginBottom: 12,
     borderWidth: 0.5,
     borderColor: '#e2e8f0',
   },
   infoItem:    { flexDirection: 'column', flex: 1 },
-  infoLabel:   { fontSize: 7, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 3, color: '#64748b', letterSpacing: 0.5 },
-  infoValue:   { fontSize: 10, color: '#1e293b', fontWeight: 'bold' },
+  infoLabel:   { fontSize: 6, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 2, color: '#64748b', letterSpacing: 0.5 },
+  infoValue:   { fontSize: 9, color: '#1e293b', fontWeight: 'bold' },
 
-  // Tabela com design aprimorado
+  // Tabela com design aprimorado - células mais compactas
   table: { 
     width: 'auto', 
     borderStyle: 'solid', 
@@ -234,6 +240,7 @@ export const commonStyles = StyleSheet.create({
     borderRadius: 6, 
     overflow: 'hidden',
     backgroundColor: '#ffffff',
+    flex: 1,
   },
   tableHeader: { 
     flexDirection: 'row', 
@@ -246,44 +253,46 @@ export const commonStyles = StyleSheet.create({
     borderBottomWidth: 1, 
     borderBottomColor: '#f1f5f9',
     backgroundColor: '#ffffff',
+    minHeight: 24,
   },
   tableRowAlt: { 
     flexDirection: 'row', 
     borderBottomWidth: 1, 
     borderBottomColor: '#f1f5f9',
     backgroundColor: '#f8fafc',
+    minHeight: 24,
   },
-  tableRowLast:    { flexDirection: 'row', backgroundColor: '#ffffff' },
-  tableCell:       { padding: 10, fontSize: 9, color: '#4b5563' },
-  tableCellHeader: { padding: 10, fontSize: 9, fontWeight: 'bold', color: '#374151' },
-  tableCellBold:   { padding: 10, fontSize: 9, fontWeight: 'bold', color: '#1f2937' },
+  tableRowLast:    { flexDirection: 'row', backgroundColor: '#ffffff', minHeight: 24 },
+  tableCell:       { padding: 6, fontSize: 8, color: '#4b5563' },
+  tableCellHeader: { padding: 6, fontSize: 8, fontWeight: 'bold', color: '#374151' },
+  tableCellBold:   { padding: 6, fontSize: 8, fontWeight: 'bold', color: '#1f2937' },
 
-  // Summary Box com design premium
+  // Summary Box com design premium - padding reduzido
   summaryBox:   { 
     backgroundColor: '#f8fafc', 
-    padding: 16, 
+    padding: 12, 
     borderRadius: 6, 
-    marginTop: 12,
+    marginTop: 8,
     borderWidth: 0.5,
     borderColor: '#e2e8f0',
   },
   summaryRow:   { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
-    paddingVertical: 6, 
+    paddingVertical: 4, 
     borderBottomWidth: 0.5, 
     borderBottomColor: '#e2e8f0',
   },
-  summaryLabel: { fontSize: 10, color: '#4b5563', fontWeight: 'medium' },
-  summaryValue: { fontSize: 10, fontWeight: 'bold', color: '#1f2937' },
+  summaryLabel: { fontSize: 9, color: '#4b5563', fontWeight: 'medium' },
+  summaryValue: { fontSize: 9, fontWeight: 'bold', color: '#1f2937' },
 
   // Status Badges com design moderno
   statusBadge:       { 
-    paddingHorizontal: 8, 
-    paddingVertical: 3, 
-    borderRadius: 4, 
-    fontSize: 7, 
-    width: 70,
+    paddingHorizontal: 6, 
+    paddingVertical: 2, 
+    borderRadius: 3, 
+    fontSize: 6, 
+    width: 60,
     fontWeight: 'bold', 
     color: '#ffffff', 
     alignSelf: 'flex-start',
@@ -298,12 +307,12 @@ export const commonStyles = StyleSheet.create({
   divider:    { 
     borderBottomWidth: 0.5, 
     borderBottomColor: '#e2e8f0', 
-    marginVertical: 12,
+    marginVertical: 8,
   },
   emptyState: { 
     textAlign: 'center', 
-    fontSize: 11, 
-    paddingVertical: 40,
+    fontSize: 10, 
+    paddingVertical: 30,
     color: '#9ca3af',
     fontStyle: 'italic',
   },
@@ -333,15 +342,38 @@ export const commonStyles = StyleSheet.create({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function formatCurrency(value: number): string {
-  if (value === 0) return '0 Kz';
-  if (value >= 1000000) return `${(value / 1000000).toFixed(2)} M Kz`;
-  if (value >= 1000) return `${(value / 1000).toFixed(2)} K Kz`;
-  return `${value.toFixed(2)} Kz`;
+  const s = getPDFSettings();
+  const suffix = s.showCurrency ? ' Kz' : '';
+ 
+  if (s.valueFormat === 'full') {
+    // Número completo com separadores pt-PT
+    // Ex: 407000.60 → '407.000,60 Kz'
+    return value.toLocaleString('pt-PT', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }) + suffix;
+  }
+ 
+  // Compact (comportamento original)
+  if (value === 0) return `0${suffix}`;
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)} M${suffix}`;
+  if (value >= 1_000)     return `${(value / 1_000).toFixed(2)} K${suffix}`;
+  return `${value.toFixed(2)}${suffix}`;
 }
-
+ 
 export function formatCurrencyCompact(value: number): string {
-  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
+  const s = getPDFSettings();
+ 
+  if (s.valueFormat === 'full') {
+    // Sem sufixo de moeda na versão compacta usada em gráficos
+    return value.toLocaleString('pt-PT', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+  }
+ 
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000)     return `${(value / 1_000).toFixed(1)}k`;
   return `${value}`;
 }
 
@@ -398,4 +430,14 @@ export function formatNumber(value: number, decimals = 0): string {
 
 export function formatPercentage(value: number, decimals = 1): string {
   return `${value.toFixed(decimals)}%`;
+}
+
+export function kpiFontSize(formattedValue: string): number {
+  const len = formattedValue.length;
+  if (len <=  5) return 18;
+  if (len <=  8) return 16;
+  if (len <= 11) return 14;
+  if (len <= 14) return 12;
+  if (len <= 18) return 11;
+  return 10;
 }

@@ -3,7 +3,6 @@
 // ========================================
 
 export type Language = 'pt' | 'en';
-import { getSystemVersion } from "@/helpers/system-helpers";
 
 // ==================== TRADUÇÕES PT ====================
 

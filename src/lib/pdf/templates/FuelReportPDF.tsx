@@ -46,7 +46,7 @@ export const FuelReportPDF: React.FC<FuelReportProps> = ({
     return {
       labels: entries.map(e => e[0]),
       liters: entries.map(e => Math.round(e[1].liters)),
-      costs:  entries.map(e => Math.round(e[1].cost / 1000)), // em Kz x1000
+      costs:  entries.map(e => Math.round(e[1].cost / 1000)),
     };
   })();
 
@@ -59,6 +59,7 @@ export const FuelReportPDF: React.FC<FuelReportProps> = ({
 
   return (
     <Document>
+      {/* ========== PÁGINA 1: RESUMO EXECUTIVO ========== */}
       <Page size={s.paperSize} orientation={s.orientation} style={commonStyles.page}>
         <Watermark />
         <Header 
@@ -67,13 +68,13 @@ export const FuelReportPDF: React.FC<FuelReportProps> = ({
         />
 
         <InfoSection items={[
-          { label: t.period,                value: `${formatDate(dateRange.start)} — ${formatDate(dateRange.end)}` },
+          { label: t.period, value: `${formatDate(dateRange.start)} — ${formatDate(dateRange.end)}` },
           { label: t.stats.totalRefuelings, value: refuelings?.length ?? 0 },
-          { label: t.generatedAt,           value: formatDate(new Date()) },
+          { label: t.generatedAt, value: formatDate(new Date()) },
         ]} />
 
         <KPICards cards={[
-          { label: t.stats.totalRefuelings, value: stats?.total       ?? 0 },
+          { label: t.stats.totalRefuelings, value: stats?.total ?? 0 },
           { 
             label: t.stats.totalLiters,     
             value: `${((stats?.totalLiters ?? 0)).toFixed(0)} L`, 
@@ -92,7 +93,7 @@ export const FuelReportPDF: React.FC<FuelReportProps> = ({
         ]} />
 
         {s.showCharts && byMonth.labels.length > 1 && (
-          <View style={commonStyles.section}>
+          <View style={commonStyles.section} wrap={false}>
             <LineChart
               title={t.charts.fuelEvolution}
               labels={byMonth.labels}
@@ -100,13 +101,13 @@ export const FuelReportPDF: React.FC<FuelReportProps> = ({
                 { label: 'Litros', data: byMonth.liters, color: '#06b6d4' },
                 { label: 'Custo (Kz×1000)', data: byMonth.costs, color: PDF_CONFIG.colors.warning },
               ]}
-              height={115}
+              height={90}
             />
           </View>
         )}
 
         {s.showCharts && topVehicles.length > 0 && (
-          <View style={commonStyles.section}>
+          <View style={commonStyles.section} wrap={false}>
             <SectionTitle>{t.sections.topVehicles}</SectionTitle>
             <HBarChart
               data={topVehicles}
@@ -116,14 +117,11 @@ export const FuelReportPDF: React.FC<FuelReportProps> = ({
         )}
 
         {s.showSummary && stats && (
-          <View 
-            style={commonStyles.section}
-            // minPresenceAhead={10}  // ✅ Garante espaço mínimo após esta seção
-          >
+          <View style={commonStyles.section} wrap={false}>
             <SectionTitle>{t.summary}</SectionTitle>
             <SummaryBox items={[
-              { label: t.stats.totalRefuelings,   value: stats.total ?? 0 },
-              { label: t.stats.totalLiters,        value: `${(stats.totalLiters ?? 0).toFixed(2)} L` },
+              { label: t.stats.totalRefuelings, value: stats.total ?? 0 },
+              { label: t.stats.totalLiters, value: `${(stats.totalLiters ?? 0).toFixed(2)} L` },
               { 
                 label: t.stats.totalCost,          
                 value: formatCurrency(stats.totalCost ?? 0), 
@@ -140,56 +138,61 @@ export const FuelReportPDF: React.FC<FuelReportProps> = ({
             ]} />
           </View>
         )}
+
+        <Footer />
+      </Page>
+
+      {/* ========== PÁGINA 2+: HISTÓRICO ========== */}
+      <Page size={s.paperSize} orientation={s.orientation} style={commonStyles.page}>
+        <Watermark />
+        <Header 
+          title={`${t.reports.fuel} - ${t.sections.refuelingHistory}`}
+          subtitle={`${formatDate(dateRange.start)} — ${formatDate(dateRange.end)}`} 
+        />
+
+        <SectionTitle>{t.sections.refuelingHistory}</SectionTitle>
         
-        {/* ✅ Espaçador opcional com quebra de página inteligente */}
-        <View style={{ height: 100 }} minPresenceAhead={0} />
-        
-        <View 
-          style={commonStyles.section}
-          break={false}  // ✅ Evita quebra no meio da tabela se possível
-        >
-          <SectionTitle>{t.sections.refuelingHistory}</SectionTitle>
-          {!refuelings?.length ? (
-            <EmptyState message={t.empty.noRefuelings} icon={true} />
-          ) : (
-            <View style={commonStyles.table} wrap={false}>  // ✅ Tenta manter tabela unida
-              <TableHeader>
-                <Text style={[commonStyles.tableCellHeader, cell]}>{t.table.date}</Text>
-                <Text style={[commonStyles.tableCellHeader, cell]}>{t.table.vehicle}</Text>
-                <Text style={[commonStyles.tableCellHeader, cell]}>{t.table.liters}</Text>
-                <Text style={[commonStyles.tableCellHeader, cell]}>{t.table.pricePerLiter}</Text>
-                <Text style={[commonStyles.tableCellHeader, cell]}>{t.total}</Text>
-                <Text style={[commonStyles.tableCellHeader, cell]}>{t.table.mileage}</Text>
-              </TableHeader>
-              {refuelings.map((f, i) => (
-                <View 
-                  key={f.id} 
-                  style={i % 2 === 0 ? commonStyles.tableRow : commonStyles.tableRowAlt}
-                  minPresenceAhead={20}  // ✅ Evita corte de linhas
-                >
-                  <Text style={[commonStyles.tableCell, cell]}>
-                    {formatDate(f.refueling_date)}
-                  </Text>
-                  <Text style={[commonStyles.tableCellBold, cell]}>
-                    {f.vehicle_plate ?? '—'}
-                  </Text>
-                  <Text style={[commonStyles.tableCell, cell]}>
-                    {f.liters.toFixed(2)} L
-                  </Text>
-                  <Text style={[commonStyles.tableCell, cell]}>
-                    {formatCurrency(f.price_per_liter)}
-                  </Text>
-                  <Text style={[commonStyles.tableCellBold, cell]}>
-                    {formatCurrency(f.total_cost)}
-                  </Text>
-                  <Text style={[commonStyles.tableCell, cell]}>
-                    {formatDistance(f.mileage ?? 0)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
+        {!refuelings?.length ? (
+          <EmptyState message={t.empty.noRefuelings} icon={true} />
+        ) : (
+          <View style={commonStyles.table}>
+            <TableHeader>
+              <Text style={[commonStyles.tableCellHeader, cell]}>{t.table.date}</Text>
+              <Text style={[commonStyles.tableCellHeader, cell]}>{t.table.vehicle}</Text>
+              <Text style={[commonStyles.tableCellHeader, cell]}>{t.table.liters}</Text>
+              <Text style={[commonStyles.tableCellHeader, cell]}>{t.table.pricePerLiter}</Text>
+              <Text style={[commonStyles.tableCellHeader, cell]}>{t.total}</Text>
+              <Text style={[commonStyles.tableCellHeader, cell]}>{t.table.mileage}</Text>
+            </TableHeader>
+            
+            {refuelings.map((f, i) => (
+              <View 
+                key={f.id} 
+                style={i % 2 === 0 ? commonStyles.tableRow : commonStyles.tableRowAlt}
+                minPresenceAhead={40}
+              >
+                <Text style={[commonStyles.tableCell, cell]}>
+                  {formatDate(f.refueling_date)}
+                </Text>
+                <Text style={[commonStyles.tableCellBold, cell]}>
+                  {f.vehicle_plate ?? '—'}
+                </Text>
+                <Text style={[commonStyles.tableCell, cell]}>
+                  {f.liters.toFixed(2)} L
+                </Text>
+                <Text style={[commonStyles.tableCell, cell]}>
+                  {formatCurrency(f.price_per_liter)}
+                </Text>
+                <Text style={[commonStyles.tableCellBold, cell]}>
+                  {formatCurrency(f.total_cost)}
+                </Text>
+                <Text style={[commonStyles.tableCell, cell]}>
+                  {formatDistance(f.mileage ?? 0)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         <Footer />
       </Page>

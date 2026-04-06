@@ -434,6 +434,8 @@ function PdfTab() {
       pdf_show_charts:        s.pdf_show_charts,
       pdf_paper_size:         s.pdf_paper_size,
       pdf_orientation:        s.pdf_orientation,
+      pdf_value_format:       s.pdf_value_format,
+      pdf_show_currency:      s.pdf_show_currency,
     }));
   }, []);
 
@@ -519,6 +521,25 @@ function PdfTab() {
         <SettingRow label={t('pdf.showSummary')}>
           <Switch checked={!!form.pdf_show_summary} onCheckedChange={v => set('pdf_show_summary', v)} />
         </SettingRow>
+
+        <SettingRow label={t('pdf.valueFormat')} description={t('pdf.valueFormatDesc')}>
+          <select
+            value={form.pdf_value_format ?? 'compact'}
+            onChange={e => set('pdf_value_format', e.target.value as any)}
+            className="h-8 px-2 text-sm rounded border border-input bg-background"
+          >
+            <option value="compact">{t('pdf.valueFormatCompact')}</option>
+            <option value="full">{t('pdf.valueFormatFull')}</option>
+          </select>
+        </SettingRow>
+ 
+        <SettingRow label={t('pdf.showCurrency')} description={t('pdf.showCurrencyDesc')}>
+          <Switch
+            checked={!!form.pdf_show_currency}
+            onCheckedChange={v => set('pdf_show_currency', v)}
+          />
+        </SettingRow>
+
         <SettingRow label={t('pdf.paperSize')}>
           <select value={form.pdf_paper_size ?? 'A4'} onChange={e => set('pdf_paper_size', e.target.value as any)}
             className="h-8 px-2 text-sm rounded border border-input bg-background">

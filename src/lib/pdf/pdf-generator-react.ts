@@ -97,6 +97,8 @@ export class ReactPDFGenerator {
         showCharts:       sysSettings.pdf_show_charts   ?? true,
         paperSize:        (sysSettings.pdf_paper_size as 'A4' | 'LETTER') ?? 'A4',
         orientation:      (sysSettings.pdf_orientation as 'portrait' | 'landscape') ?? 'portrait',
+        valueFormat:      (sysSettings.pdf_value_format  ?? 'compact') as 'compact' | 'full',
+        showCurrency:     sysSettings.pdf_show_currency  ?? true,
       });
 
       // ✅ NOVO: Injetar versão do app

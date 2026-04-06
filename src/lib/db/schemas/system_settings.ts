@@ -38,6 +38,10 @@ export const system_settings = sqliteTable('system_settings', {
   pdf_paper_size:         text('pdf_paper_size').default('A4'),
   /** Orientação: portrait | landscape */
   pdf_orientation:        text('pdf_orientation').default('portrait'),
+  /** Formato dos valores monetários nos PDFs: 'compact' = K/M | 'full' = número completo */
+  pdf_value_format: text('pdf_value_format').default('compact'),
+  /** Mostrar símbolo da moeda (Kz) nos valores monetários dos PDFs */
+  pdf_show_currency: integer('pdf_show_currency', { mode: 'boolean' }).notNull().default(true),
 
   // ── Operações / Negócio ───────────────────────────────────────────────────
   /** Limite de km para alertar revisão do veículo */

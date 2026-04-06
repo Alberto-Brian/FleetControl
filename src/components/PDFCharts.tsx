@@ -7,7 +7,7 @@
 // ========================================
 import React from 'react';
 import { View, Text, Svg, Rect, Line, Path, Circle, G, Defs, LinearGradient, Stop } from '@react-pdf/renderer';
-import { getPDFSettings, PDF_CONFIG } from '@/lib/pdf/pdf-config-react';
+import { getPDFSettings, kpiFontSize, PDF_CONFIG } from '@/lib/pdf/pdf-config-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers internos
@@ -61,6 +61,11 @@ export const KPICards: React.FC<KPICardsProps> = ({ cards }) => {
       {cards.map((card, i) => {
         const bg = card.color ?? getSeriesColor(i, s.primaryColor);
         const { r, g, b } = hexToRgb(bg);
+        
+        // Aplicar kpiFontSize para ajustar dinamicamente o tamanho da fonte
+        const valueString = String(card.value);
+        const adaptiveFontSize = kpiFontSize(valueString);
+        
         return (
           <View
             key={i}
@@ -86,12 +91,12 @@ export const KPICards: React.FC<KPICardsProps> = ({ cards }) => {
               {card.label}
             </Text>
             <Text style={{ 
-              fontSize: 20, 
+              fontSize: adaptiveFontSize,  // ← Tamanho adaptativo baseado no comprimento do valor
               fontWeight: 'bold', 
               color: '#ffffff', 
               lineHeight: 1 
             }}>
-              {String(card.value)}
+              {valueString}
             </Text>
             {card.sub && (
               <Text style={{ 
