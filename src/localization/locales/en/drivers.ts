@@ -206,7 +206,10 @@ export const enDrivers = {
     all: "All",
     active: "Active",
     onLeave: "On Leave",
-    expiringLicenses: "Expiring Licenses"
+    expiringLicenses: "Expiring Licenses",
+    drivers: 'Drivers',
+    leaves:  'Leaves',
+    shifts:  'Shifts',
   },
 
   filters: {
@@ -337,7 +340,105 @@ export const enDrivers = {
     statusBlockedOnTrip: "Cannot change contractual status while driver is on trip",
     availabilityBlockedOnTrip: "Availability is managed automatically during trips",
     availabilityBlockedOnLeave: "Availability is set automatically during leaves"
-  }
+  },
+
+   shifts: {
+    title:           'Shift Management',
+    newShift:        'New Shift',
+    noShifts:        'No shifts created',
+    searchPlaceholder: 'Search shifts...',
+ 
+    status: {
+      draft:    'Draft',
+      active:   'Active',
+      archived: 'Archived',
+    },
+ 
+    filters: {
+      all:      'All statuses',
+      draft:    'Draft',
+      active:   'Active',
+      archived: 'Archived',
+    },
+ 
+    stats: {
+      total: 'Total',
+    },
+ 
+    fields: {
+      name:        'Shift Name',
+      description: 'Description',
+      startDate:   'Start Date',
+      endDate:     'End Date',
+      startTime:   'Start Time',
+      endTime:     'End Time',
+      status:      'Status',
+      notes:       'Notes',
+      schedule:    'Schedule',
+      period:      'Period',
+    },
+ 
+    placeholders: {
+      name:         'E.g.: Shift A — January 2025',
+      description:  'Optional shift description...',
+      notes:        'Additional notes...',
+      searchDriver: 'Search driver to add...',
+    },
+ 
+    sections: {
+      schedule: 'Period & Schedule',
+      members:  'Drivers',
+    },
+ 
+    info: {
+      member:       'driver',
+      members:      'drivers',
+      leader:       'Leader',
+      noMembersYet: 'No drivers added yet',
+      noLeaderYet:  'Click the crown to set the shift leader',
+    },
+ 
+    actions: {
+      create:        'Create Shift',
+      creating:      'Creating...',
+      activate:      'Activate',
+      archive:       'Archive',
+      reactivate:    'Reactivate',
+      setLeader:     'Set as leader',
+      removeLeader:  'Remove leadership',
+    },
+ 
+    dialogs: {
+      new: {
+        title:       'New Shift',
+        description: 'Create a work schedule for drivers',
+      },
+      delete: {
+        title:       'Delete Shift',
+        description: 'Are you sure you want to delete the shift "{{name}}"? This action cannot be undone.',
+      },
+    },
+ 
+    toast: {
+      createSuccess: 'Shift created successfully',
+      createError:   'Error creating shift',
+      updateError:   'Error updating shift',
+      statusUpdated: 'Shift status updated',
+      deleteSuccess: 'Shift deleted successfully',
+      deleteError:   'Error deleting shift',
+    },
+ 
+    errors: {
+      loadError:           'Error loading shifts',
+      notFound:            'Shift not found',
+      nameRequired:        'Shift name is required',
+      datesRequired:       'Start and end dates are required',
+      timesRequired:       'Start and end times are required',
+      endBeforeStart:      'End date cannot be before start date',
+      onlyOneLeader:       'A shift can only have one leader',
+      driverAlreadyInShift: 'This driver is already in this shift',
+    },
+  },
 } as const;
 
 export default enDrivers;

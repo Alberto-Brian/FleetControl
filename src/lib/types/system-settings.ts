@@ -67,6 +67,8 @@ export const SYSTEM_SETTINGS_DEFAULTS: Omit<ISystemSettings, 'id' | 'created_at'
   pdf_show_summary:            true,
   pdf_paper_size:              'A4',
   pdf_orientation:             'portrait',
+  pdf_value_format:            'compact',
+  pdf_show_currency:           true,
   alert_mileage_threshold:     10000,
   alert_license_days_before:   30,
   alert_insurance_days_before: 30,

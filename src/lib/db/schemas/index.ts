@@ -23,6 +23,8 @@ import { generatedReports } from "./generated-reports";
 import { driver_leaves } from "./driver_leaves";
 import { system_settings } from "./system_settings";
 import { scheduled_trips } from "./scheduled_trips";
+import { driver_shifts } from "./driver_shifts";
+import { driver_shift_members } from "./driver_shift_members";
 
 
 
@@ -50,5 +52,7 @@ export {
     generatedReports,
     driver_leaves,
     system_settings,
-    scheduled_trips
+    scheduled_trips,
+    driver_shifts,
+    driver_shift_members,
 }

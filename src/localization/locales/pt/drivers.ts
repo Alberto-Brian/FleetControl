@@ -203,7 +203,10 @@ export const ptDrivers = {
     all: "Todos",
     active: "Activos",
     onLeave: "De Licença",
-    expiringLicenses: "Cartas a Expirar"
+    expiringLicenses: "Cartas a Expirar",
+    drivers: 'Motoristas',
+    leaves:  'Férias',
+    shifts:  'Turnos',
   },
 
   filters: {
@@ -335,7 +338,106 @@ export const ptDrivers = {
     statusBlockedOnTrip: "Não é possível alterar o estado contratual enquanto o motorista estiver em viagem",
     availabilityBlockedOnTrip: "A disponibilidade é gerida automaticamente durante viagens",
     availabilityBlockedOnLeave: "A disponibilidade é definida automaticamente durante licenças"
-  }
+  },
+
+  shifts: {
+    title:           'Gestão de Turnos',
+    newShift:        'Novo Turno',
+    noShifts:        'Nenhum turno criado',
+    searchPlaceholder: 'Pesquisar turnos...',
+ 
+    status: {
+      draft:    'Rascunho',
+      active:   'Activo',
+      archived: 'Arquivado',
+    },
+ 
+    filters: {
+      all:      'Todos os estados',
+      draft:    'Rascunho',
+      active:   'Activos',
+      archived: 'Arquivados',
+    },
+ 
+    stats: {
+      total: 'Total',
+    },
+ 
+    fields: {
+      name:        'Nome do Turno',
+      description: 'Descrição',
+      startDate:   'Data de Início',
+      endDate:     'Data de Fim',
+      startTime:   'Hora de Entrada',
+      endTime:     'Hora de Saída',
+      status:      'Estado',
+      notes:       'Observações',
+      schedule:    'Horário',
+      period:      'Período',
+    },
+ 
+    placeholders: {
+      name:         'Ex: Turno A — Janeiro 2025',
+      description:  'Descrição opcional do turno...',
+      notes:        'Observações adicionais...',
+      searchDriver: 'Pesquisar motorista para adicionar...',
+    },
+ 
+    sections: {
+      schedule: 'Período e Horário',
+      members:  'Motoristas',
+    },
+ 
+    info: {
+      member:       'motorista',
+      members:      'motoristas',
+      leader:       'Líder',
+      noMembersYet: 'Nenhum motorista adicionado',
+      noLeaderYet:  'Clique na coroa para definir o líder do turno',
+    },
+ 
+    actions: {
+      create:         'Criar Turno',
+      creating:       'A criar...',
+      activate:       'Activar',
+      archive:        'Arquivar',
+      reactivate:     'Reactivar',
+      setLeader:      'Definir como líder',
+      removeLeader:   'Remover liderança',
+    },
+ 
+    dialogs: {
+      new: {
+        title:       'Novo Turno',
+        description: 'Crie um plano de trabalho para os motoristas',
+      },
+      delete: {
+        title:       'Eliminar Turno',
+        description: 'Tem a certeza que deseja eliminar o turno "{{name}}"? Esta acção não pode ser desfeita.',
+      },
+    },
+ 
+    toast: {
+      createSuccess: 'Turno criado com sucesso',
+      createError:   'Erro ao criar turno',
+      updateError:   'Erro ao actualizar turno',
+      statusUpdated: 'Estado do turno actualizado',
+      deleteSuccess: 'Turno eliminado com sucesso',
+      deleteError:   'Erro ao eliminar turno',
+    },
+ 
+    errors: {
+      loadError:           'Erro ao carregar turnos',
+      notFound:            'Turno não encontrado',
+      nameRequired:        'O nome do turno é obrigatório',
+      datesRequired:       'As datas de início e fim são obrigatórias',
+      timesRequired:       'As horas de entrada e saída são obrigatórias',
+      endBeforeStart:      'A data de fim não pode ser anterior à data de início',
+      onlyOneLeader:       'Um turno só pode ter um líder',
+      driverAlreadyInShift: 'Este motorista já está neste turno',
+    },
+  },
+
 } as const;
 
 export default ptDrivers;

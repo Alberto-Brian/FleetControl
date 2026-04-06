@@ -25,6 +25,7 @@ import { exposeDriverLeavesContext } from "./db/driver-leaves/driver-leaves-cont
 import { exposeCompanyContext } from "./db/company/company-context";
 import { exposeSystemSettingsContext } from "./db/system_settings/system-settings-context";
 import { exposeScheduledTripsContext } from "./db/scheduled-trips/scheduled-trips-context";
+import { exposeDriverShiftsContext } from "./db/driver-shifts/driver-shifts-context";
 
 
 
@@ -55,4 +56,5 @@ export default function exposeContexts() {
     exposeCompanyContext();
     exposeSystemSettingsContext();
     exposeScheduledTripsContext();
+    exposeDriverShiftsContext();
 }

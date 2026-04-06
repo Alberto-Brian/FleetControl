@@ -262,6 +262,26 @@ interface IScheduledTrip {
     runScheduler: () => Promise<void>;
   };
 
+ export interface IDriverShifts {
+  getAll: (params?: IDriverShiftsPaginationParams) => Promise<IPaginatedResult<IDriverShiftSummary>>;
+  getById: (id: string) => Promise<IDriverShift | null>;
+  getByDriver: (driverId: string) => Promise<IDriverShiftBadge[]>;
+  getForDriver: (driverId: string) => Promise<IDriverShiftBadge[]>;
+  getForAllDrivers: () => Promise<Record<string, IDriverShiftBadge[]>>;
+  create: (data: ICreateDriverShift) => Promise<IDriverShift>;
+  update: (id: string, data: IUpdateDriverShift) => Promise<IDriverShift | null>;
+  updateStatus: (id: string, status: ShiftStatus) => Promise<IDriverShift | null>;
+  remove: (id: string) => Promise<boolean>;
+  addMember: (shiftId: string, data: IAddShiftMember) => Promise<IDriverShift | null>;
+  removeMember: (shiftId: string, memberId: string) => Promise<IDriverShift | null>;
+  setLeader: (shiftId: string, memberId: string) => Promise<IDriverShift | null>;
+  updateMember: (shiftId: string, memberId: string, data: IUpdateShiftMember) => Promise<IDriverShift | null>;
+  replaceMembers: (
+    shiftId: string,
+    members: { driver_id: string; is_leader: boolean; notes?: string }[]
+  ) => Promise<IDriverShift | null>;
+}
+
 declare interface Window {
     system:                  System;
     license:                 License;
@@ -289,4 +309,5 @@ declare interface Window {
     _company:                ICompany;
     _system_settings: ISystemSettings;
     _scheduled_trips: IScheduledTrip;
+    _driverShifts: IDriverShifts;
 }
