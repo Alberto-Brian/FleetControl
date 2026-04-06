@@ -7,3 +7,5 @@ export const CREATE_TRIP = "trips:create";
 export const CANCEL_TRIP = "trips:cancel";
 export const GET_ACTIVE_TRIPS = "trips:get-active";
 export const COMPLETE_TRIP = "trips:complete";
+export const DELETE_TRIP = "trips:delete";
+export const RECONCILE_TRIPS = "trips:reconcile";

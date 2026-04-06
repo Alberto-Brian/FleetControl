@@ -3,6 +3,7 @@
 // ========================================
 import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { drivers, driverStatus, driverAvailability } from '@/lib/db/schemas/drivers';
+import { trips } from '@/lib/db/schemas/trips';
 import { generateUuid } from '@/lib/utils/cripto';
 import { sql, eq, and, isNull, desc, lte, gte, or, count, like, SQL  } from 'drizzle-orm';
 import { ICreateDriver, IUpdateDriver, IDriver } from '@/lib/types/driver';
@@ -266,25 +267,37 @@ export async function getDriverById(driverId: string): Promise<IDriver | null> {
  * ✅ Retorna o motorista completo atualizado
  */
 export async function updateDriver(driverId: string, driverData: IUpdateDriver): Promise<IDriver | null> {
-  const { db } = useDb();
-
-  // Se o status for alterado para on_leave ou terminated, forçar availability para offline
-  const updateData: any = { ...driverData };
-  
-  if (driverData.status === driverStatus.ON_LEAVE || driverData.status === driverStatus.TERMINATED) {
-    updateData.availability = driverAvailability.OFFLINE;
-  }
-
-  await db
-    .update(drivers)
-    .set({
-      ...updateData,
-      updated_at: new Date().toISOString(),
-    })
-    .where(eq(drivers.id, driverId));
-
-  // ✅ Retorna motorista completo
-  return await getDriverById(driverId);
+    const { db } = useDb();
+ 
+    const updateData: any = { ...driverData };
+ 
+    if (driverData.status === driverStatus.ON_LEAVE || driverData.status === driverStatus.TERMINATED) {
+        // Verificar se driver está numa viagem activa
+        const activeTrip = await db
+            .select({ id: trips.id })
+            .from(trips)
+            .where(
+                and(
+                    eq(trips.driver_id, driverId),
+                    eq(trips.status, 'in_progress'),
+                    isNull(trips.deleted_at)
+                )
+            )
+            .limit(1);
+ 
+        if (activeTrip.length > 0) {
+            throw new Error('drivers:errors.driverHasActiveTrip');
+        }
+ 
+        updateData.availability = driverAvailability.OFFLINE;
+    }
+ 
+    await db.update(drivers).set({
+        ...updateData,
+        updated_at: new Date().toISOString(),
+    }).where(eq(drivers.id, driverId));
+ 
+    return getDriverById(driverId);
 }
 
 /**
@@ -292,16 +305,30 @@ export async function updateDriver(driverId: string, driverData: IUpdateDriver):
  */
 export async function deleteDriver(driverId: string): Promise<string> {
     const { db } = useDb();
-    
-    await db
-        .update(drivers)
-        .set({
-            deleted_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            is_active: false,
-        })
-        .where(eq(drivers.id, driverId));
-
+ 
+    // Verificar se driver está numa viagem activa
+    const activeTrip = await db
+        .select({ id: trips.id, trip_code: trips.trip_code })
+        .from(trips)
+        .where(
+            and(
+                eq(trips.driver_id, driverId),
+                eq(trips.status, 'in_progress'),
+                isNull(trips.deleted_at)
+            )
+        )
+        .limit(1);
+ 
+    if (activeTrip.length > 0) {
+        throw new Error('drivers:errors.driverHasActiveTrip');
+    }
+ 
+    await db.update(drivers).set({
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        is_active:  false,
+    }).where(eq(drivers.id, driverId));
+ 
     return driverId;
 }
 

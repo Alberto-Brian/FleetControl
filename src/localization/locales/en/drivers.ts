@@ -189,7 +189,8 @@ export const enDrivers = {
     licenseExpired: "Driver's license is expired",
     invalidEmail: "Invalid email address",
     invalidPhone: "Invalid phone number",
-    required: "This field is required"
+    required: "This field is required",
+    driverHasActiveTrip: "Driver is on a trip. Cannot delete or update status."
   },
 
   validation: {

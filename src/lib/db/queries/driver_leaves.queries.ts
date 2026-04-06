@@ -450,63 +450,60 @@ export async function processScheduledLeaves(): Promise<{
  * Processa férias activas que já terminaram (end_date < hoje).
  * Restaura o driver para available.
  */
+
 export async function processCompletedLeaves(): Promise<string[]> {
-  const { db } = useDb();
-  const today = todayStr();
-
-  const completed: string[] = [];
-
-  // Férias active cuja end_date já passou
-  const expiredLeaves = await db
-    .select({ leave: driver_leaves })
-    .from(driver_leaves)
-    .where(
-      and(
-        eq(driver_leaves.status, leaveStatus.ACTIVE),
-        // end_date < today (já passou o último dia)
-        lte(driver_leaves.end_date, today),
-        isNull(driver_leaves.deleted_at)
-      )
-    );
-
-  // Só completa se end_date for estritamente anterior a hoje
-  // (end_date é inclusivo, por isso só completa quando today > end_date)
-  const trulyExpired = expiredLeaves.filter(
-    ({ leave }) => leave.end_date < today
-  );
-
-  for (const { leave } of trulyExpired) {
-    // Marca como completed
-    await db
-      .update(driver_leaves)
-      .set({
-        status:     leaveStatus.COMPLETED,
-        updated_at: new Date().toISOString(),
-      })
-      .where(eq(driver_leaves.id, leave.id));
-
-    // Verifica se o driver não foi entretanto terminated
-    const [driver] = await db
-      .select({ status: drivers.status })
-      .from(drivers)
-      .where(eq(drivers.id, leave.driver_id))
-      .limit(1);
-
-    if (driver && driver.status !== driverStatus.TERMINATED) {
-      await db
-        .update(drivers)
-        .set({
-          status:       driverStatus.ACTIVE,
-          availability: driverAvailability.AVAILABLE,
-          updated_at:   new Date().toISOString(),
-        })
-        .where(eq(drivers.id, leave.driver_id));
+    const { db } = useDb();
+    const today = todayStr();
+    const completed: string[] = [];
+ 
+    const expiredLeaves = await db
+        .select({ leave: driver_leaves })
+        .from(driver_leaves)
+        .where(
+            and(
+                eq(driver_leaves.status, leaveStatus.ACTIVE),
+                lte(driver_leaves.end_date, today),
+                isNull(driver_leaves.deleted_at)
+            )
+        );
+ 
+    // end_date é inclusivo — só completa quando today > end_date
+    const trulyExpired = expiredLeaves.filter(({ leave }) => leave.end_date < today);
+ 
+    for (const { leave } of trulyExpired) {
+        await db.update(driver_leaves).set({
+            status:     leaveStatus.COMPLETED,
+            updated_at: new Date().toISOString(),
+        }).where(eq(driver_leaves.id, leave.id));
+ 
+        const [driver] = await db
+            .select({ status: drivers.status, availability: drivers.availability })
+            .from(drivers)
+            .where(eq(drivers.id, leave.driver_id))
+            .limit(1);
+ 
+        if (!driver || driver.status === driverStatus.TERMINATED) {
+            // Driver eliminado ou terminado — não restaurar
+            completed.push(leave.id);
+            continue;
+        }
+ 
+        // CORRECÇÃO: se o driver está on_trip, não restaurar — a trip trata disso
+        if (driver.availability === driverAvailability.ON_TRIP) {
+            completed.push(leave.id);
+            continue;
+        }
+ 
+        await db.update(drivers).set({
+            status:       driverStatus.ACTIVE,
+            availability: driverAvailability.AVAILABLE,
+            updated_at:   new Date().toISOString(),
+        }).where(eq(drivers.id, leave.driver_id));
+ 
+        completed.push(leave.id);
     }
-
-    completed.push(leave.id);
-  }
-
-  return completed;
+ 
+    return completed;
 }
 
 // ─────────────────────────────────────────────
@@ -514,7 +511,8 @@ export async function processCompletedLeaves(): Promise<string[]> {
 // ─────────────────────────────────────────────
 
 async function _activateLeave(db: any, leaveId: string, driverId: string) {
-  await db
+  return await db.transaction(async (tx: any) => {
+  await tx
     .update(driver_leaves)
     .set({
       status:     leaveStatus.ACTIVE,
@@ -522,7 +520,7 @@ async function _activateLeave(db: any, leaveId: string, driverId: string) {
     })
     .where(eq(driver_leaves.id, leaveId));
 
-  await db
+  await tx
     .update(drivers)
     .set({
       status:       driverStatus.ON_LEAVE,
@@ -530,4 +528,6 @@ async function _activateLeave(db: any, leaveId: string, driverId: string) {
       updated_at:   new Date().toISOString(),
     })
     .where(eq(drivers.id, driverId));
+
+  })
 }

@@ -186,7 +186,8 @@ export const ptDrivers = {
     licenseExpired: "A carta de condução está expirada",
     invalidEmail: "Endereço de e-mail inválido",
     invalidPhone: "Número de telefone inválido",
-    required: "Este campo é obrigatório"
+    required: "Este campo é obrigatório",
+    driverHasActiveTrip: "O motorista está em viagem. Não é possível excluir ou alterar o estado."
   },
 
   validation: {

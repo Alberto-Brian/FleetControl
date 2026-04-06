@@ -41,7 +41,8 @@ const T_ERRORS = {
     NO_ACTIVE_DRIVERS: 'drivers:warnings.noActiveDrivers',
     NO_AVAILABLE_DRIVERS: 'drivers:warnings.noAvailableDrivers',
     LICENSE_NUMBER_REQUIRED: 'common:warnings.licenseNumberRequired',
-    NAME_REQUIRED: 'common:warnings.nameRequired'
+    NAME_REQUIRED: 'common:warnings.nameRequired',
+    DRIVER_HAS_ACTIVE_TRIP: 'drivers:errors.driverHasActiveTrip'
 } as const;
 
 export function addDriversEventListeners() {
@@ -114,7 +115,7 @@ async function updateDriverEvent(id: string, data: IUpdateDriver) {
     if (!driverExists) {
         throw new Error(new NotFoundError(T_ERRORS.DRIVER_NOT_FOUND).toIpcString());
     }
-
+ 
     // Validação: carta duplicada (exceto o próprio)
     if (data.license_number) {
         const hasDuplicate = await hasDriverWithLicense(data.license_number, id);
@@ -126,7 +127,7 @@ async function updateDriverEvent(id: string, data: IUpdateDriver) {
             );
         }
     }
-
+ 
     // Validação: NIF duplicado (exceto o próprio)
     if (data.tax_id) {
         const hasDuplicate = await hasDriverWithTaxId(data.tax_id, id);
@@ -138,7 +139,7 @@ async function updateDriverEvent(id: string, data: IUpdateDriver) {
             );
         }
     }
-
+ 
     // Validação: carta expirada (se fornecida)
     if (data.license_expiry_date) {
         const expiryDate = new Date(data.license_expiry_date);
@@ -146,8 +147,10 @@ async function updateDriverEvent(id: string, data: IUpdateDriver) {
             throw new Error(new ValidationError(T_ERRORS.LICENSE_EXPIRED).toIpcString());
         }
     }
-
-    return await updateDriver(id, data);
+ 
+    // updateDriver já valida internamente se há viagem activa
+    // e lança 'drivers:errors.driverHasActiveTrip' — deixamos propagar
+    return updateDriver(id, data);
 }
 
 async function deleteDriverEvent(id: string) {
@@ -155,11 +158,10 @@ async function deleteDriverEvent(id: string) {
     if (!driverExists) {
         throw new Error(new NotFoundError(T_ERRORS.DRIVER_NOT_FOUND).toIpcString());
     }
-
-    // TODO: Adicionar verificação se motorista está em uso (viagem ativa)
-    // Similar ao vehicleStatus.IN_USE no vehicles-listeners.ts
-    
-    return await deleteDriver(id);
+ 
+    // deleteDriver já valida internamente se há viagem activa
+    // e lança 'drivers:errors.driverHasActiveTrip' — deixamos propagar
+    return deleteDriver(id);
 }
 
 async function getActiveDriversEvent() {
