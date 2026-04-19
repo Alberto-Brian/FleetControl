@@ -123,6 +123,7 @@ export const ptMaintenances = {
     searchWorkshop: 'Pesquisar por nome ou cidade...',
     selectStatus: 'Seleccione o estado',
     selectPriority: 'Seleccione a prioridade',
+    addNotes: "Adicione notas aqui"
   },
 
   actions: {

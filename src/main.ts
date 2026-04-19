@@ -9,6 +9,7 @@ import { RestoreController } from '@/system/restore_manager';
 import { logoutAllUsers } from "./helpers/service-auth-helpers";
 import { startLeaveScheduler } from "./lib/db/schedulers/leave-scheduler";
 import { startTripScheduler } from "./lib/db/schedulers/trip-scheduler";
+declare const __API_URL__: string;
 
 const inDevelopment = process.env.NODE_ENV === "development";
 

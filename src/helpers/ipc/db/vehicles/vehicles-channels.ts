@@ -1,4 +1,8 @@
-// src/helpers/ipc/db/vehicles/vehicles-channels.ts
+// ========================================
+// PROJECT: fleetcontrol-desktop
+// FILE: src/helpers/ipc/db/vehicles/vehicles-channels.ts
+// ========================================
+
 export const GET_ALL_VEHICLES = "vehicles:get-all";
 export const GET_VEHICLE_BY_ID = "vehicles:get-by-id";
 export const CREATE_VEHICLE = "vehicles:create";

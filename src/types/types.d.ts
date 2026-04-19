@@ -32,11 +32,11 @@ interface System {
     forceDbRotation: () => Promise<void>
 }
 
-interface License {
-    validateLicense: (license: string) => Promise<ValidatedLicense>;
-    getMachineId: () => Promise<string>;
-    checkExistingLicense: () => Promise<ValidatedLicense>;
-    removeLicense: () => Promise<void>;
+export interface License {
+  validateLicense:      (key: string)  => Promise<ValidatedLicense>;
+  checkExistingLicense: ()             => Promise<ValidatedLicense>;
+  getRawLicense:        ()             => Promise<string | null>;
+  removeLicense:        ()             => Promise<void>;
 }
 
 interface Backup {

@@ -1,3 +1,8 @@
+// ========================================
+// PROJECT: fleetcontrol-desktop
+// FILE: src/lib/services/vehicle.service.ts
+// ========================================
+
 import { getDb } from '@/lib/db/db_client';
 import { vehicles, vehicle_documents } from '@/lib/db/schemas';
 import { eq, and, isNull } from 'drizzle-orm';

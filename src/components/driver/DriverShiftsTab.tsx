@@ -1,6 +1,11 @@
 // ========================================
 // FILE: src/components/driver/DriverShiftsTab.tsx
 // ========================================
+// ALTERAÇÃO em relação à versão anterior:
+//  - Botão "Imprimir Plano" adicionado na toolbar
+//  - Função handlePrintShifts que chama o gerador de PDF
+//  - Import do ShiftPlanReportPDF via reactPdfGenerator
+// ========================================
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button }   from '@/components/ui/button';
 import { Input }    from '@/components/ui/input';
@@ -16,7 +21,7 @@ import { cn } from '@/lib/utils';
 import {
   Search, Plus, Clock, Users, Crown, Calendar, ChevronRight,
   Pencil, Trash2, Archive, CheckCircle2, FileText, MoreHorizontal,
-  Shield, Star,
+  Printer, Loader2,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -31,14 +36,26 @@ import {
 import { useDriverShifts } from '@/contexts/DriverShiftsContext';
 import {
   getAllDriverShifts,
+  getDriverShiftById,
   deleteDriverShift,
   updateDriverShiftStatus,
 } from '@/helpers/driver-shift-helpers';
-import { IDriverShiftSummary } from '@/lib/types/driver-shift';
+import { IDriverShiftSummary, IDriverShift } from '@/lib/types/driver-shift';
 import { ShiftStatus } from '@/lib/db/schemas/driver_shifts';
 
 import NewDriverShiftDialog  from './NewDriverShiftDialog';
 import ViewDriverShiftDialog from './ViewDriverShiftDialog';
+
+// Gerador de PDF reutilizando a infra existente
+import { reactPdfGenerator } from '@/lib/pdf/pdf-generator-react';
+import { ShiftPlanReportPDF } from '@/lib/pdf/templates/ShiftPlanReportPDF';
+import React_pdf from 'react';
+import { pdf } from '@react-pdf/renderer';
+import { saveAs } from 'file-saver';
+import { setPDFLanguage } from '@/lib/pdf/pdf-translations';
+import { setPDFCompany, setPDFSettings } from '@/lib/pdf/pdf-config-react';
+import { getCompanySettings, getCompanyLogoBase64 } from '@/helpers/company-helpers';
+import { getSystemSettings } from '@/helpers/system-settings-helpers';
 
 interface DriverShiftsTabProps {
   drivers: { id: string; name: string }[];
@@ -48,20 +65,16 @@ interface DriverShiftsTabProps {
 
 function statusMeta(status: ShiftStatus, t: any) {
   const map = {
-    draft:    { label: t('drivers:shifts.status.draft'),    className: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400', icon: FileText },
+    draft:    { label: t('drivers:shifts.status.draft'),    className: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400', icon: FileText    },
     active:   { label: t('drivers:shifts.status.active'),   className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400', icon: CheckCircle2 },
-    archived: { label: t('drivers:shifts.status.archived'), className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400', icon: Archive },
+    archived: { label: t('drivers:shifts.status.archived'), className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400', icon: Archive    },
   };
   return map[status] ?? map.draft;
 }
 
-function formatTimeRange(start: string, end: string) {
-  return `${start} – ${end}`;
-}
-
-function formatDateRange(start: string, end: string, locale = 'pt-PT') {
-  const s = new Date(start).toLocaleDateString(locale, { day: '2-digit', month: 'short' });
-  const e = new Date(end).toLocaleDateString(locale,   { day: '2-digit', month: 'short', year: 'numeric' });
+function formatDateRange(start: string, end: string) {
+  const s = new Date(start).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
+  const e = new Date(end).toLocaleDateString('pt-PT',   { day: '2-digit', month: 'short', year: 'numeric' });
   return `${s} → ${e}`;
 }
 
@@ -77,24 +90,25 @@ export default function DriverShiftsTab({ drivers }: DriverShiftsTabProps) {
     setShifts, removeShift, updateShift, selectShift, setLoading,
   } = useDriverShifts();
 
-  const [searchTerm,     setSearchTerm]     = useState('');
-  const [statusFilter,   setStatusFilter]   = useState<string>('all');
+  const [searchTerm,      setSearchTerm]     = useState('');
+  const [statusFilter,    setStatusFilter]   = useState<string>('all');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [currentPage,    setCurrentPage]    = useState(1);
-  const [paginationInfo, setPaginationInfo] = useState({
+  const [currentPage,     setCurrentPage]    = useState(1);
+  const [paginationInfo,  setPaginationInfo] = useState({
     total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false,
   });
   const [statusCounts, setStatusCounts] = useState({ draft: 0, active: 0, archived: 0 });
 
-  const [newOpen,    setNewOpen]    = useState(false);
-  const [viewOpen,   setViewOpen]   = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleting,   setDeleting]   = useState(false);
+  const [newOpen,     setNewOpen]     = useState(false);
+  const [viewOpen,    setViewOpen]    = useState(false);
+  const [deleteOpen,  setDeleteOpen]  = useState(false);
+  const [deleting,    setDeleting]    = useState(false);
+  const [printing,    setPrinting]    = useState(false);
   const [targetShift, setTargetShift] = useState<IDriverShiftSummary | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => { setDebouncedSearch(searchTerm); setCurrentPage(1); }, 400);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => { setDebouncedSearch(searchTerm); setCurrentPage(1); }, 400);
+    return () => clearTimeout(timer);
   }, [searchTerm]);
 
   useEffect(() => { loadShifts(); }, [currentPage, debouncedSearch, statusFilter]);
@@ -117,6 +131,78 @@ export default function DriverShiftsTab({ drivers }: DriverShiftsTabProps) {
       setLoading(false);
     }
   }, [currentPage, debouncedSearch, statusFilter]);
+
+  // ── Imprimir PDF do plano de turnos ───────────────────────────────────────
+
+  async function handlePrintShifts() {
+    if (shifts.length === 0) {
+      handleError(null, 'drivers:shifts.errors.noShiftsToPrint');
+      return;
+    }
+    setPrinting(true);
+    try {
+      // 1. Carregar definições da empresa e PDF (igual ao reactPdfGenerator)
+      const [company, logoBase64, sysSettings] = await Promise.all([
+        getCompanySettings(),
+        getCompanyLogoBase64(),
+        getSystemSettings(),
+      ]);
+
+      setPDFCompany({
+        name:    company?.company_name ?? 'FleetControl',
+        tagline: 'Gestão de Frotas',
+        address: [company?.city, company?.state].filter(Boolean).join(', ') || undefined,
+        phone:   company?.phone  ?? undefined,
+        email:   company?.email  ?? undefined,
+        logo:    logoBase64 ?? null,
+      });
+
+      setPDFSettings({
+        primaryColor:     sysSettings.pdf_primary_color     ?? '#2563eb',
+        secondaryColor:   sysSettings.pdf_secondary_color   ?? '#64748b',
+        watermarkEnabled: sysSettings.pdf_watermark_enabled ?? false,
+        watermarkUseLogo: sysSettings.pdf_watermark_use_logo ?? false,
+        watermarkText:    sysSettings.pdf_watermark_text    ?? 'CONFIDENCIAL',
+        watermarkOpacity: parseFloat(sysSettings.pdf_watermark_opacity ?? '0.10'),
+        showFooter:       sysSettings.pdf_show_footer  ?? true,
+        showSummary:      sysSettings.pdf_show_summary ?? true,
+        showCharts:       true,
+        paperSize:        (sysSettings.pdf_paper_size as 'A4' | 'LETTER') ?? 'A4',
+        orientation:      'portrait',
+        valueFormat:      (sysSettings.pdf_value_format ?? 'full') as 'compact' | 'full',
+        showCurrency:     sysSettings.pdf_show_currency ?? true,
+      });
+
+      // Definir idioma PT
+      setPDFLanguage('pt');
+
+      // 2. Buscar detalhes completos (com membros) dos turnos visíveis
+      const shiftDetails = await Promise.all(
+        shifts.map(sh => getDriverShiftById(sh.id))
+      );
+      const fullShifts = shiftDetails.filter(Boolean) as IDriverShift[];
+
+      // 3. Gerar PDF
+      const dateRange = {
+        start: fullShifts.length > 0
+          ? fullShifts.reduce((min, s) => s.start_date < min ? s.start_date : min, fullShifts[0].start_date)
+          : new Date().toISOString().split('T')[0],
+        end: fullShifts.length > 0
+          ? fullShifts.reduce((max, s) => s.end_date > max ? s.end_date : max, fullShifts[0].end_date)
+          : new Date().toISOString().split('T')[0],
+      };
+
+      const element  = React_pdf.createElement(ShiftPlanReportPDF, { shifts: fullShifts, dateRange });
+      const blob     = await pdf(element as any).toBlob();
+      const fileName = `plano-turnos-${new Date().toISOString().split('T')[0]}.pdf`;
+      saveAs(blob, fileName);
+
+    } catch (err) {
+      handleError(err, 'drivers:shifts.toast.printError');
+    } finally {
+      setPrinting(false);
+    }
+  }
 
   async function handleDelete() {
     if (!targetShift) return;
@@ -145,18 +231,18 @@ export default function DriverShiftsTab({ drivers }: DriverShiftsTabProps) {
   }
 
   function openView(shift: IDriverShiftSummary) {
-    selectShift(null); // reset — ViewDialog vai buscar completo
+    selectShift(null);
     setTargetShift(shift);
     setViewOpen(true);
   }
 
-  // ── Stats bar ─────────────────────────────────────────────────────────────
+  // ── Stats ─────────────────────────────────────────────────────────────────
 
   const statCards = [
-    { label: t('drivers:shifts.stats.total'),    value: paginationInfo.total, color: 'text-slate-600',   bg: 'bg-slate-100/60'  },
-    { label: t('drivers:shifts.status.draft'),   value: statusCounts.draft,   color: 'text-slate-500',   bg: 'bg-slate-50/60'   },
-    { label: t('drivers:shifts.status.active'),  value: statusCounts.active,  color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
-    { label: t('drivers:shifts.status.archived'),value: statusCounts.archived,color: 'text-amber-600',   bg: 'bg-amber-50/60'   },
+    { label: t('drivers:shifts.stats.total'),     value: paginationInfo.total,  color: 'text-slate-600',   bg: 'bg-slate-100/60'  },
+    { label: t('drivers:shifts.status.draft'),    value: statusCounts.draft,    color: 'text-slate-500',   bg: 'bg-slate-50/60'   },
+    { label: t('drivers:shifts.status.active'),   value: statusCounts.active,   color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
+    { label: t('drivers:shifts.status.archived'), value: statusCounts.archived, color: 'text-amber-600',   bg: 'bg-amber-50/60'   },
   ];
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -204,6 +290,20 @@ export default function DriverShiftsTab({ drivers }: DriverShiftsTabProps) {
               <SelectItem value="archived">{t('drivers:shifts.status.archived')}</SelectItem>
             </SelectContent>
           </Select>
+
+          {/* ── Botão Imprimir PDF ──────────────────────────────── */}
+          <Button
+            variant="outline"
+            className="gap-2 shrink-0"
+            onClick={handlePrintShifts}
+            disabled={printing || shifts.length === 0}
+          >
+            {printing
+              ? <><Loader2 className="w-4 h-4 animate-spin" />{t('drivers:shifts.actions.printing', 'A gerar PDF...')}</>
+              : <><Printer className="w-4 h-4" />{t('drivers:shifts.actions.print', 'Imprimir Plano')}</>
+            }
+          </Button>
+
           <Button className="gap-2 shrink-0" onClick={() => setNewOpen(true)}>
             <Plus className="w-4 h-4" />
             {t('drivers:shifts.newShift')}
@@ -214,13 +314,13 @@ export default function DriverShiftsTab({ drivers }: DriverShiftsTabProps) {
             <Pagination
               pagination={paginationInfo}
               onPageChange={setCurrentPage}
-              onLimitChange={l => { setCurrentPage(1); }}
+              onLimitChange={() => setCurrentPage(1)}
             />
           </div>
         )}
       </div>
 
-      {/* Lista */}
+      {/* Lista de turnos */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-24 space-y-4">
           <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
@@ -238,8 +338,8 @@ export default function DriverShiftsTab({ drivers }: DriverShiftsTabProps) {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 animate-in fade-in duration-300">
           {shifts.map(shift => {
-            const meta  = statusMeta(shift.status, t);
-            const Icon  = meta.icon;
+            const meta = statusMeta(shift.status, t);
+            const Icon = meta.icon;
             return (
               <Card
                 key={shift.id}
@@ -262,7 +362,6 @@ export default function DriverShiftsTab({ drivers }: DriverShiftsTabProps) {
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{shift.description}</p>
                       )}
                     </div>
-                    {/* Menu de acções */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -308,12 +407,10 @@ export default function DriverShiftsTab({ drivers }: DriverShiftsTabProps) {
                 </CardHeader>
 
                 <CardContent className="px-5 pb-5 space-y-3">
-                  {/* Horário */}
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span className="font-mono font-bold">{formatTimeRange(shift.start_time, shift.end_time)}</span>
+                    <span className="font-mono font-bold">{shift.start_time} – {shift.end_time}</span>
                   </div>
-                  {/* Período */}
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="w-4 h-4 shrink-0" />
                     <span>{formatDateRange(shift.start_date, shift.end_date)}</span>
@@ -321,7 +418,6 @@ export default function DriverShiftsTab({ drivers }: DriverShiftsTabProps) {
 
                   <Separator className="my-2" />
 
-                  {/* Membros e líder */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm">
                       <Users className="w-4 h-4 text-muted-foreground" />
@@ -349,7 +445,7 @@ export default function DriverShiftsTab({ drivers }: DriverShiftsTabProps) {
         open={newOpen}
         onOpenChange={setNewOpen}
         drivers={drivers}
-        onCreated={shift => { loadShifts(); }}
+        onCreated={() => loadShifts()}
       />
 
       {targetShift && (
@@ -376,11 +472,7 @@ export default function DriverShiftsTab({ drivers }: DriverShiftsTabProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>{t('common:actions.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={deleting}
-              className="bg-destructive hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive hover:bg-destructive/90">
               {deleting ? t('common:deleting') : t('common:actions.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>

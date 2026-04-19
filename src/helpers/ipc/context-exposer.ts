@@ -1,4 +1,7 @@
-// src/helpers/ipc/context-exposer.ts
+// ========================================
+// PROJECT: fleetcontrol-desktop
+// FILE: src/helpers/ipc/context-exposer.ts
+// ========================================
 import { exposeThemeContext } from "./theme/theme-context";
 import { exposeWindowContext } from "./window/window-context";
 import { exposeSystemContext } from "./system/system-context";

@@ -124,6 +124,7 @@ export const enMaintenances = {
     searchWorkshop: 'Search by name or city...',
     selectStatus: 'Select status',
     selectPriority: 'Select priority',
+    addNotes: 'Add notes here'
   },
 
   actions: {

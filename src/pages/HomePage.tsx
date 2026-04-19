@@ -1,5 +1,6 @@
 // ========================================
-// FILE: src/pages/HomePage.tsx (ATUALIZADO COM i18n)
+// PROJECT: fleetcontrol-desktop
+// FILE: src/pages/HomePage.tsx
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { 

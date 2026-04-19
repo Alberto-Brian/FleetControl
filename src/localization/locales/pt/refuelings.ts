@@ -64,7 +64,8 @@ export const ptRefuelings = {
     carWash: 'Lavagem de Carros',
     trip: "Viagem",
     currentMileage: "Km actual",
-    selectedTrip: "Viagem selecionada"
+    selectedTrip: "Viagem selecionada",
+    registeredAt: "Registado em"
   },
 
   placeholders: {

@@ -579,6 +579,7 @@ private sortTablesByDependency(tables: TableConfig[]): TableConfig[] {
 
     // 5️⃣ Licenças dos motoristas (dependem de drivers)
     'driver_leaves',
+
     
     // 6️⃣ Transacionais (dependem de tudo acima)
     'trips', // depende de vehicle, driver, route
@@ -586,7 +587,10 @@ private sortTablesByDependency(tables: TableConfig[]): TableConfig[] {
     'maintenances',
     'maintenance_items',
     'expenses',
-    'fines'
+    'fines',
+
+    'driver_shifts',
+    'driver_shift_members',
   ];
 
   return tables.sort((a, b) => {

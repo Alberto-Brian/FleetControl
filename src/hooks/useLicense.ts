@@ -1,3 +1,8 @@
+// ========================================
+// PROJECT: fleetcontrol-desktop
+// FILE: src/hooks/useLicense.ts
+// ========================================
+
 import { useState, useEffect, useCallback } from 'react';
 import type { ValidatedLicense } from '@/lib/types/licence'; 
 import { checkExistingLicense } from '@/helpers/license-helpers';

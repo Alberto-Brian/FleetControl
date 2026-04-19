@@ -32,7 +32,7 @@ export function getDbManager(): DatabaseManager {
 export function initializeDatabase(
   maxSizeInMB: number = 100,
   maxAgeInDays: number = 30,
-  transitionPeriodDays: number = 30 // ✅ NOVO
+  transitionPeriodDays: number = 30 
 ): BetterSQLite3Database<typeof schema> {
   if (dbManagerInstance) {
     return dbManagerInstance.getCurrentDrizzleInstance();

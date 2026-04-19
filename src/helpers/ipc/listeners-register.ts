@@ -1,4 +1,7 @@
-// src/helpers/ipc/listeners-register.ts
+// ========================================
+// PROJECT: fleetcontrol-desktop
+// FILE: src/helpers/ipc/listeners-register.ts
+// ========================================
 import { BrowserWindow } from "electron";
 import { addThemeEventListeners } from "./theme/theme-listeners";
 import { addWindowEventListeners } from "./window/window-listeners";

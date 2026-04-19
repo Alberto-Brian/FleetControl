@@ -9,6 +9,7 @@ export interface LicenseData {
   licenseType: 'trial' | 'basic' | 'professional' | 'enterprise';
 }
 
+export type LicenseMode = 'standalone' | 'connected';
 export interface ValidatedLicense {
   isValid: boolean;
   clientName?: string;
@@ -19,5 +20,6 @@ export interface ValidatedLicense {
   maxUsers?: number;
   features?: string[];
   licenseType?: string;
+  mode?: LicenseMode;
   error?: string;
 }

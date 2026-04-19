@@ -1,4 +1,5 @@
 // ========================================
+// PROJECT: fleetcontrol-desktop
 // FILE: // src/lib/db/schemas/vehicles.ts
 // ========================================
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';

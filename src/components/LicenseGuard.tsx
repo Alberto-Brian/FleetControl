@@ -1,53 +1,57 @@
+// ========================================
+// PROJECT: fleetcontrol
+// FILE: src/components/LicenseGuard.tsx
+// ========================================
 import React, { useState, useEffect } from 'react';
 import { LicenseActivationDialog } from '@/components/LicenseActivationDialog';
-import { useLicense } from "@/hooks/useLicense";
-import { useToast } from "@/components/ui/use-toast";
-import { Loader2 } from 'lucide-react';
+import { useLicense }              from '@/hooks/useLicense';
+import { useApiConnection }        from '@/hooks/useApiConnection';
+import { getAccessToken }          from '@/helpers/license-helpers';
+import { Loader2, WifiOff, Wifi, AlertCircle } from 'lucide-react';
 
 export function LicenseGuard({ children }: { children: React.ReactNode }) {
-  const { license, loading, refreshLicense } = useLicense();
-  const { toast } = useToast();
-  const [showLicense, setShowLicense] = useState(false);
+  const { license, loading: licenseLoading, refreshLicense } = useLicense();
+  const { state: connState, error: connError, traccarStatus, connect, disconnect } = useApiConnection();
+  const [showDialog, setShowDialog] = useState(false);
 
-  // Actualiza o estado do dialog quando a licença muda
   useEffect(() => {
-    if (!loading && (!license || !license.isValid)) {
-      setShowLicense(true);
-    } else if (license?.isValid) {
-      setShowLicense(false);
-    }
-  }, [license, loading]);
+    if (licenseLoading) return;
 
-  const handleSuccess = async () => {
-    try {
-      // Recarrega a licença
-      await refreshLicense();
-      
-      // Fecha o dialog
-      setShowLicense(false);
-      
-      // Mostra toast de sucesso
-      toast({
-        title: "✅ Licença activada com sucesso!",
-        description: "O sistema foi activado e está pronto para uso.",
-        variant: "default",
-      });
-    } catch (error) {
-      console.error('Erro ao recarregar licença:', error);
-      toast({
-        title: "⚠️ Aviso",
-        description: "Licença activada mas houve erro ao recarregar. Reinicie o sistema.",
-        variant: "destructive",
-      });
+    if (!license?.isValid) {
+      setShowDialog(true);
+      disconnect();
+      return;
     }
+
+    setShowDialog(false);
+
+    if (license.mode === 'connected') {
+      const token = getAccessToken(); // vem do license-helpers após activação
+      if (token) {
+        connect(token);
+      } else {
+        // JWT ainda não disponível — pode estar a renovar
+        // O useApiConnection tentará ligar quando o token aparecer
+        console.warn('[LicenseGuard] JWT ainda não disponível — aguarda renovação');
+      }
+    } else {
+      disconnect();
+    }
+
+  }, [license, licenseLoading]);
+
+  const handleActivationSuccess = async () => {
+    await refreshLicense();
+    setShowDialog(false);
+    // Após refresh, o useEffect acima dispara de novo com o token já disponível
   };
 
-  if (loading) {
+  if (licenseLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-3">
           <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-          <p className="text-sm text-muted-foreground">Verificando licença...</p>
+          <p className="text-sm text-muted-foreground">A verificar licença...</p>
         </div>
       </div>
     );
@@ -55,11 +59,28 @@ export function LicenseGuard({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <LicenseActivationDialog 
-        open={showLicense}
-        onOpenChange={setShowLicense}
-        onSuccess={handleSuccess}
+      <LicenseActivationDialog
+        open={showDialog}
+        onOpenChange={setShowDialog}
+        onSuccess={handleActivationSuccess}
       />
+
+      {license?.mode === 'connected' && (
+        <div className="fixed top-1 right-20 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur border shadow-sm text-xs font-medium">
+          {connState === 'connected' && traccarStatus?.connected ? (
+            <><Wifi className="w-3.5 h-3.5 text-green-500" /><span className="text-green-600">Online</span></>
+          ) : connState === 'connected' && !traccarStatus?.connected ? (
+            <><AlertCircle className="w-3.5 h-3.5 text-amber-500" /><span className="text-amber-600">API OK • Traccar offline</span></>
+          ) : connState === 'connecting' ? (
+            <><Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" /><span className="text-blue-600">A ligar...</span></>
+          ) : connState === 'error' ? (
+            <><AlertCircle className="w-3.5 h-3.5 text-red-500" /><span className="text-red-600" title={connError?.message}>Erro de ligação</span></>
+          ) : (
+            <><WifiOff className="w-3.5 h-3.5 text-slate-400" /><span className="text-slate-500">Offline</span></>
+          )}
+        </div>
+      )}
+
       {children}
     </>
   );

@@ -1,4 +1,7 @@
-// src/helpers/ipc/db/vehicles/vehicles-context.ts
+// ========================================
+// PROJECT: fleetcontrol-desktop
+// FILE: src/helpers/ipc/db/vehicles/vehicles-context.ts
+// ========================================
 import {
     GET_ALL_VEHICLES,
     GET_VEHICLE_BY_ID,

@@ -63,7 +63,8 @@ export const enRefuelings = {
     convenienceStore: 'Convenience Store',
     carWash: 'Car Wash',
     trip: "Trip",
-    currentMileage: "Current Mileage"
+    currentMileage: "Current Mileage",
+    registeredAt: "Registered at"
   },
 
   placeholders: {

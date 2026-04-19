@@ -1,4 +1,6 @@
-
+// ========================================
+// FILE: fleetcontrol-desktop/src/lib/db/schemas/index.ts
+// ========================================
 import { users } from "./users";
 import { clients } from "./clients";
 import { systemInfo } from "./system";

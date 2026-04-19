@@ -1,4 +1,8 @@
-//// src/helpers/vehicles-helpers.ts
+// ========================================
+// PROJECT: fleetcontrol-desktop
+// FILE: src/helpers/vehicles-helpers.ts
+// ========================================
+
 import { ICreateVehicle, IUpdateVehicle, IUpdateStatus, IVehicle } from '@/lib/types/vehicle';
 import { IPaginationParams, IPaginatedResult } from '@/lib/types/pagination';
 
