@@ -2,43 +2,61 @@
 // PROJECT: fleetcontrol
 // FILE: src/components/LicenseGuard.tsx
 // ========================================
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { LicenseActivationDialog } from '@/components/LicenseActivationDialog';
 import { useLicense }              from '@/hooks/useLicense';
 import { useApiConnection }        from '@/hooks/useApiConnection';
 import { getAccessToken }          from '@/helpers/license-helpers';
 import { Loader2, WifiOff, Wifi, AlertCircle } from 'lucide-react';
+import { useTracking } from '@/contexts/TrackingContext';
 
 export function LicenseGuard({ children }: { children: React.ReactNode }) {
   const { license, loading: licenseLoading, refreshLicense } = useLicense();
-  const { state: connState, error: connError, traccarStatus, connect, disconnect } = useApiConnection();
+  const hasConnected = useRef(false); // ← controlo para não ligar duas vezes
+  
+  // Usa o socket do contexto — não instancia um novo hook
+  const { connState, connError, traccarStatus, connect, disconnect } = useTracking();
+  
   const [showDialog, setShowDialog] = useState(false);
-
-  useEffect(() => {
+useEffect(() => {
     if (licenseLoading) return;
 
     if (!license?.isValid) {
       setShowDialog(true);
       disconnect();
+      hasConnected.current = false;
       return;
     }
 
     setShowDialog(false);
 
-    if (license.mode === 'connected') {
-      const token = getAccessToken(); // vem do license-helpers após activação
+    if (license.mode === 'connected' && !hasConnected.current) {
+      const token = getAccessToken();
       if (token) {
+        hasConnected.current = true;
         connect(token);
-      } else {
-        // JWT ainda não disponível — pode estar a renovar
-        // O useApiConnection tentará ligar quando o token aparecer
-        console.warn('[LicenseGuard] JWT ainda não disponível — aguarda renovação');
       }
-    } else {
+    } else if (license.mode !== 'connected') {
       disconnect();
+      hasConnected.current = false;
     }
-
   }, [license, licenseLoading]);
+    useEffect(() => {
+      if (licenseLoading) return;
+      if (!license?.isValid) {
+        setShowDialog(true);
+        disconnect();
+        return;
+      }
+      setShowDialog(false);
+      if (license.mode === 'connected') {
+        const token = getAccessToken();
+        if (token) connect(token);
+        else console.warn('[LicenseGuard] JWT ainda não disponível');
+      } else {
+        disconnect();
+      }
+    }, [license, licenseLoading]);
 
   const handleActivationSuccess = async () => {
     await refreshLicense();

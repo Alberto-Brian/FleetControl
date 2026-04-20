@@ -25,6 +25,7 @@ import ExpensesPage from '@/pages/ExpensesPage';
 import FinesPage from '@/pages/FinesPage';
 import ReportsPage from '@/pages/ReportsPage';
 import AnalyticsPage from '@/pages/AnalyticsPage';
+import TrackingPage from '@/pages/TrackingPage';
 
 export default function HomePage() {
   const { t } = useTranslation();
@@ -45,6 +46,7 @@ export default function HomePage() {
     { id: 'expenses', icon: DollarSign, label: t('navigation:menu.expenses') },
     { id: 'fines', icon: AlertTriangle, label: t('navigation:menu.fines') },
     { id: 'reports', icon: FileText, label: t('navigation:menu.reports') },
+    { id: 'tracking', icon: MapPin, label: t('navigation:menu.tracking') }
     // { id: 'analytics', icon: BarChart3, label: t('navigation:menu.analytics') },
   ];
 
@@ -94,6 +96,8 @@ export default function HomePage() {
         return <FinesPage />;
       case 'reports':
         return <ReportsPage />;
+      case 'tracking': 
+        return <TrackingPage />;
       case 'analytics':
         return <AnalyticsPage />;
       default:

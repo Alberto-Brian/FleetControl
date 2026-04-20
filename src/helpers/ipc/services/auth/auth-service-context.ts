@@ -7,6 +7,7 @@ import {
     CREATE_FIRST_USER,
     CHANGE_PASSWORD,
     UPDATE_PROFILE,
+    SET_API_TOKEN
 } from "./auth-service-channels";
 
 import {
@@ -26,5 +27,6 @@ export function exposeServiceAuthContext() {
         createFirstUser: (userData: ICreateFirstUser) => ipcRenderer.invoke(CREATE_FIRST_USER, userData),
         changePassword: (changePasswordData: IChangePassword) => ipcRenderer.invoke(CHANGE_PASSWORD, changePasswordData),
         updateProfile: (userId: string, profileData: IUpdateProfile) => ipcRenderer.invoke(UPDATE_PROFILE, userId, profileData),
+        setToken: (token: string | null) => ipcRenderer.invoke(SET_API_TOKEN, token),
     })
 }

@@ -31,6 +31,9 @@ import { ptSettings } from "./locales/pt/settings";
 import { enSettings } from "./locales/en/settings";
 import { ptScheduledTrips } from "./locales/pt/scheduled-trips";
 import { enScheduledTrips } from "./locales/en/scheduled-trips";
+import { ptTracking } from "./locales/pt/tracking";
+import { enTracking } from "./locales/en/tracking";
+
 
 i18n.use(initReactI18next).init({
     fallbackLng: "en",
@@ -52,6 +55,7 @@ i18n.use(initReactI18next).init({
             common: enCommon,
             settings: enSettings,
             scheduledTrips: enScheduledTrips,
+            tracking: enTracking,
             homePage: {
                 registerNewClientButton: "Register new client",
                 idTableColumn: "ID",
@@ -94,6 +98,7 @@ i18n.use(initReactI18next).init({
             common: ptCommon,
             settings: ptSettings,
             scheduledTrips: ptScheduledTrips,
+            tracking: ptTracking,
             homePage: {
                 registerNewClientButton: "Cadastrar novo cliente",
                 idTableColumn: "ID",

@@ -1,3 +1,8 @@
+// ========================================
+// PROJECT: fleetcontrol-desktop
+// FILE: src/lib/services/auth.service.ts
+// ========================================
+
 import bcrypt from 'bcryptjs';
 import { getDb } from '@/lib/db/db_client';
 import { users } from '@/lib/db/schemas';

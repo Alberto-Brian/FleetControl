@@ -25,6 +25,7 @@ interface Position {
   course?: number;
   accuracy?: number;
   batteryLevel?: number;
+  address?: string;
   timestamp: string;
   attributes?: Record<string, unknown>;
 }
@@ -220,24 +221,34 @@ export function useApiConnection(): UseApiConnectionReturn {
       setTraccarStatus(status);
     });
 
-    socket.on('positions:update', (newPositions: Position[]) => {
-      console.log(`[Socket] Recebidas ${newPositions.length} posições`);
-      
-      setPositions(prev => {
-        // Merge inteligente: atualiza existentes, adiciona novas
-        const positionMap = new Map<number, Position>(
-          prev.map(p => [p.deviceId, p])
-        );
-        
-        newPositions.forEach(pos => {
-          positionMap.set(pos.deviceId, pos);
+    // Em useApiConnection.ts, dentro do handler positions:update
+      socket.on('positions:update', (newPositions: any[]) => {
+        console.log(`[Socket] Recebidas ${newPositions.length} posições`);
+
+        // Normaliza o formato do Traccar para o tipo Position
+        const normalized = newPositions.map(p => ({
+          deviceId:     p.deviceId,
+          latitude:     p.latitude,
+          longitude:    p.longitude,
+          altitude:     p.altitude,
+          speed:        p.speed,
+          course:       p.course,
+          accuracy:     p.accuracy,
+          address:      p.address   ?? null,
+          batteryLevel: p.attributes?.batteryLevel ?? null,
+          timestamp: (p.fixTime || p.serverTime || p.deviceTime || new Date().toISOString()),
+          attributes:   p.attributes,
+        }));
+
+        console.log('Posições normalizadas:', normalized);
+
+        setPositions(prev => {
+          const positionMap = new Map<number, Position>(prev.map(p => [p.deviceId, p]));
+          normalized.forEach(pos => positionMap.set(pos.deviceId, pos));
+          // Array.from cria sempre nova referência → React detecta a mudança
+          return Array.from(positionMap.values());
         });
-        
-        return Array.from(positionMap.values()).sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
       });
-    });
 
     socket.on('devices:update', (newDevices: Device[]) => {
       console.log(`[Socket] Recebidos ${newDevices.length} dispositivos`);

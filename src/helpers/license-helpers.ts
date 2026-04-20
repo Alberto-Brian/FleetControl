@@ -5,6 +5,7 @@
 
 import axios, { AxiosError } from 'axios';
 import type { ValidatedLicense } from '@/lib/types/licence';
+import { setStoredApiToken } from './ipc/services/auth/token-store';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -61,6 +62,7 @@ export async function checkExistingLicense(): Promise<ValidatedLicense> {
 export async function removeLicense(): Promise<void> {
   _accessToken  = null;
   _refreshToken = null;
+  await window._service_auth.setToken(null);
   if (_refreshTimer) clearTimeout(_refreshTimer);
   await window.license.removeLicense();
 }
@@ -72,10 +74,12 @@ async function activateOnApi(licenseKey: string): Promise<void> {
     const { data } = await apiClient.post('/api/auth/activate', {
       license_key: licenseKey,
     });
+    // console.log("O token: ", data.data.access_token)
 
     if (data.success && data.mode === 'connected') {
       _accessToken  = data.data.access_token;
       _refreshToken = data.data.refresh_token;
+      await window._service_auth.setToken(data.data.access_token);
       scheduleRefresh(data.data.expires_in);
     }
   } catch (err) {
@@ -108,6 +112,7 @@ async function tryRefreshOrReactivate(): Promise<void> {
       });
       if (data.success) {
         _accessToken = data.data.access_token;
+        await window._service_auth.setToken(data.data.access_token);
         scheduleRefresh(data.data.expires_in);
         return;
       }

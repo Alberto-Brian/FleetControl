@@ -59,6 +59,7 @@ interface Services {
         createFirstUser: (userData: ICreateFirstUser) => Promise<IUser>;
         changePassword: (changePasswordData: IChangePassword) => Promise<any>;
         updateProfile: (userId: string, updateProfileData: IUpdateProfile) => Promise<IUser>;
+        setToken: (token: string | null) => Promise<void>
     }
 }
 
@@ -282,6 +283,14 @@ interface IScheduledTrip {
   ) => Promise<IDriverShift | null>;
 }
 
+export interface ITracking {
+  getDevices:    () => Promise<TrackedDevice[]>;
+  getPositions:  (deviceId?: number) => Promise<Position[]>;
+  getHistory:    (deviceId: number, from: string, to: string) => Promise<PositionHistory[]>;
+  syncDevices:   () => Promise<TrackedDevice[]>;
+  syncGeofences: () => Promise<unknown[]>;
+  getGeofences:  () => Promise<unknown[]>;
+}
 declare interface Window {
     system:                  System;
     license:                 License;
@@ -310,4 +319,5 @@ declare interface Window {
     _system_settings: ISystemSettings;
     _scheduled_trips: IScheduledTrip;
     _driverShifts: IDriverShifts;
+    _tracking: ITracking
 }

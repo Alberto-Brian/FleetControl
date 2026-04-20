@@ -29,6 +29,7 @@ import { exposeCompanyContext } from "./db/company/company-context";
 import { exposeSystemSettingsContext } from "./db/system_settings/system-settings-context";
 import { exposeScheduledTripsContext } from "./db/scheduled-trips/scheduled-trips-context";
 import { exposeDriverShiftsContext } from "./db/driver-shifts/driver-shifts-context";
+import { exposeTrackingContext } from "./db/tracking/tracking-context";
 
 
 
@@ -60,4 +61,5 @@ export default function exposeContexts() {
     exposeSystemSettingsContext();
     exposeScheduledTripsContext();
     exposeDriverShiftsContext();
+    exposeTrackingContext();
 }

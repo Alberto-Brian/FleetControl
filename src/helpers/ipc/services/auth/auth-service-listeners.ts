@@ -8,12 +8,14 @@ import {
     HAS_USERS, 
     CREATE_FIRST_USER, 
     CHANGE_PASSWORD, 
-    UPDATE_PROFILE
+    UPDATE_PROFILE,
+    SET_API_TOKEN
  } from "./auth-service-channels";
+
+import { setStoredApiToken } from './token-store';
 
 import { IUser } from "@/lib/types/user";
 import { ILogin, ICreateFirstUser, IChangePassword, IUpdateProfile } from "@/lib/types/auth";
-import { and, eq, isNull } from 'drizzle-orm';
 
 export function addServiceAuthEventListeners() {
     ipcMain.handle(
@@ -26,6 +28,10 @@ export function addServiceAuthEventListeners() {
     ipcMain.handle(CREATE_FIRST_USER, async (_, userData: ICreateFirstUser) => await createFirstUserEvent(userData));
     ipcMain.handle(CHANGE_PASSWORD, async (_, changePasswordData: IChangePassword) => await changePasswordEvent(changePasswordData));
     ipcMain.handle(UPDATE_PROFILE, async (_, userId: string, updateProfileData: IUpdateProfile) => await updateProfileEvent(userId, updateProfileData));
+   
+    ipcMain.handle(SET_API_TOKEN, (_event, token: string | null) => {
+    setStoredApiToken(token);
+  });
 }
 
 async function loginEvent(loginData: ILogin): Promise<IUser> {

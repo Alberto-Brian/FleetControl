@@ -10,6 +10,7 @@ import BaseLayout from "./layouts/BaseLayout";
 import { hasUsers as CheckIfHasUsers } from "./helpers/service-auth-helpers";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LicenseGuard } from "./components/LicenseGuard";
+import { TrackingProvider } from '@/contexts/TrackingContext';
 import { Toaster } from "./components/ui/sooner";
 import { syncThemeWithLocal } from "./helpers/theme-helpers";
 import { updateAppLanguage } from "./helpers/language-helpers";
@@ -70,11 +71,13 @@ function AppContent() {
 
     // 3. Usuário autenticado → App principal com LicenseGuard
     return (
+        <TrackingProvider>
         <LicenseGuard>
             <BaseLayout>
                 <HomePage />
             </BaseLayout>
         </LicenseGuard>
+        </TrackingProvider>
     );
 }
 
