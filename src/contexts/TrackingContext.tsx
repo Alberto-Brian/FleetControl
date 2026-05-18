@@ -12,7 +12,9 @@ interface TrackingState {
   showHistory:      boolean;
   historyPositions: Position[];
   connectionMode:   'realtime' | 'manual';
-  trail: Record<number, [number, number][]>; // deviceId → array de [lat, lng]
+  trail:            Record<number, [number, number][]>;
+  filteredStatus:   'all' | 'online' | 'offline';
+  lastUpdate:       Date | null;
 }
 
 type Action =
@@ -24,7 +26,8 @@ type Action =
   | { type: 'TOGGLE_SIDEBAR' }
   | { type: 'SET_HISTORY';      payload: Position[] }
   | { type: 'TOGGLE_HISTORY';   payload: boolean }
-  | { type: 'SET_MODE';         payload: 'realtime' | 'manual' };
+  | { type: 'SET_MODE';         payload: 'realtime' | 'manual' }
+  | { type: 'FILTER_STATUS';    payload: 'all' | 'online' | 'offline' };
 
 const initial: TrackingState = {
   devices:          [],
@@ -35,7 +38,9 @@ const initial: TrackingState = {
   showHistory:      false,
   historyPositions: [],
   connectionMode:   'realtime',
-  trail: {},
+  trail:            {},
+  filteredStatus:   'all',
+  lastUpdate:       null,
 };
 
 function reducer(state: TrackingState, action: Action): TrackingState {
@@ -45,18 +50,16 @@ function reducer(state: TrackingState, action: Action): TrackingState {
     case 'UPDATE_POSITIONS': {
       const map = new Map(state.positions.map(p => [p.deviceId, p]));
       action.payload.forEach(p => map.set(p.deviceId, p));
-      // Acumula trail — máx 200 pontos por device
-        const newTrail = { ...state.trail };
-        action.payload.forEach(p => {
-          const existing = newTrail[p.deviceId] ?? [];
-          const point: [number, number] = [p.latitude, p.longitude];
-          // Só adiciona se a posição mudou
-          const last = existing[existing.length - 1];
-          if (!last || last[0] !== point[0] || last[1] !== point[1]) {
-            newTrail[p.deviceId] = [...existing, point].slice(-200);
-          }
-        });
-      return { ...state, positions: Array.from(map.values()), trail: newTrail };
+      const newTrail = { ...state.trail };
+      action.payload.forEach(p => {
+        const existing = newTrail[p.deviceId] ?? [];
+        const point: [number, number] = [p.latitude, p.longitude];
+        const last = existing[existing.length - 1];
+        if (!last || last[0] !== point[0] || last[1] !== point[1]) {
+          newTrail[p.deviceId] = [...existing, point].slice(-200);
+        }
+      });
+      return { ...state, positions: Array.from(map.values()), trail: newTrail, lastUpdate: new Date() };
     }
     case 'SELECT_DEVICE':    return { ...state, selectedDevice: action.payload };
     case 'SET_LOADING':      return { ...state, isLoading: action.payload };
@@ -64,6 +67,7 @@ function reducer(state: TrackingState, action: Action): TrackingState {
     case 'SET_HISTORY':      return { ...state, historyPositions: action.payload };
     case 'TOGGLE_HISTORY':   return { ...state, showHistory: action.payload };
     case 'SET_MODE':         return { ...state, connectionMode: action.payload };
+    case 'FILTER_STATUS':    return { ...state, filteredStatus: action.payload };
     default: return state;
   }
 }

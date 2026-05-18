@@ -4,13 +4,13 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  PanelLeft, 
+import {
+  PanelLeft,
   PanelLeftClose,
-  RefreshCw, 
-  Radio, 
-  WifiOff, 
-  History, 
+  RefreshCw,
+  RotateCcw,
+  WifiOff,
+  History,
   Clock,
   Filter,
   Layers,
@@ -19,18 +19,19 @@ import {
 import { useTranslation } from 'react-i18next';
 
 interface Props {
-  isConnected: boolean;
-  isSidebarOpen: boolean;
+  isConnected:     boolean;
+  isSidebarOpen:   boolean;
   onToggleSidebar: () => void;
-  onRefresh: () => void;
-  totalDevices: number;
-  onlineDevices: number;
-  offlineDevices: number;           // ⬅️ NOVO: para badge separado
-  showingHistory: boolean;
-  onExitHistory: () => void;
-  onFilterStatus?: (status: 'all' | 'online' | 'offline') => void;  // ⬅️ NOVO
-  isLoading?: boolean;               // ⬅️ NOVO: estado de loading
-  lastUpdate?: Date | null;         // ⬅️ NOVO: timestamp última atualização
+  onRefresh:       () => void;
+  onSyncDevices?:  () => void;
+  totalDevices:    number;
+  onlineDevices:   number;
+  offlineDevices:  number;
+  showingHistory:  boolean;
+  onExitHistory:   () => void;
+  onFilterStatus?: (status: 'all' | 'online' | 'offline') => void;
+  isLoading?:      boolean;
+  lastUpdate?:     Date | null;
 }
 
 export function TrackingToolbar({
@@ -38,6 +39,7 @@ export function TrackingToolbar({
   isSidebarOpen,
   onToggleSidebar,
   onRefresh,
+  onSyncDevices,
   totalDevices,
   onlineDevices,
   offlineDevices,
@@ -73,7 +75,7 @@ export function TrackingToolbar({
 
         <div className="w-px h-5 bg-border" />
 
-        {/* Refresh com estado de loading */}
+        {/* Refresh (recarrega lista local) */}
         <Button
           variant="ghost"
           size="icon"
@@ -84,6 +86,23 @@ export function TrackingToolbar({
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
         </Button>
+
+        {/* Sync Devices — vai ao Traccar buscar novos trackers */}
+        {onSyncDevices && isConnected && (
+          <>
+            <div className="w-px h-5 bg-border" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-muted"
+              onClick={onSyncDevices}
+              disabled={isLoading}
+              title="Sincronizar dispositivos Traccar"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+          </>
+        )}
 
         {/* Filtro de status (dropdown simples) */}
         {onFilterStatus && (

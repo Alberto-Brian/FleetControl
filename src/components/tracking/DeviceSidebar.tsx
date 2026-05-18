@@ -24,10 +24,9 @@ export function DeviceSidebar({ devices, positions, selectedDevice, onSelect }: 
     d.uniqueId?.toLowerCase().includes(search.toLowerCase()),
   );
 
-  // Encontra posição pelo traccarId (campo numérico do Traccar)
- function getPosition(device: TrackedDevice): Position | undefined {
-  return positions.find(p => p.deviceId === (device as any).id);
-}
+  function getPosition(device: TrackedDevice): Position | undefined {
+    return positions.find(p => p.deviceId === device.traccar_id);
+  }
 
   return (
     <aside className="w-72 flex flex-col border-r border-border bg-background/95 backdrop-blur">
@@ -55,8 +54,8 @@ export function DeviceSidebar({ devices, positions, selectedDevice, onSelect }: 
           {filtered.map(device => {
             const pos        = getPosition(device);
             const isSelected = selectedDevice
-            ? (selectedDevice as any).id === (device as any).id
-            : false;
+              ? selectedDevice.traccar_id === device.traccar_id
+              : false;
             const color = getDeviceColor(device.status, pos?.speed ?? 0);
 
             return (

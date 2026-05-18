@@ -9,6 +9,7 @@ import {
   getTrackedDevices,
   getLivePositions,
   getPositionHistory,
+  syncDevices,
 } from '@/helpers/tracking-helpers';
 import { TrackingMap }       from '@/components/tracking/TrackingMap';
 import { DeviceSidebar }     from '@/components/tracking/DeviceSidebar';
@@ -33,6 +34,9 @@ const mapRef = useRef<any>(null);
   async function loadInitial() {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
+      // Se conectado, sincroniza devices do Traccar antes de carregar a lista
+      if (isConnected) await syncDevices();
+
       const [devs, pos] = await Promise.all([
         getTrackedDevices(),
         getLivePositions(),
@@ -50,7 +54,8 @@ const mapRef = useRef<any>(null);
     if (!state.selectedDevice) return;
     dispatch({ type: 'TOGGLE_HISTORY', payload: true });
     try {
-      const hist = await getPositionHistory(state.selectedDevice.id, from, to);
+      // traccar_id é o ID inteiro do Traccar usado pelo endpoint de histórico
+      const hist = await getPositionHistory(state.selectedDevice.traccar_id, from, to);
       dispatch({ type: 'SET_HISTORY', payload: hist as any });
     } catch (err) {
       console.error('[Tracking] Erro ao carregar histórico:', err);
@@ -88,14 +93,23 @@ const mapRef = useRef<any>(null);
             isSidebarOpen={state.isSidebarOpen}
             onToggleSidebar={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
             onRefresh={loadInitial}
+            onSyncDevices={async () => {
+              dispatch({ type: 'SET_LOADING', payload: true });
+              try {
+                const devs = await syncDevices();
+                if (devs?.length) dispatch({ type: 'SET_DEVICES', payload: devs });
+              } finally {
+                dispatch({ type: 'SET_LOADING', payload: false });
+              }
+            }}
             totalDevices={state.devices.length}
             onlineDevices={state.devices.filter(d => d.status === 'online').length}
-            offlineDevices={state.devices.filter(d => d.status !== 'online').length}  // ⬅️ NOVO
+            offlineDevices={state.devices.filter(d => d.status !== 'online').length}
             showingHistory={state.showHistory}
             onExitHistory={() => dispatch({ type: 'TOGGLE_HISTORY', payload: false })}
-            onFilterStatus={(status) => dispatch({ type: 'FILTER_STATUS', payload: status })}  // ⬅️ NOVO
-            isLoading={state.isLoading}  // ⬅️ NOVO
-            lastUpdate={state.lastUpdate} // ⬅️ NOVO (adicione ao estado)
+            onFilterStatus={(status) => dispatch({ type: 'FILTER_STATUS', payload: status })}
+            isLoading={state.isLoading}
+            lastUpdate={state.lastUpdate}
           />
 
         <TrackingMap
@@ -111,7 +125,7 @@ const mapRef = useRef<any>(null);
         {state.selectedDevice && (
           <DeviceInfoPanel
             device={state.selectedDevice}
-            position={state.positions.find(p => p.deviceId === state.selectedDevice?.id)}
+            position={state.positions.find(p => p.deviceId === state.selectedDevice?.traccar_id)}
             onClose={() => {
               dispatch({ type: 'SELECT_DEVICE', payload: null });
               dispatch({ type: 'TOGGLE_HISTORY', payload: false });
