@@ -105,9 +105,19 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
   }, [positions]); // positions é novo array em cada update — funciona por referência
 
   // Devices → contexto
+  // Mapeia Device (Socket.io, id = traccar int) para TrackedDevice (traccar_id = traccar int)
   useEffect(() => {
     if (devices.length === 0) return;
-    dispatch({ type: 'SET_DEVICES', payload: devices as any });
+    const mapped: TrackedDevice[] = devices.map(d => ({
+      id:          d.id,        // ID inteiro do Traccar (usado como identificador em tempo real)
+      traccar_id:  d.id,        // mesmo valor — necessário para bater com pos.deviceId
+      name:        d.name,
+      uniqueId:    d.uniqueId,
+      status:      d.status,
+      lastUpdate:  d.lastUpdate,
+      attributes:  d.attributes,
+    }));
+    dispatch({ type: 'SET_DEVICES', payload: mapped });
   }, [devices]);
 
   return (

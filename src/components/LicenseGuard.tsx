@@ -12,13 +12,14 @@ import { useTracking } from '@/contexts/TrackingContext';
 
 export function LicenseGuard({ children }: { children: React.ReactNode }) {
   const { license, loading: licenseLoading, refreshLicense } = useLicense();
-  const hasConnected = useRef(false); // ← controlo para não ligar duas vezes
-  
+  const hasConnected = useRef(false);
+
   // Usa o socket do contexto — não instancia um novo hook
   const { connState, connError, traccarStatus, connect, disconnect } = useTracking();
-  
+
   const [showDialog, setShowDialog] = useState(false);
-useEffect(() => {
+
+  useEffect(() => {
     if (licenseLoading) return;
 
     if (!license?.isValid) {
@@ -35,28 +36,14 @@ useEffect(() => {
       if (token) {
         hasConnected.current = true;
         connect(token);
+      } else {
+        console.warn('[LicenseGuard] JWT ainda não disponível');
       }
     } else if (license.mode !== 'connected') {
       disconnect();
       hasConnected.current = false;
     }
   }, [license, licenseLoading]);
-    useEffect(() => {
-      if (licenseLoading) return;
-      if (!license?.isValid) {
-        setShowDialog(true);
-        disconnect();
-        return;
-      }
-      setShowDialog(false);
-      if (license.mode === 'connected') {
-        const token = getAccessToken();
-        if (token) connect(token);
-        else console.warn('[LicenseGuard] JWT ainda não disponível');
-      } else {
-        disconnect();
-      }
-    }, [license, licenseLoading]);
 
   const handleActivationSuccess = async () => {
     await refreshLicense();

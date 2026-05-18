@@ -56,13 +56,14 @@ function MapController({ selectedDevice, positions }: {
   const map = useMap();
   useEffect(() => {
     if (!selectedDevice) return;
-    const pos = positions.find(p => p.deviceId === selectedDevice.id);
+    // traccar_id é o ID inteiro do Traccar — bate com pos.deviceId
+    const pos = positions.find(p => p.deviceId === selectedDevice.traccar_id);
     if (pos) {
       map.flyTo([pos.latitude, pos.longitude], map.getZoom() < 14 ? 15 : map.getZoom(), {
         duration: 0.8,
       });
     }
-  }, [selectedDevice?.id]);
+  }, [selectedDevice?.traccar_id]);
   return null;
 }
 
@@ -104,15 +105,15 @@ export function TrackingMap({ mapRef, positions, devices, selectedDevice, showHi
         if (points.length < 2) return null;
         const deviceId = Number(deviceIdStr);
 
-        const device = devices.find(d => d.id === deviceId);
+        // traccar_id é o ID inteiro do Traccar — bate com a chave do trail
+        const device = devices.find(d => d.traccar_id === deviceId);
 
         const isSelected = selectedDevice
-          ? selectedDevice.id === deviceId
+          ? selectedDevice.traccar_id === deviceId
           : false;
 
-        // Cor da linha: device seleccionado fica mais vivo
         const color = device
-          ? getDeviceColor(device.status, 0)
+          ? getDeviceTrailColor(deviceId)
           : '#6b7280';
 
         return (
@@ -177,19 +178,15 @@ export function TrackingMap({ mapRef, positions, devices, selectedDevice, showHi
         );
       })}
 
-      {/* Linha de histórico */}
-     {!showHistory && Object.entries(trail).map(([deviceIdStr, points]) => {
+      {/* Linha de histórico de posições (modo showHistory) */}
+      {showHistory && Object.entries(trail).map(([deviceIdStr, points]) => {
         if (points.length < 2) return null;
-        const deviceId = Number(deviceIdStr);
-        const isSelected = selectedDevice
-          ? (((selectedDevice as any).traccarId ?? (selectedDevice as any).traccar_id) === deviceId)
-          : false;
-
-        const color = getDeviceTrailColor(deviceId); // ← cor única por device
-
+        const deviceId  = Number(deviceIdStr);
+        const isSelected = selectedDevice ? selectedDevice.traccar_id === deviceId : false;
+        const color      = getDeviceTrailColor(deviceId);
         return (
           <Polyline
-            key={`trail-${deviceId}`}
+            key={`history-${deviceId}`}
             positions={points}
             color={color}
             weight={isSelected ? 3 : 2}
