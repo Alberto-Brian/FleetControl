@@ -11,6 +11,9 @@ import {
   SYNC_DEVICES,
   SYNC_GEOFENCES,
   GET_GEOFENCES,
+  GET_LINK_SUGGESTIONS,
+  LINK_VEHICLE_DEVICE,
+  UNLINK_VEHICLE_DEVICE,
 } from './tracking-channels';
 
 const API_URL = process.env.API_URL || 'http://localhost:3001';
@@ -73,5 +76,30 @@ export function addTrackingEventListeners() {
       timeout: 10_000,
     });
     return data.data;
+  });
+
+  ipcMain.handle(GET_LINK_SUGGESTIONS, async () => {
+    const { data } = await axios.get(`${API_URL}/api/traccar/link-suggestions`, {
+      headers: apiHeaders(),
+      timeout: 15_000,
+    });
+    return data.data;
+  });
+
+  ipcMain.handle(LINK_VEHICLE_DEVICE, async (_event, vehicleId: string, traccarDeviceId: string) => {
+    const { data } = await axios.patch(
+      `${API_URL}/api/traccar/vehicles/${vehicleId}/link-device`,
+      { traccarDeviceId },
+      { headers: apiHeaders(), timeout: 10_000 },
+    );
+    return data;
+  });
+
+  ipcMain.handle(UNLINK_VEHICLE_DEVICE, async (_event, vehicleId: string) => {
+    const { data } = await axios.delete(
+      `${API_URL}/api/traccar/vehicles/${vehicleId}/link-device`,
+      { headers: apiHeaders(), timeout: 10_000 },
+    );
+    return data;
   });
 }

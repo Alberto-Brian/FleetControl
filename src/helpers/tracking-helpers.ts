@@ -14,6 +14,26 @@ export interface TrackedDevice {
   attributes?: Record<string, unknown>;
 }
 
+export interface LinkSuggestionDevice {
+  id:        string;
+  traccarId: number;
+  name:      string;
+  uniqueId:  string;
+  status:    string;
+}
+
+export interface LinkSuggestion {
+  vehicle: {
+    id:                string;
+    license_plate:     string;
+    brand:             string;
+    model:             string;
+    traccar_device_id: string | null;
+  };
+  best_match:   LinkSuggestionDevice | null;
+  alternatives: Array<{ device: LinkSuggestionDevice; score: number }>;
+}
+
 export interface PositionHistory {
   id:        number;
   deviceId:  number;
@@ -74,6 +94,20 @@ export async function getGeofences() {
   try {
     return await window._tracking.getGeofences();
   } catch { return []; }
+}
+
+export async function getLinkSuggestions(): Promise<LinkSuggestion[]> {
+  try {
+    return await window._tracking.getLinkSuggestions();
+  } catch { return []; }
+}
+
+export async function linkVehicleDevice(vehicleId: string, traccarDeviceId: string) {
+  return window._tracking.linkVehicleDevice(vehicleId, traccarDeviceId);
+}
+
+export async function unlinkVehicleDevice(vehicleId: string) {
+  return window._tracking.unlinkVehicleDevice(vehicleId);
 }
 
 // Calcula bearing entre dois pontos (para rodar o ícone do veículo)

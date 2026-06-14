@@ -284,12 +284,15 @@ interface IScheduledTrip {
 }
 
 export interface ITracking {
-  getDevices:    () => Promise<TrackedDevice[]>;
-  getPositions:  (deviceId?: number) => Promise<Position[]>;
-  getHistory:    (deviceId: number, from: string, to: string) => Promise<PositionHistory[]>;
-  syncDevices:   () => Promise<TrackedDevice[]>;
-  syncGeofences: () => Promise<unknown[]>;
-  getGeofences:  () => Promise<unknown[]>;
+  getDevices:          () => Promise<TrackedDevice[]>;
+  getPositions:        (deviceId?: number) => Promise<Position[]>;
+  getHistory:          (deviceId: number, from: string, to: string) => Promise<PositionHistory[]>;
+  syncDevices:         () => Promise<TrackedDevice[]>;
+  syncGeofences:       () => Promise<unknown[]>;
+  getGeofences:        () => Promise<unknown[]>;
+  getLinkSuggestions:  () => Promise<unknown[]>;
+  linkVehicleDevice:   (vehicleId: string, traccarDeviceId: string) => Promise<unknown>;
+  unlinkVehicleDevice: (vehicleId: string) => Promise<unknown>;
 }
 declare interface Window {
     system:                  System;

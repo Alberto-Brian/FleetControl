@@ -14,7 +14,8 @@ import {
   Clock,
   Filter,
   Layers,
-  ChevronDown
+  ChevronDown,
+  Link2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -32,6 +33,7 @@ interface Props {
   onFilterStatus?: (status: 'all' | 'online' | 'offline') => void;
   isLoading?:      boolean;
   lastUpdate?:     Date | null;
+  onLinkDevices?:  () => void;
 }
 
 export function TrackingToolbar({
@@ -48,6 +50,7 @@ export function TrackingToolbar({
   onFilterStatus,
   isLoading = false,
   lastUpdate,
+  onLinkDevices,
 }: Props) {
   const { t } = useTranslation('tracking');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -213,9 +216,22 @@ export function TrackingToolbar({
         </div>
       </div>
 
-      {/* === DIREITA: Espaçador ou ações extras === */}
+      {/* === DIREITA: Ações extras === */}
       <div className="pointer-events-auto flex items-center gap-1.5">
-        {/* Layer toggle (opcional - para alternar camadas do mapa) */}
+        {/* Associação Veículo ↔ Traccar — só aparece quando conectado */}
+        {onLinkDevices && isConnected && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 bg-background/80 backdrop-blur-md border border-border/50 shadow-lg hover:bg-muted"
+            onClick={onLinkDevices}
+            title="Associar veículos a dispositivos Traccar"
+          >
+            <Link2 className="w-4 h-4" />
+          </Button>
+        )}
+
+        {/* Layer toggle */}
         <Button
           variant="ghost"
           size="icon"

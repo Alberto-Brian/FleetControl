@@ -1,7 +1,7 @@
 // ========================================
 // FILE: src/pages/provider/TrackingPageContent.tsx
 // ========================================
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useTranslation }    from 'react-i18next';
 import { useTracking }       from '@/contexts/TrackingContext';
 import { useApiConnection }  from '@/hooks/useApiConnection';
@@ -11,17 +11,18 @@ import {
   getPositionHistory,
   syncDevices,
 } from '@/helpers/tracking-helpers';
-import { TrackingMap }       from '@/components/tracking/TrackingMap';
-import { DeviceSidebar }     from '@/components/tracking/DeviceSidebar';
-import { TrackingToolbar }   from '@/components/tracking/TrackingToolbar';
-import { DeviceInfoPanel }   from '@/components/tracking/DeviceInfoPanel';
-import { Loader2 }           from 'lucide-react';
+import { TrackingMap }             from '@/components/tracking/TrackingMap';
+import { DeviceSidebar }           from '@/components/tracking/DeviceSidebar';
+import { TrackingToolbar }         from '@/components/tracking/TrackingToolbar';
+import { DeviceInfoPanel }         from '@/components/tracking/DeviceInfoPanel';
+import { VehicleDeviceLinkSheet }  from '@/components/tracking/VehicleDeviceLinkSheet';
+import { Loader2 }                 from 'lucide-react';
 
 export function TrackingPageContent() {
   const { t }               = useTranslation('tracking');
   const { state, dispatch, isConnected } = useTracking();
-  // Referência ao mapa para centrar programaticamente
-const mapRef = useRef<any>(null);
+  const mapRef = useRef<any>(null);
+  const [linkSheetOpen, setLinkSheetOpen] = useState(false);
 
   useEffect(() => { loadInitial(); }, []);
   useEffect(() => {
@@ -110,6 +111,7 @@ const mapRef = useRef<any>(null);
             onFilterStatus={(status) => dispatch({ type: 'FILTER_STATUS', payload: status })}
             isLoading={state.isLoading}
             lastUpdate={state.lastUpdate}
+            onLinkDevices={() => setLinkSheetOpen(true)}
           />
 
         <TrackingMap
@@ -134,6 +136,11 @@ const mapRef = useRef<any>(null);
           />
         )}
       </div>
+
+      <VehicleDeviceLinkSheet
+        open={linkSheetOpen}
+        onOpenChange={setLinkSheetOpen}
+      />
     </div>
   );
 }
