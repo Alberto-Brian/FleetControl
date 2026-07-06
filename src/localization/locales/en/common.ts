@@ -1,5 +1,8 @@
 // ========================================
 // FILE: src/locales/en/common.ts (ou adicionar ao existente)
+
+import { view } from "drizzle-orm/sqlite-core";
+
 // ========================================
 export const enCommon = {
     preview: "Preview",
@@ -64,6 +67,7 @@ export const enCommon = {
         delete: "Delete",
         deleting: "Deleting...",
         edit: "Edit",
+        view: "View details",
         editing: "Editing...",
         selected: "Selected",
         clickToSelect: "Click to select",

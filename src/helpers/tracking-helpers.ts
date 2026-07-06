@@ -64,6 +64,12 @@ export async function getTrackedDevices(): Promise<TrackedDevice[]> {
   } catch { return []; }
 }
 
+export async function createTrackedDevice(data: { name: string; uniqueId: string }): Promise<TrackedDevice | null> {
+  try {
+    return await window._tracking.createDevice(data);
+  } catch { return null; }
+}
+
 export async function getLivePositions(deviceId?: number): Promise<Position[]> {
   try {
     return await window._tracking.getPositions(deviceId);

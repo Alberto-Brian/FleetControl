@@ -285,6 +285,7 @@ interface IScheduledTrip {
 
 export interface ITracking {
   getDevices:          () => Promise<TrackedDevice[]>;
+  createDevice:        (data: { name: string; uniqueId: string }) => Promise<TrackedDevice>;
   getPositions:        (deviceId?: number) => Promise<Position[]>;
   getHistory:          (deviceId: number, from: string, to: string) => Promise<PositionHistory[]>;
   syncDevices:         () => Promise<TrackedDevice[]>;

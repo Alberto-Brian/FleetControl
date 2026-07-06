@@ -272,6 +272,11 @@ app.whenReady().then(async () => {
     console.log('______________________________________________________________');
     console.log('            -- APLICAÇÃO INICIALIZADA COM SUCESSO --           ');
     console.log('______________________________________________________________');
+
+    if (inDevelopment) {
+      app.commandLine.appendSwitch('ignore-certificate-errors');
+      app.commandLine.appendSwitch('ignore-ssl-errors');
+    }
   } catch (error) {
     console.log('');
     console.log('╔════════════════════════════════════════════════════════════╗');

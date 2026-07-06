@@ -4,6 +4,7 @@
 // ========================================
 import {
   GET_TRACKED_DEVICES,
+  CREATE_TRACKED_DEVICE,
   GET_DEVICE_POSITIONS,
   GET_POSITION_HISTORY,
   SYNC_DEVICES,
@@ -19,6 +20,7 @@ export function exposeTrackingContext() {
 
   contextBridge.exposeInMainWorld('_tracking', {
     getDevices:          ()                                               => ipcRenderer.invoke(GET_TRACKED_DEVICES),
+    createDevice:        (data: { name: string; uniqueId: string })       => ipcRenderer.invoke(CREATE_TRACKED_DEVICE, data),
     getPositions:        (deviceId?: number)                             => ipcRenderer.invoke(GET_DEVICE_POSITIONS, deviceId),
     getHistory:          (deviceId: number, from: string, to: string)    => ipcRenderer.invoke(GET_POSITION_HISTORY, deviceId, from, to),
     syncDevices:         ()                                               => ipcRenderer.invoke(SYNC_DEVICES),

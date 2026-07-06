@@ -6,6 +6,7 @@ import { ipcMain } from 'electron';
 import axios        from 'axios';
 import {
   GET_TRACKED_DEVICES,
+  CREATE_TRACKED_DEVICE,
   GET_DEVICE_POSITIONS,
   GET_POSITION_HISTORY,
   SYNC_DEVICES,
@@ -33,6 +34,14 @@ export function addTrackingEventListeners() {
     const { data } = await axios.get(`${API_URL}/api/traccar/devices`, {
       headers: apiHeaders(),
       timeout: 10_000,
+    });
+    return data.data;
+  });
+
+  ipcMain.handle(CREATE_TRACKED_DEVICE, async (_event, payload: { name: string; uniqueId: string }) => {
+    const { data } = await axios.post(`${API_URL}/api/traccar/devices`, payload, {
+      headers: apiHeaders(),
+      timeout: 15_000,
     });
     return data.data;
   });

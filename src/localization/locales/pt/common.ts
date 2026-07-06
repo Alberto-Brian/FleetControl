@@ -65,6 +65,7 @@ export const ptCommon = {
       delete: "Excluir",
       deleting: "Excluindo...",
       edit: "Editar",
+      view: "Ver detalhes",
       editing: "Editando...",
       selected: "Selecionado",
       clickToSelect: "Clique para selecionar",

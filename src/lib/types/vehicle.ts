@@ -42,6 +42,12 @@ export interface ICreateVehicle {
     acquisition_value?: number;
     photo?: string;
     notes?: string;
+    createTraccarDevice?: boolean;
+    traccarDevice?: {
+        name?: string;
+        uniqueId?: string;
+        attributes?: Record<string, unknown>;
+    };
 }
 
 export interface IUpdateVehicle {

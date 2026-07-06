@@ -16,6 +16,7 @@ import {
   Layers,
   ChevronDown,
   Link2,
+  PlusCircle,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -34,6 +35,7 @@ interface Props {
   isLoading?:      boolean;
   lastUpdate?:     Date | null;
   onLinkDevices?:  () => void;
+  onCreateDevice?: () => void;
 }
 
 export function TrackingToolbar({
@@ -51,6 +53,7 @@ export function TrackingToolbar({
   isLoading = false,
   lastUpdate,
   onLinkDevices,
+  onCreateDevice,
 }: Props) {
   const { t } = useTranslation('tracking');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -218,6 +221,18 @@ export function TrackingToolbar({
 
       {/* === DIREITA: Ações extras === */}
       <div className="pointer-events-auto flex items-center gap-1.5">
+        {onCreateDevice && isConnected && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 bg-background/80 backdrop-blur-md border border-border/50 shadow-lg hover:bg-muted"
+            onClick={onCreateDevice}
+            title="Cadastrar device Traccar"
+          >
+            <PlusCircle className="w-4 h-4" />
+          </Button>
+        )}
+
         {/* Associação Veículo ↔ Traccar — só aparece quando conectado */}
         {onLinkDevices && isConnected && (
           <Button

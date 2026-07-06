@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -16,10 +17,13 @@ import { createVehicle } from '@/helpers/vehicle-helpers';
 import { getAllVehicleCategories } from '@/helpers/vehicle-category-helpers';
 import { ICreateVehicle } from '@/lib/types/vehicle';
 import { useVehicles } from '@/contexts/VehiclesContext';
+import { useLicense } from '@/hooks/useLicense';
 
 export default function NewVehicleDialog() {
   const { showSuccess, handleError } = useErrorHandler();
   const { t } = useTranslation();
+  const { license } = useLicense();
+  const isConnectedLicense = license?.mode === 'connected';
   
   const { addVehicle } = useVehicles();
   
@@ -35,6 +39,7 @@ export default function NewVehicleDialog() {
     year: new Date().getFullYear(),
     color: '',
     current_mileage: 0,
+    createTraccarDevice: false,
   });
 
   {/* Estado para pesquisa — adiciona junto aos outros estados */}
@@ -103,6 +108,7 @@ const filteredCategories = categories.filter(cat =>
       year: new Date().getFullYear(),
       color: '',
       current_mileage: 0,
+      createTraccarDevice: false,
     });
   }
 
@@ -298,6 +304,27 @@ const filteredCategories = categories.filter(cat =>
                 onChange={(e) => setFormData({ ...formData, current_mileage: parseInt(e.target.value) })}
               />
             </div>
+
+            {isConnectedLicense && (
+              <label className="col-span-2 flex items-center gap-3 rounded-md border border-border p-3 cursor-pointer">
+                <Checkbox
+                  checked={!!formData.createTraccarDevice}
+                  onCheckedChange={(checked) => {
+                    setFormData({
+                      ...formData,
+                      createTraccarDevice: checked === true,
+                      traccarDevice: checked === true
+                        ? {
+                            name: `${formData.license_plate || 'VEICULO'} - ${formData.brand} ${formData.model}`.trim(),
+                            uniqueId: formData.license_plate,
+                          }
+                        : undefined,
+                    });
+                  }}
+                />
+                <span className="text-sm font-medium">Criar device Traccar para este veículo</span>
+              </label>
+            )}
 
             <div className="space-y-2">
             <Label htmlFor="tire_size">{t('vehicles:fields.tireSize')}</Label>

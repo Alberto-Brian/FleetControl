@@ -16,6 +16,7 @@ import { DeviceSidebar }           from '@/components/tracking/DeviceSidebar';
 import { TrackingToolbar }         from '@/components/tracking/TrackingToolbar';
 import { DeviceInfoPanel }         from '@/components/tracking/DeviceInfoPanel';
 import { VehicleDeviceLinkSheet }  from '@/components/tracking/VehicleDeviceLinkSheet';
+import { CreateTraccarDeviceDialog } from '@/components/tracking/CreateTraccarDeviceDialog';
 import { Loader2 }                 from 'lucide-react';
 
 export function TrackingPageContent() {
@@ -23,6 +24,7 @@ export function TrackingPageContent() {
   const { state, dispatch, isConnected } = useTracking();
   const mapRef = useRef<any>(null);
   const [linkSheetOpen, setLinkSheetOpen] = useState(false);
+  const [createDeviceOpen, setCreateDeviceOpen] = useState(false);
 
   useEffect(() => { loadInitial(); }, []);
   useEffect(() => {
@@ -112,6 +114,7 @@ export function TrackingPageContent() {
             isLoading={state.isLoading}
             lastUpdate={state.lastUpdate}
             onLinkDevices={() => setLinkSheetOpen(true)}
+            onCreateDevice={() => setCreateDeviceOpen(true)}
           />
 
         <TrackingMap
@@ -140,6 +143,11 @@ export function TrackingPageContent() {
       <VehicleDeviceLinkSheet
         open={linkSheetOpen}
         onOpenChange={setLinkSheetOpen}
+      />
+      <CreateTraccarDeviceDialog
+        open={createDeviceOpen}
+        onOpenChange={setCreateDeviceOpen}
+        onCreated={loadInitial}
       />
     </div>
   );

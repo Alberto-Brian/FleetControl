@@ -3,6 +3,7 @@
 // FILE: src/helpers/ipc/db/vehicles/vehicles-listeners.ts
 // ========================================
 import { ipcMain } from "electron";
+import axios from "axios";
 import {
   GET_ALL_VEHICLES,
   GET_VEHICLE_BY_ID,
@@ -39,6 +40,15 @@ import {
 import { ICreateVehicle, IUpdateStatus, IUpdateVehicle } from '@/lib/types/vehicle';
 import { ConflictError, NotFoundError, WarningError } from "@/lib/errors/AppError";
 import { vehicleStatus } from "@/lib/db/schemas/vehicles";
+import { getStoredApiToken } from "@/helpers/ipc/services/auth/token-store";
+
+const API_URL = process.env.API_URL || 'http://localhost:3001';
+
+function apiHeaders() {
+  const token = getStoredApiToken();
+  if (!token) throw new Error('Sem token de autenticação — activa a licença primeiro');
+  return { Authorization: `Bearer ${token}` };
+}
 
 // Chaves de tradução para erros
 const T_ERRORS = {
@@ -97,6 +107,35 @@ async function createVehicleEvent(vehicleData: ICreateVehicle) {
         i18n: { plate: vehicleData.license_plate }
       }).toIpcString()
     );
+  }
+
+  // Cadastrar na nuvem
+  if (vehicleData.createTraccarDevice) {
+    await axios.post(`${API_URL}/api/vehicles`, {
+      license_plate: vehicleData.license_plate,
+      brand: vehicleData.brand,
+      model: vehicleData.model,
+      year: vehicleData.year,
+      color: vehicleData.color,
+      chassis_number: vehicleData.chassis_number,
+      engine_number: vehicleData.engine_number,
+      fuel_tank_capacity: vehicleData.fuel_tank_capacity,
+      tire_size: vehicleData.tire_size,
+      current_mileage: vehicleData.current_mileage,
+      acquisition_date: vehicleData.acquisition_date,
+      acquisition_value: vehicleData.acquisition_value,
+      photo: vehicleData.photo,
+      notes: vehicleData.notes,
+      createTraccarDevice: true,
+      traccarDevice: {
+        name: vehicleData.traccarDevice?.name || `${vehicleData.license_plate} - ${vehicleData.brand} ${vehicleData.model}`,
+        uniqueId: vehicleData.traccarDevice?.uniqueId || vehicleData.license_plate,
+        attributes: vehicleData.traccarDevice?.attributes,
+      },
+    }, {
+      headers: apiHeaders(),
+      timeout: 15_000,
+    });
   }
 
   return await createVehicle(vehicleData);

@@ -150,7 +150,7 @@ export function TrackingMap({ mapRef, positions, devices, selectedDevice, showHi
 
         return (
           <Marker
-            key={pos.deviceId}
+            key={`${pos.deviceId}-${pos.timestamp}`} 
             position={[pos.latitude, pos.longitude]}
             icon={icon}
             eventHandlers={{

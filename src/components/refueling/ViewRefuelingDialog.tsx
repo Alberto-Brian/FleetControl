@@ -131,7 +131,7 @@ export default function ViewRefuelingDialog({ open, onOpenChange }: ViewRefuelin
 
               {/* Acções rápidas */}
               <div className="flex items-center gap-1.5 shrink-0">
-                <Button
+                {/* <Button
                   variant="outline"
                   size="sm"
                   className="gap-1.5 h-8"
@@ -148,7 +148,7 @@ export default function ViewRefuelingDialog({ open, onOpenChange }: ViewRefuelin
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   {t('common:actions.delete')}
-                </Button>
+                </Button> */}
               </div>
             </div>
           </DialogHeader>
