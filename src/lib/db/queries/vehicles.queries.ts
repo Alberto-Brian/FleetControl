@@ -60,6 +60,8 @@ export async function createVehicle(vehicleData: ICreateVehicle): Promise<IVehic
             acquisition_value: vehicles.acquisition_value,
             updated_at: vehicles.updated_at,
             created_at: vehicles.created_at,
+            api_vehicle_id: vehicles.api_vehicle_id,
+            api_synced_at:  vehicles.api_synced_at,
             deleted_at: vehicles.deleted_at
         });
 
@@ -148,6 +150,9 @@ export async function getAllVehicles(params: IPaginationParams = {}): Promise<IP
             acquisition_value: vehicles.acquisition_value,
             updated_at:        vehicles.updated_at,
             created_at:        vehicles.created_at,
+            api_vehicle_id:    vehicles.api_vehicle_id,
+            api_synced_at:     vehicles.api_synced_at,
+            deleted_at:        vehicles.deleted_at,
         })
         .from(vehicles)
         .leftJoin(vehicle_categories, eq(vehicles.category_id, vehicle_categories.id))
@@ -229,6 +234,8 @@ export async function findVehicleById(vehicleId: string): Promise<IVehicle> {
             is_active: vehicles.is_active,
             created_at: vehicles.created_at,
             updated_at: vehicles.updated_at,
+            api_vehicle_id: vehicles.api_vehicle_id,
+            api_synced_at:  vehicles.api_synced_at,
             deleted_at: vehicles.deleted_at
         })
         .from(vehicles)
@@ -242,7 +249,7 @@ export async function findVehicleById(vehicleId: string): Promise<IVehicle> {
         )
         .limit(1);
 
-    return result[0] || null;
+    return (result[0] ?? null) as IVehicle;
 }
 
 /**

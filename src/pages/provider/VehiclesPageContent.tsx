@@ -11,11 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Pagination } from '@/components/ui/pagination';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
-import { 
-  Search, Truck, Edit, Trash2, Eye, Tag, LayoutGrid, List, Rows, 
-  Plus, Filter, MoreHorizontal, CheckCircle2, Clock, Settings2, Ban
+import {
+  Search, Truck, Edit, Trash2, Eye, Tag, LayoutGrid, List, Rows,
+  Plus, Filter, MoreHorizontal, CheckCircle2, Clock, Settings2, Ban, Upload
 } from 'lucide-react';
-import { getAllVehicles, deleteVehicle } from '@/helpers/vehicle-helpers';
+import { getAllVehicles, deleteVehicle, syncVehicleToApi } from '@/helpers/vehicle-helpers';
+import { useLicense } from '@/hooks/useLicense';
 import { getAllVehicleCategories, deleteVehicleCategory } from '@/helpers/vehicle-category-helpers';
 import { cn } from '@/lib/utils';
 import { useVehicles } from '@/contexts/VehiclesContext';
@@ -40,6 +41,9 @@ type ViewMode = 'compact' | 'normal' | 'cards';
 export default function VehiclesPageContent() {
   const { t } = useTranslation();
   const { handleError, showSuccess } = useErrorHandler();
+  const { license } = useLicense();
+  const isConnected = license?.mode === 'connected';
+  const [syncingVehicleId, setSyncingVehicleId] = useState<string | null>(null);
 
   const { 
     state: { vehicles, selectedVehicle, isLoading, categories, selectedCategory, isCategoriesLoading },
@@ -205,6 +209,19 @@ export default function VehiclesPageContent() {
     }
   }
 
+  async function handleSyncVehicle(vehicleId: string) {
+    setSyncingVehicleId(vehicleId);
+    try {
+      await syncVehicleToApi(vehicleId);
+      showSuccess('vehicles:toast.syncSuccess');
+      loadVehicles();
+    } catch (error) {
+      handleError(error, 'vehicles:toast.syncError');
+    } finally {
+      setSyncingVehicleId(null);
+    }
+  }
+
   function getStatusBadge(status: string) {
     const statusMap = {
       available: { 
@@ -341,6 +358,11 @@ export default function VehiclesPageContent() {
                   <div className="flex items-center gap-3 mb-1">
                     <h3 className="font-bold text-lg tracking-tight">{vehicle.license_plate}</h3>
                     {getStatusBadge(vehicle.status)}
+                    {isConnected && !vehicle.api_vehicle_id && (
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-bold text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30">
+                        <Upload className="w-2.5 h-2.5 mr-1" />Sync
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
                     <span className="font-bold text-foreground/80">{vehicle.brand} {vehicle.model}</span>
@@ -351,6 +373,18 @@ export default function VehiclesPageContent() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {isConnected && !vehicle.api_vehicle_id && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                      title="Sincronizar com API"
+                      disabled={syncingVehicleId === vehicle.id}
+                      onClick={() => handleSyncVehicle(vehicle.id)}
+                    >
+                      <Upload className={`w-5 h-5 ${syncingVehicleId === vehicle.id ? 'animate-pulse' : ''}`} />
+                    </Button>
+                  )}
                   <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => { selectVehicle(vehicle); setViewDialogOpen(true); }}>
                     <Eye className="w-5 h-5" />
                   </Button>
@@ -387,7 +421,19 @@ export default function VehiclesPageContent() {
                 <div className="p-2.5 rounded-xl bg-muted group-hover:bg-primary/5 group-hover:text-primary transition-colors">
                   <Truck className="w-5 h-5" />
                 </div>
-                {getStatusBadge(vehicle.status)}
+                <div className="flex items-center gap-1.5">
+                  {isConnected && !vehicle.api_vehicle_id && (
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30"
+                      title="Veículo não sincronizado com a API"
+                    >
+                      <Upload className="w-2.5 h-2.5 mr-1" />
+                      Sync
+                    </Badge>
+                  )}
+                  {getStatusBadge(vehicle.status)}
+                </div>
               </div>
               <CardTitle className="text-xl font-mono font-bold">{vehicle.license_plate}</CardTitle>
               <CardDescription className="text-sm font-bold text-foreground/70">
@@ -430,6 +476,16 @@ export default function VehiclesPageContent() {
                     <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectVehicle(vehicle); setEditDialogOpen(true); })}>
                       <Edit className="w-4 h-4 mr-2" /> {t('vehicles:actions.edit')}
                     </DropdownMenuItem>
+                    {isConnected && !vehicle.api_vehicle_id && (
+                      <DropdownMenuItem
+                        onClick={() => handleSyncVehicle(vehicle.id)}
+                        disabled={syncingVehicleId === vehicle.id}
+                        className="text-amber-600 focus:text-amber-700"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {syncingVehicleId === vehicle.id ? 'A sincronizar...' : 'Sincronizar com API'}
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => openDeleteDialog(vehicle)}>
                       <Trash2 className="w-4 h-4 mr-2" /> {t('vehicles:actions.delete')}
                     </DropdownMenuItem>

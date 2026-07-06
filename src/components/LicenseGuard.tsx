@@ -7,12 +7,14 @@ import { LicenseActivationDialog } from '@/components/LicenseActivationDialog';
 import { useLicense }              from '@/hooks/useLicense';
 import { useApiConnection }        from '@/hooks/useApiConnection';
 import { getAccessToken }          from '@/helpers/license-helpers';
-import { Loader2, WifiOff, Wifi, AlertCircle } from 'lucide-react';
+import { Loader2, WifiOff, Wifi, AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useTracking } from '@/contexts/TrackingContext';
 
 export function LicenseGuard({ children }: { children: React.ReactNode }) {
   const { license, loading: licenseLoading, refreshLicense } = useLicense();
   const hasConnected = useRef(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   // Usa o socket do contexto — não instancia um novo hook
   const { connState, connError, traccarStatus, connect, disconnect } = useTracking();
@@ -51,6 +53,22 @@ export function LicenseGuard({ children }: { children: React.ReactNode }) {
     // Após refresh, o useEffect acima dispara de novo com o token já disponível
   };
 
+  async function handleReconnect() {
+    const token = getAccessToken();
+    if (!token) return;
+    setIsReconnecting(true);
+    hasConnected.current = false;
+    try {
+      disconnect();
+      // Pequena pausa para o socket fechar antes de religar
+      await new Promise(r => setTimeout(r, 500));
+      hasConnected.current = true;
+      connect(token);
+    } finally {
+      setIsReconnecting(false);
+    }
+  }
+
   if (licenseLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -71,17 +89,46 @@ export function LicenseGuard({ children }: { children: React.ReactNode }) {
       />
 
       {license?.mode === 'connected' && (
-        <div className="fixed top-1 right-20 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur border shadow-sm text-xs font-medium">
+        <div className="fixed top-1 right-20 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur border shadow-sm text-xs font-medium">
           {connState === 'connected' && traccarStatus?.connected ? (
             <><Wifi className="w-3.5 h-3.5 text-green-500" /><span className="text-green-600">Online</span></>
           ) : connState === 'connected' && !traccarStatus?.connected ? (
-            <><AlertCircle className="w-3.5 h-3.5 text-amber-500" /><span className="text-amber-600">API OK • Traccar offline</span></>
-          ) : connState === 'connecting' ? (
+            <>
+              <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-amber-600">API OK • Traccar offline</span>
+            </>
+          ) : connState === 'connecting' || isReconnecting ? (
             <><Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" /><span className="text-blue-600">A ligar...</span></>
           ) : connState === 'error' ? (
-            <><AlertCircle className="w-3.5 h-3.5 text-red-500" /><span className="text-red-600" title={connError?.message}>Erro de ligação</span></>
+            <>
+              <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+              <span className="text-red-600" title={connError?.message}>Erro de ligação</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 px-1.5 text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 ml-1"
+                onClick={handleReconnect}
+                disabled={isReconnecting}
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                Reconectar
+              </Button>
+            </>
           ) : (
-            <><WifiOff className="w-3.5 h-3.5 text-slate-400" /><span className="text-slate-500">Offline</span></>
+            <>
+              <WifiOff className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-slate-500">Offline</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 px-1.5 text-[10px] text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 ml-1"
+                onClick={handleReconnect}
+                disabled={isReconnecting}
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                Reconectar
+              </Button>
+            </>
           )}
         </div>
       )}

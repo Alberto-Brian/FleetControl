@@ -78,7 +78,8 @@ interface IVehicles {
     delete: (vehicleId: string) => Promise<string | null>;
     getAvailable: () => Promise<IVehicle[]>;
     updateStatus: (vehicleId: string, data: IUpdateStatus) => Promise<IVehicle | null>;
-    updateMileage: (vehicleId: string, mileage: number) => Promise<IVehicle | null>
+    updateMileage: (vehicleId: string, mileage: number) => Promise<IVehicle | null>;
+    syncToApi: (vehicleId: string) => Promise<IVehicle | null>;
 }
 
 interface IVehicleCategories {

@@ -13,6 +13,7 @@ import {
     UPDATE_VEHICLE_MILEAGE,
     GET_VEHICLES_BY_CATEGORY,
     COUNT_VEHICLES_BY_STATUS,
+    SYNC_VEHICLE_TO_API,
 } from "./vehicles-channels";
 
 import { IPaginationParams } from "@/lib/types/pagination";
@@ -32,5 +33,6 @@ export function exposeVehiclesContext() {
         updateMileage: (vehicleId: string, mileage: number) => ipcRenderer.invoke(UPDATE_VEHICLE_MILEAGE, vehicleId, mileage),
         getByCategory: (categoryId: string) => ipcRenderer.invoke(GET_VEHICLES_BY_CATEGORY, categoryId),
         countByStatus: () => ipcRenderer.invoke(COUNT_VEHICLES_BY_STATUS),
+        syncToApi:     (vehicleId: string)  => ipcRenderer.invoke(SYNC_VEHICLE_TO_API, vehicleId),
     });
 }

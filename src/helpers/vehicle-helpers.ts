@@ -91,3 +91,12 @@ export async function updateVehicleMileage(vehicleId: string, mileage: number): 
         throw error;
     }
 }
+
+export async function syncVehicleToApi(vehicleId: string): Promise<IVehicle | null> {
+    try {
+        return await window._vehicles.syncToApi(vehicleId);
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+}

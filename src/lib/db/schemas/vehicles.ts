@@ -40,6 +40,9 @@ export const vehicles = sqliteTable('vehicles', {
   notes: text('notes'),
   photo: text('photo'),
   is_active: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  // Sync com a API — guarda o UUID do veículo no Postgres após sincronização
+  api_vehicle_id: text('api_vehicle_id'),
+  api_synced_at:  text('api_synced_at'),
   created_at: text('created_at').notNull().default(sql`(datetime('now', 'localtime'))`),
   created_by: text('created_by'),
   updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'localtime'))`),

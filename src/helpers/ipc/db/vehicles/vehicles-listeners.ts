@@ -15,6 +15,7 @@ import {
   UPDATE_VEHICLE_MILEAGE,
   GET_VEHICLES_BY_CATEGORY,
   COUNT_VEHICLES_BY_STATUS,
+  SYNC_VEHICLE_TO_API,
 } from "./vehicles-channels";
 
 import {
@@ -39,7 +40,9 @@ import {
 
 import { ICreateVehicle, IUpdateStatus, IUpdateVehicle } from '@/lib/types/vehicle';
 import { ConflictError, NotFoundError, WarningError } from "@/lib/errors/AppError";
-import { vehicleStatus } from "@/lib/db/schemas/vehicles";
+import { vehicleStatus, vehicles } from "@/lib/db/schemas/vehicles";
+import { useDb } from '@/lib/db/db_helpers';
+import { eq } from 'drizzle-orm';
 import { getStoredApiToken } from "@/helpers/ipc/services/auth/token-store";
 
 const API_URL = process.env.API_URL || 'http://localhost:3001';
@@ -72,6 +75,7 @@ export function addVehiclesEventListeners() {
   ipcMain.handle(UPDATE_VEHICLE_MILEAGE, async (_, vehicleId: string, mileage: number) => await updateVehicleMileageEvent(vehicleId, mileage));
   ipcMain.handle(GET_VEHICLES_BY_CATEGORY, async (_, categoryId: string) => await getVehiclesByCategoryEvent(categoryId));
   ipcMain.handle(COUNT_VEHICLES_BY_STATUS, async () => await countVehiclesByStatusEvent());
+  ipcMain.handle(SYNC_VEHICLE_TO_API, async (_, vehicleId: string) => await syncVehicleToApiEvent(vehicleId));
 }
 
 async function getAllVehiclesEvent(params?: IPaginationParams) {
@@ -109,36 +113,58 @@ async function createVehicleEvent(vehicleData: ICreateVehicle) {
     );
   }
 
-  // Cadastrar na nuvem
+  // 1. Salvar localmente SEMPRE — garante que o veículo existe mesmo sem API
+  const localVehicle = await createVehicle(vehicleData);
+
+  // 2. Tentar sincronizar com a API em background (best-effort)
+  //    Se falhar, o veículo fica marcado como não sincronizado (api_vehicle_id = null)
   if (vehicleData.createTraccarDevice) {
-    await axios.post(`${API_URL}/api/vehicles`, {
-      license_plate: vehicleData.license_plate,
-      brand: vehicleData.brand,
-      model: vehicleData.model,
-      year: vehicleData.year,
-      color: vehicleData.color,
-      chassis_number: vehicleData.chassis_number,
-      engine_number: vehicleData.engine_number,
-      fuel_tank_capacity: vehicleData.fuel_tank_capacity,
-      tire_size: vehicleData.tire_size,
-      current_mileage: vehicleData.current_mileage,
-      acquisition_date: vehicleData.acquisition_date,
-      acquisition_value: vehicleData.acquisition_value,
-      photo: vehicleData.photo,
-      notes: vehicleData.notes,
-      createTraccarDevice: true,
-      traccarDevice: {
-        name: vehicleData.traccarDevice?.name || `${vehicleData.license_plate} - ${vehicleData.brand} ${vehicleData.model}`,
-        uniqueId: vehicleData.traccarDevice?.uniqueId || vehicleData.license_plate,
-        attributes: vehicleData.traccarDevice?.attributes,
-      },
-    }, {
-      headers: apiHeaders(),
-      timeout: 15_000,
-    });
+    try {
+      const { data: apiResponse } = await axios.post(`${API_URL}/api/vehicles`, {
+        license_plate: vehicleData.license_plate,
+        brand: vehicleData.brand,
+        model: vehicleData.model,
+        year: vehicleData.year,
+        color: vehicleData.color,
+        chassis_number: vehicleData.chassis_number,
+        engine_number: vehicleData.engine_number,
+        fuel_tank_capacity: vehicleData.fuel_tank_capacity,
+        tire_size: vehicleData.tire_size,
+        current_mileage: vehicleData.current_mileage,
+        acquisition_date: vehicleData.acquisition_date,
+        acquisition_value: vehicleData.acquisition_value,
+        photo: vehicleData.photo,
+        notes: vehicleData.notes,
+        createTraccarDevice: true,
+        traccarDevice: {
+          name: vehicleData.traccarDevice?.name || `${vehicleData.license_plate} - ${vehicleData.brand} ${vehicleData.model}`,
+          uniqueId: vehicleData.traccarDevice?.uniqueId || vehicleData.license_plate,
+          attributes: vehicleData.traccarDevice?.attributes,
+        },
+      }, {
+        headers: apiHeaders(),
+        timeout: 15_000,
+      });
+
+      // Guardar o UUID da API no registo local
+      if (apiResponse?.data?.id) {
+        const { db } = useDb();
+        await db.update(vehicles)
+          .set({
+            api_vehicle_id: apiResponse.data.id,
+            api_synced_at:  new Date().toISOString(),
+          })
+          .where(eq(vehicles.id, localVehicle.id));
+
+        return { ...localVehicle, api_vehicle_id: apiResponse.data.id, api_synced_at: new Date().toISOString() };
+      }
+    } catch (err: any) {
+      // Falha silenciosa — veículo criado localmente, sync pendente
+      console.warn('[Vehicles] API sync falhou ao criar:', err?.message ?? err);
+    }
   }
 
-  return await createVehicle(vehicleData);
+  return localVehicle;
 }
 
 async function updateVehicleEvent(vehicleId: string, vehicleData: IUpdateVehicle) {
@@ -215,4 +241,50 @@ async function getVehiclesByCategoryEvent(categoryId: string) {
 
 async function countVehiclesByStatusEvent() {
   return await countVehiclesByStatus();
+}
+
+// Sincroniza um veículo local com a API (quando a licença conectada é activada)
+async function syncVehicleToApiEvent(vehicleId: string) {
+  const vehicle = await findVehicleById(vehicleId);
+  if (!vehicle) {
+    throw new Error(new NotFoundError(T_ERRORS.VEHICLE_NOT_FOUND).toIpcString());
+  }
+
+  if (vehicle.api_vehicle_id) {
+    // Já sincronizado — devolve o registo actual sem fazer nada
+    return vehicle;
+  }
+
+  const { data: apiResponse } = await axios.post(`${API_URL}/api/vehicles`, {
+    license_plate:      vehicle.license_plate,
+    brand:              vehicle.brand,
+    model:              vehicle.model,
+    year:               vehicle.year,
+    color:              vehicle.color,
+    chassis_number:     vehicle.chassis_number,
+    engine_number:      vehicle.engine_number,
+    fuel_tank_capacity: vehicle.fuel_tank_capacity,
+    tire_size:          vehicle.tire_size,
+    current_mileage:    vehicle.current_mileage,
+    acquisition_date:   vehicle.acquisition_date,
+    acquisition_value:  vehicle.acquisition_value,
+    notes:              vehicle.notes,
+  }, {
+    headers: apiHeaders(),
+    timeout: 15_000,
+  });
+
+  const apiVehicleId = apiResponse?.data?.id;
+  if (!apiVehicleId) throw new Error('API não devolveu ID do veículo criado');
+
+  // Actualiza o registo local com o UUID da API
+  const { db } = useDb();
+  await db.update(vehicles)
+    .set({
+      api_vehicle_id: apiVehicleId,
+      api_synced_at:  new Date().toISOString(),
+    })
+    .where(eq(vehicles.id, vehicleId));
+
+  return { ...vehicle, api_vehicle_id: apiVehicleId, api_synced_at: new Date().toISOString() };
 }

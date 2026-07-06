@@ -23,6 +23,8 @@ export interface IVehicle extends IBase {
     photo: string | null;
     notes: string | null;
     is_active: boolean;
+    api_vehicle_id: string | null;
+    api_synced_at:  string | null;
     deleted_at: string | null;
 }
 
