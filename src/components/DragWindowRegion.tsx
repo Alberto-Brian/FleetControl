@@ -2,15 +2,20 @@ import { closeWindow, maximizeWindow, minimizeWindow } from "@/helpers/window-he
 import React, { type ReactNode } from "react";
 
 interface DragWindowRegionProps {
-    title?: ReactNode;
-    dark?:  boolean;  // true em modo mapa (fundo escuro, botões brancos)
+    title?:        ReactNode;
+    dark?:         boolean;   // true em modo mapa
+    leftContent?:  ReactNode; // conteúdo no lado esquerdo (modo dark)
+    rightContent?: ReactNode; // conteúdo à esquerda dos botões de janela (modo dark)
 }
 
-export default function DragWindowRegion({ title, dark = false }: DragWindowRegionProps) {
-    const btnBase = `p-2 transition-colors`;
-    const btnStyle = dark
-        ? { color: 'rgba(255,255,255,0.55)' }
-        : {};
+export default function DragWindowRegion({
+    title,
+    dark = false,
+    leftContent,
+    rightContent,
+}: DragWindowRegionProps) {
+    const btnBase  = `p-2 transition-colors`;
+    const btnStyle = dark ? { color: 'rgba(255,255,255,0.55)' } : {};
     const hoverClose = dark ? 'hover:bg-red-600/70' : 'hover:bg-red-300';
     const hoverOther = dark ? 'hover:bg-white/10'   : 'hover:bg-slate-300';
 
@@ -20,51 +25,49 @@ export default function DragWindowRegion({ title, dark = false }: DragWindowRegi
             className="flex w-screen flex-row-reverse items-stretch"
             style={dark ? { background: 'rgba(8,14,28,0.94)', borderBottom: '1px solid rgba(255,255,255,0.05)' } : {}}
         >
-            <div className="flex">
-                <button
-                    title="Minimize"
-                    type="button"
-                    className={`${btnBase} ${hoverOther}`}
-                    style={btnStyle}
-                    onClick={minimizeWindow}
-                >
+            {/* Botões de janela — sempre à direita */}
+            <div className="flex flex-shrink-0">
+                <button title="Minimize" type="button" className={`${btnBase} ${hoverOther}`} style={btnStyle} onClick={minimizeWindow}>
                     <svg aria-hidden="true" role="img" width="12" height="12" viewBox="0 0 12 12">
                         <rect fill="currentColor" width="10" height="1" x="1" y="6" />
                     </svg>
                 </button>
-                <button
-                    title="Maximize"
-                    type="button"
-                    className={`${btnBase} ${hoverOther}`}
-                    style={btnStyle}
-                    onClick={maximizeWindow}
-                >
+                <button title="Maximize" type="button" className={`${btnBase} ${hoverOther}`} style={btnStyle} onClick={maximizeWindow}>
                     <svg aria-hidden="true" role="img" width="12" height="12" viewBox="0 0 12 12">
                         <rect width="9" height="9" x="1.5" y="1.5" fill="none" stroke="currentColor" />
                     </svg>
                 </button>
-                <button
-                    type="button"
-                    title="Close"
-                    className={`${btnBase} ${hoverClose}`}
-                    style={btnStyle}
-                    onClick={closeWindow}
-                >
+                <button type="button" title="Close" className={`${btnBase} ${hoverClose}`} style={btnStyle} onClick={closeWindow}>
                     <svg aria-hidden="true" role="img" width="12" height="12" viewBox="0 0 12 12">
-                        <polygon
-                            fill="currentColor"
-                            fillRule="evenodd"
-                            points="11 1.576 6.583 6 11 10.424 10.424 11 6 6.583 1.576 11 1 10.424 5.417 6 1 1.576 1.576 1 6 5.417 10.424 1"
-                        />
+                        <polygon fill="currentColor" fillRule="evenodd"
+                            points="11 1.576 6.583 6 11 10.424 10.424 11 6 6.583 1.576 11 1 10.424 5.417 6 1 1.576 1.576 1 6 5.417 10.424 1" />
                     </svg>
                 </button>
             </div>
+
+            {/* Conteúdo direito (modo dark) — imediatamente à esquerda dos botões de janela */}
+            {dark && rightContent && (
+                <div
+                    className="flex items-center flex-shrink-0"
+                    style={{ borderLeft: '1px solid rgba(255,255,255,0.05)', paddingLeft: 12, paddingRight: 12 }}
+                >
+                    {rightContent}
+                </div>
+            )}
+
+            {/* Área arrastável — ocupa o espaço restante */}
             <div className="draglayer w-full" />
-            {title && !dark && (
+
+            {/* Conteúdo esquerdo (modo dark) ou título (modo claro) */}
+            {dark && leftContent ? (
+                <div className="flex items-center flex-shrink-0">
+                    {leftContent}
+                </div>
+            ) : title && !dark ? (
                 <div className="flex flex-1 items-center justify-center whitespace-nowrap p-2 text-xs text-gray-400 select-none">
                     {title}
                 </div>
-            )}
+            ) : null}
         </div>
     );
 }
