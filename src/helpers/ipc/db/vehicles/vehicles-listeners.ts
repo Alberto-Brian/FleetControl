@@ -116,37 +116,32 @@ async function createVehicleEvent(vehicleData: ICreateVehicle) {
   // 1. Salvar localmente SEMPRE — garante que o veículo existe mesmo sem API
   const localVehicle = await createVehicle(vehicleData);
 
-  // 2. Tentar sincronizar com a API em background (best-effort)
-  //    Se falhar, o veículo fica marcado como não sincronizado (api_vehicle_id = null)
-  if (vehicleData.createTraccarDevice) {
+  // 2. Tentar sincronizar com a API em background (best-effort, apenas em modo connected)
+  //    Se traccar_unique_id estiver preenchido, a API cria o device Traccar automaticamente
+  const token = getStoredApiToken();
+  if (token) {
     try {
       const { data: apiResponse } = await axios.post(`${API_URL}/api/vehicles`, {
-        license_plate: vehicleData.license_plate,
-        brand: vehicleData.brand,
-        model: vehicleData.model,
-        year: vehicleData.year,
-        color: vehicleData.color,
-        chassis_number: vehicleData.chassis_number,
-        engine_number: vehicleData.engine_number,
+        license_plate:      vehicleData.license_plate,
+        brand:              vehicleData.brand,
+        model:              vehicleData.model,
+        year:               vehicleData.year,
+        color:              vehicleData.color,
+        chassis_number:     vehicleData.chassis_number,
+        engine_number:      vehicleData.engine_number,
         fuel_tank_capacity: vehicleData.fuel_tank_capacity,
-        tire_size: vehicleData.tire_size,
-        current_mileage: vehicleData.current_mileage,
-        acquisition_date: vehicleData.acquisition_date,
-        acquisition_value: vehicleData.acquisition_value,
-        photo: vehicleData.photo,
-        notes: vehicleData.notes,
-        createTraccarDevice: true,
-        traccarDevice: {
-          name: vehicleData.traccarDevice?.name || `${vehicleData.license_plate} - ${vehicleData.brand} ${vehicleData.model}`,
-          uniqueId: vehicleData.traccarDevice?.uniqueId || vehicleData.license_plate,
-          attributes: vehicleData.traccarDevice?.attributes,
-        },
+        tire_size:          vehicleData.tire_size,
+        current_mileage:    vehicleData.current_mileage,
+        acquisition_date:   vehicleData.acquisition_date,
+        acquisition_value:  vehicleData.acquisition_value,
+        photo:              vehicleData.photo,
+        notes:              vehicleData.notes,
+        traccar_unique_id:  vehicleData.traccar_unique_id || null,
       }, {
-        headers: apiHeaders(),
+        headers: { Authorization: `Bearer ${token}` },
         timeout: 15_000,
       });
 
-      // Guardar o UUID da API no registo local
       if (apiResponse?.data?.id) {
         const { db } = useDb();
         await db.update(vehicles)
@@ -159,7 +154,6 @@ async function createVehicleEvent(vehicleData: ICreateVehicle) {
         return { ...localVehicle, api_vehicle_id: apiResponse.data.id, api_synced_at: new Date().toISOString() };
       }
     } catch (err: any) {
-      // Falha silenciosa — veículo criado localmente, sync pendente
       console.warn('[Vehicles] API sync falhou ao criar:', err?.message ?? err);
     }
   }
@@ -269,6 +263,7 @@ async function syncVehicleToApiEvent(vehicleId: string) {
     acquisition_date:   vehicle.acquisition_date,
     acquisition_value:  vehicle.acquisition_value,
     notes:              vehicle.notes,
+    traccar_unique_id:  vehicle.traccar_unique_id || null,
   }, {
     headers: apiHeaders(),
     timeout: 15_000,

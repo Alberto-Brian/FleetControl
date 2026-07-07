@@ -1,0 +1,1 @@
+ALTER TABLE `vehicles` ADD `traccar_unique_id` text;

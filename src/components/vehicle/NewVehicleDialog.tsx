@@ -5,7 +5,6 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -39,7 +38,7 @@ export default function NewVehicleDialog() {
     year: new Date().getFullYear(),
     color: '',
     current_mileage: 0,
-    createTraccarDevice: false,
+    traccar_unique_id: '',
   });
 
   {/* Estado para pesquisa — adiciona junto aos outros estados */}
@@ -108,7 +107,7 @@ const filteredCategories = categories.filter(cat =>
       year: new Date().getFullYear(),
       color: '',
       current_mileage: 0,
-      createTraccarDevice: false,
+      traccar_unique_id: '',
     });
   }
 
@@ -306,24 +305,22 @@ const filteredCategories = categories.filter(cat =>
             </div>
 
             {isConnectedLicense && (
-              <label className="col-span-2 flex items-center gap-3 rounded-md border border-border p-3 cursor-pointer">
-                <Checkbox
-                  checked={!!formData.createTraccarDevice}
-                  onCheckedChange={(checked) => {
-                    setFormData({
-                      ...formData,
-                      createTraccarDevice: checked === true,
-                      traccarDevice: checked === true
-                        ? {
-                            name: `${formData.license_plate || 'VEICULO'} - ${formData.brand} ${formData.model}`.trim(),
-                            uniqueId: formData.license_plate,
-                          }
-                        : undefined,
-                    });
-                  }}
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="traccar_unique_id">
+                  IMEI / ID do GPS
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">(opcional)</span>
+                </Label>
+                <Input
+                  id="traccar_unique_id"
+                  placeholder="Ex: 353926070024734"
+                  value={formData.traccar_unique_id || ''}
+                  onChange={(e) => setFormData({ ...formData, traccar_unique_id: e.target.value })}
+                  className="font-mono"
                 />
-                <span className="text-sm font-medium">Criar device Traccar para este veículo</span>
-              </label>
+                <p className="text-xs text-muted-foreground">
+                  Se preenchido, o device de rastreamento GPS é criado automaticamente ao sincronizar com a API.
+                </p>
+              </div>
             )}
 
             <div className="space-y-2">

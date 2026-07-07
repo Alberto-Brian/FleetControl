@@ -71,6 +71,13 @@
       "when": 1783430400000,
       "tag": "0009_vehicles_api_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1783410972205,
+      "tag": "0010_closed_centennial",
+      "breakpoints": true
     }
   ]
 }

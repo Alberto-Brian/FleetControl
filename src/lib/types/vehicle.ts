@@ -23,6 +23,7 @@ export interface IVehicle extends IBase {
     photo: string | null;
     notes: string | null;
     is_active: boolean;
+    traccar_unique_id: string | null;
     api_vehicle_id: string | null;
     api_synced_at:  string | null;
     deleted_at: string | null;
@@ -44,12 +45,8 @@ export interface ICreateVehicle {
     acquisition_value?: number;
     photo?: string;
     notes?: string;
-    createTraccarDevice?: boolean;
-    traccarDevice?: {
-        name?: string;
-        uniqueId?: string;
-        attributes?: Record<string, unknown>;
-    };
+    // IMEI do GPS — se preenchido, a API cria automaticamente o device Traccar
+    traccar_unique_id?: string;
 }
 
 export interface IUpdateVehicle {
@@ -69,6 +66,7 @@ export interface IUpdateVehicle {
     status?: VehicleStatus;
     photo?: string;
     notes?: string;
+    traccar_unique_id?: string | null;
 }
 
 export interface IUpdateStatus{

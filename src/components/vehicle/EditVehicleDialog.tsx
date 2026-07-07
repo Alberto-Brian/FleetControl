@@ -16,6 +16,7 @@ import { updateVehicle as updateVehiclesHelper } from '@/helpers/vehicle-helpers
 import { getAllVehicleCategories } from '@/helpers/vehicle-category-helpers';
 import { IUpdateVehicle } from '@/lib/types/vehicle';
 import { useVehicles } from '@/contexts/VehiclesContext';
+import { useLicense } from '@/hooks/useLicense';
 
 interface EditVehicleDialogProps {
   open: boolean;
@@ -28,6 +29,8 @@ export default function EditVehicleDialog({
 }: EditVehicleDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
+  const { license } = useLicense();
+  const isConnectedLicense = license?.mode === 'connected';
   const { state: {selectedVehicle}, updateVehicle } = useVehicles()
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
@@ -47,6 +50,7 @@ export default function EditVehicleDialog({
     acquisition_date: '',
     acquisition_value: 0,
     notes: '',
+    traccar_unique_id: undefined,
   });
 
   useEffect(() => {
@@ -72,6 +76,7 @@ export default function EditVehicleDialog({
         acquisition_date: selectedVehicle.acquisition_date || '',
         acquisition_value: selectedVehicle.acquisition_value || 0,
         notes: selectedVehicle.notes || '',
+        traccar_unique_id: selectedVehicle.traccar_unique_id || '',
       });
     }
   }, [open, selectedVehicle, categories]);
@@ -283,6 +288,25 @@ export default function EditVehicleDialog({
                   </div>
 
                 </div>
+
+                {isConnectedLicense && (
+                  <div className="col-span-2 space-y-2">
+                    <Label htmlFor="traccar_unique_id">
+                      IMEI / ID do GPS
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">(opcional)</span>
+                    </Label>
+                    <Input
+                      id="traccar_unique_id"
+                      placeholder="Ex: 353926070024734"
+                      value={formData.traccar_unique_id || ''}
+                      onChange={(e) => setFormData({ ...formData, traccar_unique_id: e.target.value || null })}
+                      className="font-mono"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      IMEI do dispositivo GPS instalado neste veículo. Utilizado para rastreamento em tempo real.
+                    </p>
+                  </div>
+                )}
 
                 <div className="p-4 bg-muted/50 rounded-lg border border-muted">
                   <p className="text-sm text-muted-foreground">
