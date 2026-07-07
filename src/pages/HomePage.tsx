@@ -113,8 +113,8 @@ export default function HomePage() {
             className="absolute left-0 top-0 bottom-0 flex flex-col items-center py-3 overflow-hidden"
             style={{
               width:        NAV_RAIL_W,
-              background:   'rgba(10,17,32,0.95)',
-              borderRight:  '1px solid rgba(255,255,255,0.06)',
+              background:   'rgba(8,14,28,0.97)',
+              boxShadow:    '3px 0 24px rgba(0,0,0,0.5)',
               pointerEvents: 'auto',
             }}
           >
@@ -159,17 +159,23 @@ export default function HomePage() {
             </div>
           </aside>
 
-          {/* Painel de conteúdo (secções que não são rastreamento) */}
+          {/* Painel de conteúdo flutuante (secções que não são rastreamento) */}
           {activeSection !== 'tracking' && (
             <div
-              className="absolute top-0 bottom-0 flex flex-col overflow-hidden"
+              className="absolute flex flex-col overflow-hidden"
               style={{
-                left:         NAV_RAIL_W,
-                width:        460,
-                background:   'rgba(10,17,32,0.92)',
-                borderRight:  '1px solid rgba(255,255,255,0.06)',
+                top:           8,
+                bottom:        8,
+                left:          NAV_RAIL_W + 6,
+                width:         400,
+                background:    'rgba(8,14,28,0.88)',
+                backdropFilter: 'blur(20px) saturate(1.4)',
+                WebkitBackdropFilter: 'blur(20px) saturate(1.4)',
+                borderRadius:  14,
+                border:        '1px solid rgba(255,255,255,0.07)',
+                boxShadow:     '0 8px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3)',
                 pointerEvents: 'auto',
-              }}
+              } as React.CSSProperties}
             >
               {/* Cabeçalho do painel */}
               <div
@@ -180,7 +186,7 @@ export default function HomePage() {
                   className: 'w-4 h-4 flex-shrink-0',
                   style: { color: 'rgba(255,255,255,0.4)' },
                 })}
-                <h2 className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.82)' }}>
+                <h2 className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.85)' }}>
                   {activeItem?.label}
                 </h2>
               </div>

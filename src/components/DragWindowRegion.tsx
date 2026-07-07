@@ -18,7 +18,7 @@ export default function DragWindowRegion({ title, dark = false }: DragWindowRegi
         <div
             id="drag-window-region"
             className="flex w-screen flex-row-reverse items-stretch"
-            style={dark ? { background: 'rgba(10,17,32,0.97)', borderBottom: '1px solid rgba(255,255,255,0.06)' } : {}}
+            style={dark ? { background: 'rgba(8,14,28,0.94)', borderBottom: '1px solid rgba(255,255,255,0.05)' } : {}}
         >
             <div className="flex">
                 <button

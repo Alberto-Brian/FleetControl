@@ -19,19 +19,12 @@ export function LicenseGuard({ children }: { children: React.ReactNode }) {
   // Usa o socket do contexto — não instancia um novo hook
   const { connState, connError, traccarStatus, connect, disconnect } = useTracking();
 
-  const [showDialog, setShowDialog] = useState(false);
-
   useEffect(() => {
-    if (licenseLoading) return;
-
-    if (!license?.isValid) {
-      setShowDialog(true);
+    if (licenseLoading || !license?.isValid) {
       disconnect();
       hasConnected.current = false;
       return;
     }
-
-    setShowDialog(false);
 
     if (license.mode === 'connected' && !hasConnected.current) {
       const token = getAccessToken();
@@ -49,8 +42,7 @@ export function LicenseGuard({ children }: { children: React.ReactNode }) {
 
   const handleActivationSuccess = async () => {
     await refreshLicense();
-    setShowDialog(false);
-    // Após refresh, o useEffect acima dispara de novo com o token já disponível
+    // useEffect acima dispara de novo após refresh
   };
 
   async function handleReconnect() {
@@ -80,33 +72,49 @@ export function LicenseGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Sem licença válida — mostra apenas o ecrã de activação, nada mais
+  if (!license?.isValid) {
+    return (
+      <div className="min-h-screen bg-background">
+        <LicenseActivationDialog
+          open={true}
+          onOpenChange={() => {}}
+          onSuccess={handleActivationSuccess}
+        />
+      </div>
+    );
+  }
+
   return (
     <>
-      <LicenseActivationDialog
-        open={showDialog}
-        onOpenChange={setShowDialog}
-        onSuccess={handleActivationSuccess}
-      />
-
-      {license?.mode === 'connected' && (
-        <div className="fixed top-1 right-20 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur border shadow-sm text-xs font-medium">
+      {license.mode === 'connected' && (
+        <div
+          className="fixed top-8 right-20 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+          style={{
+            background: 'rgba(8,14,28,0.88)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.35)',
+          } as React.CSSProperties}
+        >
           {connState === 'connected' && traccarStatus?.connected ? (
-            <><Wifi className="w-3.5 h-3.5 text-green-500" /><span className="text-green-600">Online</span></>
+            <><Wifi className="w-3.5 h-3.5 text-green-400" /><span className="text-green-400">Online</span></>
           ) : connState === 'connected' && !traccarStatus?.connected ? (
             <>
-              <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-              <span className="text-amber-600">API OK • Traccar offline</span>
+              <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-amber-400">API OK • Traccar offline</span>
             </>
           ) : connState === 'connecting' || isReconnecting ? (
-            <><Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" /><span className="text-blue-600">A ligar...</span></>
+            <><Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" /><span className="text-blue-400">A ligar...</span></>
           ) : connState === 'error' ? (
             <>
-              <AlertCircle className="w-3.5 h-3.5 text-red-500" />
-              <span className="text-red-600" title={connError?.message}>Erro de ligação</span>
+              <AlertCircle className="w-3.5 h-3.5 text-red-400" />
+              <span className="text-red-400" title={connError?.message}>Erro de ligação</span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-5 px-1.5 text-[10px] text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 ml-1"
+                className="h-5 px-1.5 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-950/40 ml-1"
                 onClick={handleReconnect}
                 disabled={isReconnecting}
               >
@@ -117,11 +125,11 @@ export function LicenseGuard({ children }: { children: React.ReactNode }) {
           ) : (
             <>
               <WifiOff className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-slate-500">Offline</span>
+              <span className="text-slate-400">Offline</span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-5 px-1.5 text-[10px] text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 ml-1"
+                className="h-5 px-1.5 text-[10px] text-slate-400 hover:text-slate-300 hover:bg-slate-800/60 ml-1"
                 onClick={handleReconnect}
                 disabled={isReconnecting}
               >
