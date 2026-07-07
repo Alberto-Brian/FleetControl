@@ -192,7 +192,7 @@ export default function HomePage() {
               </div>
 
               {/* Conteúdo com scroll */}
-              <div className="flex-1 overflow-y-auto overflow-x-auto">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden">
                 <div className="p-4">
                   {renderContent()}
                 </div>
