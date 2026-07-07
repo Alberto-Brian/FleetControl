@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Truck, Fuel, Wrench, Users, MapPin, Route as RouteIcon, DollarSign,
   FileText, BarChart3, Home, Settings, Menu, AlertTriangle,
+  Wifi, WifiOff, AlertCircle, RefreshCw, Loader2,
 } from 'lucide-react';
 import { Button }      from '@/components/ui/button';
 import { ScrollArea }  from '@/components/ui/scroll-area';
@@ -14,6 +15,8 @@ import { useTranslation } from 'react-i18next';
 import UserMenu         from '@/components/UserMenu';
 import SettingsDialog   from '@/components/SettingsDialog';
 import { useLicense }   from '@/hooks/useLicense';
+import { useTracking }  from '@/contexts/TrackingContext';
+import { getAccessToken } from '@/helpers/license-helpers';
 import { TrackingPageContent } from '@/pages/provider/TrackingPageContent';
 
 // Page imports
@@ -143,20 +146,6 @@ export default function HomePage() {
               })}
             </div>
 
-            {/* Rodapé: definições + utilizador */}
-            <div className="flex flex-col items-center gap-1 flex-shrink-0 pt-2"
-                 style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8, width: '100%', alignItems: 'center' }}>
-              <NavRailButton
-                icon={<Settings className="w-5 h-5" />}
-                label={t('navigation:header.settings')}
-                active={false}
-                onClick={() => setIsSettingsOpen(true)}
-              />
-              {/* UserMenu — já usa DropdownMenu com Avatar */}
-              <div className="mt-1">
-                <UserMenu />
-              </div>
-            </div>
           </aside>
 
           {/* Painel de conteúdo flutuante (secções que não são rastreamento) */}
@@ -200,6 +189,9 @@ export default function HomePage() {
             </div>
           )}
         </div>
+
+        {/* Barra superior direita: estado + definições + perfil */}
+        <ConnectedTopBar onSettings={() => setIsSettingsOpen(true)} />
 
         <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
       </div>
@@ -312,6 +304,116 @@ export default function HomePage() {
 
       <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
     </div>
+  );
+}
+
+// ─── Barra superior direita (só em modo connected) ───────────────────────────
+function ConnectedTopBar({ onSettings }: { onSettings: () => void }) {
+  const { connState, traccarStatus, connError, connect, disconnect } = useTracking();
+  const [isReconnecting, setIsReconnecting] = useState(false);
+
+  const handleReconnect = async () => {
+    setIsReconnecting(true);
+    try {
+      const token = getAccessToken();
+      if (token) {
+        disconnect();
+        await new Promise(r => setTimeout(r, 300));
+        connect(token);
+      }
+    } finally {
+      setIsReconnecting(false);
+    }
+  };
+
+  const isOnline    = connState === 'connected' && traccarStatus?.connected;
+  const isApiOnly   = connState === 'connected' && !traccarStatus?.connected;
+  const isConnecting = connState === 'connecting' || isReconnecting;
+  const isError     = connState === 'error' && !isReconnecting;
+  const isOffline   = !isOnline && !isApiOnly && !isConnecting && !isError;
+
+  const TITLEBAR_H = 28; // px — altura dos botões da DragWindowRegion (p-2 + 12px SVG)
+  const WIN_CTRL_W = 88; // px — 3 botões × ~28px + pequena margem
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        right: WIN_CTRL_W,
+        height: TITLEBAR_H,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        paddingLeft: 10,
+        paddingRight: 6,
+        zIndex: 60,
+        pointerEvents: 'auto',
+        // fundo dark matching DragWindowRegion
+        background: 'rgba(8,14,28,0.94)',
+        borderLeft: '1px solid rgba(255,255,255,0.05)',
+      }}
+    >
+      {/* ── Badge de estado ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        {isOnline && (
+          <><Wifi className="w-3 h-3" style={{ color: '#4ade80' }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#4ade80' }}>Online</span></>
+        )}
+        {isApiOnly && (
+          <><AlertCircle className="w-3 h-3" style={{ color: '#fbbf24' }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#fbbf24' }}>Traccar offline</span></>
+        )}
+        {isConnecting && (
+          <><Loader2 className="w-3 h-3 animate-spin" style={{ color: '#60a5fa' }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#60a5fa' }}>A ligar...</span></>
+        )}
+        {isError && (
+          <><AlertCircle className="w-3 h-3" style={{ color: '#f87171' }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#f87171' }} title={connError?.message}>Erro</span>
+            <button onClick={handleReconnect} style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>↺</button></>
+        )}
+        {isOffline && (
+          <><WifiOff className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.3)' }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)' }}>Offline</span>
+            <button onClick={handleReconnect} style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>↺</button></>
+        )}
+      </div>
+
+      {/* ── Separador ── */}
+      <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.1)', margin: '0 6px' }} />
+
+      {/* ── Definições ── */}
+      <TitleBarBtn title="Definições" onClick={onSettings}>
+        <Settings className="w-3.5 h-3.5" />
+      </TitleBarBtn>
+
+      {/* ── Perfil ── */}
+      <UserMenu compact />
+    </div>
+  );
+}
+
+// Botão compacto para a barra de título
+function TitleBarBtn({ children, title, onClick }: { children: React.ReactNode; title: string; onClick: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      title={title}
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        width: 22, height: 22, borderRadius: 5, border: 'none', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: hovered ? 'rgba(255,255,255,0.1)' : 'transparent',
+        color: hovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.45)',
+        transition: 'background 0.15s, color 0.15s',
+        flexShrink: 0,
+      }}
+    >
+      {children}
+    </button>
   );
 }
 

@@ -14,7 +14,7 @@ import { User, LogOut, Settings, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
-export default function UserMenu() {
+export default function UserMenu({ compact = false }: { compact?: boolean }) {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -45,23 +45,37 @@ export default function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="ghost" 
-          className="h-10 gap-2 px-2 hover:bg-muted"
-        >
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-              {getInitials(user.name)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="hidden sm:flex flex-col items-start">
-            <span className="text-sm font-medium leading-none">{user.name}</span>
-            <span className="text-xs text-muted-foreground leading-none mt-0.5">
-              {user.email}
-            </span>
-          </div>
-        </Button>
+        {compact ? (
+          <button
+            title={user.name}
+            style={{
+              width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+              background: 'rgba(59,130,246,0.28)', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#93c5fd', fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+            }}
+          >
+            {getInitials(user.name)}
+          </button>
+        ) : (
+          <Button
+            variant="ghost"
+            className="h-10 gap-2 px-2 hover:bg-muted"
+          >
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                {getInitials(user.name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="hidden sm:flex flex-col items-start">
+              <span className="text-sm font-medium leading-none">{user.name}</span>
+              <span className="text-xs text-muted-foreground leading-none mt-0.5">
+                {user.email}
+              </span>
+            </div>
+          </Button>
+        )}
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-56">
