@@ -19,7 +19,14 @@ import { VehicleDeviceLinkSheet }  from '@/components/tracking/VehicleDeviceLink
 import { CreateTraccarDeviceDialog } from '@/components/tracking/CreateTraccarDeviceDialog';
 import { Loader2 }                 from 'lucide-react';
 
-export function TrackingPageContent() {
+interface TrackingPageContentProps {
+  // false → só o mapa, sem toolbar/sidebar/painéis (modo fundo)
+  showControls?: boolean;
+  // pixels a deslocar os controlos da esquerda (para o nav rail em modo mapa)
+  leftOffset?: number;
+}
+
+export function TrackingPageContent({ showControls = true, leftOffset = 0 }: TrackingPageContentProps) {
   const { t }               = useTranslation('tracking');
   const { state, dispatch, isConnected } = useTracking();
   const mapRef = useRef<any>(null);
@@ -66,7 +73,8 @@ export function TrackingPageContent() {
     }
   }
 
-  if (state.isLoading) {
+  // Em modo fundo (showControls=false) não mostra spinner — o mapa fica estático
+  if (showControls && state.isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-4">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -75,8 +83,13 @@ export function TrackingPageContent() {
     );
   }
 
+  // Margens negativas só no layout normal (não no modo fundo)
+  const wrapClass = showControls
+    ? 'relative h-full -m-4 md:-m-6 overflow-hidden'
+    : 'relative h-full overflow-hidden';
+
   return (
-    <div className="relative h-full -m-4 md:-m-6 overflow-hidden">
+    <div className={wrapClass}>
       {/* Mapa ocupa toda a área */}
       <TrackingMap
         mapRef={mapRef}
@@ -89,69 +102,79 @@ export function TrackingPageContent() {
         onSelectDevice={(device) => dispatch({ type: 'SELECT_DEVICE', payload: device })}
       />
 
-      {/* Toolbar flutuante no topo */}
-      <TrackingToolbar
-        isConnected={isConnected}
-        isSidebarOpen={state.isSidebarOpen}
-        onToggleSidebar={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
-        onRefresh={loadInitial}
-        onSyncDevices={async () => {
-          dispatch({ type: 'SET_LOADING', payload: true });
-          try {
-            const devs = await syncDevices();
-            if (devs?.length) dispatch({ type: 'SET_DEVICES', payload: devs });
-          } finally {
-            dispatch({ type: 'SET_LOADING', payload: false });
-          }
-        }}
-        totalDevices={state.devices.length}
-        onlineDevices={state.devices.filter(d => d.status === 'online').length}
-        offlineDevices={state.devices.filter(d => d.status !== 'online').length}
-        showingHistory={state.showHistory}
-        onExitHistory={() => dispatch({ type: 'TOGGLE_HISTORY', payload: false })}
-        onFilterStatus={(status) => dispatch({ type: 'FILTER_STATUS', payload: status })}
-        isLoading={state.isLoading}
-        lastUpdate={state.lastUpdate}
-        onLinkDevices={() => setLinkSheetOpen(true)}
-        onCreateDevice={() => setCreateDeviceOpen(true)}
-      />
+      {/* Controlos — só renderizados quando showControls=true */}
+      {showControls && (
+        <>
+          {/* Contentor dos controlos com offset do nav rail */}
+          <div
+            className="absolute top-0 bottom-0 right-0"
+            style={{ left: leftOffset, pointerEvents: 'none' }}
+          >
+            <div className="relative h-full" style={{ pointerEvents: 'auto' }}>
+              <TrackingToolbar
+                isConnected={isConnected}
+                isSidebarOpen={state.isSidebarOpen}
+                onToggleSidebar={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
+                onRefresh={loadInitial}
+                onSyncDevices={async () => {
+                  dispatch({ type: 'SET_LOADING', payload: true });
+                  try {
+                    const devs = await syncDevices();
+                    if (devs?.length) dispatch({ type: 'SET_DEVICES', payload: devs });
+                  } finally {
+                    dispatch({ type: 'SET_LOADING', payload: false });
+                  }
+                }}
+                totalDevices={state.devices.length}
+                onlineDevices={state.devices.filter(d => d.status === 'online').length}
+                offlineDevices={state.devices.filter(d => d.status !== 'online').length}
+                showingHistory={state.showHistory}
+                onExitHistory={() => dispatch({ type: 'TOGGLE_HISTORY', payload: false })}
+                onFilterStatus={(status) => dispatch({ type: 'FILTER_STATUS', payload: status })}
+                isLoading={state.isLoading}
+                lastUpdate={state.lastUpdate}
+                onLinkDevices={() => setLinkSheetOpen(true)}
+                onCreateDevice={() => setCreateDeviceOpen(true)}
+              />
 
-      {/* Sidebar flutuante à esquerda, abaixo do toolbar */}
-      {state.isSidebarOpen && (
-        <DeviceSidebar
-          devices={state.devices}
-          positions={state.positions}
-          selectedDevice={state.selectedDevice}
-          filteredStatus={state.filteredStatus}
-          onSelect={(device) => {
-            dispatch({ type: 'SELECT_DEVICE', payload: device });
-            dispatch({ type: 'TOGGLE_HISTORY', payload: false });
-          }}
-        />
+              {state.isSidebarOpen && (
+                <DeviceSidebar
+                  devices={state.devices}
+                  positions={state.positions}
+                  selectedDevice={state.selectedDevice}
+                  filteredStatus={state.filteredStatus}
+                  onSelect={(device) => {
+                    dispatch({ type: 'SELECT_DEVICE', payload: device });
+                    dispatch({ type: 'TOGGLE_HISTORY', payload: false });
+                  }}
+                />
+              )}
+
+              {state.selectedDevice && (
+                <DeviceInfoPanel
+                  device={state.selectedDevice}
+                  position={state.positions.find(p => p.deviceId === state.selectedDevice?.traccar_id)}
+                  onClose={() => {
+                    dispatch({ type: 'SELECT_DEVICE', payload: null });
+                    dispatch({ type: 'TOGGLE_HISTORY', payload: false });
+                  }}
+                  onShowHistory={handleShowHistory}
+                />
+              )}
+            </div>
+          </div>
+
+          <VehicleDeviceLinkSheet
+            open={linkSheetOpen}
+            onOpenChange={setLinkSheetOpen}
+          />
+          <CreateTraccarDeviceDialog
+            open={createDeviceOpen}
+            onOpenChange={setCreateDeviceOpen}
+            onCreated={loadInitial}
+          />
+        </>
       )}
-
-      {/* Painel de info flutuante no canto inferior direito */}
-      {state.selectedDevice && (
-        <DeviceInfoPanel
-          device={state.selectedDevice}
-          position={state.positions.find(p => p.deviceId === state.selectedDevice?.traccar_id)}
-          onClose={() => {
-            dispatch({ type: 'SELECT_DEVICE', payload: null });
-            dispatch({ type: 'TOGGLE_HISTORY', payload: false });
-          }}
-          onShowHistory={handleShowHistory}
-        />
-      )}
-
-      <VehicleDeviceLinkSheet
-        open={linkSheetOpen}
-        onOpenChange={setLinkSheetOpen}
-      />
-      <CreateTraccarDeviceDialog
-        open={createDeviceOpen}
-        onOpenChange={setCreateDeviceOpen}
-        onCreated={loadInitial}
-      />
     </div>
   );
 }
