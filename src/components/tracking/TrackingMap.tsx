@@ -9,32 +9,57 @@ import type { Position }      from '@/hooks/useApiConnection';
 import type { TrackedDevice, PositionHistory } from '@/helpers/tracking-helpers';
 import { getDeviceColor, getDeviceTrailColor, formatSpeed } from '@/helpers/tracking-helpers';
 
-// Ícone SVG com seta de direcção
-function createDeviceIcon(color: string, course: number, isSelected: boolean, isMoving: boolean) {
-  const size   = isSelected ? 44 : 36;
-  const pulse  = isSelected
-    ? `<circle cx="22" cy="22" r="20" fill="${color}" opacity="0.15"/>`
+// Ícone SVG com seta de direcção + label com nome
+function createDeviceIcon(
+  color: string, course: number, isSelected: boolean, isMoving: boolean, name?: string,
+) {
+  const size = isSelected ? 44 : 36;
+  const r    = isSelected ? 14 : 12;
+  const sw   = isSelected ? 3  : 2;
+  const cx   = size / 2;
+  const cy   = size / 2;
+
+  const pulse = isSelected
+    ? `<circle cx="${cx}" cy="${cy}" r="${cx - 2}" fill="${color}" opacity="0.15"/>`
     : '';
 
   const svg = `
-    <svg width="${size}" height="${size}" viewBox="0 0 44 44"
-         xmlns="http://www.w3.org/2000/svg">
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
       ${pulse}
-      <circle cx="22" cy="22" r="${isSelected ? 14 : 12}"
-              fill="${color}"
-              stroke="white"
-              stroke-width="${isSelected ? 3 : 2}"
-              opacity="0.95"/>
-      <g transform="translate(22,22) rotate(${course})">
-        <path d="M0,-9 L5,5 L0,2 L-5,5 Z"
-              fill="white"
-              opacity="${isMoving ? 1 : 0.5}"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" stroke="white" stroke-width="${sw}" opacity="0.95"/>
+      <g transform="translate(${cx},${cy}) rotate(${course})">
+        <path d="M0,-9 L5,5 L0,2 L-5,5 Z" fill="white" opacity="${isMoving ? 1 : 0.5}"/>
       </g>
-    </svg>
-  `;
+    </svg>`;
+
+  const escapedName = name
+    ? name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    : null;
+
+  const label = escapedName
+    ? `<div style="
+        position:absolute;
+        top:${size + 4}px;
+        left:50%;
+        transform:translateX(-50%);
+        white-space:nowrap;
+        background:rgba(10,17,32,0.88);
+        color:rgba(255,255,255,0.88);
+        font-size:10px;
+        font-weight:600;
+        padding:2px 6px;
+        border-radius:4px;
+        font-family:system-ui,sans-serif;
+        pointer-events:none;
+        border:1px solid rgba(255,255,255,0.1);
+        max-width:120px;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      ">${escapedName}</div>`
+    : '';
 
   return L.divIcon({
-    html:       svg,
+    html:       `<div style="position:relative;width:${size}px;height:${size}px">${svg}${label}</div>`,
     className:  '',
     iconSize:   [size, size],
     iconAnchor: [size / 2, size / 2],
@@ -139,7 +164,7 @@ export function TrackingMap({
         const isSelected = selectedDevice?.traccar_id === pos.deviceId;
         const isMoving   = (pos.speed ?? 0) > 0;
         const color      = getDeviceColor(device?.status ?? 'unknown', pos.speed ?? 0);
-        const icon       = createDeviceIcon(color, pos.course ?? 0, isSelected, isMoving);
+        const icon       = createDeviceIcon(color, pos.course ?? 0, isSelected, isMoving, deviceName);
 
         return (
           <Marker
