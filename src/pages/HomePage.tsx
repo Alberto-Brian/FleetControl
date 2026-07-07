@@ -167,7 +167,7 @@ export default function HomePage() {
                 top:           8,
                 bottom:        8,
                 left:          NAV_RAIL_W + 6,
-                width:         400,
+                right:         8,
                 background:    'rgba(8,14,28,0.88)',
                 backdropFilter: 'blur(20px) saturate(1.4)',
                 WebkitBackdropFilter: 'blur(20px) saturate(1.4)',
