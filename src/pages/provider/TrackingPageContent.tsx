@@ -76,69 +76,72 @@ export function TrackingPageContent() {
   }
 
   return (
-    <div className="flex h-full -m-4 md:-m-6 overflow-hidden">
+    <div className="relative h-full -m-4 md:-m-6 overflow-hidden">
+      {/* Mapa ocupa toda a área */}
+      <TrackingMap
+        mapRef={mapRef}
+        positions={state.positions}
+        historyPositions={state.historyPositions}
+        devices={state.devices}
+        selectedDevice={state.selectedDevice}
+        showHistory={state.showHistory}
+        trail={state.trail}
+        onSelectDevice={(device) => dispatch({ type: 'SELECT_DEVICE', payload: device })}
+      />
+
+      {/* Toolbar flutuante no topo */}
+      <TrackingToolbar
+        isConnected={isConnected}
+        isSidebarOpen={state.isSidebarOpen}
+        onToggleSidebar={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
+        onRefresh={loadInitial}
+        onSyncDevices={async () => {
+          dispatch({ type: 'SET_LOADING', payload: true });
+          try {
+            const devs = await syncDevices();
+            if (devs?.length) dispatch({ type: 'SET_DEVICES', payload: devs });
+          } finally {
+            dispatch({ type: 'SET_LOADING', payload: false });
+          }
+        }}
+        totalDevices={state.devices.length}
+        onlineDevices={state.devices.filter(d => d.status === 'online').length}
+        offlineDevices={state.devices.filter(d => d.status !== 'online').length}
+        showingHistory={state.showHistory}
+        onExitHistory={() => dispatch({ type: 'TOGGLE_HISTORY', payload: false })}
+        onFilterStatus={(status) => dispatch({ type: 'FILTER_STATUS', payload: status })}
+        isLoading={state.isLoading}
+        lastUpdate={state.lastUpdate}
+        onLinkDevices={() => setLinkSheetOpen(true)}
+        onCreateDevice={() => setCreateDeviceOpen(true)}
+      />
+
+      {/* Sidebar flutuante à esquerda, abaixo do toolbar */}
       {state.isSidebarOpen && (
         <DeviceSidebar
           devices={state.devices}
           positions={state.positions}
           selectedDevice={state.selectedDevice}
+          filteredStatus={state.filteredStatus}
           onSelect={(device) => {
             dispatch({ type: 'SELECT_DEVICE', payload: device });
-            // Sai do modo histórico ao seleccionar novo device
             dispatch({ type: 'TOGGLE_HISTORY', payload: false });
           }}
         />
       )}
 
-      <div className="flex-1 flex flex-col relative">
-        <TrackingToolbar
-            isConnected={isConnected}
-            isSidebarOpen={state.isSidebarOpen}
-            onToggleSidebar={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
-            onRefresh={loadInitial}
-            onSyncDevices={async () => {
-              dispatch({ type: 'SET_LOADING', payload: true });
-              try {
-                const devs = await syncDevices();
-                if (devs?.length) dispatch({ type: 'SET_DEVICES', payload: devs });
-              } finally {
-                dispatch({ type: 'SET_LOADING', payload: false });
-              }
-            }}
-            totalDevices={state.devices.length}
-            onlineDevices={state.devices.filter(d => d.status === 'online').length}
-            offlineDevices={state.devices.filter(d => d.status !== 'online').length}
-            showingHistory={state.showHistory}
-            onExitHistory={() => dispatch({ type: 'TOGGLE_HISTORY', payload: false })}
-            onFilterStatus={(status) => dispatch({ type: 'FILTER_STATUS', payload: status })}
-            isLoading={state.isLoading}
-            lastUpdate={state.lastUpdate}
-            onLinkDevices={() => setLinkSheetOpen(true)}
-            onCreateDevice={() => setCreateDeviceOpen(true)}
-          />
-
-        <TrackingMap
-          mapRef={mapRef}
-          positions={state.showHistory ? state.historyPositions : state.positions}
-          devices={state.devices}
-          selectedDevice={state.selectedDevice}
-          showHistory={state.showHistory}
-          trail={state.trail}
-          onSelectDevice={(device) => dispatch({ type: 'SELECT_DEVICE', payload: device })}
+      {/* Painel de info flutuante no canto inferior direito */}
+      {state.selectedDevice && (
+        <DeviceInfoPanel
+          device={state.selectedDevice}
+          position={state.positions.find(p => p.deviceId === state.selectedDevice?.traccar_id)}
+          onClose={() => {
+            dispatch({ type: 'SELECT_DEVICE', payload: null });
+            dispatch({ type: 'TOGGLE_HISTORY', payload: false });
+          }}
+          onShowHistory={handleShowHistory}
         />
-
-        {state.selectedDevice && (
-          <DeviceInfoPanel
-            device={state.selectedDevice}
-            position={state.positions.find(p => p.deviceId === state.selectedDevice?.traccar_id)}
-            onClose={() => {
-              dispatch({ type: 'SELECT_DEVICE', payload: null });
-              dispatch({ type: 'TOGGLE_HISTORY', payload: false });
-            }}
-            onShowHistory={handleShowHistory}
-          />
-        )}
-      </div>
+      )}
 
       <VehicleDeviceLinkSheet
         open={linkSheetOpen}

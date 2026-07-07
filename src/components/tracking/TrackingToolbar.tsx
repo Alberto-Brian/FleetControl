@@ -59,7 +59,7 @@ export function TrackingToolbar({
   const [filterOpen, setFilterOpen] = useState(false);
 
   return (
-    <div className="absolute top-3 left-3 right-3 z-[1000] flex items-center gap-2 pointer-events-none">
+    <div className="absolute top-3 left-3 right-3 z-10 flex items-center gap-2 pointer-events-none">
       
       {/* === GRUPO ESQUERDO: Controles === */}
       <div className="pointer-events-auto flex items-center gap-1.5 bg-background/80 backdrop-blur-md rounded-xl border border-border/50 p-1 shadow-lg">

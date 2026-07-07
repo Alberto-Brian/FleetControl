@@ -1,21 +1,13 @@
 // ========================================
 // FILE: src/components/tracking/TrackingMap.tsx
 // ========================================
-import React, { useEffect, useRef, } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Position }      from '@/hooks/useApiConnection';
-import type { TrackedDevice } from '@/helpers/tracking-helpers';
+import type { TrackedDevice, PositionHistory } from '@/helpers/tracking-helpers';
 import { getDeviceColor, getDeviceTrailColor, formatSpeed } from '@/helpers/tracking-helpers';
-
-// Fix ícone Leaflet + Vite
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
 
 // Ícone SVG com seta de direcção
 function createDeviceIcon(color: string, course: number, isSelected: boolean, isMoving: boolean) {
@@ -69,20 +61,42 @@ function MapController({ selectedDevice, positions }: {
 
 interface Props {
   mapRef?: React.MutableRefObject<any>;
-  positions:      Position[];
-  devices:        TrackedDevice[];
-  selectedDevice: TrackedDevice | null;
-  showHistory:    boolean;
-  trail:          Record<number, [number, number][]>; 
-  onSelectDevice: (device: TrackedDevice) => void;
+  positions:        Position[];
+  historyPositions: Position[];
+  devices:          TrackedDevice[];
+  selectedDevice:   TrackedDevice | null;
+  showHistory:      boolean;
+  trail:            Record<number, [number, number][]>;
+  onSelectDevice:   (device: TrackedDevice) => void;
 }
 
-export function TrackingMap({ mapRef, positions, devices, selectedDevice, showHistory, trail, onSelectDevice }: Props) {
-  // Centro inicial — primeira posição disponível ou Luanda
+function createEndpointIcon(color: string, label: 'S' | 'F') {
+  const svg = `
+    <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="14" cy="14" r="12" fill="${color}" stroke="white" stroke-width="2.5"/>
+      <text x="14" y="19" text-anchor="middle" font-size="11" font-weight="bold"
+            font-family="sans-serif" fill="white">${label}</text>
+    </svg>`;
+  return L.divIcon({ html: svg, className: '', iconSize: [28, 28], iconAnchor: [14, 14] });
+}
+
+export function TrackingMap({
+  mapRef, positions, historyPositions, devices, selectedDevice, showHistory, trail, onSelectDevice,
+}: Props) {
   const center: [number, number] = positions.length > 0
     ? [positions[0].latitude, positions[0].longitude]
     : [-8.8368, 13.2343];
-    
+
+  // Agrupamento das historyPositions por deviceId → polylines de histórico
+  const historyLines = useMemo(() => {
+    const map = new Map<number, [number, number][]>();
+    historyPositions.forEach(p => {
+      const pts = map.get(p.deviceId) ?? [];
+      pts.push([p.latitude, p.longitude]);
+      map.set(p.deviceId, pts);
+    });
+    return map;
+  }, [historyPositions]);
 
   return (
     <MapContainer
@@ -100,22 +114,13 @@ export function TrackingMap({ mapRef, positions, devices, selectedDevice, showHi
 
       <MapController selectedDevice={selectedDevice} positions={positions} />
 
-       {/* Linhas de percurso em tempo real — uma por device */}
+      {/* ── MODO TEMPO REAL ─────────────────────────────────── */}
       {!showHistory && Object.entries(trail).map(([deviceIdStr, points]) => {
         if (points.length < 2) return null;
-        const deviceId = Number(deviceIdStr);
-
-        // traccar_id é o ID inteiro do Traccar — bate com a chave do trail
-        const device = devices.find(d => d.traccar_id === deviceId);
-
-        const isSelected = selectedDevice
-          ? selectedDevice.traccar_id === deviceId
-          : false;
-
-        const color = device
-          ? getDeviceTrailColor(deviceId)
-          : '#6b7280';
-
+        const deviceId  = Number(deviceIdStr);
+        const device    = devices.find(d => d.traccar_id === deviceId);
+        const isSelected = selectedDevice?.traccar_id === deviceId;
+        const color     = device ? getDeviceTrailColor(deviceId) : '#6b7280';
         return (
           <Polyline
             key={`trail-${deviceId}`}
@@ -128,34 +133,20 @@ export function TrackingMap({ mapRef, positions, devices, selectedDevice, showHi
         );
       })}
 
-      {/* Marcadores — posição actual */}
       {!showHistory && positions.map(pos => {
-        // Encontra o device pelo traccarId
-        const device = devices.find(d => {
-          const tid = (d as any).traccar_id;
-          return tid === pos.deviceId;
-        });
-
+        const device     = devices.find(d => d.traccar_id === pos.deviceId);
         const deviceName = device?.name ?? `Device ${pos.deviceId}`;
-        const isSelected = selectedDevice
-          ? (() => {
-              const stid = (selectedDevice as any).traccar_id;
-              return stid === pos.deviceId;
-            })()
-          : false;
-
+        const isSelected = selectedDevice?.traccar_id === pos.deviceId;
         const isMoving   = (pos.speed ?? 0) > 0;
         const color      = getDeviceColor(device?.status ?? 'unknown', pos.speed ?? 0);
         const icon       = createDeviceIcon(color, pos.course ?? 0, isSelected, isMoving);
 
         return (
           <Marker
-            key={`${pos.deviceId}-${pos.timestamp}`} 
+            key={`${pos.deviceId}-${pos.timestamp}`}
             position={[pos.latitude, pos.longitude]}
             icon={icon}
-            eventHandlers={{
-              click: () => device && onSelectDevice(device),
-            }}
+            eventHandlers={{ click: () => device && onSelectDevice(device) }}
           >
             <Popup>
               <div style={{ minWidth: 170, fontFamily: 'sans-serif' }}>
@@ -178,21 +169,46 @@ export function TrackingMap({ mapRef, positions, devices, selectedDevice, showHi
         );
       })}
 
-      {/* Linha de histórico de posições (modo showHistory) */}
-      {showHistory && Object.entries(trail).map(([deviceIdStr, points]) => {
+      {/* ── MODO HISTÓRICO ───────────────────────────────────── */}
+      {showHistory && Array.from(historyLines.entries()).map(([deviceId, points]) => {
         if (points.length < 2) return null;
-        const deviceId  = Number(deviceIdStr);
-        const isSelected = selectedDevice ? selectedDevice.traccar_id === deviceId : false;
+        const isSelected = selectedDevice?.traccar_id === deviceId;
         const color      = getDeviceTrailColor(deviceId);
+        const start      = points[0];
+        const end        = points[points.length - 1];
         return (
-          <Polyline
-            key={`history-${deviceId}`}
-            positions={points}
-            color={color}
-            weight={isSelected ? 3 : 2}
-            opacity={isSelected ? 0.9 : 0.45}
-            dashArray={isSelected ? undefined : '6 4'}
-          />
+          <React.Fragment key={`history-${deviceId}`}>
+            <Polyline
+              positions={points}
+              color={color}
+              weight={isSelected ? 4 : 3}
+              opacity={isSelected ? 0.9 : 0.6}
+            />
+            <Marker position={start} icon={createEndpointIcon('#22c55e', 'S')}>
+              <Popup>
+                <div style={{ fontFamily: 'sans-serif', fontSize: 12 }}>
+                  <strong>Início</strong>
+                  {historyPositions.find(p => p.deviceId === deviceId && p.latitude === start[0]) && (
+                    <p style={{ color: '#888', marginTop: 4 }}>
+                      {new Date(historyPositions.find(p => p.deviceId === deviceId)!.timestamp).toLocaleString('pt-PT')}
+                    </p>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+            <Marker position={end} icon={createEndpointIcon('#ef4444', 'F')}>
+              <Popup>
+                <div style={{ fontFamily: 'sans-serif', fontSize: 12 }}>
+                  <strong>Fim</strong>
+                  {historyPositions.filter(p => p.deviceId === deviceId).at(-1) && (
+                    <p style={{ color: '#888', marginTop: 4 }}>
+                      {new Date(historyPositions.filter(p => p.deviceId === deviceId).at(-1)!.timestamp).toLocaleString('pt-PT')}
+                    </p>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          </React.Fragment>
         );
       })}
     </MapContainer>

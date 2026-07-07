@@ -13,23 +13,26 @@ interface Props {
   devices:        TrackedDevice[];
   positions:      Position[];
   selectedDevice: TrackedDevice | null;
+  filteredStatus: 'all' | 'online' | 'offline';
   onSelect:       (device: TrackedDevice) => void;
 }
 
-export function DeviceSidebar({ devices, positions, selectedDevice, onSelect }: Props) {
+export function DeviceSidebar({ devices, positions, selectedDevice, filteredStatus, onSelect }: Props) {
   const [search, setSearch] = useState('');
 
-  const filtered = devices.filter(d =>
-    d.name.toLowerCase().includes(search.toLowerCase()) ||
-    d.uniqueId?.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = devices.filter(d => {
+    const matchSearch = d.name.toLowerCase().includes(search.toLowerCase()) ||
+      d.uniqueId?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = filteredStatus === 'all' || d.status === filteredStatus;
+    return matchSearch && matchStatus;
+  });
 
   function getPosition(device: TrackedDevice): Position | undefined {
     return positions.find(p => p.deviceId === device.traccar_id);
   }
 
   return (
-    <aside className="w-72 flex flex-col border-r border-border bg-background/95 backdrop-blur">
+    <aside className="absolute left-3 top-[60px] bottom-4 z-10 w-64 flex flex-col rounded-xl border border-border bg-background/95 backdrop-blur shadow-xl overflow-hidden">
       <div className="p-3 border-b border-border">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
