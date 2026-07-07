@@ -92,9 +92,9 @@ export async function updateVehicleMileage(vehicleId: string, mileage: number): 
     }
 }
 
-export async function syncVehicleToApi(vehicleId: string): Promise<IVehicle | null> {
+export async function syncVehicleToApi(vehicleId: string, imei?: string): Promise<IVehicle | null> {
     try {
-        return await window._vehicles.syncToApi(vehicleId);
+        return await window._vehicles.syncToApi(vehicleId, imei);
     } catch (error) {
         console.error(error);
         throw error;

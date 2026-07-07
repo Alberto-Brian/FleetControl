@@ -4,16 +4,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import {
   Search, Truck, Edit, Trash2, Eye, Tag, LayoutGrid, List, Rows,
-  Plus, Filter, MoreHorizontal, CheckCircle2, Clock, Settings2, Ban, Upload
+  Plus, Filter, MoreHorizontal, CheckCircle2, Clock, Settings2, Ban, Upload, Wifi
 } from 'lucide-react';
 import { getAllVehicles, deleteVehicle, syncVehicleToApi } from '@/helpers/vehicle-helpers';
 import { useLicense } from '@/hooks/useLicense';
@@ -44,6 +46,9 @@ export default function VehiclesPageContent() {
   const { license } = useLicense();
   const isConnected = license?.mode === 'connected';
   const [syncingVehicleId, setSyncingVehicleId] = useState<string | null>(null);
+  const [syncImeiDialogOpen, setSyncImeiDialogOpen] = useState(false);
+  const [pendingSyncVehicleId, setPendingSyncVehicleId] = useState<string | null>(null);
+  const [imeiInput, setImeiInput] = useState('');
 
   const { 
     state: { vehicles, selectedVehicle, isLoading, categories, selectedCategory, isCategoriesLoading },
@@ -209,17 +214,35 @@ export default function VehiclesPageContent() {
     }
   }
 
-  async function handleSyncVehicle(vehicleId: string) {
+  function openSyncFlow(vehicle: any) {
+    if (vehicle.traccar_unique_id) {
+      // Já tem IMEI — sincronizar directamente
+      doSync(vehicle.id);
+    } else {
+      // Sem IMEI — pedir ao utilizador
+      setPendingSyncVehicleId(vehicle.id);
+      setImeiInput('');
+      setSyncImeiDialogOpen(true);
+    }
+  }
+
+  async function doSync(vehicleId: string, imei?: string) {
     setSyncingVehicleId(vehicleId);
     try {
-      await syncVehicleToApi(vehicleId);
+      await syncVehicleToApi(vehicleId, imei);
       showSuccess('vehicles:toast.syncSuccess');
       loadVehicles();
     } catch (error) {
       handleError(error, 'vehicles:toast.syncError');
     } finally {
       setSyncingVehicleId(null);
+      setSyncImeiDialogOpen(false);
+      setPendingSyncVehicleId(null);
     }
+  }
+
+  function confirmSyncWithImei() {
+    if (pendingSyncVehicleId) doSync(pendingSyncVehicleId, imeiInput.trim() || undefined);
   }
 
   function getStatusBadge(status: string) {
@@ -378,9 +401,9 @@ export default function VehiclesPageContent() {
                       variant="ghost"
                       size="icon"
                       className="h-10 w-10 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                      title="Sincronizar com API"
+                      title={vehicle.traccar_unique_id ? 'Sincronizar com API (com GPS)' : 'Sincronizar com API'}
                       disabled={syncingVehicleId === vehicle.id}
-                      onClick={() => handleSyncVehicle(vehicle.id)}
+                      onClick={() => openSyncFlow(vehicle)}
                     >
                       <Upload className={`w-5 h-5 ${syncingVehicleId === vehicle.id ? 'animate-pulse' : ''}`} />
                     </Button>
@@ -425,11 +448,18 @@ export default function VehiclesPageContent() {
                   {isConnected && !vehicle.api_vehicle_id && (
                     <Badge
                       variant="outline"
-                      className="text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30"
-                      title="Veículo não sincronizado com a API"
+                      className={`text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider cursor-pointer ${
+                        vehicle.traccar_unique_id
+                          ? 'text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30'
+                          : 'text-slate-500 border-slate-300 bg-slate-50 dark:bg-slate-900'
+                      }`}
+                      title={vehicle.traccar_unique_id ? 'Pronto para sincronizar (com GPS)' : 'Sem IMEI — sincroniza sem GPS'}
+                      onClick={() => openSyncFlow(vehicle)}
                     >
-                      <Upload className="w-2.5 h-2.5 mr-1" />
-                      Sync
+                      {vehicle.traccar_unique_id
+                        ? <><Upload className="w-2.5 h-2.5 mr-1" />Sync</>
+                        : <><Wifi className="w-2.5 h-2.5 mr-1" />Sem GPS</>
+                      }
                     </Badge>
                   )}
                   {getStatusBadge(vehicle.status)}
@@ -478,7 +508,7 @@ export default function VehiclesPageContent() {
                     </DropdownMenuItem>
                     {isConnected && !vehicle.api_vehicle_id && (
                       <DropdownMenuItem
-                        onClick={() => handleSyncVehicle(vehicle.id)}
+                        onClick={() => openSyncFlow(vehicle)}
                         disabled={syncingVehicleId === vehicle.id}
                         className="text-amber-600 focus:text-amber-700"
                       >
@@ -755,6 +785,50 @@ export default function VehiclesPageContent() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Diálogo — IMEI para sync sem GPS configurado */}
+        <Dialog open={syncImeiDialogOpen} onOpenChange={(o) => { if (!o) { setSyncImeiDialogOpen(false); setPendingSyncVehicleId(null); } }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Upload className="w-5 h-5 text-amber-600" />
+                Sincronizar veículo com a API
+              </DialogTitle>
+              <DialogDescription>
+                Este veículo não tem IMEI configurado. Podes adicionar o IMEI do GPS agora para activar o rastreamento, ou sincronizar só os dados do veículo.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 py-2">
+              <Label htmlFor="sync-imei">
+                IMEI / ID do GPS
+                <span className="ml-1 text-xs font-normal text-muted-foreground">(opcional)</span>
+              </Label>
+              <Input
+                id="sync-imei"
+                placeholder="Ex: 353926070024734"
+                value={imeiInput}
+                onChange={(e) => setImeiInput(e.target.value)}
+                className="font-mono"
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">
+                Se deixares em branco, o veículo é sincronizado sem rastreamento GPS.
+              </p>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => { setSyncImeiDialogOpen(false); setPendingSyncVehicleId(null); }}>
+                Cancelar
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={confirmSyncWithImei}
+                disabled={syncingVehicleId !== null}
+              >
+                {imeiInput.trim() ? 'Sincronizar com GPS' : 'Sincronizar sem GPS'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Dialogs */}
         <EditVehicleDialog       open={editDialogOpen}         onOpenChange={setEditDialogOpen}         />

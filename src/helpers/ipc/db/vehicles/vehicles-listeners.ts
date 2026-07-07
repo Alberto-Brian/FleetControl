@@ -75,7 +75,7 @@ export function addVehiclesEventListeners() {
   ipcMain.handle(UPDATE_VEHICLE_MILEAGE, async (_, vehicleId: string, mileage: number) => await updateVehicleMileageEvent(vehicleId, mileage));
   ipcMain.handle(GET_VEHICLES_BY_CATEGORY, async (_, categoryId: string) => await getVehiclesByCategoryEvent(categoryId));
   ipcMain.handle(COUNT_VEHICLES_BY_STATUS, async () => await countVehiclesByStatusEvent());
-  ipcMain.handle(SYNC_VEHICLE_TO_API, async (_, vehicleId: string) => await syncVehicleToApiEvent(vehicleId));
+  ipcMain.handle(SYNC_VEHICLE_TO_API, async (_, vehicleId: string, imei?: string) => await syncVehicleToApiEvent(vehicleId, imei));
 }
 
 async function getAllVehiclesEvent(params?: IPaginationParams) {
@@ -238,16 +238,19 @@ async function countVehiclesByStatusEvent() {
 }
 
 // Sincroniza um veículo local com a API (quando a licença conectada é activada)
-async function syncVehicleToApiEvent(vehicleId: string) {
+// imei: IMEI fornecido pelo utilizador no momento do sync (sobrepõe o valor guardado localmente)
+async function syncVehicleToApiEvent(vehicleId: string, imei?: string) {
   const vehicle = await findVehicleById(vehicleId);
   if (!vehicle) {
     throw new Error(new NotFoundError(T_ERRORS.VEHICLE_NOT_FOUND).toIpcString());
   }
 
   if (vehicle.api_vehicle_id) {
-    // Já sincronizado — devolve o registo actual sem fazer nada
     return vehicle;
   }
+
+  // IMEI: usa o fornecido agora > o guardado localmente > null
+  const traccar_unique_id = imei?.trim() || vehicle.traccar_unique_id || null;
 
   const { data: apiResponse } = await axios.post(`${API_URL}/api/vehicles`, {
     license_plate:      vehicle.license_plate,
@@ -263,7 +266,7 @@ async function syncVehicleToApiEvent(vehicleId: string) {
     acquisition_date:   vehicle.acquisition_date,
     acquisition_value:  vehicle.acquisition_value,
     notes:              vehicle.notes,
-    traccar_unique_id:  vehicle.traccar_unique_id || null,
+    traccar_unique_id,
   }, {
     headers: apiHeaders(),
     timeout: 15_000,
@@ -272,14 +275,15 @@ async function syncVehicleToApiEvent(vehicleId: string) {
   const apiVehicleId = apiResponse?.data?.id;
   if (!apiVehicleId) throw new Error('API não devolveu ID do veículo criado');
 
-  // Actualiza o registo local com o UUID da API
+  // Persistir localmente: api_vehicle_id + IMEI (se fornecido agora)
   const { db } = useDb();
   await db.update(vehicles)
     .set({
-      api_vehicle_id: apiVehicleId,
-      api_synced_at:  new Date().toISOString(),
+      api_vehicle_id:    apiVehicleId,
+      api_synced_at:     new Date().toISOString(),
+      ...(traccar_unique_id ? { traccar_unique_id } : {}),
     })
     .where(eq(vehicles.id, vehicleId));
 
-  return { ...vehicle, api_vehicle_id: apiVehicleId, api_synced_at: new Date().toISOString() };
+  return { ...vehicle, api_vehicle_id: apiVehicleId, traccar_unique_id, api_synced_at: new Date().toISOString() };
 }

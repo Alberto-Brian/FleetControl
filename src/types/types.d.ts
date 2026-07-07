@@ -79,7 +79,7 @@ interface IVehicles {
     getAvailable: () => Promise<IVehicle[]>;
     updateStatus: (vehicleId: string, data: IUpdateStatus) => Promise<IVehicle | null>;
     updateMileage: (vehicleId: string, mileage: number) => Promise<IVehicle | null>;
-    syncToApi: (vehicleId: string) => Promise<IVehicle | null>;
+    syncToApi: (vehicleId: string, imei?: string) => Promise<IVehicle | null>;
 }
 
 interface IVehicleCategories {
@@ -296,7 +296,8 @@ export interface ITracking {
   linkVehicleDevice:   (vehicleId: string, traccarDeviceId: string) => Promise<unknown>;
   unlinkVehicleDevice: (vehicleId: string) => Promise<unknown>;
 }
-declare interface Window {
+declare global {
+  interface Window {
     system:                  System;
     license:                 License;
     backup:                  Backup;
@@ -321,8 +322,9 @@ declare interface Window {
     _reports:                IReports;
     _driverLeaves:           IDriverLeaves;
     _company:                ICompany;
-    _system_settings: ISystemSettings;
-    _scheduled_trips: IScheduledTrip;
-    _driverShifts: IDriverShifts;
-    _tracking: ITracking
+    _system_settings:        ISystemSettings;
+    _scheduled_trips:        IScheduledTrip;
+    _driverShifts:           IDriverShifts;
+    _tracking:               ITracking;
+  }
 }
