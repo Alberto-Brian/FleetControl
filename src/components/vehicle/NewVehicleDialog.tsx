@@ -304,25 +304,6 @@ const filteredCategories = categories.filter(cat =>
               />
             </div>
 
-            {isConnectedLicense && (
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="traccar_unique_id">
-                  IMEI / ID do GPS
-                  <span className="ml-1 text-xs font-normal text-muted-foreground">(opcional)</span>
-                </Label>
-                <Input
-                  id="traccar_unique_id"
-                  placeholder="Ex: 353926070024734"
-                  value={formData.traccar_unique_id || ''}
-                  onChange={(e) => setFormData({ ...formData, traccar_unique_id: e.target.value })}
-                  className="font-mono"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Se preenchido, o device de rastreamento GPS é criado automaticamente ao sincronizar com a API.
-                </p>
-              </div>
-            )}
-
             <div className="space-y-2">
             <Label htmlFor="tire_size">{t('vehicles:fields.tireSize')}</Label>
             <Input
@@ -332,6 +313,25 @@ const filteredCategories = categories.filter(cat =>
               onChange={(e) => setFormData({ ...formData, tire_size: e.target.value.toUpperCase() })}
             />
           </div>
+
+            {isConnectedLicense && (
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="traccar_unique_id">
+                  {t('vehicles:fields.gpsImei')}
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">{t('vehicles:fields.gpsImeiOptional')}</span>
+                </Label>
+                <Input
+                  id="traccar_unique_id"
+                  placeholder={t('vehicles:placeholders.gpsImei')}
+                  value={formData.traccar_unique_id || ''}
+                  onChange={(e) => setFormData({ ...formData, traccar_unique_id: e.target.value })}
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t('vehicles:dialogs.sync.imeiCreationHint')}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

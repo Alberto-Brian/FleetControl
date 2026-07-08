@@ -24,22 +24,49 @@ export function getAccessToken(): string | null {
   return _accessToken;
 }
 
+// Apenas LK- (connected) podem ser validadas via API com chave curta.
+// ST- (standalone) são RSA-only — o utilizador precisa de colar a FULL key.
+// Apenas LK- (connected) podem ser validadas via API com chave curta.
+// ST- (standalone) são RSA-only — o utilizador precisa de colar a FULL key.
+const DISPLAY_KEY_RE = /^LK-[A-F0-9]{5}(-[A-F0-9]{5}){4}$/i;
+
+// ID único desta instalação — gerado uma vez e guardado no localStorage.
+// Serve para identificar a instância de desktop na verificação de seats.
+function getMachineId(): string {
+  const KEY = '_fc_machine_id';
+  let id = localStorage.getItem(KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(KEY, id);
+  }
+  return id;
+}
+
 // ── Validação e activação ─────────────────────────────────────
 
 /**
  * Valida a licença localmente (via IPC → main process → RSA)
  * e se for connected, activa na API para obter JWT de sessão.
+ * Se for uma display_key (LK-/ST- curta), vai à API primeiro para
+ * obter a full_license, depois valida localmente.
  */
 export async function validateLicense(licenseKey: string): Promise<ValidatedLicense> {
-  // Validação local via contextBridge
-  const localResult: ValidatedLicense = await window.license.validateLicense(licenseKey);
+  const key = licenseKey.trim();
+
+  // Display key — fluxo diferente: API primeiro, depois validação local
+  if (DISPLAY_KEY_RE.test(key)) {
+    return validateDisplayKey(key);
+  }
+
+  // Full license key — validação local via contextBridge (RSA)
+  const localResult: ValidatedLicense = await window.license.validateLicense(key);
   if (!localResult.isValid) return localResult;
 
   // Standalone — não precisa de API
   if (localResult.mode === 'standalone') return localResult;
 
   // Connected — activa na API
-  await activateOnApi(licenseKey);
+  await activateOnApi(key);
   return localResult;
 }
 
@@ -69,10 +96,76 @@ export async function removeLicense(): Promise<void> {
 
 // ── Lógica interna ────────────────────────────────────────────
 
+async function validateDisplayKey(displayKey: string): Promise<ValidatedLicense> {
+  try {
+    const { data } = await apiClient.post('/api/auth/activate', {
+      license_key: displayKey,
+      machine_id:  getMachineId(),
+    });
+
+    if (!data.success) {
+      return { isValid: false, error: data.message || 'Chave inválida' };
+    }
+
+    // API devolveu a full_license — valida e guarda localmente
+    if (data.full_license) {
+      const localResult: ValidatedLicense = await window.license.validateLicense(data.full_license);
+      if (!localResult.isValid) return localResult;
+    }
+
+    if (data.mode === 'connected') {
+      _accessToken  = data.data.access_token;
+      _refreshToken = data.data.refresh_token;
+      await window._service_auth.setToken(data.data.access_token);
+      scheduleRefresh(data.data.expires_in);
+
+      return {
+        isValid:     true,
+        mode:        'connected',
+        clientName:  data.data.license?.clientName ?? data.data.user?.name,
+        expiryDate:  data.data.license?.expiryDate ? new Date(data.data.license.expiryDate) : undefined,
+        maxUsers:    data.data.license?.maxUsers,
+        features:    data.data.license?.features,
+        licenseType: data.data.license?.licenseType,
+      };
+    }
+
+    // Standalone
+    return {
+      isValid:     true,
+      mode:        'standalone',
+      clientName:  data.data?.clientName,
+      expiryDate:  data.data?.expiryDate ? new Date(data.data.expiryDate) : undefined,
+      maxUsers:    data.data?.maxUsers,
+      features:    data.data?.features,
+      licenseType: data.data?.licenseType,
+    };
+  } catch (err) {
+    const axiosErr = err as AxiosError<{ message?: string; code?: string }>;
+    const code    = axiosErr.response?.data?.code;
+    const message = axiosErr.response?.data?.message;
+
+    if (!axiosErr.response) {
+      return { isValid: false, error: 'API inacessível. Verifica a ligação à internet e tenta novamente.' };
+    }
+
+    if (code === 'DISPLAY_KEY_NOT_REGISTERED') {
+      return { isValid: false, error: 'Chave não encontrada no servidor. Contacta o suporte técnico.' };
+    }
+
+    if (code === 'REVOKED') {
+      return { isValid: false, error: 'Esta licença foi revogada.' };
+    }
+
+    return { isValid: false, error: message || 'Erro ao validar a chave com o servidor.' };
+  }
+}
+
 async function activateOnApi(licenseKey: string): Promise<void> {
   try {
     const { data } = await apiClient.post('/api/auth/activate', {
       license_key: licenseKey,
+      machine_id:  getMachineId(),
     });
     // console.log("O token: ", data.data.access_token)
 

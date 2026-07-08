@@ -1,3 +1,5 @@
+// src/lib/db/db_consts.ts
+
 // import { app } from 'electron'
 // const isDev = process.env.NODE_ENV === 'development';
 // const dbPath = isDev 

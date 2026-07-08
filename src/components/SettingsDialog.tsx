@@ -15,6 +15,7 @@ import {
   Clock, Loader2, CheckCircle, XCircle, Camera, Trash2, Save,
   Building, Hash, AtSign, ImageIcon, FileText, Bell, Car,
   Fuel, Sliders, RotateCcw, Eye, EyeOff, Droplets,
+  Key, ShieldCheck, RefreshCw,
 } from 'lucide-react';
 import { Button }   from '@/components/ui/button';
 import { Switch }   from '@/components/ui/switch';
@@ -27,6 +28,9 @@ import { exportBackup, restoreBackup }           from '@/helpers/backup-helpers'
 import { getSystemVersion, forceDbRotation }      from '@/helpers/system-helpers';
 import { getCompanySettings, updateCompanySettings, uploadCompanyLogo, removeCompanyLogo } from '@/helpers/company-helpers';
 import { getSystemSettings, updateSystemSettings, resetSystemSettings }                    from '@/helpers/system-settings-helpers';
+import { removeLicense }                          from '@/helpers/license-helpers';
+import { useLicense }                             from '@/hooks/useLicense';
+import { LicenseActivationDialog }                from '@/components/LicenseActivationDialog';
 
 import { ICompanySettings, IUpdateCompanySettings }           from '@/lib/types/company';
 import { ISystemSettings, IUpdateSystemSettings }             from '@/lib/types/system-settings';
@@ -611,6 +615,145 @@ function SystemSettingsTab({ children, tabTitle, tabDesc, fields }: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Tab: Licença
+// ─────────────────────────────────────────────────────────────────────────────
+function LicenseTab() {
+  const { license, loading, refreshLicense } = useLicense();
+  const [showActivation, setShowActivation]  = useState(false);
+  const [removing, setRemoving]              = useState(false);
+
+  const modeLabel: Record<string, string> = {
+    standalone: 'Standalone (Offline)',
+    connected:  'Conectado (Online)',
+  };
+
+  const typeLabel: Record<string, string> = {
+    trial:        'Avaliação',
+    basic:        'Básica',
+    professional: 'Profissional',
+    enterprise:   'Empresarial',
+  };
+
+  async function handleRemove() {
+    if (!confirm('Tens a certeza que queres remover a licença? O sistema ficará bloqueado até activares uma nova.')) return;
+    setRemoving(true);
+    try {
+      await removeLicense();
+      window.location.reload();
+    } finally {
+      setRemoving(false);
+    }
+  }
+
+  async function handleActivationSuccess() {
+    setShowActivation(false);
+    await refreshLicense();
+    setTimeout(() => window.location.reload(), 800);
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-40">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="text-base font-semibold mb-0.5">Licença</h3>
+          <p className="text-sm text-muted-foreground">Informações e gestão da licença do sistema</p>
+        </div>
+        <Button size="sm" variant="outline" className="gap-2" onClick={() => setShowActivation(true)}>
+          <RefreshCw className="w-4 h-4" />Reactivar
+        </Button>
+      </div>
+
+      {license?.isValid ? (
+        <div className="space-y-4">
+          {/* Status badge */}
+          <div className="flex items-center gap-3 p-4 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30">
+            <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-green-800 dark:text-green-300">Licença Activa</p>
+              <p className="text-xs text-green-600 dark:text-green-400">
+                {license.mode ? modeLabel[license.mode] ?? license.mode : '—'}
+                {license.licenseType ? ` · ${typeLabel[license.licenseType] ?? license.licenseType}` : ''}
+              </p>
+            </div>
+          </div>
+
+          {/* Info grid */}
+          <div className="p-4 rounded-xl border border-border bg-card/50 space-y-3 text-sm">
+            {[
+              { label: 'Cliente',      value: license.clientName },
+              { label: 'Email',        value: license.clientEmail },
+              { label: 'NIF',          value: license.clientNIF },
+              { label: 'Utilizadores', value: license.maxUsers != null ? `Até ${license.maxUsers}` : undefined },
+              {
+                label: 'Validade',
+                value: license.expiryDate
+                  ? `${new Date(license.expiryDate).toLocaleDateString('pt-PT')}${license.daysRemaining != null ? ` (${license.daysRemaining} dias)` : ''}`
+                  : undefined,
+              },
+              {
+                label: 'Funcionalidades',
+                value: license.features?.length ? license.features.join(', ') : undefined,
+              },
+            ]
+              .filter(r => r.value)
+              .map(({ label, value }) => (
+                <div key={label} className="flex justify-between gap-4">
+                  <span className="text-muted-foreground shrink-0">{label}</span>
+                  <span className="font-medium text-right">{value}</span>
+                </div>
+              ))}
+          </div>
+
+          {/* Danger zone */}
+          <div className="pt-4 border-t border-border space-y-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Zona de Risco</p>
+            <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5">
+              <div className="flex items-start gap-2 mb-3">
+                <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                <p className="text-xs text-destructive">Remover a licença bloqueia o acesso ao sistema. Só podes voltar a entrar activando uma nova licença.</p>
+              </div>
+              <Button variant="destructive" size="sm" className="w-full gap-2" onClick={handleRemove} disabled={removing}>
+                {removing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Remover Licença
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
+            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Sem licença activa</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400">{license?.error ?? 'Nenhuma licença encontrada.'}</p>
+            </div>
+          </div>
+          <Button className="w-full gap-2" onClick={() => setShowActivation(true)}>
+            <Key className="w-4 h-4" />Activar Licença
+          </Button>
+        </div>
+      )}
+
+      <LicenseActivationDialog
+        open={showActivation}
+        onOpenChange={setShowActivation}
+        onSuccess={handleActivationSuccess}
+      />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Componente Principal
 // ─────────────────────────────────────────────────────────────────────────────
 interface SettingsDialogProps {
@@ -637,16 +780,17 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
   }, [open]);
 
   const navSections = [
-    { id: 'appearance', icon: Palette,   label: t('nav.appearance') },
-    { id: 'language',   icon: Globe,     label: t('nav.language')   },
-    { id: 'company',    icon: Building2, label: t('nav.company')    },
-    { id: 'pdf',        icon: FileText,  label: t('nav.pdf')        },
+    { id: 'appearance', icon: Palette,     label: t('nav.appearance') },
+    { id: 'language',   icon: Globe,       label: t('nav.language')   },
+    { id: 'company',    icon: Building2,   label: t('nav.company')    },
+    { id: 'pdf',        icon: FileText,    label: t('nav.pdf')        },
     // { id: 'alerts',     icon: Bell,      label: t('nav.alerts')     },
     // { id: 'trips',      icon: Car,       label: t('nav.trips')      },
     // { id: 'fuel',       icon: Fuel,      label: t('nav.fuel')       },
     // { id: 'system',     icon: Sliders,   label: t('nav.system')     },
-    { id: 'backups',    icon: HardDrive, label: t('nav.backups')    },
-    { id: 'about',      icon: Info,      label: t('nav.about')      },
+    { id: 'backups',    icon: HardDrive,   label: t('nav.backups')    },
+    { id: 'license',    icon: Key,         label: 'Licença'           },
+    { id: 'about',      icon: Info,        label: t('nav.about')      },
   ];
 
   // ── Backup handlers ─────────────────────────────────────────────────────────
@@ -985,6 +1129,9 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                       </div>
                     </div>
                   )}
+
+                  {/* ── Licença ── */}
+                  {activeTab === 'license' && <LicenseTab />}
 
                   {/* ── Sobre ── */}
                   {activeTab === 'about' && (

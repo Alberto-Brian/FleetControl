@@ -27,16 +27,16 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Props
     if (open) getSystemVersion().then(setVersion);
   }, [open]);
 
-  // Detecta se o utilizador colou a chave curta por engano
-  const isDisplayKey = /^(LK|ST)-[A-F0-9]{5}(-[A-F0-9]{5}){4}$/i.test(key.trim());
+  // LK- curta → válida via API (online). ST- curta → deve colar a FULL key (offline/RSA).
+  const isConnectedDisplayKey  = /^LK-[A-F0-9]{5}(-[A-F0-9]{5}){4}$/i.test(key.trim());
+  const isStandaloneDisplayKey = /^ST-[A-F0-9]{5}(-[A-F0-9]{5}){4}$/i.test(key.trim());
 
   const handleActivate = async () => {
     if (!key.trim()) { setError('Insere a chave de licença'); return; }
-
-    if (isDisplayKey) {
+    if (isStandaloneDisplayKey) {
       setError(
-        'Esta é a chave de referência (formato curto). No ficheiro de licença ' +
-        'recebido, copia o conteúdo da linha que começa por "FULL:" e cola aqui.'
+        'Esta é a chave de referência de uma licença standalone. ' +
+        'No ficheiro .txt, copia o conteúdo completo da linha FULL:'
       );
       return;
     }
@@ -132,35 +132,41 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Props
                         </div>
                         <div>
                           <p className="text-sm font-medium">Chave de Licença</p>
-                          <p className="text-xs text-muted-foreground">Formato: eyJj... (string longa)</p>
+                          <p className="text-xs text-muted-foreground">Formato: eyJj... (linha FULL do ficheiro) ou LK-XXXXX-... (chave conectada curta)</p>
                         </div>
                       </div>
                       <textarea
                         value={key}
                         onChange={e => setKey(e.target.value.trim())}
                         placeholder="Cole aqui o conteúdo da linha FULL: do ficheiro de licença..."
-                        className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-xs bg-background resize-none transition-colors ${
-                          isDisplayKey
-                            ? 'border-amber-400 dark:border-amber-600'
-                            : 'border-border'
-                        }`}
+                        className="w-full px-4 py-3 border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-xs bg-background resize-none transition-colors"
                         rows={5}
                         disabled={loading}
                       />
 
-                      {/* Aviso em tempo real se colou a chave curta */}
-                      {isDisplayKey && (
+                      {/* LK- curta → vai à API */}
+                      {isConnectedDisplayKey && (
+                        <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                          <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                            Chave conectada (LK-) detectada — será verificada no servidor. Requer ligação à internet.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* ST- curta → não funciona, precisa FULL */}
+                      {isStandaloneDisplayKey && (
                         <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
                           <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                           <p className="text-xs text-amber-700 dark:text-amber-300">
-                            Esta é a chave de referência (formato curto). No ficheiro .txt, copia o conteúdo completo da linha <span className="font-mono font-bold">FULL:</span>
+                            Licença standalone (ST-) não pode ser activada com a chave curta — funciona offline sem servidor. No ficheiro .txt, copia o conteúdo completo da linha <span className="font-mono font-bold">FULL:</span>
                           </p>
                         </div>
                       )}
                     </div>
 
                     {/* Erro de validação */}
-                    {error && !isDisplayKey && (
+                    {error && (
                       <div className="flex items-start gap-2 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
                         <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-destructive">{error}</p>
@@ -169,7 +175,7 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Props
 
                     <button
                       onClick={handleActivate}
-                      disabled={loading || !key.trim() || isDisplayKey}
+                      disabled={loading || !key.trim() || isStandaloneDisplayKey}
                       className="w-full px-6 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 font-semibold text-base"
                     >
                       {loading

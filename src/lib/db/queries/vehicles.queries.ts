@@ -37,6 +37,7 @@ export async function createVehicle(vehicleData: ICreateVehicle): Promise<IVehic
             status: 'available',
             photo: vehicleData.photo,
             notes: vehicleData.notes,
+            traccar_unique_id: vehicleData.traccar_unique_id || null,
             is_active: true,
         })
         .returning({

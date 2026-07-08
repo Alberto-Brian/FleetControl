@@ -22,6 +22,7 @@
         "db:push": "npx drizzle-kit push",
         "db:migrate": "npx drizzle-kit migrate",
         "db:rename": "node src/scripts/rename-migration.js",
+        "db:check": "node src/scripts/check-migration.js",
         "rebuild": "electron-rebuild -f -w better-sqlite3",
         "build-icons": "electron-icon-builder --input=./images/logo.png --output=./build --flatten",
         "postinstall": "npm run rebuild",

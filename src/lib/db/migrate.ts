@@ -1,3 +1,4 @@
+// src/lib/db/migrate.ts
 // import { drizzle } from 'drizzle-orm/libsql';
 // import { createClient } from '@libsql/client';
 // import { migrate } from 'drizzle-orm/libsql/migrator';

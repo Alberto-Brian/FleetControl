@@ -292,18 +292,18 @@ export default function EditVehicleDialog({
                 {isConnectedLicense && (
                   <div className="col-span-2 space-y-2">
                     <Label htmlFor="traccar_unique_id">
-                      IMEI / ID do GPS
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">(opcional)</span>
+                      {t('vehicles:fields.gpsImei')}
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">{t('vehicles:fields.gpsImeiOptional')}</span>
                     </Label>
                     <Input
                       id="traccar_unique_id"
-                      placeholder="Ex: 353926070024734"
+                      placeholder={t('vehicles:placeholders.gpsImei')}
                       value={formData.traccar_unique_id || ''}
                       onChange={(e) => setFormData({ ...formData, traccar_unique_id: e.target.value || null })}
                       className="font-mono"
                     />
                     <p className="text-xs text-muted-foreground">
-                      IMEI do dispositivo GPS instalado neste veículo. Utilizado para rastreamento em tempo real.
+                      {t('vehicles:dialogs.sync.imeiEditHint')}
                     </p>
                   </div>
                 )}

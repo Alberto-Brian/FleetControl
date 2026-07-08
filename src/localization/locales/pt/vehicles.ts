@@ -66,6 +66,8 @@ export const ptVehicles = {
     status: "Estado",
     createdAt: "Data de Cadastro",
     updatedAt: "Última Actualização",
+    gpsImei: "IMEI / ID do GPS",
+    gpsImeiOptional: "(opcional)",
   },
 
   placeholders: {
@@ -81,7 +83,8 @@ export const ptVehicles = {
     categoryName: "Ex: Utilitário, Passeio, Carga...",
     categoryDescription: "Ex: Veículos para transporte de carga leve...",
     searchCategory: 'Pesquisar categoria...',
-    tireSize: "Ex: 205/55 R16"
+    tireSize: "Ex: 205/55 R16",
+    gpsImei: "Ex: 353926070024734",
   },
 
   actions: {
@@ -131,6 +134,20 @@ export const ptVehicles = {
       title: "Excluir Veículo",
       description: "Tem a certeza que deseja excluir o veículo",
       warning: "Esta acção não pode ser desfeita."
+    },
+    sync: {
+      title: "Sincronizar veículo com a API",
+      description: "Este veículo não tem IMEI configurado. Podes adicionar o IMEI do GPS agora para activar o rastreamento, ou sincronizar só os dados do veículo.",
+      imeiHint: "Se deixares em branco, o veículo é sincronizado sem rastreamento GPS.",
+      imeiCreationHint: "Se preenchido, o device de rastreamento GPS é criado automaticamente ao sincronizar com a API.",
+      imeiEditHint: "IMEI do dispositivo GPS instalado neste veículo. Utilizado para rastreamento em tempo real.",
+      syncWithGps: "Sincronizar com GPS",
+      syncWithoutGps: "Sincronizar sem GPS",
+      badgeReadyWithGps: "Pronto para sincronizar (com GPS)",
+      badgeNoImei: "Sem IMEI — sincroniza sem GPS",
+      badgeNoGps: "Sem GPS",
+      tooltipWithGps: "Sincronizar com API (com GPS)",
+      tooltipSync: "Sincronizar com API",
     },
     mileage: {
       title: "Actualizar Quilometragem",
@@ -228,6 +245,8 @@ export const ptVehicles = {
     updateSuccess: "Veículo actualizado com sucesso",
     updateError: "Erro ao actualizar veículo",
     deleteSuccess: "Veículo excluído com sucesso",
+    syncSuccess: "Veículo sincronizado com a API",
+    syncError: "Erro ao sincronizar veículo com a API",
     categoryRestored: "Categoria activada com sucesso!",
     deleteError: "Erro ao excluir veículo",
     mileageUpdateSuccess: "Quilometragem actualizada com sucesso",

@@ -145,42 +145,43 @@ export class DatabaseManager {
   }
 
   private applyMigrations() {
-    if (!this.currentDbPath || !this.currentDb) {
-      throw new Error('Database not initialized');
-    }
-
-    console.log('🔄 Verificando migrations...');
-    
-    try {
-      const db = this.getCurrentDrizzleInstance();
-      
-      const isPackaged = (): boolean => {
-        try {
-          return !!(app && (app as any).isPackaged);
-        } catch {
-          return false;
-        }
-      };
-      const migrationsFolder = isPackaged()
-        ? path.join(process.resourcesPath || process.cwd(), 'drizzle')
-        : path.join(process.cwd(), 'drizzle');
-
-      if (!fs.existsSync(migrationsFolder)) {
-        console.warn('⚠️ Pasta de migrations não encontrada');
-        return;
-      }
-
-      migrate(db, { migrationsFolder });
-      console.log('✅ Migrations aplicadas');
-      
-    } catch (error: any) {
-      if (error.message?.includes('already exists')) {
-        console.warn('⚠️ Migration já aplicada');
-      } else {
-        console.error('❌ Erro ao aplicar migrations:', error);
-      }
-    }
+  if (!this.currentDbPath || !this.currentDb) {
+    throw new Error('Database not initialized');
   }
+
+  console.log('🔄 Verificando migrations em:', this.currentDbPath);
+
+  const isPackaged = (): boolean => {
+    try {
+      return !!(app && (app as any).isPackaged);
+    } catch {
+      return false;
+    }
+  };
+  const migrationsFolder = isPackaged()
+    ? path.join(process.resourcesPath || process.cwd(), 'drizzle')
+    : path.join(process.cwd(), 'drizzle');
+
+  if (!fs.existsSync(migrationsFolder)) {
+    console.warn('⚠️ Pasta de migrations não encontrada em:', migrationsFolder);
+    return;
+  }
+
+  const db = this.getCurrentDrizzleInstance();
+
+  try {
+    const files = fs.readdirSync(migrationsFolder).filter(f => f.endsWith('.sql'));
+    console.log('📄 Migrations encontradas em', migrationsFolder, ':', files);
+    migrate(db, { migrationsFolder });
+    console.log('✅ Migrations aplicadas em', this.currentDbPath);
+  } catch (error: any) {
+    // "table already exists" só é inofensivo quando é o Drizzle reaplicando
+    // uma migration que o journal interno já perdeu o rastro — mas isso é raro
+    // e merece ficar visível também. Não esconda erros reais.
+    console.error('❌ Erro ao aplicar migrations em', this.currentDbPath, ':', error);
+    throw error; // deixe subir — é melhor o app falhar alto do que rodar com schema desatualizado
+  }
+}
 
   close(): void {
     if (this.currentDbPath) {

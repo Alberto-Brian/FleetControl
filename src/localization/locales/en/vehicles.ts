@@ -59,13 +59,15 @@ export const enVehicles = {
     chassisNumber: "Chassis Number",
     engineNumber: "Engine Number",
     fuelTankCapacity: "Fuel Tank Capacity",
-     tireSize: "Tire Size",
+    tireSize: "Tire Size",
     acquisitionDate: "Acquisition Date",
     acquisitionValue: "Acquisition Value",
     notes: "Notes",
     status: "Status",
     createdAt: "Registration Date",
-    updatedAt: "Last Update"
+    updatedAt: "Last Update",
+    gpsImei: "IMEI / GPS ID",
+    gpsImeiOptional: "(optional)",
   },
 
   placeholders: {
@@ -81,7 +83,8 @@ export const enVehicles = {
     categoryName: "Ex: Utility, Passenger, Cargo...",
     categoryDescription: "Ex: Vehicles for light cargo transport...",
     searchCategory: 'Search category...',
-    tireSize: "Ex: 205/55 R16"
+    tireSize: "Ex: 205/55 R16",
+    gpsImei: "e.g. 353926070024734",
   },
 
   actions: {
@@ -131,6 +134,20 @@ export const enVehicles = {
       title: "Delete Vehicle",
       description: "Are you sure you want to delete the vehicle",
       warning: "This action cannot be undone."
+    },
+    sync: {
+      title: "Sync vehicle with API",
+      description: "This vehicle has no IMEI configured. You can add the GPS IMEI now to enable tracking, or sync only the vehicle data.",
+      imeiHint: "If left blank, the vehicle will be synced without GPS tracking.",
+      imeiCreationHint: "If filled in, the GPS tracking device will be created automatically when syncing with the API.",
+      imeiEditHint: "IMEI of the GPS device installed in this vehicle. Used for real-time tracking.",
+      syncWithGps: "Sync with GPS",
+      syncWithoutGps: "Sync without GPS",
+      badgeReadyWithGps: "Ready to sync (with GPS)",
+      badgeNoImei: "No IMEI — syncs without GPS",
+      badgeNoGps: "No GPS",
+      tooltipWithGps: "Sync with API (with GPS)",
+      tooltipSync: "Sync with API",
     },
     mileage: {
       title: "Update Mileage",
@@ -234,6 +251,8 @@ export const enVehicles = {
     mileageUpdateError: "Error updating mileage",
     statusUpdateSuccess: "Status updated successfully",
     statusUpdateError: "Error updating status",
+    syncSuccess: "Vehicle synced with the API",
+    syncError: "Error syncing vehicle with the API",
     categoryCreateSuccess: "Category created successfully",
     categoryCreateError: "Error creating category",
     categoryUpdateSuccess: "Category updated successfully",
