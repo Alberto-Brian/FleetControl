@@ -2,7 +2,6 @@
 // FILE: src/components/tracking/TrackingToolbar.tsx
 // ========================================
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import {
   WifiOff, History, Layers, Link2, PlusCircle, PanelLeft, Clock,
 } from 'lucide-react';
@@ -17,21 +16,20 @@ interface Props {
   onlineDevices:   number;
   offlineDevices:  number;
   totalDevices:    number;
-  isLoading?:      boolean;
   lastUpdate?:     Date | null;
   onLinkDevices?:  () => void;
   onCreateDevice?: () => void;
 }
 
-function MapBtn({ title, onClick, children, className = '' }: {
-  title: string; onClick?: () => void; children: React.ReactNode; className?: string;
+function MapBtn({ title, onClick, children }: {
+  title: string; onClick?: () => void; children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
       title={title}
       onClick={onClick}
-      className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${className}`}
+      className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
       style={{ color: 'rgba(255,255,255,0.55)', background: 'transparent' }}
       onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.10)'; }}
       onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
@@ -50,7 +48,6 @@ export function TrackingToolbar({
   onlineDevices,
   offlineDevices,
   totalDevices,
-  isLoading = false,
   lastUpdate,
   onLinkDevices,
   onCreateDevice,
@@ -60,7 +57,7 @@ export function TrackingToolbar({
   return (
     <div className="absolute top-3 right-3 z-10 flex items-center gap-2 pointer-events-none">
 
-      {/* Toggle sidebar — só aparece quando sidebar está fechada */}
+      {/* Botão abrir sidebar — só aparece quando sidebar está fechada */}
       {!isSidebarOpen && (
         <div
           className="pointer-events-auto flex items-center rounded-xl overflow-hidden"
@@ -85,7 +82,7 @@ export function TrackingToolbar({
           boxShadow:  '0 4px 20px rgba(0,0,0,0.4)',
         }}
       >
-        {/* Connection status */}
+        {/* Ligação */}
         <div className="flex items-center gap-1.5">
           {isConnected ? (
             <span className="relative flex h-2 w-2">
@@ -105,7 +102,7 @@ export function TrackingToolbar({
 
         <div className="w-px h-3.5" style={{ background: 'rgba(255,255,255,0.08)' }} />
 
-        {/* Counters */}
+        {/* Contadores */}
         <div className="flex items-center gap-2.5">
           <span className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -119,15 +116,15 @@ export function TrackingToolbar({
               {offlineDevices}
             </span>
           </span>
-          <span className="text-xs pl-1.5" style={{
-            color: 'rgba(255,255,255,0.25)',
-            borderLeft: '1px solid rgba(255,255,255,0.08)',
-          }}>
+          <span
+            className="text-xs pl-1.5"
+            style={{ color: 'rgba(255,255,255,0.25)', borderLeft: '1px solid rgba(255,255,255,0.08)' }}
+          >
             {totalDevices} disp.
           </span>
         </div>
 
-        {/* Last update */}
+        {/* Última actualização */}
         {lastUpdate && (
           <>
             <div className="w-px h-3.5" style={{ background: 'rgba(255,255,255,0.08)' }} />
@@ -138,17 +135,14 @@ export function TrackingToolbar({
           </>
         )}
 
-        {/* Exit history */}
+        {/* Sair do histórico */}
         {showingHistory && (
           <>
             <div className="w-px h-3.5" style={{ background: 'rgba(255,255,255,0.08)' }} />
             <button
               onClick={onExitHistory}
               className="flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-md transition-colors"
-              style={{
-                color:      '#fbbf24',
-                background: 'rgba(251,191,36,0.12)',
-              }}
+              style={{ color: '#fbbf24', background: 'rgba(251,191,36,0.12)' }}
               onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(251,191,36,0.2)'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(251,191,36,0.12)'; }}
             >
@@ -159,7 +153,7 @@ export function TrackingToolbar({
         )}
       </div>
 
-      {/* Action buttons group */}
+      {/* Botões de acção do mapa */}
       <div
         className="pointer-events-auto flex items-center rounded-xl overflow-hidden"
         style={{
