@@ -110,7 +110,7 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0 }: Tra
             className="absolute top-0 bottom-0 right-0"
             style={{ left: leftOffset, pointerEvents: 'none' }}
           >
-            <div className="relative h-full" style={{ pointerEvents: 'auto' }}>
+            <div className="relative h-full" style={{ pointerEvents: 'none' }}>
               <TrackingToolbar
                 isConnected={isConnected}
                 isSidebarOpen={state.isSidebarOpen}

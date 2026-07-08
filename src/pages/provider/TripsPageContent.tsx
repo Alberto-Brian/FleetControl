@@ -497,29 +497,27 @@ export default function TripsPageContent() {
   // ---------------------------------------------------------------
 
   return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
+    <div className="min-h-screen bg-transparent -m-6 p-6">
       <div className="max-w-[1500px] mx-auto space-y-8 pb-10">
 
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('trips:title')}</h1>
-            <p className="text-muted-foreground text-base">
-              {activeTab === 'trips' ? t('trips:description') : t('routes:description', { count: routes.length })}
-            </p>
-          </div>
-          <StartTripDialog />
-        </div>
-
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-[440px] grid-cols-2 bg-muted/60 p-1 rounded-xl border border-muted/50">
-            <TabsTrigger value="trips" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2">
-              <Navigation className="w-4 h-4" />{t('trips:tabs.trips')}
-            </TabsTrigger>
-            <TabsTrigger value="routes" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2">
-              <RouteIcon className="w-4 h-4" />{t('trips:tabs.routes')}
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center gap-4">
+            <div className="space-y-0.5">
+              <h1 className="text-2xl font-extrabold tracking-tight">{t('trips:title')}</h1>
+              <p className="text-muted-foreground text-sm">
+                {activeTab === 'trips' ? t('trips:description') : t('routes:description', { count: routes.length })}
+              </p>
+            </div>
+            <TabsList className="flex h-9 items-center gap-1 rounded-lg border border-border bg-muted/40 p-1 mx-auto">
+              <TabsTrigger value="trips" className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5">
+                <Navigation className="w-4 h-4" />{t('trips:tabs.trips')}
+              </TabsTrigger>
+              <TabsTrigger value="routes" className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5">
+                <RouteIcon className="w-4 h-4" />{t('trips:tabs.routes')}
+              </TabsTrigger>
+            </TabsList>
+            <StartTripDialog />
+          </div>
 
           {/* ---- TAB: VIAGENS ---- */}
           <TabsContent value="trips" className="space-y-6 mt-0 outline-none">

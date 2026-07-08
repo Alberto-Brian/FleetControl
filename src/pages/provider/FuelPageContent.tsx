@@ -404,31 +404,37 @@ export default function FuelPageContent() {
 
 
   return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
-      <div className="max-w-[1500px] mx-auto space-y-8 pb-10">
-
-        {/* Cabeçalho */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('refuelings:title')}</h1>
-            <p className="text-muted-foreground text-base">
-              {activeTab === 'refuelings'
-                ? t('refuelings:info.totalRefuelings', { count: paginationInfo.total, plural: paginationInfo.total === 1 ? '' : 's' })
-                : t('refuelings:info.activeCount', { count: activeStations, plural: activeStations === 1 ? '' : 's' })}
-            </p>
-          </div>
-          <NewRefuelingDialog />
-        </div>
+    <div className="min-h-screen bg-transparent -m-6 p-6">
+      <div className="max-w-[1500px] mx-auto space-y-6 pb-10">
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-[440px] grid-cols-2 bg-muted/60 p-1 rounded-xl border border-muted/50">
-            <TabsTrigger value="refuelings" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2">
-              <Fuel className="w-4 h-4" />{t('refuelings:tabs.refuelings')}
-            </TabsTrigger>
-            <TabsTrigger value="stations" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2">
-              <MapPin className="w-4 h-4" />{t('refuelings:tabs.stations')}
-            </TabsTrigger>
-          </TabsList>
+
+          {/* Cabeçalho — título | tabs | botão */}
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="space-y-0.5 min-w-0">
+              <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('refuelings:title')}</h1>
+              <p className="text-sm text-muted-foreground">
+                {activeTab === 'refuelings'
+                  ? t('refuelings:info.totalRefuelings', { count: paginationInfo.total, plural: paginationInfo.total === 1 ? '' : 's' })
+                  : t('refuelings:info.activeCount', { count: activeStations, plural: activeStations === 1 ? '' : 's' })}
+              </p>
+            </div>
+
+            <TabsList className="flex h-9 items-center gap-1 rounded-lg border border-border bg-muted/40 p-1 mx-auto">
+              <TabsTrigger value="refuelings"
+                className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground transition-all flex items-center gap-1.5
+                           data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+                <Fuel className="w-3.5 h-3.5" />{t('refuelings:tabs.refuelings')}
+              </TabsTrigger>
+              <TabsTrigger value="stations"
+                className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground transition-all flex items-center gap-1.5
+                           data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+                <MapPin className="w-3.5 h-3.5" />{t('refuelings:tabs.stations')}
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="ml-auto"><NewRefuelingDialog /></div>
+          </div>
 
           {/* ── TAB: ABASTECIMENTOS ─────────────────────────────────────── */}
           <TabsContent value="refuelings" className="space-y-6 mt-0 outline-none">

@@ -66,7 +66,7 @@ export function DeviceInfoPanel({ device, position, onClose, onShowHistory }: Pr
   }
 
   return (
-    <div className="absolute bottom-4 right-4 z-10 w-80 bg-background/95 backdrop-blur rounded-2xl border border-border shadow-xl p-4 space-y-3">
+    <div className="absolute bottom-4 right-4 z-10 w-80 bg-background/95 backdrop-blur rounded-2xl border border-border shadow-xl p-4 space-y-3 pointer-events-auto">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

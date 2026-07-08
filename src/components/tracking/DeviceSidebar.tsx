@@ -48,7 +48,7 @@ export function DeviceSidebar({
 
   return (
     <aside
-      className="absolute left-3 top-[60px] bottom-4 z-10 w-72 flex flex-col rounded-xl overflow-hidden"
+      className="absolute left-3 top-[60px] bottom-4 z-10 w-72 flex flex-col rounded-xl overflow-hidden pointer-events-auto"
       style={{
         background:  'rgba(10, 17, 32, 0.97)',
         border:      '1px solid rgba(255,255,255,0.07)',

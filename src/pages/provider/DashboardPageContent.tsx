@@ -95,7 +95,7 @@ export function DashboardPageContent() {
   })) || [];
 
   return (
-    <div className="p-6 space-y-8 bg-slate-50/50 dark:bg-slate-950/50 min-h-screen">
+    <div className="p-6 space-y-8 bg-transparent min-h-screen">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

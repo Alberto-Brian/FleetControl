@@ -537,30 +537,29 @@ function renderCardsView() {
   // ---------------------------------------------------------------
 
   return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
+    <div className="min-h-screen bg-transparent -m-6 p-6">
       <div className="max-w-[1500px] mx-auto space-y-8 pb-10">
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('expenses:title')}</h1>
-            <p className="text-muted-foreground text-base">
-              {activeTab === 'expenses'
-                ? t('expenses:info.totalExpenses', { count: paginationInfo.total, plural: paginationInfo.total > 1 ? 's' : '' })
-                : t('expenses:info.totalCategories', { count: categories.length, plural: categories.length > 1 ? 's' : '' })}
-            </p>
-          </div>
-          <NewExpenseDialog />
-        </div>
-
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-[440px] grid-cols-2 bg-muted/60 p-1 rounded-xl border border-muted/50">
-            <TabsTrigger value="expenses" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />{t('expenses:tabs.expenses')}
-            </TabsTrigger>
-            <TabsTrigger value="categories" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2">
-              <Tag className="w-4 h-4" />{t('expenses:tabs.categories')}
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center gap-4">
+            <div className="space-y-0.5">
+              <h1 className="text-2xl font-extrabold tracking-tight">{t('expenses:title')}</h1>
+              <p className="text-muted-foreground text-sm">
+                {activeTab === 'expenses'
+                  ? t('expenses:info.totalExpenses', { count: paginationInfo.total, plural: paginationInfo.total > 1 ? 's' : '' })
+                  : t('expenses:info.totalCategories', { count: categories.length, plural: categories.length > 1 ? 's' : '' })}
+              </p>
+            </div>
+            <TabsList className="flex h-9 items-center gap-1 rounded-lg border border-border bg-muted/40 p-1 mx-auto">
+              <TabsTrigger value="expenses" className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4" />{t('expenses:tabs.expenses')}
+              </TabsTrigger>
+              <TabsTrigger value="categories" className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5">
+                <Tag className="w-4 h-4" />{t('expenses:tabs.categories')}
+              </TabsTrigger>
+            </TabsList>
+            <NewExpenseDialog />
+          </div>
 
           {/* ---- TAB: DESPESAS ---- */}
           <TabsContent value="expenses" className="space-y-6 mt-0 outline-none">

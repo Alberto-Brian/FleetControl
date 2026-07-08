@@ -253,59 +253,53 @@ export function ReportsPageContent() {
   // ==================== RENDER ====================
 
   return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
+    <div className="min-h-screen bg-transparent -m-6 p-6">
       <div className="max-w-[1500px] mx-auto space-y-8 pb-10">
 
-        {/* ── Header ── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-              {t('reports:title')}
-            </h1>
-            <p className="text-muted-foreground text-base">
-              {t('reports:subtitle', { count: REPORT_DEFINITIONS.length, thisMonth: stats.thisMonth })}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-             <Button className="h-10 gap-2" onClick={() => { setDialogDefaultType(undefined); setDialogOpen(true); }}>
+        {/* ── Header + Tabs ── */}
+        <Tabs value={activeTab} onValueChange={v => setActiveTab(v as ActiveTab)}>
+          <div className="flex items-center gap-4">
+            <div className="space-y-0.5">
+              <h1 className="text-2xl font-extrabold tracking-tight">{t('reports:title')}</h1>
+              <p className="text-muted-foreground text-sm">
+                {t('reports:subtitle', { count: REPORT_DEFINITIONS.length, thisMonth: stats.thisMonth })}
+              </p>
+            </div>
+            <TabsList className="flex h-9 items-center gap-1 rounded-lg border border-border bg-muted/40 p-1 mx-auto">
+              <TabsTrigger value="reports" className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5">
+                <FileText className="w-4 h-4" /> {t('reports:tabs.reportTypes')}
+              </TabsTrigger>
+              <TabsTrigger value="history" className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5">
+                <History className="w-4 h-4" /> {t('reports:tabs.history')}
+                {stats.total > 0 && (
+                  <Badge variant="secondary" className="ml-1 text-xs">{stats.total}</Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+            <Button className="h-9 gap-2 flex-shrink-0" onClick={() => { setDialogDefaultType(undefined); setDialogOpen(true); }}>
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">{t('reports:actions.newReport')}</span>
             </Button>
           </div>
-        </div>
 
-        {/* ── Stats ── */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {statCards.map((s, i) => (
-            <Card key={i} className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className={cn('p-3 rounded-xl', s.bg, s.color)}>
-                  <s.icon className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">
-                    {s.label}
-                  </p>
-                  <p className="text-2xl font-black tracking-tight">{s.value}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* ── Tabs ── */}
-        <Tabs value={activeTab} onValueChange={v => setActiveTab(v as ActiveTab)}>
-          <TabsList className="h-11">
-            <TabsTrigger value="reports" className="gap-2 px-5">
-              <FileText className="w-4 h-4" /> {t('reports:tabs.reportTypes')}
-            </TabsTrigger>
-            <TabsTrigger value="history" className="gap-2 px-5">
-              <History className="w-4 h-4" /> {t('reports:tabs.history')}
-              {stats.total > 0 && (
-                <Badge variant="secondary" className="ml-1 text-xs">{stats.total}</Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
+          {/* ── Stats ── */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {statCards.map((s, i) => (
+              <Card key={i} className="border-none shadow-sm bg-card hover:shadow-md transition-shadow">
+                <CardContent className="p-5 flex items-center gap-4">
+                  <div className={cn('p-3 rounded-xl', s.bg, s.color)}>
+                    <s.icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">
+                      {s.label}
+                    </p>
+                    <p className="text-2xl font-black tracking-tight">{s.value}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
           {/* ══════════ TAB: REPORTS ══════════ */}
           <TabsContent value="reports" className="mt-6">

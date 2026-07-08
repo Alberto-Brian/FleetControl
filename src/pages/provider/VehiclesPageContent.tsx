@@ -401,7 +401,7 @@ export default function VehiclesPageContent() {
                       variant="ghost"
                       size="icon"
                       className="h-10 w-10 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                      title={vehicle.traccar_unique_id ? 'Sincronizar com API (com GPS)' : 'Sincronizar com API'}
+                      title={vehicle.traccar_unique_id ? t('vehicles:dialogs.sync.tooltipWithGps') : t('vehicles:dialogs.sync.tooltipSync')}
                       disabled={syncingVehicleId === vehicle.id}
                       onClick={() => openSyncFlow(vehicle)}
                     >
@@ -448,17 +448,17 @@ export default function VehiclesPageContent() {
                   {isConnected && !vehicle.api_vehicle_id && (
                     <Badge
                       variant="outline"
-                      className={`text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider cursor-pointer ${
+                      className={`text-[10px] px-2 py-0.5 font-semibold cursor-pointer rounded-full transition-colors ${
                         vehicle.traccar_unique_id
-                          ? 'text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30'
-                          : 'text-slate-500 border-slate-300 bg-slate-50 dark:bg-slate-900'
+                          ? 'text-amber-600 border-amber-300/70 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/30 dark:border-amber-700/50 dark:text-amber-400'
+                          : 'text-slate-400 border-slate-300/60 bg-slate-100/60 hover:bg-slate-200/60 dark:bg-slate-800/60 dark:border-slate-700/50 dark:text-slate-500'
                       }`}
-                      title={vehicle.traccar_unique_id ? 'Pronto para sincronizar (com GPS)' : 'Sem IMEI — sincroniza sem GPS'}
+                      title={vehicle.traccar_unique_id ? t('vehicles:dialogs.sync.badgeReadyWithGps') : t('vehicles:dialogs.sync.badgeNoImei')}
                       onClick={() => openSyncFlow(vehicle)}
                     >
                       {vehicle.traccar_unique_id
-                        ? <><Upload className="w-2.5 h-2.5 mr-1" />Sync</>
-                        : <><Wifi className="w-2.5 h-2.5 mr-1" />Sem GPS</>
+                        ? <><Upload className="w-2.5 h-2.5 mr-1 inline" />GPS Sync</>
+                        : <><Wifi className="w-2.5 h-2.5 mr-1 inline opacity-50" />Sem GPS</>
                       }
                     </Badge>
                   )}
@@ -513,7 +513,7 @@ export default function VehiclesPageContent() {
                         className="text-amber-600 focus:text-amber-700"
                       >
                         <Upload className="w-4 h-4 mr-2" />
-                        {syncingVehicleId === vehicle.id ? 'A sincronizar...' : 'Sincronizar com API'}
+                        {syncingVehicleId === vehicle.id ? t('vehicles:loading.syncing') : t('vehicles:dialogs.sync.tooltipSync')}
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => openDeleteDialog(vehicle)}>
@@ -534,29 +534,35 @@ export default function VehiclesPageContent() {
   // ---------------------------------------------------------------
 
   return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-transparent -m-6 p-6">
-      <div className="max-w-[1500px] mx-auto space-y-8 pb-10">
-
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('vehicles:title')}</h1>
-            <p className="text-muted-foreground text-base">{t('vehicles:description')}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <NewVehicleDialog />
-          </div>
-        </div>
+    <div className="min-h-screen bg-transparent -m-6 p-6">
+      <div className="max-w-[1500px] mx-auto space-y-6 pb-10">
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-[440px] grid-cols-2 bg-muted/60 p-1 rounded-xl border border-muted/50">
-            <TabsTrigger value="vehicles" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm">
-              {t('vehicles:tabs.vehicles')}
-            </TabsTrigger>
-            <TabsTrigger value="categories" className="rounded-lg py-2.5 text-sm font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm">
-              {t('vehicles:tabs.categories')}
-            </TabsTrigger>
-          </TabsList>
+
+          {/* Header — título | tabs | botão numa só linha */}
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="space-y-0.5 min-w-0">
+              <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('vehicles:title')}</h1>
+              <p className="text-sm text-muted-foreground">{t('vehicles:description')}</p>
+            </div>
+
+            <TabsList className="flex h-9 items-center gap-1 rounded-lg border border-border bg-muted/40 p-1 mx-auto">
+              <TabsTrigger value="vehicles"
+                className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground transition-all
+                           data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+                {t('vehicles:tabs.vehicles')}
+              </TabsTrigger>
+              <TabsTrigger value="categories"
+                className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground transition-all
+                           data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+                {t('vehicles:tabs.categories')}
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="flex items-center gap-3 ml-auto">
+              <NewVehicleDialog />
+            </div>
+          </div>
 
           {/* ---- TAB: VEÍCULOS ---- */}
           <TabsContent value="vehicles" className="space-y-6 mt-0 outline-none">
@@ -792,39 +798,39 @@ export default function VehiclesPageContent() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Upload className="w-5 h-5 text-amber-600" />
-                Sincronizar veículo com a API
+                {t('vehicles:dialogs.sync.title')}
               </DialogTitle>
               <DialogDescription>
-                Este veículo não tem IMEI configurado. Podes adicionar o IMEI do GPS agora para activar o rastreamento, ou sincronizar só os dados do veículo.
+                {t('vehicles:dialogs.sync.description')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2 py-2">
               <Label htmlFor="sync-imei">
-                IMEI / ID do GPS
-                <span className="ml-1 text-xs font-normal text-muted-foreground">(opcional)</span>
+                {t('vehicles:fields.gpsImei')}
+                <span className="ml-1 text-xs font-normal text-muted-foreground">{t('vehicles:fields.gpsImeiOptional')}</span>
               </Label>
               <Input
                 id="sync-imei"
-                placeholder="Ex: 353926070024734"
+                placeholder={t('vehicles:placeholders.gpsImei')}
                 value={imeiInput}
                 onChange={(e) => setImeiInput(e.target.value)}
                 className="font-mono"
                 autoFocus
               />
               <p className="text-xs text-muted-foreground">
-                Se deixares em branco, o veículo é sincronizado sem rastreamento GPS.
+                {t('vehicles:dialogs.sync.imeiHint')}
               </p>
             </div>
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={() => { setSyncImeiDialogOpen(false); setPendingSyncVehicleId(null); }}>
-                Cancelar
+                {t('vehicles:actions.cancel')}
               </Button>
               <Button
                 variant="secondary"
                 onClick={confirmSyncWithImei}
                 disabled={syncingVehicleId !== null}
               >
-                {imeiInput.trim() ? 'Sincronizar com GPS' : 'Sincronizar sem GPS'}
+                {imeiInput.trim() ? t('vehicles:dialogs.sync.syncWithGps') : t('vehicles:dialogs.sync.syncWithoutGps')}
               </Button>
             </DialogFooter>
           </DialogContent>
