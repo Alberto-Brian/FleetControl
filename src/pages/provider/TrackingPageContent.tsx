@@ -111,32 +111,7 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0 }: Tra
             style={{ left: leftOffset, pointerEvents: 'none' }}
           >
             <div className="relative h-full" style={{ pointerEvents: 'none' }}>
-              <TrackingToolbar
-                isConnected={isConnected}
-                isSidebarOpen={state.isSidebarOpen}
-                onToggleSidebar={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
-                onRefresh={loadInitial}
-                onSyncDevices={async () => {
-                  dispatch({ type: 'SET_LOADING', payload: true });
-                  try {
-                    const devs = await syncDevices();
-                    if (devs?.length) dispatch({ type: 'SET_DEVICES', payload: devs });
-                  } finally {
-                    dispatch({ type: 'SET_LOADING', payload: false });
-                  }
-                }}
-                totalDevices={state.devices.length}
-                onlineDevices={state.devices.filter(d => d.status === 'online').length}
-                offlineDevices={state.devices.filter(d => d.status !== 'online').length}
-                showingHistory={state.showHistory}
-                onExitHistory={() => dispatch({ type: 'TOGGLE_HISTORY', payload: false })}
-                onFilterStatus={(status) => dispatch({ type: 'FILTER_STATUS', payload: status })}
-                isLoading={state.isLoading}
-                lastUpdate={state.lastUpdate}
-                onLinkDevices={() => setLinkSheetOpen(true)}
-                onCreateDevice={() => setCreateDeviceOpen(true)}
-              />
-
+              {/* Sidebar — agora auto-contida com os controlos de ação */}
               {state.isSidebarOpen && (
                 <DeviceSidebar
                   devices={state.devices}
@@ -147,8 +122,38 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0 }: Tra
                     dispatch({ type: 'SELECT_DEVICE', payload: device });
                     dispatch({ type: 'TOGGLE_HISTORY', payload: false });
                   }}
+                  isConnected={isConnected}
+                  isLoading={state.isLoading}
+                  onRefresh={loadInitial}
+                  onSyncDevices={async () => {
+                    dispatch({ type: 'SET_LOADING', payload: true });
+                    try {
+                      const devs = await syncDevices();
+                      if (devs?.length) dispatch({ type: 'SET_DEVICES', payload: devs });
+                    } finally {
+                      dispatch({ type: 'SET_LOADING', payload: false });
+                    }
+                  }}
+                  onFilterStatus={(status) => dispatch({ type: 'FILTER_STATUS', payload: status })}
+                  onToggleSidebar={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
                 />
               )}
+
+              {/* Toolbar — apenas status + acções no canto superior direito */}
+              <TrackingToolbar
+                isConnected={isConnected}
+                isSidebarOpen={state.isSidebarOpen}
+                onToggleSidebar={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
+                totalDevices={state.devices.length}
+                onlineDevices={state.devices.filter(d => d.status === 'online').length}
+                offlineDevices={state.devices.filter(d => d.status !== 'online').length}
+                showingHistory={state.showHistory}
+                onExitHistory={() => dispatch({ type: 'TOGGLE_HISTORY', payload: false })}
+                isLoading={state.isLoading}
+                lastUpdate={state.lastUpdate}
+                onLinkDevices={() => setLinkSheetOpen(true)}
+                onCreateDevice={() => setCreateDeviceOpen(true)}
+              />
 
               {state.selectedDevice && (
                 <DeviceInfoPanel
