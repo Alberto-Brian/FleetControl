@@ -83,10 +83,7 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0 }: Tra
     );
   }
 
-  // Margens negativas só no layout normal (não no modo fundo)
-  const wrapClass = showControls
-    ? 'relative h-full -m-4 md:-m-6 overflow-hidden'
-    : 'relative h-full overflow-hidden';
+  const wrapClass = 'relative h-full overflow-hidden';
 
   return (
     <div className={wrapClass}>
