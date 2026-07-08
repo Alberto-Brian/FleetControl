@@ -13,14 +13,18 @@ export const ptTracking = {
     allDevices: "Todos",        // ⬅️ NOVO
   },
   toolbar: {
-    realtime: "Tempo real",
-    offline: "Offline",
-    toggleSidebar: "Alternar painel",
-    refresh: "Actualizar",
-    closeSidebar: "Fechar painel",    // ⬅️ NOVO
-    openSidebar: "Abrir painel",      // ⬅️ NOVO
-    exitHistory: "Sair do histórico", // ⬅️ NOVO
-    layers: "Camadas",                // ⬅️ NOVO
+    realtime:       "Tempo real",
+    offline:        "Offline",
+    toggleSidebar:  "Alternar painel",
+    refresh:        "Actualizar",
+    closeSidebar:   "Fechar painel",
+    openSidebar:    "Abrir painel",
+    exitHistory:    "Sair do histórico",
+    layers:         "Camadas",
+    settings:       "Definições",
+    createDevice:   "Cadastrar dispositivo Traccar",
+    linkDevices:    "Associar veículos a dispositivos",
+    totalSuffix:    "disp.",
   },
   device: {
     speed: "Velocidade",

@@ -36,6 +36,48 @@ export const enSettings = {
     animations:       'Animations',
     transparency:     'Transparency effects',
     enabled:          'Enabled',
+
+    // Font family
+    typography:         'Font family',
+    typographyDesc:     'Application typeface',
+    fontPreview:        'Fleet 2025 · 123',
+    font_geist_label:   'Geist',
+    font_geist_desc:    'Modern and clean',
+    font_system_label:  'System',
+    font_system_desc:   'Native OS font',
+    font_serif_label:   'Serif',
+    font_serif_desc:    'Classic and elegant',
+    font_mono_label:    'Monospace',
+    font_mono_desc:     'Ideal for technical data',
+
+    // Font size
+    fontSize:             'Font size',
+    fontSizeDesc:         'Affects menus, submenus and all content',
+    fontsize_sm:          'Small',
+    fontsize_sm_desc:     'Compact',
+    fontsize_md:          'Normal',
+    fontsize_md_desc:     'Default',
+    fontsize_lg:          'Large',
+    fontsize_lg_desc:     'Comfortable',
+    fontsize_xl:          'Extra large',
+    fontsize_xl_desc:     'Accessible',
+
+    // Glass panel (connected mode)
+    glassPanel:           'Background panel',
+    glassPanelDesc:       'Transparency and blur of the floating panel (connected mode)',
+    glassOpacity:         'Opacity',
+    glassBlur:            'Blur',
+    glassTransparent:     'Transparent',
+    glassSolid:           'Solid',
+    glassNoBlur:          'No blur',
+    glassMaxBlur:         'Maximum',
+    glassReset:           'Reset to defaults',
+
+    // Sidebar menu
+    sidebarTitle:         'Side menu',
+    sidebarDesc:          'Configure the navigation menu behaviour',
+    sidebarCollapsed:     'Start collapsed',
+    sidebarCollapsedDesc: 'Show only icons when opening the application',
   },
 
   language: {

@@ -57,6 +57,10 @@
 
 @layer base {
     :root {
+        --app-font:      "Geist", ui-sans-serif, system-ui, sans-serif;
+        --app-font-size: 16px;
+        --glass-bg:      rgba(8,14,28,0.88);
+        --glass-filter:  blur(20px) saturate(1.4);
         --background: 0 0% 97.5%;
         --foreground: 222.2 84% 4.9%;
 
@@ -120,8 +124,12 @@
 }
 
 @layer base {
+    html {
+        font-size: var(--app-font-size);
+    }
     * {
-        @apply m-0 border-border p-0 font-sans;
+        @apply m-0 border-border p-0;
+        font-family: var(--app-font);
     }
     body {
         @apply overflow-hidden bg-background text-foreground;

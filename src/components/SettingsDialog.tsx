@@ -8,6 +8,9 @@ import {
 import { useTranslation } from 'react-i18next';
 import ToggleTheme from '@/components/ToggleTheme';
 import LangToggle from '@/components/LangToggle';
+import { useFontFamily, useFontSize } from '@/hooks/useFontFamily';
+import { useGlassSettings }           from '@/hooks/useGlassSettings';
+import { useLayoutSettings }          from '@/hooks/useLayoutSettings';
 import { toast } from 'sonner';
 import {
   Settings, Globe, Palette, Info, Package, AlertCircle,
@@ -15,7 +18,7 @@ import {
   Clock, Loader2, CheckCircle, XCircle, Camera, Trash2, Save,
   Building, Hash, AtSign, ImageIcon, FileText, Bell, Car,
   Fuel, Sliders, RotateCcw, Eye, EyeOff, Droplets,
-  Key, ShieldCheck, RefreshCw,
+  Key, ShieldCheck, RefreshCw, PanelLeft,
 } from 'lucide-react';
 import { Button }   from '@/components/ui/button';
 import { Switch }   from '@/components/ui/switch';
@@ -764,6 +767,10 @@ interface SettingsDialogProps {
 export default function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { t } = useTranslation('settings');
   const [activeTab, setActiveTab] = useState('appearance');
+  const { fontId, setFont, options: fontOptions }                    = useFontFamily();
+  const { sizeId, setFontSize, sizeOptions }                         = useFontSize();
+  const { settings: glass, update: updateGlass, reset: resetGlass }  = useGlassSettings();
+  const { sidebarCollapsed, setSidebarCollapsed }                    = useLayoutSettings();
   const [systemVersion, setSystemVersion] = useState('');
 
   // Backup states
@@ -888,7 +895,8 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
 
                   {/* ── Aparência ── */}
                   {activeTab === 'appearance' && (
-                    <div className="space-y-6">
+                    <div className="space-y-8">
+                      {/* Tema */}
                       <div>
                         <h3 className="text-base font-semibold mb-1">{t('appearance.title')}</h3>
                         <p className="text-sm text-muted-foreground mb-4">{t('appearance.description')}</p>
@@ -898,6 +906,154 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                             <div><p className="text-sm font-medium">{t('appearance.label')}</p><p className="text-xs text-muted-foreground">{t('appearance.subtitle')}</p></div>
                           </div>
                           <ToggleTheme />
+                        </div>
+                      </div>
+
+                      {/* Tipo de letra */}
+                      <div>
+                        <h3 className="text-base font-semibold mb-1">{t('appearance.typography')}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">{t('appearance.typographyDesc')}</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {fontOptions.map(opt => {
+                            const active = fontId === opt.id;
+                            return (
+                              <button
+                                key={opt.id}
+                                onClick={() => setFont(opt.id)}
+                                className={cn(
+                                  'p-4 rounded-lg border text-left transition-all',
+                                  active
+                                    ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                                    : 'border-border bg-card/50 hover:border-primary/40 hover:bg-muted/30',
+                                )}
+                              >
+                                <p className="text-base font-semibold leading-none mb-1" style={{ fontFamily: opt.stack }}>
+                                  {t(`appearance.font_${opt.id}_label`, opt.label)}
+                                </p>
+                                <p className="text-xs text-muted-foreground mb-2">
+                                  {t(`appearance.font_${opt.id}_desc`, opt.description)}
+                                </p>
+                                <p className="text-sm" style={{ fontFamily: opt.stack, opacity: 0.55 }}>
+                                  {t('appearance.fontPreview')}
+                                </p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Tamanho da letra */}
+                      <div>
+                        <h3 className="text-base font-semibold mb-1">{t('appearance.fontSize')}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">{t('appearance.fontSizeDesc')}</p>
+                        <div className="grid grid-cols-4 gap-2">
+                          {sizeOptions.map(opt => {
+                            const active = sizeId === opt.id;
+                            return (
+                              <button
+                                key={opt.id}
+                                onClick={() => setFontSize(opt.id)}
+                                className={cn(
+                                  'py-3 px-2 rounded-lg border text-center transition-all',
+                                  active
+                                    ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                                    : 'border-border bg-card/50 hover:border-primary/40 hover:bg-muted/30',
+                                )}
+                              >
+                                <p className="font-semibold leading-none mb-1" style={{ fontSize: opt.size }}>
+                                  Aa
+                                </p>
+                                <p className="text-xs font-medium mt-2">
+                                  {t(`appearance.fontsize_${opt.id}`, opt.label)}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">
+                                  {t(`appearance.fontsize_${opt.id}_desc`, opt.description)}
+                                </p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Transparência e desfoque */}
+                      <div>
+                        <h3 className="text-base font-semibold mb-1">{t('appearance.glassPanel')}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">{t('appearance.glassPanelDesc')}</p>
+                        <div className="space-y-5 p-4 rounded-lg border border-border bg-card/50">
+                          {/* Opacidade */}
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium">{t('appearance.glassOpacity')}</label>
+                              <span className="text-sm text-muted-foreground tabular-nums">
+                                {Math.round(glass.opacity * 100)}%
+                              </span>
+                            </div>
+                            <input
+                              type="range"
+                              min={40} max={100} step={1}
+                              value={Math.round(glass.opacity * 100)}
+                              onChange={e => updateGlass({ opacity: Number(e.target.value) / 100 })}
+                              className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                              style={{ accentColor: 'hsl(var(--primary))' }}
+                            />
+                            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                              <span>{t('appearance.glassTransparent')}</span>
+                              <span>{t('appearance.glassSolid')}</span>
+                            </div>
+                          </div>
+
+                          {/* Desfoque */}
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-sm font-medium">{t('appearance.glassBlur')}</label>
+                              <span className="text-sm text-muted-foreground tabular-nums">
+                                {glass.blur}px
+                              </span>
+                            </div>
+                            <input
+                              type="range"
+                              min={0} max={40} step={1}
+                              value={glass.blur}
+                              onChange={e => updateGlass({ blur: Number(e.target.value) })}
+                              className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                              style={{ accentColor: 'hsl(var(--primary))' }}
+                            />
+                            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                              <span>{t('appearance.glassNoBlur')}</span>
+                              <span>{t('appearance.glassMaxBlur')}</span>
+                            </div>
+                          </div>
+
+                          {/* Reset */}
+                          <div className="flex justify-end pt-1">
+                            <button
+                              onClick={resetGlass}
+                              className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+                            >
+                              {t('appearance.glassReset')}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Menu lateral */}
+                      <div>
+                        <h3 className="text-base font-semibold mb-1">{t('appearance.sidebarTitle')}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">{t('appearance.sidebarDesc')}</p>
+                        <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                              <PanelLeft className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">{t('appearance.sidebarCollapsed')}</p>
+                              <p className="text-xs text-muted-foreground">{t('appearance.sidebarCollapsedDesc')}</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={sidebarCollapsed}
+                            onCheckedChange={setSidebarCollapsed}
+                          />
                         </div>
                       </div>
                     </div>

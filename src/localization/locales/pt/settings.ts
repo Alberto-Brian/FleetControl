@@ -38,6 +38,48 @@ export const ptSettings = {
     animations:       'Animações',
     transparency:     'Efeitos de transparência',
     enabled:          'Activado',
+
+    // Tipo de letra
+    typography:         'Tipo de letra',
+    typographyDesc:     'Família tipográfica da aplicação',
+    fontPreview:        'Frota 2025 · 123',
+    font_geist_label:   'Geist',
+    font_geist_desc:    'Moderna e clean',
+    font_system_label:  'Sistema',
+    font_system_desc:   'Fonte nativa do sistema operativo',
+    font_serif_label:   'Serif',
+    font_serif_desc:    'Clássica e elegante',
+    font_mono_label:    'Monoespaço',
+    font_mono_desc:     'Ideal para dados técnicos',
+
+    // Tamanho da letra
+    fontSize:             'Tamanho da letra',
+    fontSizeDesc:         'Afecta menus, submenus e todo o conteúdo',
+    fontsize_sm:          'Pequeno',
+    fontsize_sm_desc:     'Compacto',
+    fontsize_md:          'Normal',
+    fontsize_md_desc:     'Padrão',
+    fontsize_lg:          'Grande',
+    fontsize_lg_desc:     'Confortável',
+    fontsize_xl:          'Extra grande',
+    fontsize_xl_desc:     'Acessível',
+
+    // Painel de fundo (modo conectado)
+    glassPanel:           'Painel de fundo',
+    glassPanelDesc:       'Transparência e desfoque do painel flutuante (modo conectado)',
+    glassOpacity:         'Opacidade',
+    glassBlur:            'Desfoque',
+    glassTransparent:     'Transparente',
+    glassSolid:           'Sólido',
+    glassNoBlur:          'Sem desfoque',
+    glassMaxBlur:         'Máximo',
+    glassReset:           'Repor predefinições',
+
+    // Menu lateral
+    sidebarTitle:         'Menu lateral',
+    sidebarDesc:          'Configurar o comportamento do menu de navegação',
+    sidebarCollapsed:     'Iniciar colapsado',
+    sidebarCollapsedDesc: 'Mostrar apenas ícones ao abrir a aplicação',
   },
 
   // ── Idioma ────────────────────────────────────────────────────────────────

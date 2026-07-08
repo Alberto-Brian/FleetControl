@@ -24,9 +24,10 @@ interface TrackingPageContentProps {
   showControls?: boolean;
   // pixels a deslocar os controlos da esquerda (para o nav rail em modo mapa)
   leftOffset?: number;
+  onOpenSettings?: () => void;
 }
 
-export function TrackingPageContent({ showControls = true, leftOffset = 0 }: TrackingPageContentProps) {
+export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpenSettings }: TrackingPageContentProps) {
   const { t }               = useTranslation('tracking');
   const { state, dispatch, isConnected } = useTracking();
   const mapRef = useRef<any>(null);
@@ -146,10 +147,10 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0 }: Tra
                 offlineDevices={state.devices.filter(d => d.status !== 'online').length}
                 showingHistory={state.showHistory}
                 onExitHistory={() => dispatch({ type: 'TOGGLE_HISTORY', payload: false })}
-                isLoading={state.isLoading}
                 lastUpdate={state.lastUpdate}
                 onLinkDevices={() => setLinkSheetOpen(true)}
                 onCreateDevice={() => setCreateDeviceOpen(true)}
+                onOpenSettings={onOpenSettings}
               />
 
               {state.selectedDevice && (

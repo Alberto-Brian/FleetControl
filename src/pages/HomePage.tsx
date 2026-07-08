@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Truck, Fuel, Wrench, Users, MapPin, Route as RouteIcon, DollarSign,
   FileText, BarChart3, Home, Settings, Menu, AlertTriangle,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { Button }      from '@/components/ui/button';
 import { ScrollArea }  from '@/components/ui/scroll-area';
@@ -13,7 +14,8 @@ import { useAuth }     from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import UserMenu         from '@/components/UserMenu';
 import SettingsDialog   from '@/components/SettingsDialog';
-import { useLicense }   from '@/hooks/useLicense';
+import { useLicense }          from '@/hooks/useLicense';
+import { useLayoutSettings }   from '@/hooks/useLayoutSettings';
 import { TrackingPageContent } from '@/pages/provider/TrackingPageContent';
 
 // Page imports
@@ -41,8 +43,11 @@ export default function HomePage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [windowWidth,    setWindowWidth]    = useState(window.innerWidth);
 
-  const isConnected    = license?.mode === 'connected';
-  const showCompactSidebar = windowWidth < 640;
+  const isConnected     = license?.mode === 'connected';
+  const isMobileOverlay = windowWidth < 640;
+
+  const { sidebarCollapsed, toggleSidebarCollapsed } = useLayoutSettings();
+  const isCompact = isMobileOverlay || sidebarCollapsed;
 
   const menuItems = [
     { id: 'dashboard',   icon: Home,          label: t('navigation:menu.dashboard')   },
@@ -102,6 +107,7 @@ export default function HomePage() {
           <TrackingPageContent
             showControls={activeSection === 'tracking'}
             leftOffset={NAV_RAIL_W}
+            onOpenSettings={() => setIsSettingsOpen(true)}
           />
         </div>
 
@@ -154,9 +160,9 @@ export default function HomePage() {
                 bottom:        8,
                 left:          NAV_RAIL_W + 6,
                 right:         8,
-                background:    'rgba(8,14,28,0.88)',
-                backdropFilter: 'blur(20px) saturate(1.4)',
-                WebkitBackdropFilter: 'blur(20px) saturate(1.4)',
+                background:    'var(--glass-bg)',
+                backdropFilter: 'var(--glass-filter)',
+                WebkitBackdropFilter: 'var(--glass-filter)',
                 borderRadius:  14,
                 border:        '1px solid rgba(255,255,255,0.07)',
                 boxShadow:     '0 8px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3)',
@@ -214,7 +220,7 @@ export default function HomePage() {
   return (
     <div className="flex h-full bg-background overflow-hidden">
       {/* Overlay mobile */}
-      {isSidebarOpen && showCompactSidebar && (
+      {isSidebarOpen && isMobileOverlay && (
         <div
           className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
           onClick={() => setIsSidebarOpen(false)}
@@ -223,61 +229,83 @@ export default function HomePage() {
 
       {/* Sidebar */}
       <aside
-        className={`${
-          showCompactSidebar ? 'fixed z-50 transition-transform duration-300' : 'relative'
-        } ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } h-full bg-muted/30 backdrop-blur-xl border-r border-border flex flex-col py-4 ${
-          showCompactSidebar ? 'w-16' : 'w-60'
-        }`}
+        style={{
+          width:      isCompact ? 56 : 220,
+          transition: 'width 200ms ease-in-out, transform 200ms ease-in-out',
+          flexShrink: 0,
+        }}
+        className={[
+          isMobileOverlay ? 'fixed z-50' : 'relative',
+          isMobileOverlay
+            ? (isSidebarOpen ? 'translate-x-0' : '-translate-x-full')
+            : 'translate-x-0',
+          'h-full bg-muted/30 backdrop-blur-xl border-r border-border flex flex-col py-4',
+        ].join(' ')}
       >
-        <div className="px-4 mb-6">
-          <div className={`${showCompactSidebar ? 'w-10 h-10' : 'w-12 h-12'} rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mx-auto shadow-md`}>
-            <Truck className="w-6 h-6 text-primary-foreground" />
+        {/* Logo */}
+        <div className={`mb-5 flex flex-col items-center ${isCompact ? 'px-2' : 'px-4'}`}>
+          <div className={`${isCompact ? 'w-9 h-9' : 'w-10 h-10'} rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md transition-all duration-200`}>
+            <Truck className="w-5 h-5 text-primary-foreground" />
           </div>
-          {!showCompactSidebar && (
-            <div className="mt-2 text-center">
-              <h2 className="font-bold text-sm">{t('navigation:app.name')}</h2>
-              <p className="text-xs text-muted-foreground">{t('navigation:app.tagline')}</p>
+          {!isCompact && (
+            <div className="mt-2 text-center overflow-hidden">
+              <h2 className="font-bold text-sm whitespace-nowrap">{t('navigation:app.name')}</h2>
+              <p className="text-xs text-muted-foreground whitespace-nowrap">{t('navigation:app.tagline')}</p>
             </div>
           )}
         </div>
 
-        <ScrollArea className="flex-1 px-3">
-          <nav className="space-y-1 pb-4">
+        <ScrollArea className="flex-1 px-2">
+          <nav className="space-y-0.5 pb-4">
             {menuItems.map((item) => {
               const Icon = item.icon;
+              const active = activeSection === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => {
                     setActiveSection(item.id);
-                    if (showCompactSidebar) setIsSidebarOpen(false);
+                    if (isMobileOverlay) setIsSidebarOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    activeSection === item.id
-                      ? 'bg-primary/10 text-primary'
-                      : 'hover:bg-muted text-muted-foreground'
-                  } ${showCompactSidebar ? 'justify-center' : ''}`}
-                  title={showCompactSidebar ? item.label : undefined}
+                  className={`w-full flex items-center gap-3 px-2.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    active ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground'
+                  } ${isCompact ? 'justify-center' : ''}`}
+                  title={isCompact ? item.label : undefined}
                 >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  {!showCompactSidebar && <span>{item.label}</span>}
+                  <Icon className="w-[18px] h-[18px] flex-shrink-0" />
+                  {!isCompact && (
+                    <span className="truncate">{item.label}</span>
+                  )}
                 </button>
               );
             })}
           </nav>
         </ScrollArea>
 
-        <div className="px-3 mt-auto pt-4 border-t border-border">
+        <div className="px-2 mt-auto pt-3 border-t border-border space-y-0.5">
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-muted-foreground transition-colors ${showCompactSidebar ? 'justify-center' : ''}`}
-            title={showCompactSidebar ? t('navigation:header.settings') : undefined}
+            className={`w-full flex items-center gap-3 px-2.5 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-muted-foreground transition-colors ${isCompact ? 'justify-center' : ''}`}
+            title={isCompact ? t('navigation:header.settings') : undefined}
           >
-            <Settings className="w-5 h-5 flex-shrink-0" />
-            {!showCompactSidebar && <span>{t('navigation:header.settings')}</span>}
+            <Settings className="w-[18px] h-[18px] flex-shrink-0" />
+            {!isCompact && <span>{t('navigation:header.settings')}</span>}
           </button>
+
+          {/* Toggle colapsar/expandir — só em desktop */}
+          {!isMobileOverlay && (
+            <button
+              onClick={toggleSidebarCollapsed}
+              className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-medium hover:bg-muted text-muted-foreground/50 hover:text-muted-foreground transition-colors ${isCompact ? 'justify-center' : ''}`}
+              title={sidebarCollapsed ? t('navigation:sidebar.expand') : t('navigation:sidebar.collapse')}
+            >
+              {sidebarCollapsed
+                ? <ChevronRight className="w-4 h-4 flex-shrink-0" />
+                : <ChevronLeft className="w-4 h-4 flex-shrink-0" />
+              }
+              {!isCompact && <span>{t('navigation:sidebar.collapse')}</span>}
+            </button>
+          )}
         </div>
       </aside>
 
@@ -285,7 +313,7 @@ export default function HomePage() {
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         <header className="h-14 min-h-[56px] border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            {(showCompactSidebar || !isSidebarOpen) && (
+            {(isMobileOverlay || !isSidebarOpen) && (
               <Button
                 variant="ghost"
                 size="icon"

@@ -14,10 +14,15 @@ import { TrackingProvider } from '@/contexts/TrackingContext';
 import { Toaster } from "./components/ui/sooner";
 import { syncThemeWithLocal } from "./helpers/theme-helpers";
 import { updateAppLanguage } from "./helpers/language-helpers";
+import { initFont, initFontSize } from "./hooks/useFontFamily";
+import { initGlassSettings } from "./hooks/useGlassSettings";
 import { useTranslation } from "react-i18next";
 import './styles/scrollbar-styles.css';
 import "./localization/i18n";
 
+initFont();
+initFontSize();
+initGlassSettings();
 
 function AppContent() {
     const { i18n } = useTranslation();

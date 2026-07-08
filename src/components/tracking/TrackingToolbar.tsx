@@ -3,9 +3,10 @@
 // ========================================
 import React from 'react';
 import {
-  WifiOff, History, Layers, Link2, PlusCircle, PanelLeft, Clock,
+  WifiOff, History, Layers, Link2, PlusCircle, PanelLeft, Clock, Settings,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import UserMenu from '@/components/UserMenu';
 
 interface Props {
   isConnected:     boolean;
@@ -19,6 +20,7 @@ interface Props {
   lastUpdate?:     Date | null;
   onLinkDevices?:  () => void;
   onCreateDevice?: () => void;
+  onOpenSettings?: () => void;
 }
 
 function MapBtn({ title, onClick, children }: {
@@ -51,6 +53,7 @@ export function TrackingToolbar({
   lastUpdate,
   onLinkDevices,
   onCreateDevice,
+  onOpenSettings,
 }: Props) {
   const { t } = useTranslation('tracking');
 
@@ -67,7 +70,7 @@ export function TrackingToolbar({
             boxShadow:  '0 4px 20px rgba(0,0,0,0.4)',
           }}
         >
-          <MapBtn title="Abrir painel" onClick={onToggleSidebar}>
+          <MapBtn title={t('toolbar.openSidebar')} onClick={onToggleSidebar}>
             <PanelLeft className="w-4 h-4" />
           </MapBtn>
         </div>
@@ -120,7 +123,7 @@ export function TrackingToolbar({
             className="text-xs pl-1.5"
             style={{ color: 'rgba(255,255,255,0.25)', borderLeft: '1px solid rgba(255,255,255,0.08)' }}
           >
-            {totalDevices} disp.
+            {totalDevices} {t('toolbar.totalSuffix')}
           </span>
         </div>
 
@@ -163,18 +166,37 @@ export function TrackingToolbar({
         }}
       >
         {onCreateDevice && isConnected && (
-          <MapBtn title="Cadastrar dispositivo Traccar" onClick={onCreateDevice}>
+          <MapBtn title={t('toolbar.createDevice')} onClick={onCreateDevice}>
             <PlusCircle className="w-4 h-4" />
           </MapBtn>
         )}
         {onLinkDevices && isConnected && (
-          <MapBtn title="Associar veículos a dispositivos" onClick={onLinkDevices}>
+          <MapBtn title={t('toolbar.linkDevices')} onClick={onLinkDevices}>
             <Link2 className="w-4 h-4" />
           </MapBtn>
         )}
         <MapBtn title={t('toolbar.layers')}>
           <Layers className="w-4 h-4" />
         </MapBtn>
+      </div>
+
+      {/* Definições + Perfil */}
+      <div
+        className="pointer-events-auto flex items-center gap-0.5 rounded-xl px-1"
+        style={{
+          background: 'rgba(10,17,32,0.92)',
+          border:     '1px solid rgba(255,255,255,0.07)',
+          boxShadow:  '0 4px 20px rgba(0,0,0,0.4)',
+        }}
+      >
+        {onOpenSettings && (
+          <MapBtn title={t('toolbar.settings')} onClick={onOpenSettings}>
+            <Settings className="w-4 h-4" />
+          </MapBtn>
+        )}
+        <div className="w-8 h-8 flex items-center justify-center">
+          <UserMenu compact />
+        </div>
       </div>
     </div>
   );
