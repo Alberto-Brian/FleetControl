@@ -1,12 +1,15 @@
 // ========================================
 // FILE: src/components/tracking/TrackingToolbar.tsx
 // ========================================
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  WifiOff, History, Layers, Link2, PlusCircle, PanelLeft, Clock, Settings,
+  WifiOff, History, Layers, PanelLeft, Clock, Settings,
+  ZoomIn, ZoomOut, Map, Satellite,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import UserMenu from '@/components/UserMenu';
+
+type TileLayer = 'osm' | 'satellite';
 
 interface Props {
   isConnected:     boolean;
@@ -18,13 +21,14 @@ interface Props {
   offlineDevices:  number;
   totalDevices:    number;
   lastUpdate?:     Date | null;
-  onLinkDevices?:  () => void;
-  onCreateDevice?: () => void;
+  mapRef?:         React.MutableRefObject<any>;
+  currentLayer?:   TileLayer;
+  onLayerChange?:  (layer: TileLayer) => void;
   onOpenSettings?: () => void;
 }
 
-function MapBtn({ title, onClick, children }: {
-  title: string; onClick?: () => void; children: React.ReactNode;
+function MapBtn({ title, onClick, active = false, children }: {
+  title: string; onClick?: () => void; active?: boolean; children: React.ReactNode;
 }) {
   return (
     <button
@@ -32,9 +36,16 @@ function MapBtn({ title, onClick, children }: {
       title={title}
       onClick={onClick}
       className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-      style={{ color: 'rgba(255,255,255,0.55)', background: 'transparent' }}
-      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.10)'; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+      style={{
+        color:      active ? '#60a5fa' : 'rgba(255,255,255,0.55)',
+        background: active ? 'rgba(59,130,246,0.18)' : 'transparent',
+      }}
+      onMouseEnter={e => {
+        if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.10)';
+      }}
+      onMouseLeave={e => {
+        if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+      }}
     >
       {children}
     </button>
@@ -51,16 +62,23 @@ export function TrackingToolbar({
   offlineDevices,
   totalDevices,
   lastUpdate,
-  onLinkDevices,
-  onCreateDevice,
+  mapRef,
+  currentLayer = 'osm',
+  onLayerChange,
   onOpenSettings,
 }: Props) {
   const { t } = useTranslation('tracking');
+  const [layerOpen, setLayerOpen] = useState(false);
+
+  const LAYERS: { id: TileLayer; label: string; icon: React.ReactNode }[] = [
+    { id: 'osm',       label: t('toolbar.layerOSM'),       icon: <Map       className="w-3.5 h-3.5" /> },
+    { id: 'satellite', label: t('toolbar.layerSatellite'), icon: <Satellite className="w-3.5 h-3.5" /> },
+  ];
 
   return (
     <div className="absolute top-3 right-3 z-10 flex items-center gap-2 pointer-events-none">
 
-      {/* Botão abrir sidebar — só aparece quando sidebar está fechada */}
+      {/* Botão abrir sidebar — só quando sidebar está fechada */}
       {!isSidebarOpen && (
         <div
           className="pointer-events-auto flex items-center rounded-xl overflow-hidden"
@@ -156,28 +174,75 @@ export function TrackingToolbar({
         )}
       </div>
 
-      {/* Botões de acção do mapa */}
+      {/* Botões de zoom + camadas */}
       <div
-        className="pointer-events-auto flex items-center rounded-xl overflow-hidden"
+        className="pointer-events-auto flex items-center rounded-xl overflow-visible relative"
         style={{
           background: 'rgba(10,17,32,0.92)',
           border:     '1px solid rgba(255,255,255,0.07)',
           boxShadow:  '0 4px 20px rgba(0,0,0,0.4)',
         }}
       >
-        {onCreateDevice && isConnected && (
-          <MapBtn title={t('toolbar.createDevice')} onClick={onCreateDevice}>
-            <PlusCircle className="w-4 h-4" />
-          </MapBtn>
-        )}
-        {onLinkDevices && isConnected && (
-          <MapBtn title={t('toolbar.linkDevices')} onClick={onLinkDevices}>
-            <Link2 className="w-4 h-4" />
-          </MapBtn>
-        )}
-        <MapBtn title={t('toolbar.layers')}>
-          <Layers className="w-4 h-4" />
+        {/* Zoom in */}
+        <MapBtn title={t('toolbar.zoomIn')} onClick={() => mapRef?.current?.zoomIn()}>
+          <ZoomIn className="w-4 h-4" />
         </MapBtn>
+
+        {/* Zoom out */}
+        <MapBtn title={t('toolbar.zoomOut')} onClick={() => mapRef?.current?.zoomOut()}>
+          <ZoomOut className="w-4 h-4" />
+        </MapBtn>
+
+        {/* Camadas */}
+        <div className="relative">
+          <MapBtn
+            title={t('toolbar.layers')}
+            active={layerOpen}
+            onClick={() => setLayerOpen(v => !v)}
+          >
+            <Layers className="w-4 h-4" />
+          </MapBtn>
+
+          {layerOpen && (
+            <div
+              className="absolute top-full right-0 mt-2 rounded-xl p-1.5 min-w-[160px] z-50"
+              style={{
+                background: 'rgba(10,17,32,0.98)',
+                border:     '1px solid rgba(255,255,255,0.1)',
+                boxShadow:  '0 8px 32px rgba(0,0,0,0.6)',
+              }}
+            >
+              <p className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                {t('toolbar.layersTitle')}
+              </p>
+              {LAYERS.map(layer => (
+                <button
+                  key={layer.id}
+                  onClick={() => { onLayerChange?.(layer.id); setLayerOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-xs transition-colors"
+                  style={{
+                    color:      currentLayer === layer.id ? '#60a5fa' : 'rgba(255,255,255,0.65)',
+                    background: currentLayer === layer.id ? 'rgba(59,130,246,0.15)' : 'transparent',
+                  }}
+                  onMouseEnter={e => {
+                    if (currentLayer !== layer.id)
+                      (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.07)';
+                  }}
+                  onMouseLeave={e => {
+                    if (currentLayer !== layer.id)
+                      (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                  }}
+                >
+                  {layer.icon}
+                  {layer.label}
+                  {currentLayer === layer.id && (
+                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Definições + Perfil */}

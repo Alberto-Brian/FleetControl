@@ -84,6 +84,21 @@ function MapController({ selectedDevice, positions }: {
   return null;
 }
 
+const TILE_LAYERS = {
+  osm: {
+    url:         'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom:     19,
+  },
+  satellite: {
+    url:         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    maxZoom:     19,
+  },
+} as const;
+
+export type TileLayerId = keyof typeof TILE_LAYERS;
+
 interface Props {
   mapRef?: React.MutableRefObject<any>;
   positions:        Position[];
@@ -92,6 +107,7 @@ interface Props {
   selectedDevice:   TrackedDevice | null;
   showHistory:      boolean;
   trail:            Record<number, [number, number][]>;
+  tileLayerId?:     TileLayerId;
   onSelectDevice:   (device: TrackedDevice) => void;
 }
 
@@ -106,7 +122,7 @@ function createEndpointIcon(color: string, label: 'S' | 'F') {
 }
 
 export function TrackingMap({
-  mapRef, positions, historyPositions, devices, selectedDevice, showHistory, trail, onSelectDevice,
+  mapRef, positions, historyPositions, devices, selectedDevice, showHistory, trail, tileLayerId = 'osm', onSelectDevice,
 }: Props) {
   const center: [number, number] = positions.length > 0
     ? [positions[0].latitude, positions[0].longitude]
@@ -132,9 +148,10 @@ export function TrackingMap({
       zoomControl={false}
     >
       <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        maxZoom={19}
+        key={tileLayerId}
+        url={TILE_LAYERS[tileLayerId].url}
+        attribution={TILE_LAYERS[tileLayerId].attribution}
+        maxZoom={TILE_LAYERS[tileLayerId].maxZoom}
       />
 
       <MapController selectedDevice={selectedDevice} positions={positions} />

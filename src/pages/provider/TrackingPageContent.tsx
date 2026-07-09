@@ -1,7 +1,7 @@
 // ========================================
 // FILE: src/pages/provider/TrackingPageContent.tsx
 // ========================================
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation }    from 'react-i18next';
 import { useTracking }       from '@/contexts/TrackingContext';
 import { useApiConnection }  from '@/hooks/useApiConnection';
@@ -11,28 +11,23 @@ import {
   getPositionHistory,
   syncDevices,
 } from '@/helpers/tracking-helpers';
-import { TrackingMap }             from '@/components/tracking/TrackingMap';
-import { DeviceSidebar }           from '@/components/tracking/DeviceSidebar';
-import { TrackingToolbar }         from '@/components/tracking/TrackingToolbar';
-import { DeviceInfoPanel }         from '@/components/tracking/DeviceInfoPanel';
-import { VehicleDeviceLinkSheet }  from '@/components/tracking/VehicleDeviceLinkSheet';
-import { CreateTraccarDeviceDialog } from '@/components/tracking/CreateTraccarDeviceDialog';
-import { Loader2 }                 from 'lucide-react';
+import { TrackingMap, TileLayerId } from '@/components/tracking/TrackingMap';
+import { DeviceSidebar }            from '@/components/tracking/DeviceSidebar';
+import { TrackingToolbar }          from '@/components/tracking/TrackingToolbar';
+import { DeviceInfoPanel }          from '@/components/tracking/DeviceInfoPanel';
+import { Loader2 }                  from 'lucide-react';
 
 interface TrackingPageContentProps {
-  // false → só o mapa, sem toolbar/sidebar/painéis (modo fundo)
   showControls?: boolean;
-  // pixels a deslocar os controlos da esquerda (para o nav rail em modo mapa)
-  leftOffset?: number;
+  leftOffset?:   number;
   onOpenSettings?: () => void;
 }
 
 export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpenSettings }: TrackingPageContentProps) {
   const { t }               = useTranslation('tracking');
   const { state, dispatch, isConnected } = useTracking();
-  const mapRef = useRef<any>(null);
-  const [linkSheetOpen, setLinkSheetOpen] = useState(false);
-  const [createDeviceOpen, setCreateDeviceOpen] = useState(false);
+  const mapRef              = useRef<any>(null);
+  const [tileLayer, setTileLayer] = useState<TileLayerId>('osm');
 
   useEffect(() => { loadInitial(); }, []);
   useEffect(() => {
@@ -45,9 +40,7 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
   async function loadInitial() {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      // Se conectado, sincroniza devices do Traccar antes de carregar a lista
       if (isConnected) await syncDevices();
-
       const [devs, pos] = await Promise.all([
         getTrackedDevices(),
         getLivePositions(),
@@ -65,7 +58,6 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
     if (!state.selectedDevice) return;
     dispatch({ type: 'TOGGLE_HISTORY', payload: true });
     try {
-      // traccar_id é o ID inteiro do Traccar usado pelo endpoint de histórico
       const hist = await getPositionHistory(state.selectedDevice.traccar_id, from, to);
       dispatch({ type: 'SET_HISTORY', payload: hist as any });
     } catch (err) {
@@ -74,7 +66,6 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
     }
   }
 
-  // Em modo fundo (showControls=false) não mostra spinner — o mapa fica estático
   if (showControls && state.isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-4">
@@ -84,11 +75,9 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
     );
   }
 
-  const wrapClass = 'relative h-full overflow-hidden';
-
   return (
-    <div className={wrapClass}>
-      {/* Mapa ocupa toda a área */}
+    <div className="relative h-full overflow-hidden">
+      {/* Mapa */}
       <TrackingMap
         mapRef={mapRef}
         positions={state.positions}
@@ -97,86 +86,64 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
         selectedDevice={state.selectedDevice}
         showHistory={state.showHistory}
         trail={state.trail}
+        tileLayerId={tileLayer}
         onSelectDevice={(device) => dispatch({ type: 'SELECT_DEVICE', payload: device })}
       />
 
-      {/* Controlos — só renderizados quando showControls=true */}
+      {/* Controlos */}
       {showControls && (
-        <>
-          {/* Contentor dos controlos com offset do nav rail */}
-          <div
-            className="absolute top-0 bottom-0 right-0"
-            style={{ left: leftOffset, pointerEvents: 'none' }}
-          >
-            <div className="relative h-full" style={{ pointerEvents: 'none' }}>
-              {/* Sidebar — agora auto-contida com os controlos de ação */}
-              {state.isSidebarOpen && (
-                <DeviceSidebar
-                  devices={state.devices}
-                  positions={state.positions}
-                  selectedDevice={state.selectedDevice}
-                  filteredStatus={state.filteredStatus}
-                  onSelect={(device) => {
-                    dispatch({ type: 'SELECT_DEVICE', payload: device });
-                    dispatch({ type: 'TOGGLE_HISTORY', payload: false });
-                  }}
-                  isConnected={isConnected}
-                  isLoading={state.isLoading}
-                  onRefresh={loadInitial}
-                  onSyncDevices={async () => {
-                    dispatch({ type: 'SET_LOADING', payload: true });
-                    try {
-                      const devs = await syncDevices();
-                      if (devs?.length) dispatch({ type: 'SET_DEVICES', payload: devs });
-                    } finally {
-                      dispatch({ type: 'SET_LOADING', payload: false });
-                    }
-                  }}
-                  onFilterStatus={(status) => dispatch({ type: 'FILTER_STATUS', payload: status })}
-                  onToggleSidebar={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
-                />
-              )}
-
-              {/* Toolbar — apenas status + acções no canto superior direito */}
-              <TrackingToolbar
+        <div
+          className="absolute top-0 bottom-0 right-0"
+          style={{ left: leftOffset, pointerEvents: 'none' }}
+        >
+          <div className="relative h-full" style={{ pointerEvents: 'none' }}>
+            {state.isSidebarOpen && (
+              <DeviceSidebar
+                devices={state.devices}
+                positions={state.positions}
+                selectedDevice={state.selectedDevice}
+                filteredStatus={state.filteredStatus}
+                onSelect={(device) => {
+                  dispatch({ type: 'SELECT_DEVICE', payload: device });
+                  dispatch({ type: 'TOGGLE_HISTORY', payload: false });
+                }}
                 isConnected={isConnected}
-                isSidebarOpen={state.isSidebarOpen}
+                isLoading={state.isLoading}
+                onRefresh={loadInitial}
+                onFilterStatus={(status) => dispatch({ type: 'FILTER_STATUS', payload: status })}
                 onToggleSidebar={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
-                totalDevices={state.devices.length}
-                onlineDevices={state.devices.filter(d => d.status === 'online').length}
-                offlineDevices={state.devices.filter(d => d.status !== 'online').length}
-                showingHistory={state.showHistory}
-                onExitHistory={() => dispatch({ type: 'TOGGLE_HISTORY', payload: false })}
-                lastUpdate={state.lastUpdate}
-                onLinkDevices={() => setLinkSheetOpen(true)}
-                onCreateDevice={() => setCreateDeviceOpen(true)}
-                onOpenSettings={onOpenSettings}
               />
+            )}
 
-              {state.selectedDevice && (
-                <DeviceInfoPanel
-                  device={state.selectedDevice}
-                  position={state.positions.find(p => p.deviceId === state.selectedDevice?.traccar_id)}
-                  onClose={() => {
-                    dispatch({ type: 'SELECT_DEVICE', payload: null });
-                    dispatch({ type: 'TOGGLE_HISTORY', payload: false });
-                  }}
-                  onShowHistory={handleShowHistory}
-                />
-              )}
-            </div>
+            <TrackingToolbar
+              isConnected={isConnected}
+              isSidebarOpen={state.isSidebarOpen}
+              onToggleSidebar={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
+              totalDevices={state.devices.length}
+              onlineDevices={state.devices.filter(d => d.status === 'online').length}
+              offlineDevices={state.devices.filter(d => d.status !== 'online').length}
+              showingHistory={state.showHistory}
+              onExitHistory={() => dispatch({ type: 'TOGGLE_HISTORY', payload: false })}
+              lastUpdate={state.lastUpdate}
+              mapRef={mapRef}
+              currentLayer={tileLayer}
+              onLayerChange={setTileLayer}
+              onOpenSettings={onOpenSettings}
+            />
+
+            {state.selectedDevice && (
+              <DeviceInfoPanel
+                device={state.selectedDevice}
+                position={state.positions.find(p => p.deviceId === state.selectedDevice?.traccar_id)}
+                onClose={() => {
+                  dispatch({ type: 'SELECT_DEVICE', payload: null });
+                  dispatch({ type: 'TOGGLE_HISTORY', payload: false });
+                }}
+                onShowHistory={handleShowHistory}
+              />
+            )}
           </div>
-
-          <VehicleDeviceLinkSheet
-            open={linkSheetOpen}
-            onOpenChange={setLinkSheetOpen}
-          />
-          <CreateTraccarDeviceDialog
-            open={createDeviceOpen}
-            onOpenChange={setCreateDeviceOpen}
-            onCreated={loadInitial}
-          />
-        </>
+        </div>
       )}
     </div>
   );

@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { ScrollArea }  from '@/components/ui/scroll-area';
 import {
-  Search, Truck, Navigation2, RefreshCw, RotateCcw,
+  Search, Truck, Navigation2, RefreshCw,
   Filter, PanelLeftClose,
 } from 'lucide-react';
 import type { Position }      from '@/hooks/useApiConnection';
@@ -22,7 +22,6 @@ interface Props {
   isConnected:      boolean;
   isLoading?:       boolean;
   onRefresh:        () => void;
-  onSyncDevices?:   () => void;
   onFilterStatus?:  (status: 'all' | 'online' | 'offline') => void;
   onToggleSidebar?: () => void;
 }
@@ -45,7 +44,7 @@ const FILTER_LABELS = {
 
 export function DeviceSidebar({
   devices, positions, selectedDevice, filteredStatus, onSelect, onCenterDevice,
-  isConnected, isLoading = false, onRefresh, onSyncDevices, onFilterStatus, onToggleSidebar,
+  isConnected, isLoading = false, onRefresh, onFilterStatus, onToggleSidebar,
 }: Props) {
   const [search,     setSearch    ] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -124,13 +123,6 @@ export function DeviceSidebar({
           <SidebarBtn title="Atualizar" onClick={onRefresh} disabled={isLoading}>
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           </SidebarBtn>
-
-          {/* Sync Traccar */}
-          {onSyncDevices && isConnected && (
-            <SidebarBtn title="Sincronizar com Traccar" onClick={onSyncDevices} disabled={isLoading}>
-              <RotateCcw className="w-3.5 h-3.5" />
-            </SidebarBtn>
-          )}
 
           {/* Filter */}
           {onFilterStatus && (
