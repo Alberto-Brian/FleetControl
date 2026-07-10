@@ -55,13 +55,17 @@ function apiHeaders() {
 
 // Chaves de tradução para erros
 const T_ERRORS = {
-  VEHICLE_NOT_FOUND: 'vehicles:errors.vehicleNotFound',
-  CATEGORY_NOT_FOUND: 'vehicles:errors.categoryNotFound',
-  VEHICLE_EXISTS: 'vehicles:errors.vehicleWithSamePlate',
-  VEHICLE_IN_USE: 'vehicles:errors.vehicleInUse',
-  CATEGORY_REQUIRED: 'common:warnings.categoryRequired',
-  LICENSE_PLATE_REQUIRED: 'common:warnings.licensePlateRequired',
-  NO_AVAILABLE_VEHICLES: 'vehicles:warnings.noAvailableVehicles'
+  VEHICLE_NOT_FOUND:         'vehicles:errors.vehicleNotFound',
+  CATEGORY_NOT_FOUND:        'vehicles:errors.categoryNotFound',
+  VEHICLE_EXISTS:            'vehicles:errors.vehicleWithSamePlate',
+  VEHICLE_IN_USE:            'vehicles:errors.vehicleInUse',
+  CATEGORY_REQUIRED:         'common:warnings.categoryRequired',
+  LICENSE_PLATE_REQUIRED:    'common:warnings.licensePlateRequired',
+  NO_AVAILABLE_VEHICLES:     'vehicles:warnings.noAvailableVehicles',
+  IMEI_REQUIRES_CONNECTED:   'vehicles:errors.imeiRequiresConnected',
+  IMEI_ALREADY_EXISTS:       'vehicles:errors.imeiAlreadyExists',
+  TRACCAR_UNAVAILABLE:       'vehicles:errors.traccarUnavailable',
+  TRACCAR_ERROR:             'vehicles:errors.traccarError',
 } as const;
 
 export function addVehiclesEventListeners() {
@@ -113,12 +117,81 @@ async function createVehicleEvent(vehicleData: ICreateVehicle) {
     );
   }
 
-  // 1. Salvar localmente SEMPRE — garante que o veículo existe mesmo sem API
+  const hasImei  = !!vehicleData.traccar_unique_id?.trim();
+  const token    = getStoredApiToken();
+  const { db }   = useDb();
+
+  // ── Com IMEI: fluxo transaccional ─────────────────────────────────────────
+  // O IMEI só pode ser registado se houver ligação à API (modo conectado),
+  // pois requer a criação do device no Traccar. Se falhar, o veículo não é criado.
+  if (hasImei) {
+    if (!token) {
+      throw new Error(new WarningError(T_ERRORS.IMEI_REQUIRES_CONNECTED).toIpcString());
+    }
+
+    // 1. Criar localmente (provisório)
+    const localVehicle = await createVehicle(vehicleData);
+
+    // 2. Tentar registar na API (que inclui criação do device Traccar)
+    try {
+      const { data: apiResponse } = await axios.post(`${API_URL}/api/vehicles`, {
+        license_plate:      vehicleData.license_plate,
+        brand:              vehicleData.brand,
+        model:              vehicleData.model,
+        year:               vehicleData.year,
+        color:              vehicleData.color,
+        chassis_number:     vehicleData.chassis_number,
+        engine_number:      vehicleData.engine_number,
+        fuel_tank_capacity: vehicleData.fuel_tank_capacity,
+        tire_size:          vehicleData.tire_size,
+        current_mileage:    vehicleData.current_mileage,
+        acquisition_date:   vehicleData.acquisition_date,
+        acquisition_value:  vehicleData.acquisition_value,
+        photo:              vehicleData.photo,
+        notes:              vehicleData.notes,
+        traccar_unique_id:  vehicleData.traccar_unique_id,
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 20_000,
+      });
+
+      // Sucesso: gravar api_vehicle_id localmente
+      if (apiResponse?.data?.id) {
+        await db.update(vehicles)
+          .set({ api_vehicle_id: apiResponse.data.id, api_synced_at: new Date().toISOString() })
+          .where(eq(vehicles.id, localVehicle.id));
+        return { ...localVehicle, api_vehicle_id: apiResponse.data.id };
+      }
+      return localVehicle;
+
+    } catch (err: any) {
+      // Rollback local — o veículo não deve existir se o IMEI não foi registado
+      try {
+        await db.delete(vehicles).where(eq(vehicles.id, localVehicle.id));
+      } catch (rollbackErr) {
+        console.error('[Vehicles] Falha no rollback local:', rollbackErr);
+      }
+
+      // Mapear erro da API para mensagem i18n apropriada
+      const status  = err?.response?.status as number | undefined;
+      const apiMsg  = (err?.response?.data?.message as string | undefined) ?? '';
+      const isConflict = status === 409 || apiMsg.toLowerCase().includes('imei');
+      const isUnavailable = !err?.response || err?.code === 'ECONNREFUSED'
+        || err?.code === 'ECONNABORTED' || err?.code === 'ETIMEDOUT' || status === 503;
+
+      if (isConflict) {
+        throw new Error(new ConflictError(T_ERRORS.IMEI_ALREADY_EXISTS).toIpcString());
+      }
+      if (isUnavailable) {
+        throw new Error(new WarningError(T_ERRORS.TRACCAR_UNAVAILABLE).toIpcString());
+      }
+      throw new Error(new WarningError(T_ERRORS.TRACCAR_ERROR).toIpcString());
+    }
+  }
+
+  // ── Sem IMEI: guardar localmente + sync best-effort ───────────────────────
   const localVehicle = await createVehicle(vehicleData);
 
-  // 2. Tentar sincronizar com a API em background (best-effort, apenas em modo connected)
-  //    Se traccar_unique_id estiver preenchido, a API cria o device Traccar automaticamente
-  const token = getStoredApiToken();
   if (token) {
     try {
       const { data: apiResponse } = await axios.post(`${API_URL}/api/vehicles`, {
@@ -136,25 +209,20 @@ async function createVehicleEvent(vehicleData: ICreateVehicle) {
         acquisition_value:  vehicleData.acquisition_value,
         photo:              vehicleData.photo,
         notes:              vehicleData.notes,
-        traccar_unique_id:  vehicleData.traccar_unique_id || null,
+        traccar_unique_id:  null,
       }, {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 15_000,
       });
 
       if (apiResponse?.data?.id) {
-        const { db } = useDb();
         await db.update(vehicles)
-          .set({
-            api_vehicle_id: apiResponse.data.id,
-            api_synced_at:  new Date().toISOString(),
-          })
+          .set({ api_vehicle_id: apiResponse.data.id, api_synced_at: new Date().toISOString() })
           .where(eq(vehicles.id, localVehicle.id));
-
-        return { ...localVehicle, api_vehicle_id: apiResponse.data.id, api_synced_at: new Date().toISOString() };
+        return { ...localVehicle, api_vehicle_id: apiResponse.data.id };
       }
     } catch (err: any) {
-      console.warn('[Vehicles] API sync falhou ao criar:', err?.message ?? err);
+      console.warn('[Vehicles] Sync API sem IMEI falhou (best-effort):', err?.message ?? err);
     }
   }
 

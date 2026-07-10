@@ -4,12 +4,12 @@
 import React, { useState } from 'react';
 import {
   WifiOff, History, Layers, PanelLeft, Clock, Settings,
-  ZoomIn, ZoomOut, Map, Satellite,
+  ZoomIn, ZoomOut, Map, Satellite, Maximize2, Radio, X,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import UserMenu from '@/components/UserMenu';
 
-type TileLayer = 'osm' | 'satellite';
+type TileLayer = 'osm' | 'satellite' | 'hybrid' | 'terrain' | 'carto';
 
 interface Props {
   isConnected:     boolean;
@@ -21,10 +21,14 @@ interface Props {
   offlineDevices:  number;
   totalDevices:    number;
   lastUpdate?:     Date | null;
-  mapRef?:         React.MutableRefObject<any>;
-  currentLayer?:   TileLayer;
-  onLayerChange?:  (layer: TileLayer) => void;
-  onOpenSettings?: () => void;
+  mapRef?:          React.MutableRefObject<any>;
+  currentLayer?:    TileLayer;
+  onLayerChange?:   (layer: TileLayer) => void;
+  onOpenSettings?:  () => void;
+  followMode?:      boolean;
+  followDeviceName?: string | null;
+  onFitAll?:        () => void;
+  onStopFollow?:    () => void;
 }
 
 function MapBtn({ title, onClick, active = false, children }: {
@@ -66,6 +70,10 @@ export function TrackingToolbar({
   currentLayer = 'osm',
   onLayerChange,
   onOpenSettings,
+  followMode = false,
+  followDeviceName,
+  onFitAll,
+  onStopFollow,
 }: Props) {
   const { t } = useTranslation('tracking');
   const [layerOpen, setLayerOpen] = useState(false);
@@ -73,6 +81,36 @@ export function TrackingToolbar({
   const LAYERS: { id: TileLayer; label: string; icon: React.ReactNode }[] = [
     { id: 'osm',       label: t('toolbar.layerOSM'),       icon: <Map       className="w-3.5 h-3.5" /> },
     { id: 'satellite', label: t('toolbar.layerSatellite'), icon: <Satellite className="w-3.5 h-3.5" /> },
+    {
+      id: 'hybrid',
+      label: t('toolbar.layerHybrid', 'Híbrido'),
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M2 12h20"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+      ),
+    },
+    {
+      id: 'terrain',
+      label: t('toolbar.layerTerrain', 'Terreno'),
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m8 3 4 8 5-5 5 15H2L8 3z"/>
+        </svg>
+      ),
+    },
+    {
+      id: 'carto',
+      label: t('toolbar.layerCarto', 'Carto'),
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>
+        </svg>
+      ),
+    },
   ];
 
   return (
@@ -156,6 +194,31 @@ export function TrackingToolbar({
           </>
         )}
 
+        {/* Follow mode */}
+        {followMode && (
+          <>
+            <div className="w-px h-3.5" style={{ background: 'rgba(255,255,255,0.08)' }} />
+            <div className="flex items-center gap-1.5">
+              <Radio className="w-3 h-3 animate-pulse" style={{ color: '#a78bfa' }} />
+              <span className="text-xs font-medium" style={{ color: '#a78bfa' }}>
+                {followDeviceName ? followDeviceName : t('toolbar.followActive', 'A seguir...')}
+              </span>
+              {onStopFollow && (
+                <button
+                  onClick={onStopFollow}
+                  className="w-4 h-4 flex items-center justify-center rounded transition-colors"
+                  style={{ color: 'rgba(167,139,250,0.6)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#a78bfa'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(167,139,250,0.6)'; }}
+                  title={t('toolbar.stopFollow', 'Parar seguimento')}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
         {/* Sair do histórico */}
         {showingHistory && (
           <>
@@ -183,6 +246,13 @@ export function TrackingToolbar({
           boxShadow:  '0 4px 20px rgba(0,0,0,0.4)',
         }}
       >
+        {/* Fit all */}
+        {onFitAll && (
+          <MapBtn title={t('toolbar.fitAll', 'Ver todos')} onClick={onFitAll}>
+            <Maximize2 className="w-4 h-4" />
+          </MapBtn>
+        )}
+
         {/* Zoom in */}
         <MapBtn title={t('toolbar.zoomIn')} onClick={() => mapRef?.current?.zoomIn()}>
           <ZoomIn className="w-4 h-4" />

@@ -109,19 +109,23 @@ export function DeviceInfoPanel({ device, position, onClose, onShowHistory }: Pr
             </div>
           </div>
 
-          {position.address && (
-            <div className="col-span-2 flex items-start gap-2 p-2 rounded-lg bg-muted/50">
-              <MapPin className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+          <div className="col-span-2 flex items-start gap-2 p-2 rounded-lg bg-muted/50">
+            <MapPin className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+            {position.address ? (
               <p className="text-xs text-muted-foreground leading-relaxed">{position.address}</p>
-            </div>
-          )}
+            ) : (
+              <p className="text-xs font-mono text-muted-foreground">
+                {(position.latitude ?? 0).toFixed(5)}, {(position.longitude ?? 0).toFixed(5)}
+              </p>
+            )}
+          </div>
 
           <div className="col-span-2 flex items-center gap-2 p-2 rounded-lg bg-muted/50">
             <Clock className="w-4 h-4 text-primary flex-shrink-0" />
             <div>
               <p className="text-[10px] text-muted-foreground uppercase font-bold">Última actualização</p>
               <p className="text-xs font-medium">
-                {new Date(position.timestamp).toLocaleString('pt-PT')}
+                {new Date(position.timestamp ?? (position as any).fixTime ?? Date.now()).toLocaleString('pt-PT')}
               </p>
             </div>
           </div>

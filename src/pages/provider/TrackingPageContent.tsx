@@ -1,7 +1,7 @@
 // ========================================
 // FILE: src/pages/provider/TrackingPageContent.tsx
 // ========================================
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation }    from 'react-i18next';
 import { useTracking }       from '@/contexts/TrackingContext';
 import { useApiConnection }  from '@/hooks/useApiConnection';
@@ -25,32 +25,112 @@ interface TrackingPageContentProps {
 
 export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpenSettings }: TrackingPageContentProps) {
   const { t }               = useTranslation('tracking');
-  const { state, dispatch, isConnected } = useTracking();
-  const mapRef              = useRef<any>(null);
+  const { state, dispatch, isConnected, reconnectCount } = useTracking();
+  const mapRef             = useRef<any>(null);
+  const zoomCycleRef       = useRef<0 | 1 | 2>(0); // 0=bairro(14) 1=rua(18) 2=todos
+  const initialViewDoneRef = useRef(false);
   const [tileLayer, setTileLayer] = useState<TileLayerId>('osm');
 
   useEffect(() => { loadInitial(); }, []);
+  // Recarrega dados após reconexão Socket.IO (reconnectCount começa em 0, skip no mount)
+  useEffect(() => { if (reconnectCount > 0) loadInitial(); }, [reconnectCount]);
+
+  // Ao carregar as primeiras posições, encaixa todos no ecrã (uma vez)
   useEffect(() => {
-    if (state.positions.length > 0 && mapRef.current) {
-      const first = state.positions[0];
-      mapRef.current.setView([first.latitude, first.longitude], 14);
+    if (!initialViewDoneRef.current && state.positions.length > 0 && mapRef.current) {
+      initialViewDoneRef.current = true;
+      fitAllDevices();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.positions.length]);
+
+  // Follow mode: recentra ao receber novas posições
+  useEffect(() => {
+    if (!state.followMode || !state.selectedDevice || !mapRef.current) return;
+    const pos = state.positions.find(p => p.deviceId === state.selectedDevice!.traccar_id);
+    if (pos) {
+      mapRef.current.setView([pos.latitude, pos.longitude], mapRef.current.getZoom(), { animate: true, duration: 0.8 });
+    }
+  }, [state.positions, state.followMode]);
 
   async function loadInitial() {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       if (isConnected) await syncDevices();
-      const [devs, pos] = await Promise.all([
+      const [devs, rawPos] = await Promise.all([
         getTrackedDevices(),
         getLivePositions(),
       ]);
+      // Normaliza posições para o mesmo formato que o WebSocket emite
+      const pos = (rawPos as any[]).map(p => ({
+        deviceId:     p.deviceId,
+        latitude:     p.latitude,
+        longitude:    p.longitude,
+        altitude:     p.altitude,
+        speed:        p.speed,
+        course:       p.course,
+        accuracy:     p.accuracy,
+        address:      p.address    ?? null,
+        batteryLevel: p.attributes?.batteryLevel ?? null,
+        timestamp:    p.fixTime || p.serverTime || p.deviceTime || new Date().toISOString(),
+        attributes:   p.attributes,
+      }));
       dispatch({ type: 'SET_DEVICES',   payload: devs });
       dispatch({ type: 'SET_POSITIONS', payload: pos  });
     } catch (err) {
       console.error('[Tracking] Erro ao carregar:', err);
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }
+
+  const fitAllDevices = useCallback(() => {
+    if (!mapRef.current) return;
+    const pts = state.positions;
+    if (pts.length === 0) return;
+    if (pts.length === 1) {
+      mapRef.current.setView([pts[0].latitude, pts[0].longitude], 14, { animate: true });
+    } else {
+      const bounds = pts.map(p => [p.latitude, p.longitude] as [number, number]);
+      mapRef.current.fitBounds(bounds, { padding: [60, 60], maxZoom: 15, animate: true });
+    }
+  }, [state.positions]);
+
+  function getDevicePos(device: typeof state.devices[0]) {
+    return state.positions.find(p => p.deviceId === device.traccar_id);
+  }
+
+  function handleDeviceSelect(device: typeof state.devices[0]) {
+    const isAlreadySelected = state.selectedDevice?.traccar_id === device.traccar_id;
+    dispatch({ type: 'SELECT_DEVICE', payload: device });
+    dispatch({ type: 'TOGGLE_HISTORY', payload: false });
+
+    if (isAlreadySelected) {
+      // Ciclo de zoom: 0(bairro) → 1(rua) → 2(todos) → 0
+      const next = ((zoomCycleRef.current + 1) % 3) as 0 | 1 | 2;
+      zoomCycleRef.current = next;
+      const pos = getDevicePos(device);
+      if (next === 1 && pos) {
+        mapRef.current?.setView([pos.latitude, pos.longitude], 18, { animate: true });
+      } else if (next === 2) {
+        fitAllDevices();
+      } else if (pos) {
+        mapRef.current?.setView([pos.latitude, pos.longitude], 14, { animate: true });
+      }
+    } else {
+      zoomCycleRef.current = 0;
+      const pos = getDevicePos(device);
+      if (pos) mapRef.current?.setView([pos.latitude, pos.longitude], 14, { animate: true });
+    }
+  }
+
+  function handleFollowDevice(device: typeof state.devices[0]) {
+    const isFollowing = state.followMode && state.followDeviceId === device.traccar_id;
+    dispatch({ type: 'SET_FOLLOW', payload: isFollowing ? null : device.traccar_id });
+    // Centrar no dispositivo ao activar follow
+    if (!isFollowing) {
+      const pos = getDevicePos(device);
+      if (pos) mapRef.current?.setView([pos.latitude, pos.longitude], 16, { animate: true });
     }
   }
 
@@ -103,9 +183,13 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
                 positions={state.positions}
                 selectedDevice={state.selectedDevice}
                 filteredStatus={state.filteredStatus}
-                onSelect={(device) => {
-                  dispatch({ type: 'SELECT_DEVICE', payload: device });
-                  dispatch({ type: 'TOGGLE_HISTORY', payload: false });
+                followingDeviceId={state.followMode ? state.followDeviceId : null}
+                onSelect={handleDeviceSelect}
+                onFollowDevice={handleFollowDevice}
+                onCenterDevice={(device) => {
+                  const pos = getDevicePos(device);
+                  if (pos) mapRef.current?.setView([pos.latitude, pos.longitude], 18, { animate: true });
+                  zoomCycleRef.current = 1;
                 }}
                 isConnected={isConnected}
                 isLoading={state.isLoading}
@@ -129,6 +213,10 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
               currentLayer={tileLayer}
               onLayerChange={setTileLayer}
               onOpenSettings={onOpenSettings}
+              followMode={state.followMode}
+              followDeviceName={state.followMode && state.selectedDevice ? state.selectedDevice.name : null}
+              onFitAll={fitAllDevices}
+              onStopFollow={() => dispatch({ type: 'SET_FOLLOW', payload: null })}
             />
 
             {state.selectedDevice && (

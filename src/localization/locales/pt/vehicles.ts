@@ -275,6 +275,10 @@ export const ptVehicles = {
     mileageDifferenceTooBig: "Diferença muito grande na quilometragem. Verifique o valor",
     restoreFailed: "Erro ao activar categoria",
     noCategoriesFound: 'Nenhuma categoria encontrada',
+    imeiRequiresConnected: "O IMEI requer modo conectado — active a licença conectada primeiro",
+    imeiAlreadyExists: "Já existe um dispositivo com este IMEI registado",
+    traccarUnavailable: "Servidor de rastreamento inacessível. Verifique a ligação e tente novamente",
+    traccarError: "Erro ao registar o dispositivo de rastreamento. Tente novamente",
   },
 
   warnings: {

@@ -66,23 +66,17 @@ type ConnectionState =
 
 /** Retorno do hook useApiConnection */
 interface UseApiConnectionReturn {
-  // Estado da conexão
   socket: Socket | null;
   state: ConnectionState;
   error: Error | null;
   traccarStatus: TraccarStatus | null;
-  
-  // Ações
   connect: (token: string) => void;
   disconnect: () => void;
-  
-  // Dados em tempo real (último estado conhecido)
   positions: Position[];
   devices: Device[];
   events: TraccarEvent[];
-  
-  // Helpers
   isConnected: boolean;
+  reconnectCount: number; // incrementa em cada reconexão — usar para recarregar dados
   getDevicePosition: (deviceId: number) => Position | undefined;
 }
 
@@ -109,6 +103,7 @@ export function useApiConnection(): UseApiConnectionReturn {
   const [positions, setPositions] = useState<Position[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   const [events, setEvents] = useState<TraccarEvent[]>([]);
+  const [reconnectCount, setReconnectCount] = useState(0);
 
   // -- Helper: buscar posição de dispositivo específico --
   const getDevicePosition = useCallback((deviceId: number): Position | undefined => {
@@ -198,6 +193,7 @@ export function useApiConnection(): UseApiConnectionReturn {
       console.log(`[Socket] 🔄 Reconectado após ${attemptNumber} tentativas`);
       setState('connected');
       setError(null);
+      setReconnectCount(n => n + 1); // sinaliza ao consumer para recarregar dados
     });
 
     socket.on('reconnect_attempt', (attemptNumber: number) => {
@@ -221,9 +217,7 @@ export function useApiConnection(): UseApiConnectionReturn {
       setTraccarStatus(status);
     });
 
-    // Em useApiConnection.ts, dentro do handler positions:update
-      socket.on('positions:update', (newPositions: any[]) => {
-        console.log(`[Socket] Recebidas ${newPositions.length} posições`);
+    socket.on('positions:update', (newPositions: any[]) => {
 
         // Normaliza o formato do Traccar para o tipo Position
         const normalized = newPositions.map(p => ({
@@ -240,8 +234,6 @@ export function useApiConnection(): UseApiConnectionReturn {
           attributes:   p.attributes,
         }));
 
-        console.log('Posições normalizadas:', normalized);
-
         setPositions(prev => {
           const positionMap = new Map<number, Position>(prev.map(p => [p.deviceId, p]));
           normalized.forEach(pos => positionMap.set(pos.deviceId, pos));
@@ -251,8 +243,12 @@ export function useApiConnection(): UseApiConnectionReturn {
       });
 
     socket.on('devices:update', (newDevices: Device[]) => {
-      console.log(`[Socket] Recebidos ${newDevices.length} dispositivos`);
-      setDevices(newDevices);
+      // Merge por ID para não perder devices não incluídos neste batch
+      setDevices(prev => {
+        const map = new Map(prev.map(d => [d.id, d]));
+        newDevices.forEach(d => map.set(d.id, d));
+        return Array.from(map.values());
+      });
     });
 
     socket.on('traccar:events', (newEvents: TraccarEvent[]) => {
@@ -292,6 +288,7 @@ export function useApiConnection(): UseApiConnectionReturn {
     devices,
     events,
     isConnected: state === 'connected',
+    reconnectCount,
     getDevicePosition,
   };
 }

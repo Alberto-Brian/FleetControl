@@ -15,10 +15,13 @@ interface TrackingState {
   trail:            Record<number, [number, number][]>;
   filteredStatus:   'all' | 'online' | 'offline';
   lastUpdate:       Date | null;
+  followMode:       boolean;
+  followDeviceId:   number | null;
 }
 
 type Action =
   | { type: 'SET_DEVICES';      payload: TrackedDevice[] }
+  | { type: 'UPDATE_DEVICES';   payload: TrackedDevice[] }
   | { type: 'SET_POSITIONS';    payload: Position[] }
   | { type: 'UPDATE_POSITIONS'; payload: Position[] }
   | { type: 'SELECT_DEVICE';    payload: TrackedDevice | null }
@@ -27,7 +30,8 @@ type Action =
   | { type: 'SET_HISTORY';      payload: Position[] }
   | { type: 'TOGGLE_HISTORY';   payload: boolean }
   | { type: 'SET_MODE';         payload: 'realtime' | 'manual' }
-  | { type: 'FILTER_STATUS';    payload: 'all' | 'online' | 'offline' };
+  | { type: 'FILTER_STATUS';    payload: 'all' | 'online' | 'offline' }
+  | { type: 'SET_FOLLOW';       payload: number | null };
 
 const initial: TrackingState = {
   devices:          [],
@@ -41,11 +45,19 @@ const initial: TrackingState = {
   trail:            {},
   filteredStatus:   'all',
   lastUpdate:       null,
+  followMode:       false,
+  followDeviceId:   null,
 };
 
 function reducer(state: TrackingState, action: Action): TrackingState {
   switch (action.type) {
-    case 'SET_DEVICES':      return { ...state, devices: action.payload };
+    case 'SET_DEVICES':    return { ...state, devices: action.payload };
+    case 'UPDATE_DEVICES': {
+      // Merge: mantém todos os dispositivos existentes e actualiza só os que chegaram
+      const map = new Map(state.devices.map(d => [d.traccar_id, d]));
+      action.payload.forEach(d => map.set(d.traccar_id, d));
+      return { ...state, devices: Array.from(map.values()) };
+    }
     case 'SET_POSITIONS':    return { ...state, positions: action.payload };
     case 'UPDATE_POSITIONS': {
       const map = new Map(state.positions.map(p => [p.deviceId, p]));
@@ -61,28 +73,39 @@ function reducer(state: TrackingState, action: Action): TrackingState {
       });
       return { ...state, positions: Array.from(map.values()), trail: newTrail, lastUpdate: new Date() };
     }
-    case 'SELECT_DEVICE':    return { ...state, selectedDevice: action.payload };
+    case 'SELECT_DEVICE': {
+      // Parar follow mode ao mudar de dispositivo
+      const stayFollow = action.payload !== null && state.followDeviceId === action.payload.traccar_id;
+      return {
+        ...state,
+        selectedDevice: action.payload,
+        followMode:     stayFollow ? state.followMode : false,
+        followDeviceId: stayFollow ? state.followDeviceId : null,
+      };
+    }
     case 'SET_LOADING':      return { ...state, isLoading: action.payload };
     case 'TOGGLE_SIDEBAR':   return { ...state, isSidebarOpen: !state.isSidebarOpen };
     case 'SET_HISTORY':      return { ...state, historyPositions: action.payload };
     case 'TOGGLE_HISTORY':   return { ...state, showHistory: action.payload };
     case 'SET_MODE':         return { ...state, connectionMode: action.payload };
     case 'FILTER_STATUS':    return { ...state, filteredStatus: action.payload };
+    case 'SET_FOLLOW':
+      return { ...state, followMode: action.payload !== null, followDeviceId: action.payload };
     default: return state;
   }
 }
 
 // O contexto expõe o socket completo para o LicenseGuard poder chamar connect/disconnect
 interface TrackingContextValue {
-  state:         TrackingState;
-  dispatch:      React.Dispatch<Action>;
-  // Dados do socket expostos directamente
-  isConnected:   boolean;
-  connState:     ConnectionState;
-  connError:     Error | null;
-  traccarStatus: TraccarStatus | null;
-  connect:       (token: string) => void;
-  disconnect:    () => void;
+  state:          TrackingState;
+  dispatch:       React.Dispatch<Action>;
+  isConnected:    boolean;
+  connState:      ConnectionState;
+  connError:      Error | null;
+  traccarStatus:  TraccarStatus | null;
+  reconnectCount: number;
+  connect:        (token: string) => void;
+  disconnect:     () => void;
 }
 
 const Ctx = createContext<TrackingContextValue | null>(null);
@@ -95,9 +118,10 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
     positions,
     devices,
     isConnected,
-    state:     connState,
-    error:     connError,
+    state:          connState,
+    error:          connError,
     traccarStatus,
+    reconnectCount,
     connect,
     disconnect,
   } = useApiConnection();
@@ -108,26 +132,25 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'UPDATE_POSITIONS', payload: positions });
   }, [positions]); // positions é novo array em cada update — funciona por referência
 
-  // Devices → contexto
-  // Mapeia Device (Socket.io, id = traccar int) para TrackedDevice (traccar_id = traccar int)
+  // Devices → contexto (merge para não perder dispositivos offline)
   useEffect(() => {
     if (devices.length === 0) return;
     const mapped: TrackedDevice[] = devices.map(d => ({
-      id:          d.id,        // ID inteiro do Traccar (usado como identificador em tempo real)
-      traccar_id:  d.id,        // mesmo valor — necessário para bater com pos.deviceId
-      name:        d.name,
-      uniqueId:    d.uniqueId,
-      status:      d.status,
-      lastUpdate:  d.lastUpdate,
-      attributes:  d.attributes,
+      id:         d.id,
+      traccar_id: d.id,
+      name:       d.name,
+      uniqueId:   d.uniqueId,
+      status:     d.status,
+      lastUpdate: d.lastUpdate,
+      attributes: d.attributes,
     }));
-    dispatch({ type: 'SET_DEVICES', payload: mapped });
+    dispatch({ type: 'UPDATE_DEVICES', payload: mapped });
   }, [devices]);
 
   return (
     <Ctx.Provider value={{
       state, dispatch,
-      isConnected, connState, connError, traccarStatus,
+      isConnected, connState, connError, traccarStatus, reconnectCount,
       connect, disconnect,
     }}>
       {children}

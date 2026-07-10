@@ -275,6 +275,10 @@ export const enVehicles = {
     mileageDifferenceTooBig: "Mileage difference too large. Please verify the value",
     restoreFailed: "Error activating category",
     noCategoriesFound: 'No categories found',
+    imeiRequiresConnected: "IMEI requires connected mode — activate the connected license first",
+    imeiAlreadyExists: "A device with this IMEI is already registered",
+    traccarUnavailable: "Tracking server unreachable. Check the connection and try again",
+    traccarError: "Error registering tracking device. Please try again",
   },
 
   warnings: {

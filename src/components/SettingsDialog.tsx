@@ -923,7 +923,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                                 className={cn(
                                   'p-4 rounded-lg border text-left transition-all',
                                   active
-                                    ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                                    ? 'border-primary bg-primary/5 ring-2 ring-primary/30'
                                     : 'border-border bg-card/50 hover:border-primary/40 hover:bg-muted/30',
                                 )}
                               >

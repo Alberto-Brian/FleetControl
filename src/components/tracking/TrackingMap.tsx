@@ -84,10 +84,19 @@ function MapController({ selectedDevice, positions }: {
   return null;
 }
 
-const TILE_LAYERS = {
+type LayerConfig = {
+  url:         string;
+  attribution: string;
+  maxZoom:     number;
+  overlay?:    { url: string; attribution: string };
+};
+
+export type TileLayerId = 'osm' | 'satellite' | 'hybrid' | 'terrain' | 'carto';
+
+const TILE_LAYERS: Record<TileLayerId, LayerConfig> = {
   osm: {
     url:         'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom:     19,
   },
   satellite: {
@@ -95,9 +104,26 @@ const TILE_LAYERS = {
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
     maxZoom:     19,
   },
-} as const;
-
-export type TileLayerId = keyof typeof TILE_LAYERS;
+  hybrid: {
+    url:         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri',
+    maxZoom:     19,
+    overlay: {
+      url:         'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      attribution: '',
+    },
+  },
+  terrain: {
+    url:         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community',
+    maxZoom:     18,
+  },
+  carto: {
+    url:         'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    maxZoom:     20,
+  },
+};
 
 interface Props {
   mapRef?: React.MutableRefObject<any>;
@@ -153,6 +179,14 @@ export function TrackingMap({
         attribution={TILE_LAYERS[tileLayerId].attribution}
         maxZoom={TILE_LAYERS[tileLayerId].maxZoom}
       />
+      {TILE_LAYERS[tileLayerId].overlay && (
+        <TileLayer
+          key={`${tileLayerId}-overlay`}
+          url={TILE_LAYERS[tileLayerId].overlay!.url}
+          attribution={TILE_LAYERS[tileLayerId].overlay!.attribution}
+          opacity={0.85}
+        />
+      )}
 
       <MapController selectedDevice={selectedDevice} positions={positions} />
 
