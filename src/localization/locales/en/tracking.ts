@@ -68,6 +68,14 @@ export const enTracking = {
     deleteConfirm:         'Delete zone "{{name}}"?',
     saveError:             'Error saving the zone.',
   },
+  alerts: {
+    panelTitle: 'Alerts',
+    readAll:    'Mark all read',
+    empty:      'No recent alerts.',
+    enter:      'Entered',
+    exit:       'Exited',
+    speed:      'Speed',
+  },
 } as const;
 
 export type EnTracking = typeof enTracking;

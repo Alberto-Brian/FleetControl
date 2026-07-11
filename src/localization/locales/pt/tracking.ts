@@ -68,6 +68,14 @@ export const ptTracking = {
     deleteConfirm:         'Apagar a zona "{{name}}"?',
     saveError:             'Erro ao guardar a zona.',
   },
+  alerts: {
+    panelTitle: 'Alertas',
+    readAll:    'Marcar todos',
+    empty:      'Sem alertas recentes.',
+    enter:      'Entrou',
+    exit:       'Saiu',
+    speed:      'Velocidade',
+  },
 } as const;
 
 export type PtTracking = typeof ptTracking;
