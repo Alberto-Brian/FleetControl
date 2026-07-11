@@ -85,6 +85,7 @@ export function GeofencePanel({ onStartDraw }: Props) {
       </div>
 
       <GeofenceFormModal
+        key={editing?.id ?? 'new'}
         open={modalOpen}
         editing={editing ?? undefined}
         onClose={() => { setModalOpen(false); setEditing(null); }}
