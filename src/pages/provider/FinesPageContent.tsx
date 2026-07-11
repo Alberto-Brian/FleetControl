@@ -307,7 +307,7 @@ export default function FinesPageContent() {
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('fines:title')}</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight">{t('fines:title')}</h1>
             <p className="text-muted-foreground text-base">
               {stats.pending} {t('fines:stats.pending').toLowerCase()} • {paginationInfo.total} {t('fines:stats.total').toLowerCase()}
             </p>

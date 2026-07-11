@@ -617,7 +617,7 @@ export default function VehiclesPageContent() {
           {/* Header — título | tabs | botão numa só linha */}
           <div className="flex items-center gap-4 flex-wrap">
             <div className="space-y-0.5 min-w-0">
-              <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('vehicles:title')}</h1>
+              <h1 className="text-2xl font-extrabold tracking-tight">{t('vehicles:title')}</h1>
               <p className="text-sm text-muted-foreground">{t('vehicles:description')}</p>
             </div>
 
@@ -897,7 +897,7 @@ export default function VehiclesPageContent() {
 
         {/* Diálogo — IMEI para sync sem GPS configurado */}
         <Dialog open={syncImeiDialogOpen} onOpenChange={(o) => { if (!o) { setSyncImeiDialogOpen(false); setPendingSyncVehicleId(null); } }}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Upload className="w-5 h-5" />
@@ -907,33 +907,46 @@ export default function VehiclesPageContent() {
                 {t('vehicles:dialogs.sync.description')}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-2 py-2">
-              <Label htmlFor="sync-imei">
-                {t('vehicles:fields.gpsImei')}
-                <span className="ml-1 text-muted-foreground font-normal">{t('vehicles:fields.gpsImeiOptional')}</span>
-              </Label>
-              <Input
-                id="sync-imei"
-                placeholder={t('vehicles:placeholders.gpsImei')}
-                value={imeiInput}
-                onChange={(e) => setImeiInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && syncWithImei()}
-                className="font-mono"
-                autoFocus
-              />
-              <p className="text-xs text-muted-foreground">
-                {t('vehicles:dialogs.sync.imeiCreationHint')}
-              </p>
+
+            <div className="space-y-3 py-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="sync-imei" className="text-sm font-medium">
+                  {t('vehicles:fields.gpsImei')}
+                  <span className="ml-1.5 text-xs text-muted-foreground font-normal">{t('vehicles:fields.gpsImeiOptional')}</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="sync-imei"
+                    placeholder={t('vehicles:placeholders.gpsImei')}
+                    value={imeiInput}
+                    onChange={(e) => setImeiInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (imeiInput.trim() ? syncWithImei() : syncWithoutImei())}
+                    className="font-mono pr-8"
+                    autoFocus
+                  />
+                  {imeiInput.trim() && (
+                    <Wifi className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500 pointer-events-none" />
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {imeiInput.trim() ? t('vehicles:dialogs.sync.imeiCreationHint') : t('vehicles:dialogs.sync.imeiHint')}
+                </p>
+              </div>
             </div>
-            <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button variant="outline" onClick={() => { setSyncImeiDialogOpen(false); setPendingSyncVehicleId(null); }}>
+
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" size="sm" onClick={() => { setSyncImeiDialogOpen(false); setPendingSyncVehicleId(null); }}>
                 {t('vehicles:actions.cancel')}
               </Button>
-              <Button variant="outline" onClick={syncWithoutImei} disabled={syncingVehicleId !== null}>
-                {t('vehicles:dialogs.sync.syncWithoutGps')}
-              </Button>
-              <Button onClick={syncWithImei} disabled={!imeiInput.trim() || syncingVehicleId !== null}>
-                {t('vehicles:dialogs.sync.syncWithGps')}
+              <Button
+                onClick={imeiInput.trim() ? syncWithImei : syncWithoutImei}
+                disabled={syncingVehicleId !== null}
+                className="flex items-center gap-2"
+              >
+                {imeiInput.trim()
+                  ? <><Wifi className="w-4 h-4" />{t('vehicles:dialogs.sync.syncWithGps')}</>
+                  : <><Upload className="w-4 h-4" />{t('vehicles:dialogs.sync.syncWithoutGps')}</>
+                }
               </Button>
             </DialogFooter>
           </DialogContent>
