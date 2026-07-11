@@ -209,7 +209,15 @@ export const ptVehicles = {
     all: "Todos os estados",
     allCategories: "Todas as categorias",
     status: "Filtrar por estado",
-    category: "Filtrar por categoria"
+    category: "Filtrar por categoria",
+    sync: "Sincronização",
+    syncAll: "Todos (sync)",
+    synced: "Sincronizados",
+    notSynced: "Não sincronizados",
+    imei: "GPS / IMEI",
+    imeiAll: "Com/sem GPS",
+    withImei: "Com GPS (IMEI)",
+    withoutImei: "Sem GPS (sem IMEI)",
   },
 
   viewModes: {

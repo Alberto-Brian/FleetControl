@@ -2,6 +2,7 @@
 // FILE: src/pages/provider/VehiclesPageContent.tsx
 // ========================================
 import React, { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -66,6 +67,8 @@ export default function VehiclesPageContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [syncFilter, setSyncFilter] = useState<'all' | 'synced' | 'not_synced'>('all');
+  const [imeiFilter, setImeiFilter] = useState<'all' | 'with_imei' | 'without_imei'>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
 
   // Paginação
@@ -116,17 +119,19 @@ export default function VehiclesPageContent() {
 
   useEffect(() => {
     loadVehicles();
-  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter]);
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter, syncFilter, imeiFilter]);
 
   const loadVehicles = useCallback(async () => {
     setLoading(true);
     try {
       const result = await getAllVehicles({
-        page:        currentPage,
-        limit:       itemsPerPage,
-        search:      debouncedSearch,
-        status:      statusFilter   === 'all' ? undefined : statusFilter,
-        category_id: categoryFilter === 'all' ? undefined : categoryFilter,
+        page:         currentPage,
+        limit:        itemsPerPage,
+        search:       debouncedSearch,
+        status:       statusFilter   === 'all' ? undefined : statusFilter,
+        category_id:  categoryFilter === 'all' ? undefined : categoryFilter,
+        sync_status:  syncFilter     === 'all' ? undefined : syncFilter,
+        imei_status:  imeiFilter     === 'all' ? undefined : imeiFilter,
       });
 
       setVehicles(result.data);
@@ -141,7 +146,7 @@ export default function VehiclesPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter]);
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter, syncFilter, imeiFilter]);
 
   async function loadCategories() {
     setCategoriesLoading(true);
@@ -232,8 +237,13 @@ export default function VehiclesPageContent() {
       await syncVehicleToApi(vehicleId, imei);
       showSuccess('vehicles:toast.syncSuccess');
       loadVehicles();
-    } catch (error) {
-      handleError(error, 'vehicles:toast.syncError');
+    } catch (error: any) {
+      const msg: string | undefined = error?.message;
+      if (msg && !msg.startsWith('APP_ERROR||')) {
+        toast.error(msg);
+      } else {
+        handleError(error, 'vehicles:toast.syncError');
+      }
     } finally {
       setSyncingVehicleId(null);
       setSyncImeiDialogOpen(false);
@@ -644,6 +654,30 @@ export default function VehiclesPageContent() {
                       ))}
                     </SelectContent>
                   </Select>
+
+                  <Select value={syncFilter} onValueChange={(v) => { setSyncFilter(v as typeof syncFilter); setCurrentPage(1); }}>
+                    <SelectTrigger className="w-full sm:w-[200px] h-10 text-sm bg-muted/20 border-none">
+                      <Wifi className="w-4 h-4 text-muted-foreground" />
+                      <SelectValue placeholder={t('vehicles:filters.sync')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('vehicles:filters.syncAll')}</SelectItem>
+                      <SelectItem value="synced">{t('vehicles:filters.synced')}</SelectItem>
+                      <SelectItem value="not_synced">{t('vehicles:filters.notSynced')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={imeiFilter} onValueChange={(v) => { setImeiFilter(v as typeof imeiFilter); setCurrentPage(1); }}>
+                    <SelectTrigger className="w-full sm:w-[185px] h-10 text-sm bg-muted/20 border-none">
+                      <Upload className="w-4 h-4 text-muted-foreground" />
+                      <SelectValue placeholder={t('vehicles:filters.imei')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('vehicles:filters.imeiAll')}</SelectItem>
+                      <SelectItem value="with_imei">{t('vehicles:filters.withImei')}</SelectItem>
+                      <SelectItem value="without_imei">{t('vehicles:filters.withoutImei')}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* View modes */}
@@ -807,7 +841,9 @@ export default function VehiclesPageContent() {
             <div className="space-y-2 py-2">
               <Label htmlFor="sync-imei">
                 {t('vehicles:fields.gpsImei')}
-                <span className="ml-1 text-xs font-normal text-muted-foreground">{t('vehicles:fields.gpsImeiOptional')}</span>
+                <span className="ml-1 text-xs font-normal text-muted-foreground">
+                  {t('vehicles:fields.gpsImeiOptional')}
+                </span>
               </Label>
               <Input
                 id="sync-imei"

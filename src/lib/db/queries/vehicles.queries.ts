@@ -5,7 +5,7 @@ import { useDb, checkAndRotate } from '@/lib/db/db_helpers';
 import { vehicles, VehicleStatus, vehicleStatus } from '@/lib/db/schemas/vehicles';
 import { vehicle_categories } from '@/lib/db/schemas/vehicle_categories';
 import { generateUuid } from '@/lib/utils/cripto';
-import { eq, and, isNull, desc, or, like, count, SQL } from 'drizzle-orm';
+import { eq, and, isNull, isNotNull, ne, desc, or, like, count, SQL } from 'drizzle-orm';
 import { ICreateVehicle, IUpdateVehicle, IVehicle, IUpdateStatus } from '@/lib/types/vehicle';
 import { IPaginatedResult, IPaginationParams } from '@/lib/types/pagination';
 
@@ -117,6 +117,16 @@ export async function getAllVehicles(params: IPaginationParams = {}): Promise<IP
     }
     if (params.category_id && params.category_id !== 'all') {
         conditions.push(eq(vehicles.category_id, params.category_id));
+    }
+    if (params.sync_status === 'synced') {
+        conditions.push(isNotNull(vehicles.api_vehicle_id));
+    } else if (params.sync_status === 'not_synced') {
+        conditions.push(isNull(vehicles.api_vehicle_id));
+    }
+    if (params.imei_status === 'with_imei') {
+        conditions.push(and(isNotNull(vehicles.traccar_unique_id), ne(vehicles.traccar_unique_id, ''))!);
+    } else if (params.imei_status === 'without_imei') {
+        conditions.push(or(isNull(vehicles.traccar_unique_id), eq(vehicles.traccar_unique_id, ''))!);
     }
 
     const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];

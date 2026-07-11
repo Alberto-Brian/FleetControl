@@ -320,28 +320,38 @@ async function syncVehicleToApiEvent(vehicleId: string, imei?: string) {
   // IMEI: usa o fornecido agora > o guardado localmente > null
   const traccar_unique_id = imei?.trim() || vehicle.traccar_unique_id || null;
 
-  const { data: apiResponse } = await axios.post(`${API_URL}/api/vehicles`, {
-    license_plate:      vehicle.license_plate,
-    brand:              vehicle.brand,
-    model:              vehicle.model,
-    year:               vehicle.year,
-    color:              vehicle.color,
-    chassis_number:     vehicle.chassis_number,
-    engine_number:      vehicle.engine_number,
-    fuel_tank_capacity: vehicle.fuel_tank_capacity,
-    tire_size:          vehicle.tire_size,
-    current_mileage:    vehicle.current_mileage,
-    acquisition_date:   vehicle.acquisition_date,
-    acquisition_value:  vehicle.acquisition_value,
-    notes:              vehicle.notes,
-    traccar_unique_id,
-  }, {
-    headers: apiHeaders(),
-    timeout: 15_000,
-  });
+  let apiResponse: any;
+  try {
+    const { data } = await axios.post(`${API_URL}/api/vehicles`, {
+      license_plate:      vehicle.license_plate,
+      brand:              vehicle.brand,
+      model:              vehicle.model,
+      year:               vehicle.year,
+      color:              vehicle.color,
+      chassis_number:     vehicle.chassis_number,
+      engine_number:      vehicle.engine_number,
+      fuel_tank_capacity: vehicle.fuel_tank_capacity,
+      tire_size:          vehicle.tire_size,
+      current_mileage:    vehicle.current_mileage,
+      acquisition_date:   vehicle.acquisition_date,
+      acquisition_value:  vehicle.acquisition_value,
+      notes:              vehicle.notes,
+      traccar_unique_id,
+    }, {
+      headers: apiHeaders(),
+      timeout: 15_000,
+    });
+    apiResponse = data;
+  } catch (err: any) {
+    if (axios.isAxiosError(err) && err.response?.status === 409) {
+      throw new Error(err.response.data?.message ?? 'IMEI já registado');
+    }
+    throw err;
+  }
 
   const apiVehicleId = apiResponse?.data?.id;
   if (!apiVehicleId) throw new Error('API não devolveu ID do veículo criado');
+
 
   // Persistir localmente: api_vehicle_id + IMEI (se fornecido agora)
   const { db } = useDb();

@@ -3,6 +3,7 @@
 // ========================================
 import React, { useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Position }      from '@/hooks/useApiConnection';
@@ -137,6 +138,19 @@ interface Props {
   onSelectDevice:   (device: TrackedDevice) => void;
 }
 
+function createClusterIcon(cluster: any) {
+  const count = cluster.getChildCount();
+  const size  = count < 10 ? 36 : count < 100 ? 42 : 48;
+  const svg = `
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="${size/2}" cy="${size/2}" r="${size/2 - 2}" fill="#1e40af" stroke="white" stroke-width="2.5" opacity="0.92"/>
+      <circle cx="${size/2}" cy="${size/2}" r="${size/2 - 8}" fill="none" stroke="white" stroke-width="1" opacity="0.35"/>
+      <text x="${size/2}" y="${size/2 + 4}" text-anchor="middle" font-size="${count < 100 ? 13 : 11}"
+            font-weight="700" font-family="system-ui,sans-serif" fill="white">${count}</text>
+    </svg>`;
+  return L.divIcon({ html: svg, className: '', iconSize: [size, size], iconAnchor: [size/2, size/2] });
+}
+
 function createEndpointIcon(color: string, label: 'S' | 'F') {
   const svg = `
     <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
@@ -209,41 +223,45 @@ export function TrackingMap({
         );
       })}
 
-      {!showHistory && positions.map(pos => {
-        const device     = devices.find(d => d.traccar_id === pos.deviceId);
-        const deviceName = device?.name ?? `Device ${pos.deviceId}`;
-        const isSelected = selectedDevice?.traccar_id === pos.deviceId;
-        const isMoving   = (pos.speed ?? 0) > 0;
-        const color      = getDeviceColor(device?.status ?? 'unknown', pos.speed ?? 0);
-        const icon       = createDeviceIcon(color, pos.course ?? 0, isSelected, isMoving, deviceName);
+      {!showHistory && (
+        <MarkerClusterGroup iconCreateFunction={createClusterIcon} chunkedLoading>
+          {positions.map(pos => {
+            const device     = devices.find(d => d.traccar_id === pos.deviceId);
+            const deviceName = device?.name ?? `Device ${pos.deviceId}`;
+            const isSelected = selectedDevice?.traccar_id === pos.deviceId;
+            const isMoving   = (pos.speed ?? 0) > 0;
+            const color      = getDeviceColor(device?.status ?? 'unknown', pos.speed ?? 0);
+            const icon       = createDeviceIcon(color, pos.course ?? 0, isSelected, isMoving, deviceName);
 
-        return (
-          <Marker
-            key={`${pos.deviceId}-${pos.timestamp}`}
-            position={[pos.latitude, pos.longitude]}
-            icon={icon}
-            eventHandlers={{ click: () => device && onSelectDevice(device) }}
-          >
-            <Popup>
-              <div style={{ minWidth: 170, fontFamily: 'sans-serif' }}>
-                <p style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>{deviceName}</p>
-                <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#666' }}>
-                  <span>⚡ {formatSpeed(pos.speed ?? 0)}</span>
-                  <span>🧭 {Math.round(pos.course ?? 0)}°</span>
-                </div>
-                {pos.address && (
-                  <p style={{ fontSize: 11, marginTop: 6, color: '#888', lineHeight: 1.4 }}>
-                    📍 {pos.address}
-                  </p>
-                )}
-                <p style={{ fontSize: 10, color: '#aaa', marginTop: 6 }}>
-                  {new Date(pos.timestamp).toLocaleString('pt-PT')}
-                </p>
-              </div>
-            </Popup>
-          </Marker>
-        );
-      })}
+            return (
+              <Marker
+                key={`${pos.deviceId}-${pos.timestamp}`}
+                position={[pos.latitude, pos.longitude]}
+                icon={icon}
+                eventHandlers={{ click: () => device && onSelectDevice(device) }}
+              >
+                <Popup>
+                  <div style={{ minWidth: 170, fontFamily: 'sans-serif' }}>
+                    <p style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>{deviceName}</p>
+                    <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#666' }}>
+                      <span>⚡ {formatSpeed(pos.speed ?? 0)}</span>
+                      <span>🧭 {Math.round(pos.course ?? 0)}°</span>
+                    </div>
+                    {pos.address && (
+                      <p style={{ fontSize: 11, marginTop: 6, color: '#888', lineHeight: 1.4 }}>
+                        📍 {pos.address}
+                      </p>
+                    )}
+                    <p style={{ fontSize: 10, color: '#aaa', marginTop: 6 }}>
+                      {new Date(pos.timestamp).toLocaleString('pt-PT')}
+                    </p>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
+        </MarkerClusterGroup>
+      )}
 
       {/* ── MODO HISTÓRICO ───────────────────────────────────── */}
       {showHistory && Array.from(historyLines.entries()).map(([deviceId, points]) => {

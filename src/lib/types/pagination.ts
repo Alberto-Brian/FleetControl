@@ -7,6 +7,8 @@ export interface IPaginationParams {
     search?: string;
     status?: string;
     category_id?: string;
+    sync_status?: 'all' | 'synced' | 'not_synced';
+    imei_status?: 'all' | 'with_imei' | 'without_imei';
 }
 
 export interface IPaginatedResult<T> {

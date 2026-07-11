@@ -209,7 +209,15 @@ export const enVehicles = {
     all: "All statuses",
     allCategories: "All categories",
     status: "Filter by status",
-    category: "Filter by category"
+    category: "Filter by category",
+    sync: "Sync status",
+    syncAll: "All (sync)",
+    synced: "Synced with API",
+    notSynced: "Not synced",
+    imei: "GPS / IMEI",
+    imeiAll: "All GPS",
+    withImei: "With GPS (IMEI)",
+    withoutImei: "Without GPS",
   },
 
   viewModes: {
