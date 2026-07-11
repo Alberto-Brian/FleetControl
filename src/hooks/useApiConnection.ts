@@ -4,6 +4,7 @@
 // ========================================
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import type { GeofenceAlert } from '@/contexts/TrackingContext';
 
 // ========================================
 // TIPOS (todos definidos aqui)
@@ -78,6 +79,7 @@ interface UseApiConnectionReturn {
   isConnected: boolean;
   reconnectCount: number; // incrementa em cada reconexão — usar para recarregar dados
   getDevicePosition: (deviceId: number) => Position | undefined;
+  geofenceAlerts: GeofenceAlert[];
 }
 
 // ========================================
@@ -104,6 +106,7 @@ export function useApiConnection(): UseApiConnectionReturn {
   const [devices, setDevices] = useState<Device[]>([]);
   const [events, setEvents] = useState<TraccarEvent[]>([]);
   const [reconnectCount, setReconnectCount] = useState(0);
+  const [geofenceAlerts, setGeofenceAlerts] = useState<GeofenceAlert[]>([]);
 
   // -- Helper: buscar posição de dispositivo específico --
   const getDevicePosition = useCallback((deviceId: number): Position | undefined => {
@@ -261,6 +264,10 @@ export function useApiConnection(): UseApiConnectionReturn {
       });
     });
 
+    socket.on('geofence:alert', (alert: GeofenceAlert) => {
+      setGeofenceAlerts(prev => [alert, ...prev].slice(0, 50));
+    });
+
     // ===== ERROS DO SERVIDOR =====
 
     socket.on('error', (err: Error) => {
@@ -290,6 +297,7 @@ export function useApiConnection(): UseApiConnectionReturn {
     isConnected: state === 'connected',
     reconnectCount,
     getDevicePosition,
+    geofenceAlerts,
   };
 }
 

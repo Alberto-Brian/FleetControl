@@ -15,6 +15,9 @@ import { TrackingMap, TileLayerId } from '@/components/tracking/TrackingMap';
 import { DeviceSidebar }            from '@/components/tracking/DeviceSidebar';
 import { TrackingToolbar }          from '@/components/tracking/TrackingToolbar';
 import { DeviceInfoPanel }          from '@/components/tracking/DeviceInfoPanel';
+import { GeofencePanel }            from '@/components/tracking/GeofencePanel';
+import { AlertPanel }               from '@/components/tracking/AlertPanel';
+import { GeofenceFormModal }        from '@/components/tracking/GeofenceFormModal';
 import { Loader2 }                  from 'lucide-react';
 import { useMapSettings }           from '@/hooks/useMapSettings';
 
@@ -32,6 +35,12 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
   const zoomCycleRef       = useRef<0 | 1 | 2>(0); // 0=bairro(14) 1=rua(18) 2=todos
   const initialViewDoneRef = useRef(false);
   const [tileLayer, setTileLayer] = useState<TileLayerId>('osm');
+
+  const [alertPanelOpen,   setAlertPanelOpen]   = useState(false);
+  const [geoPanelOpen,     setGeoPanelOpen]      = useState(false);
+  const [drawMode,         setDrawMode]          = useState<'circle' | 'polygon' | null>(null);
+  const [pendingWkt,       setPendingWkt]        = useState<string | null>(null);
+  const [geoFormOpen,      setGeoFormOpen]       = useState(false);
 
   useEffect(() => { loadInitial(); }, []);
   // Recarrega dados após reconexão Socket.IO (reconnectCount começa em 0, skip no mount)
@@ -54,6 +63,16 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
       mapRef.current.setView([pos.latitude, pos.longitude], mapRef.current.getZoom(), { animate: true, duration: 0.8 });
     }
   }, [state.positions, state.followMode]);
+
+  // Load alerts when connected
+  useEffect(() => {
+    if (!isConnected) return;
+    (window as any)._tracking.getAlerts({ limit: 100 })
+      .then((res: any) => {
+        if (res?.data) dispatch({ type: 'ALERTS_RECEIVED', payload: res.data });
+      })
+      .catch(console.error);
+  }, [isConnected]);
 
   async function loadInitial() {
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -173,6 +192,10 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
         animateMarkers={animateMarkers}
         pulseMarkers={pulseMarkers}
         onSelectDevice={(device) => dispatch({ type: 'SELECT_DEVICE', payload: device })}
+        geofences={state.geofences}
+        drawMode={drawMode}
+        onDrawConfirm={(wkt) => { setPendingWkt(wkt); setDrawMode(null); setGeoFormOpen(true); }}
+        onDrawCancel={() => setDrawMode(null)}
       />
 
       {/* Controlos */}
@@ -182,6 +205,32 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
           style={{ left: leftOffset, pointerEvents: 'none' }}
         >
           <div className="relative h-full" style={{ pointerEvents: 'none' }}>
+            {/* Painel de geofences — lado esquerdo */}
+            {geoPanelOpen && (
+              <div
+                className="absolute left-0 top-0 bottom-0 w-72 z-30 flex flex-col bg-background border-r"
+                style={{ marginLeft: leftOffset, pointerEvents: 'auto' }}
+              >
+                <GeofencePanel onStartDraw={(mode) => { setGeoPanelOpen(false); setDrawMode(mode); }} />
+              </div>
+            )}
+
+            {/* Painel de alertas — lado direito */}
+            {alertPanelOpen && (
+              <div className="absolute right-0 top-0 bottom-0 w-80 z-30 flex flex-col bg-background border-l" style={{ pointerEvents: 'auto' }}>
+                <AlertPanel onClose={() => setAlertPanelOpen(false)} />
+              </div>
+            )}
+
+            {/* Modal de formulário de geofence (após desenho) */}
+            <GeofenceFormModal
+              open={geoFormOpen}
+              pendingWkt={pendingWkt ?? undefined}
+              onClose={() => { setGeoFormOpen(false); setPendingWkt(null); setDrawMode(null); }}
+              onCreated={(g) => { dispatch({ type: 'GEOFENCE_ADDED', payload: g }); setGeoFormOpen(false); setPendingWkt(null); }}
+              onUpdated={(g) => dispatch({ type: 'GEOFENCE_ADDED', payload: g })}
+            />
+
             {state.isSidebarOpen && (
               <DeviceSidebar
                 devices={state.devices}
@@ -222,6 +271,11 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
               followDeviceName={state.followMode && state.selectedDevice ? state.selectedDevice.name : null}
               onFitAll={fitAllDevices}
               onStopFollow={() => dispatch({ type: 'SET_FOLLOW', payload: null })}
+              unreadAlerts={state.unreadAlerts}
+              isAlertPanelOpen={alertPanelOpen}
+              onToggleAlerts={() => setAlertPanelOpen(v => !v)}
+              isGeoPanelOpen={geoPanelOpen}
+              onToggleGeoPanel={() => setGeoPanelOpen(v => !v)}
             />
 
             {state.selectedDevice && (

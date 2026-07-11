@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import {
   WifiOff, History, Layers, PanelLeft, Clock, Settings,
   ZoomIn, ZoomOut, Map, Satellite, Maximize2, Radio, X,
+  Bell, Pentagon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import UserMenu from '@/components/UserMenu';
@@ -29,6 +30,11 @@ interface Props {
   followDeviceName?: string | null;
   onFitAll?:        () => void;
   onStopFollow?:    () => void;
+  unreadAlerts:     number;
+  isAlertPanelOpen: boolean;
+  onToggleAlerts:   () => void;
+  isGeoPanelOpen:   boolean;
+  onToggleGeoPanel: () => void;
 }
 
 function MapBtn({ title, onClick, active = false, children }: {
@@ -74,6 +80,11 @@ export function TrackingToolbar({
   followDeviceName,
   onFitAll,
   onStopFollow,
+  unreadAlerts,
+  isAlertPanelOpen,
+  onToggleAlerts,
+  isGeoPanelOpen,
+  onToggleGeoPanel,
 }: Props) {
   const { t } = useTranslation('tracking');
   const [layerOpen, setLayerOpen] = useState(false);
@@ -324,6 +335,34 @@ export function TrackingToolbar({
           boxShadow:  '0 4px 20px rgba(0,0,0,0.4)',
         }}
       >
+        {/* Geofences */}
+        <MapBtn
+          title={t('toolbar.geofences', 'Zonas')}
+          active={isGeoPanelOpen}
+          onClick={onToggleGeoPanel}
+        >
+          <Pentagon className="w-4 h-4" />
+        </MapBtn>
+
+        {/* Alertas */}
+        <div className="relative">
+          <MapBtn
+            title={t('toolbar.alerts', 'Alertas')}
+            active={isAlertPanelOpen}
+            onClick={onToggleAlerts}
+          >
+            <Bell className="w-4 h-4" />
+          </MapBtn>
+          {unreadAlerts > 0 && (
+            <span
+              className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center pointer-events-none"
+              style={{ background: '#ef4444', color: 'white' }}
+            >
+              {unreadAlerts > 9 ? '9+' : unreadAlerts}
+            </span>
+          )}
+        </div>
+
         {onOpenSettings && (
           <MapBtn title={t('toolbar.settings')} onClick={onOpenSettings}>
             <Settings className="w-4 h-4" />

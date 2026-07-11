@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import { toast } from 'sonner';
 import { useApiConnection } from '@/hooks/useApiConnection';
 import type { Position, Device, ConnectionState, TraccarStatus } from '@/hooks/useApiConnection';
 import type { TrackedDevice } from '@/helpers/tracking-helpers';
@@ -177,6 +178,7 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
     reconnectCount,
     connect,
     disconnect,
+    geofenceAlerts,
   } = useApiConnection();
 
   // Posições em tempo real → contexto
@@ -213,6 +215,22 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'GEOFENCES_LOADED', payload: geofences });
     }).catch(console.error);
   }, []);
+
+  // Geofence alerts from socket
+  useEffect(() => {
+    if (geofenceAlerts.length === 0) return;
+    dispatch({ type: 'ALERTS_RECEIVED', payload: geofenceAlerts });
+    // Toast for the most recent
+    const latest = geofenceAlerts[0];
+    if (latest) {
+      const labels: Record<string, string> = {
+        geofenceEnter: 'Entrou',
+        geofenceExit:  'Saiu',
+        speedLimit:    'Velocidade excessiva',
+      };
+      toast.warning(`${labels[latest.eventType] ?? latest.eventType} · ${latest.geofenceName}`);
+    }
+  }, [geofenceAlerts]);
 
   return (
     <Ctx.Provider value={{
