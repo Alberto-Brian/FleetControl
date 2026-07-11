@@ -13,6 +13,7 @@ import type { TrackedDevice, PositionHistory } from '@/helpers/tracking-helpers'
 import { getDeviceColor, getDeviceTrailColor, formatSpeed } from '@/helpers/tracking-helpers';
 import type { MapLabelType } from '@/hooks/useMapSettings';
 import { GeofenceOverlay } from './GeofenceOverlay';
+import { GeofenceDrawTool } from './GeofenceDrawTool';
 import type { LocalGeofence } from '@/contexts/TrackingContext';
 
 // CSS da animação de pulse — injectado uma vez no documento
@@ -167,6 +168,9 @@ interface Props {
   geofences?:          LocalGeofence[];
   selectedGeofenceId?: number | null;
   onGeofenceSelect?:   (g: LocalGeofence) => void;
+  drawMode?:      'circle' | 'polygon' | null;
+  onDrawConfirm?: (wkt: string) => void;
+  onDrawCancel?:  () => void;
 }
 
 function getDeviceLabel(name: string, type: MapLabelType = 'both'): string {
@@ -204,6 +208,7 @@ export function TrackingMap({
   mapRef, positions, historyPositions, devices, selectedDevice, showHistory, trail,
   tileLayerId = 'osm', labelType = 'both', animateMarkers = true, pulseMarkers = false, onSelectDevice,
   geofences, selectedGeofenceId, onGeofenceSelect,
+  drawMode, onDrawConfirm, onDrawCancel,
 }: Props) {
   useEffect(() => { ensurePulseStyle(); }, []);
   const center: [number, number] = positions.length > 0
@@ -353,6 +358,13 @@ export function TrackingMap({
           geofences={geofences}
           selectedId={selectedGeofenceId ?? null}
           onSelect={onGeofenceSelect ?? (() => {})}
+        />
+      )}
+      {drawMode && (
+        <GeofenceDrawTool
+          mode={drawMode}
+          onConfirm={onDrawConfirm ?? (() => {})}
+          onCancel={onDrawCancel ?? (() => {})}
         />
       )}
     </MapContainer>
