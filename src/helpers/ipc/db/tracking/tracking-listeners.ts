@@ -15,6 +15,9 @@ import {
   GET_LINK_SUGGESTIONS,
   LINK_VEHICLE_DEVICE,
   UNLINK_VEHICLE_DEVICE,
+  CREATE_GEOFENCE, UPDATE_GEOFENCE, DELETE_GEOFENCE,
+  GET_ALERTS, ACKNOWLEDGE_ALERT, ACKNOWLEDGE_ALL_ALERTS,
+  GET_ALERT_SETTINGS, UPDATE_ALERT_SETTINGS,
 } from './tracking-channels';
 
 const API_URL = process.env.API_URL || 'http://localhost:3001';
@@ -110,5 +113,61 @@ export function addTrackingEventListeners() {
       { headers: apiHeaders(), timeout: 10_000 },
     );
     return data;
+  });
+
+  ipcMain.handle(CREATE_GEOFENCE, async (_event, data) => {
+    const { data: res } = await axios.post(`${API_URL}/api/traccar/geofences`, data, {
+      headers: apiHeaders(), timeout: 15_000,
+    });
+    return res.data;
+  });
+
+  ipcMain.handle(UPDATE_GEOFENCE, async (_event, traccarId: number, data) => {
+    const { data: res } = await axios.put(`${API_URL}/api/traccar/geofences/${traccarId}`, data, {
+      headers: apiHeaders(), timeout: 15_000,
+    });
+    return res.data;
+  });
+
+  ipcMain.handle(DELETE_GEOFENCE, async (_event, traccarId: number) => {
+    await axios.delete(`${API_URL}/api/traccar/geofences/${traccarId}`, {
+      headers: apiHeaders(), timeout: 10_000,
+    });
+    return true;
+  });
+
+  ipcMain.handle(GET_ALERTS, async (_event, params) => {
+    const { data } = await axios.get(`${API_URL}/api/alerts`, {
+      params, headers: apiHeaders(), timeout: 10_000,
+    });
+    return data;
+  });
+
+  ipcMain.handle(ACKNOWLEDGE_ALERT, async (_event, id: string) => {
+    await axios.patch(`${API_URL}/api/alerts/${id}/acknowledge`, {}, {
+      headers: apiHeaders(), timeout: 10_000,
+    });
+    return true;
+  });
+
+  ipcMain.handle(ACKNOWLEDGE_ALL_ALERTS, async () => {
+    const { data } = await axios.patch(`${API_URL}/api/alerts/acknowledge-all`, {}, {
+      headers: apiHeaders(), timeout: 10_000,
+    });
+    return data;
+  });
+
+  ipcMain.handle(GET_ALERT_SETTINGS, async () => {
+    const { data } = await axios.get(`${API_URL}/api/alerts/settings`, {
+      headers: apiHeaders(), timeout: 10_000,
+    });
+    return data.data;
+  });
+
+  ipcMain.handle(UPDATE_ALERT_SETTINGS, async (_event, data) => {
+    const { data: res } = await axios.put(`${API_URL}/api/alerts/settings`, data, {
+      headers: apiHeaders(), timeout: 10_000,
+    });
+    return res.data;
   });
 }

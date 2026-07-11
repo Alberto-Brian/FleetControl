@@ -13,6 +13,9 @@ import {
   GET_LINK_SUGGESTIONS,
   LINK_VEHICLE_DEVICE,
   UNLINK_VEHICLE_DEVICE,
+  CREATE_GEOFENCE, UPDATE_GEOFENCE, DELETE_GEOFENCE,
+  GET_ALERTS, ACKNOWLEDGE_ALERT, ACKNOWLEDGE_ALL_ALERTS,
+  GET_ALERT_SETTINGS, UPDATE_ALERT_SETTINGS,
 } from './tracking-channels';
 
 export function exposeTrackingContext() {
@@ -29,5 +32,18 @@ export function exposeTrackingContext() {
     getLinkSuggestions:  ()                                               => ipcRenderer.invoke(GET_LINK_SUGGESTIONS),
     linkVehicleDevice:   (vehicleId: string, traccarDeviceId: string)    => ipcRenderer.invoke(LINK_VEHICLE_DEVICE, vehicleId, traccarDeviceId),
     unlinkVehicleDevice: (vehicleId: string)                             => ipcRenderer.invoke(UNLINK_VEHICLE_DEVICE, vehicleId),
+
+    createGeofence:       (data: { name: string; area: string; description?: string; attributes?: Record<string, unknown>; deviceIds?: number[] }) =>
+                            ipcRenderer.invoke(CREATE_GEOFENCE, data),
+    updateGeofence:       (traccarId: number, data: { name?: string; area?: string; attributes?: Record<string, unknown> }) =>
+                            ipcRenderer.invoke(UPDATE_GEOFENCE, traccarId, data),
+    deleteGeofence:       (traccarId: number) => ipcRenderer.invoke(DELETE_GEOFENCE, traccarId),
+
+    getAlerts:            (params?: { page?: number; limit?: number; from?: string; to?: string; deviceId?: number; type?: string; acknowledged?: boolean }) =>
+                            ipcRenderer.invoke(GET_ALERTS, params),
+    acknowledgeAlert:     (id: string)  => ipcRenderer.invoke(ACKNOWLEDGE_ALERT, id),
+    acknowledgeAllAlerts: ()            => ipcRenderer.invoke(ACKNOWLEDGE_ALL_ALERTS),
+    getAlertSettings:     ()            => ipcRenderer.invoke(GET_ALERT_SETTINGS),
+    updateAlertSettings:  (data: Record<string, unknown>) => ipcRenderer.invoke(UPDATE_ALERT_SETTINGS, data),
   });
 }

@@ -12,3 +12,15 @@ export const GET_GEOFENCES          = 'tracking:get-geofences';
 export const GET_LINK_SUGGESTIONS   = 'tracking:get-link-suggestions';
 export const LINK_VEHICLE_DEVICE    = 'tracking:link-vehicle-device';
 export const UNLINK_VEHICLE_DEVICE  = 'tracking:unlink-vehicle-device';
+
+// Geofence CRUD
+export const CREATE_GEOFENCE         = 'tracking:create-geofence';
+export const UPDATE_GEOFENCE         = 'tracking:update-geofence';
+export const DELETE_GEOFENCE         = 'tracking:delete-geofence';
+
+// Alerts
+export const GET_ALERTS              = 'tracking:get-alerts';
+export const ACKNOWLEDGE_ALERT       = 'tracking:acknowledge-alert';
+export const ACKNOWLEDGE_ALL_ALERTS  = 'tracking:acknowledge-all-alerts';
+export const GET_ALERT_SETTINGS      = 'tracking:get-alert-settings';
+export const UPDATE_ALERT_SETTINGS   = 'tracking:update-alert-settings';
