@@ -286,16 +286,24 @@ interface IScheduledTrip {
 }
 
 export interface ITracking {
-  getDevices:          () => Promise<TrackedDevice[]>;
-  createDevice:        (data: { name: string; uniqueId: string }) => Promise<TrackedDevice>;
-  getPositions:        (deviceId?: number) => Promise<Position[]>;
-  getHistory:          (deviceId: number, from: string, to: string) => Promise<PositionHistory[]>;
-  syncDevices:         () => Promise<TrackedDevice[]>;
-  syncGeofences:       () => Promise<unknown[]>;
-  getGeofences:        () => Promise<unknown[]>;
-  getLinkSuggestions:  () => Promise<unknown[]>;
-  linkVehicleDevice:   (vehicleId: string, traccarDeviceId: string) => Promise<unknown>;
-  unlinkVehicleDevice: (vehicleId: string) => Promise<unknown>;
+  getDevices:           () => Promise<TrackedDevice[]>;
+  createDevice:         (data: { name: string; uniqueId: string }) => Promise<TrackedDevice>;
+  getPositions:         (deviceId?: number) => Promise<Position[]>;
+  getHistory:           (deviceId: number, from: string, to: string) => Promise<PositionHistory[]>;
+  syncDevices:          () => Promise<TrackedDevice[]>;
+  syncGeofences:        () => Promise<unknown[]>;
+  getGeofences:         () => Promise<unknown[]>;
+  getLinkSuggestions:   () => Promise<unknown[]>;
+  linkVehicleDevice:    (vehicleId: string, traccarDeviceId: string) => Promise<unknown>;
+  unlinkVehicleDevice:  (vehicleId: string) => Promise<unknown>;
+  createGeofence:       (data: { name: string; area: string; description?: string; attributes?: Record<string, unknown>; deviceIds?: number[] }) => Promise<unknown>;
+  updateGeofence:       (traccarId: number, data: { name?: string; area?: string; attributes?: Record<string, unknown> }) => Promise<unknown>;
+  deleteGeofence:       (traccarId: number) => Promise<unknown>;
+  getAlerts:            (params?: { page?: number; limit?: number; from?: string; to?: string; deviceId?: number; type?: string; acknowledged?: boolean }) => Promise<unknown>;
+  acknowledgeAlert:     (id: string) => Promise<unknown>;
+  acknowledgeAllAlerts: () => Promise<unknown>;
+  getAlertSettings:     () => Promise<unknown>;
+  updateAlertSettings:  (data: Record<string, unknown>) => Promise<unknown>;
 }
 declare global {
   interface Window {

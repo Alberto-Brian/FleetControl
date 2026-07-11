@@ -3,6 +3,30 @@ import { useApiConnection } from '@/hooks/useApiConnection';
 import type { Position, Device, ConnectionState, TraccarStatus } from '@/hooks/useApiConnection';
 import type { TrackedDevice } from '@/helpers/tracking-helpers';
 
+export interface LocalGeofence {
+  id:           number; // traccarId
+  name:         string;
+  area:         string; // WKT
+  description?: string;
+  attributes?:  Record<string, unknown>;
+}
+
+export interface GeofenceAlert {
+  id:             string;
+  organizationId: string;
+  geofenceId:     number;
+  geofenceName:   string;
+  deviceId:       number;
+  vehicleId:      string | null;
+  eventType:      'geofenceEnter' | 'geofenceExit' | 'speedLimit';
+  speed:          number | null;
+  speedLimit:     number | null;
+  latitude:       number | null;
+  longitude:      number | null;
+  acknowledged:   boolean;
+  createdAt:      string;
+}
+
 interface TrackingState {
   devices:          TrackedDevice[];
   positions:        Position[];
@@ -17,6 +41,9 @@ interface TrackingState {
   lastUpdate:       Date | null;
   followMode:       boolean;
   followDeviceId:   number | null;
+  geofences:        LocalGeofence[];
+  alerts:           GeofenceAlert[];
+  unreadAlerts:     number;
 }
 
 type Action =
@@ -31,7 +58,12 @@ type Action =
   | { type: 'TOGGLE_HISTORY';   payload: boolean }
   | { type: 'SET_MODE';         payload: 'realtime' | 'manual' }
   | { type: 'FILTER_STATUS';    payload: 'all' | 'online' | 'offline' }
-  | { type: 'SET_FOLLOW';       payload: number | null };
+  | { type: 'SET_FOLLOW';       payload: number | null }
+  | { type: 'GEOFENCES_LOADED';   payload: LocalGeofence[] }
+  | { type: 'GEOFENCE_ADDED';     payload: LocalGeofence }
+  | { type: 'GEOFENCE_REMOVED';   payload: number }           // traccarId
+  | { type: 'ALERTS_RECEIVED';    payload: GeofenceAlert[] }  // prepend, most recent first
+  | { type: 'ALERT_ACKNOWLEDGED'; payload: string };          // alert id
 
 const initial: TrackingState = {
   devices:          [],
@@ -47,6 +79,9 @@ const initial: TrackingState = {
   lastUpdate:       null,
   followMode:       false,
   followDeviceId:   null,
+  geofences:        [],
+  alerts:           [],
+  unreadAlerts:     0,
 };
 
 function reducer(state: TrackingState, action: Action): TrackingState {
@@ -91,6 +126,21 @@ function reducer(state: TrackingState, action: Action): TrackingState {
     case 'FILTER_STATUS':    return { ...state, filteredStatus: action.payload };
     case 'SET_FOLLOW':
       return { ...state, followMode: action.payload !== null, followDeviceId: action.payload };
+    case 'GEOFENCES_LOADED':
+      return { ...state, geofences: action.payload };
+    case 'GEOFENCE_ADDED':
+      return { ...state, geofences: [...state.geofences.filter(g => g.id !== action.payload.id), action.payload] };
+    case 'GEOFENCE_REMOVED':
+      return { ...state, geofences: state.geofences.filter(g => g.id !== action.payload) };
+    case 'ALERTS_RECEIVED': {
+      const merged = [...action.payload, ...state.alerts].slice(0, 500); // max 500 in memory
+      const unread = merged.filter(a => !a.acknowledged).length;
+      return { ...state, alerts: merged, unreadAlerts: unread };
+    }
+    case 'ALERT_ACKNOWLEDGED': {
+      const alerts = state.alerts.map(a => a.id === action.payload ? { ...a, acknowledged: true } : a);
+      return { ...state, alerts, unreadAlerts: alerts.filter(a => !a.acknowledged).length };
+    }
     default: return state;
   }
 }
@@ -106,6 +156,9 @@ interface TrackingContextValue {
   reconnectCount: number;
   connect:        (token: string) => void;
   disconnect:     () => void;
+  geofences:      LocalGeofence[];
+  alerts:         GeofenceAlert[];
+  unreadAlerts:   number;
 }
 
 const Ctx = createContext<TrackingContextValue | null>(null);
@@ -147,11 +200,28 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'UPDATE_DEVICES', payload: mapped });
   }, [devices]);
 
+  // Load geofences on mount
+  useEffect(() => {
+    window._tracking.getGeofences().then((raw: any[]) => {
+      const geofences: LocalGeofence[] = raw.map(g => ({
+        id:          g.traccar_id ?? g.traccarId ?? g.id,
+        name:        g.name,
+        area:        g.area,
+        description: g.description,
+        attributes:  g.attributes,
+      }));
+      dispatch({ type: 'GEOFENCES_LOADED', payload: geofences });
+    }).catch(console.error);
+  }, []);
+
   return (
     <Ctx.Provider value={{
       state, dispatch,
       isConnected, connState, connError, traccarStatus, reconnectCount,
       connect, disconnect,
+      geofences:    state.geofences,
+      alerts:       state.alerts,
+      unreadAlerts: state.unreadAlerts,
     }}>
       {children}
     </Ctx.Provider>
