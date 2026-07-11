@@ -12,43 +12,28 @@ import type { Position }      from '@/hooks/useApiConnection';
 import type { TrackedDevice, PositionHistory } from '@/helpers/tracking-helpers';
 import { getDeviceColor, getDeviceTrailColor, formatSpeed } from '@/helpers/tracking-helpers';
 
-// Ícone SVG: pin/teardrop com seta de direcção e label
+// Ícone SVG circular com seta de direcção e label
 function createDeviceIcon(
   color: string, course: number, isSelected: boolean, isMoving: boolean, name?: string,
 ) {
-  const W  = isSelected ? 36 : 28;
-  const H  = isSelected ? 52 : 40;
-  const r  = isSelected ? 15 : 11;
-  const cx = W / 2;
-  const cy = r + 2;
-  const sw = isSelected ? 2.5 : 2;
+  const size = isSelected ? 40 : 30;
+  const r    = isSelected ? 14 : 11;
+  const cx   = size / 2;
+  const cy   = size / 2;
+  const sw   = isSelected ? 2.5 : 2;
 
-  // Raio da cauda do pin (triângulo)
-  const tailW = r * 0.52;
-  const tailY = cy + r * 0.72;
-
-  // Anel pulsante para veículo seleccionado
   const pulse = isSelected
-    ? `<circle cx="${cx}" cy="${cy}" r="${r + 5}" fill="${color}" opacity="0.16"/>`
+    ? `<circle cx="${cx}" cy="${cy}" r="${r + 6}" fill="${color}" opacity="0.15"/>`
     : '';
 
   const svg = `
-    <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
       ${pulse}
-      <!-- Cauda do pin -->
-      <polygon points="${cx - tailW},${tailY} ${cx + tailW},${tailY} ${cx},${H}"
-               fill="${color}"/>
-      <!-- Bordas da cauda -->
-      <line x1="${cx - tailW}" y1="${tailY}" x2="${cx}" y2="${H}" stroke="white" stroke-width="${sw - 0.5}" stroke-linecap="round"/>
-      <line x1="${cx + tailW}" y1="${tailY}" x2="${cx}" y2="${H}" stroke="white" stroke-width="${sw - 0.5}" stroke-linecap="round"/>
-      <!-- Balão circular -->
       <circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" stroke="white" stroke-width="${sw}"/>
-      <!-- Destaque interno (profundidade) -->
-      <circle cx="${cx - r * 0.25}" cy="${cy - r * 0.25}" r="${r * 0.3}" fill="white" opacity="0.2"/>
-      <!-- Seta de direcção -->
+      <circle cx="${cx - r * 0.3}" cy="${cy - r * 0.3}" r="${r * 0.28}" fill="white" opacity="0.2"/>
       <g transform="translate(${cx},${cy}) rotate(${course})">
-        <path d="M0,${-r * 0.62} L${r * 0.38},${r * 0.3} L0,${r * 0.1} L${-r * 0.38},${r * 0.3} Z"
-              fill="white" opacity="${isMoving ? 0.95 : 0.42}"/>
+        <path d="M0,${-r * 0.68} L${r * 0.38},${r * 0.38} L0,${r * 0.1} L${-r * 0.38},${r * 0.38} Z"
+              fill="white" opacity="${isMoving ? 0.95 : 0.45}"/>
       </g>
     </svg>`;
 
@@ -59,28 +44,30 @@ function createDeviceIcon(
   const label = escapedName
     ? `<div style="
         position:absolute;
-        top:${H + 3}px;
+        top:${size + 4}px;
         left:50%;
         transform:translateX(-50%);
         white-space:nowrap;
         background:rgba(10,17,32,0.88);
-        color:rgba(255,255,255,0.9);
+        color:rgba(255,255,255,0.88);
         font-size:10px;
-        font-weight:700;
-        padding:2px 7px;
-        border-radius:5px;
+        font-weight:600;
+        padding:2px 6px;
+        border-radius:4px;
         font-family:system-ui,sans-serif;
         pointer-events:none;
-        border:1px solid rgba(255,255,255,0.12);
-        letter-spacing:0.02em;
+        border:1px solid rgba(255,255,255,0.1);
+        max-width:120px;
+        overflow:hidden;
+        text-overflow:ellipsis;
       ">${escapedName}</div>`
     : '';
 
   return L.divIcon({
-    html:       `<div style="position:relative;width:${W}px;height:${H}px">${svg}${label}</div>`,
+    html:       `<div style="position:relative;width:${size}px;height:${size}px">${svg}${label}</div>`,
     className:  '',
-    iconSize:   [W, H],
-    iconAnchor: [cx, H],
+    iconSize:   [size, size],
+    iconAnchor: [cx, cy],
   });
 }
 
@@ -157,13 +144,14 @@ interface Props {
 
 function createClusterIcon(cluster: any) {
   const count = cluster.getChildCount();
-  const size  = count < 10 ? 36 : count < 100 ? 42 : 48;
+  const size  = 30;
+  const label = count > 99 ? '99+' : String(count);
+  const fs    = label.length > 2 ? 9 : 12;
   const svg = `
     <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="${size/2}" cy="${size/2}" r="${size/2 - 2}" fill="#1e40af" stroke="white" stroke-width="2.5" opacity="0.92"/>
-      <circle cx="${size/2}" cy="${size/2}" r="${size/2 - 8}" fill="none" stroke="white" stroke-width="1" opacity="0.35"/>
-      <text x="${size/2}" y="${size/2 + 4}" text-anchor="middle" font-size="${count < 100 ? 13 : 11}"
-            font-weight="700" font-family="system-ui,sans-serif" fill="white">${count}</text>
+      <circle cx="${size/2}" cy="${size/2}" r="${size/2 - 1}" fill="#18181b" stroke="white" stroke-width="2"/>
+      <text x="${size/2}" y="${size/2 + 4}" text-anchor="middle" font-size="${fs}"
+            font-weight="700" font-family="system-ui,sans-serif" fill="white">${label}</text>
     </svg>`;
   return L.divIcon({ html: svg, className: '', iconSize: [size, size], iconAnchor: [size/2, size/2] });
 }

@@ -138,7 +138,13 @@ export const enVehicles = {
       acquisition: "Acquisition",
       registrationInfo: "Records",
       noNotes: "No notes registered",
-      fullEditHint: "For complete editing, use the 'Edit' button in the main list"
+      fullEditHint: "For complete editing, use the 'Edit' button in the main list",
+      syncInfo: "Sync & GPS",
+      syncStatus: "Cloud status",
+      syncedWithApi: "Synced",
+      pendingSync: "Not synced",
+      gpsDevice: "GPS / IMEI",
+      noGps: "No GPS",
     },
     delete: {
       title: "Delete Vehicle",
@@ -147,9 +153,9 @@ export const enVehicles = {
     },
     sync: {
       title: "Sync vehicle with API",
-      description: "This vehicle has no IMEI configured. You can add the GPS IMEI now to enable tracking, or sync only the vehicle data.",
+      description: "You can sync this vehicle with an IMEI (enables GPS tracking) or just the vehicle data. You can always add the IMEI later.",
       imeiHint: "If left blank, the vehicle will be synced without GPS tracking.",
-      imeiCreationHint: "If filled in, the GPS tracking device will be created automatically when syncing with the API.",
+      imeiCreationHint: "If filled in, the GPS device is created automatically on the tracking server.",
       imeiEditHint: "IMEI of the GPS device installed in this vehicle. Used for real-time tracking.",
       syncWithGps: "Sync with GPS",
       syncWithoutGps: "Sync without GPS",

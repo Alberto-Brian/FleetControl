@@ -56,7 +56,7 @@ export default function VehiclesPageContent() {
   const [addGpsImeiInput, setAddGpsImeiInput] = useState('');
   const [isAddingGps, setIsAddingGps] = useState(false);
 
-  const { 
+  const {
     state: { vehicles, selectedVehicle, isLoading, categories, selectedCategory, isCategoriesLoading },
     setVehicles,
     deleteVehicle: removeVehicleFromContext,
@@ -258,9 +258,14 @@ export default function VehiclesPageContent() {
     }
   }
 
-  function confirmSyncWithImei() {
+  function syncWithImei() {
     if (!imeiInput.trim() || !pendingSyncVehicleId) return;
     doSync(pendingSyncVehicleId, imeiInput.trim());
+  }
+
+  function syncWithoutImei() {
+    if (!pendingSyncVehicleId) return;
+    doSync(pendingSyncVehicleId);
   }
 
   function openAddGpsDialog(vehicleId: string) {
@@ -400,12 +405,12 @@ export default function VehiclesPageContent() {
                       <Edit className="w-4 h-4 mr-2" /> {t('vehicles:actions.edit')}
                     </DropdownMenuItem>
                     {isConnected && !vehicle.api_vehicle_id && (
-                      <DropdownMenuItem onClick={() => openSyncFlow(vehicle)} disabled={syncingVehicleId === vehicle.id} className="text-amber-600 focus:text-amber-700">
+                      <DropdownMenuItem onClick={() => openSyncFlow(vehicle)} disabled={syncingVehicleId === vehicle.id}>
                         <Upload className="w-4 h-4 mr-2" /> {t('vehicles:dialogs.sync.tooltipSync')}
                       </DropdownMenuItem>
                     )}
                     {isConnected && vehicle.api_vehicle_id && !vehicle.traccar_unique_id && (
-                      <DropdownMenuItem onClick={() => openAddGpsDialog(vehicle.id)} className="text-blue-600 focus:text-blue-700">
+                      <DropdownMenuItem onClick={() => openAddGpsDialog(vehicle.id)}>
                         <Wifi className="w-4 h-4 mr-2" /> {t('vehicles:dialogs.addGps.action')}
                       </DropdownMenuItem>
                     )}
@@ -437,7 +442,7 @@ export default function VehiclesPageContent() {
                     <h3 className="font-bold text-lg tracking-tight">{vehicle.license_plate}</h3>
                     {getStatusBadge(vehicle.status)}
                     {isConnected && !vehicle.api_vehicle_id && (
-                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-bold text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30">
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-bold">
                         <Upload className="w-2.5 h-2.5 mr-1" />Sync
                       </Badge>
                     )}
@@ -455,7 +460,7 @@ export default function VehiclesPageContent() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-10 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                      className="h-10 w-10"
                       title={t('vehicles:dialogs.sync.tooltipSync')}
                       disabled={syncingVehicleId === vehicle.id}
                       onClick={() => openSyncFlow(vehicle)}
@@ -467,7 +472,7 @@ export default function VehiclesPageContent() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-10 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                      className="h-10 w-10"
                       title={t('vehicles:dialogs.addGps.tooltip')}
                       onClick={() => openAddGpsDialog(vehicle.id)}
                     >
@@ -514,21 +519,21 @@ export default function VehiclesPageContent() {
                   {isConnected && !vehicle.api_vehicle_id && (
                     <Badge
                       variant="outline"
-                      className="text-[10px] px-2 py-0.5 font-semibold cursor-pointer rounded-full transition-colors text-amber-600 border-amber-300/70 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/30 dark:border-amber-700/50 dark:text-amber-400"
-                      title={t('vehicles:dialogs.sync.badgeReadyWithGps')}
+                      className="text-[10px] px-2 py-0.5 font-semibold cursor-pointer rounded-full transition-colors hover:bg-muted"
+                      title={t('vehicles:dialogs.sync.tooltipSync')}
                       onClick={() => openSyncFlow(vehicle)}
                     >
-                      <Upload className="w-2.5 h-2.5 mr-1 inline" />GPS Sync
+                      <Upload className="w-2.5 h-2.5 mr-1 inline" />Sync
                     </Badge>
                   )}
                   {isConnected && vehicle.api_vehicle_id && !vehicle.traccar_unique_id && (
                     <Badge
                       variant="outline"
-                      className="text-[10px] px-2 py-0.5 font-semibold cursor-pointer rounded-full transition-colors text-blue-600 border-blue-300/70 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/30 dark:border-blue-700/50 dark:text-blue-400"
+                      className="text-[10px] px-2 py-0.5 font-semibold cursor-pointer rounded-full transition-colors hover:bg-muted"
                       title={t('vehicles:dialogs.addGps.tooltip')}
                       onClick={() => openAddGpsDialog(vehicle.id)}
                     >
-                      <Wifi className="w-2.5 h-2.5 mr-1 inline" />{t('vehicles:dialogs.addGps.badge')}
+                      <Wifi className="w-2.5 h-2.5 mr-1 inline" />GPS
                     </Badge>
                   )}
                   {getStatusBadge(vehicle.status)}
@@ -576,17 +581,13 @@ export default function VehiclesPageContent() {
                       <Edit className="w-4 h-4 mr-2" /> {t('vehicles:actions.edit')}
                     </DropdownMenuItem>
                     {isConnected && !vehicle.api_vehicle_id && (
-                      <DropdownMenuItem
-                        onClick={() => openSyncFlow(vehicle)}
-                        disabled={syncingVehicleId === vehicle.id}
-                        className="text-amber-600 focus:text-amber-700"
-                      >
+                      <DropdownMenuItem onClick={() => openSyncFlow(vehicle)} disabled={syncingVehicleId === vehicle.id}>
                         <Upload className="w-4 h-4 mr-2" />
                         {syncingVehicleId === vehicle.id ? t('vehicles:loading.syncing') : t('vehicles:dialogs.sync.tooltipSync')}
                       </DropdownMenuItem>
                     )}
                     {isConnected && vehicle.api_vehicle_id && !vehicle.traccar_unique_id && (
-                      <DropdownMenuItem onClick={() => openAddGpsDialog(vehicle.id)} className="text-blue-600 focus:text-blue-700">
+                      <DropdownMenuItem onClick={() => openAddGpsDialog(vehicle.id)}>
                         <Wifi className="w-4 h-4 mr-2" /> {t('vehicles:dialogs.addGps.action')}
                       </DropdownMenuItem>
                     )}
@@ -895,7 +896,7 @@ export default function VehiclesPageContent() {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Upload className="w-5 h-5 text-amber-600" />
+                <Upload className="w-5 h-5" />
                 {t('vehicles:dialogs.sync.title')}
               </DialogTitle>
               <DialogDescription>
@@ -903,13 +904,16 @@ export default function VehiclesPageContent() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2 py-2">
-              <Label htmlFor="sync-imei">{t('vehicles:fields.gpsImei')}</Label>
+              <Label htmlFor="sync-imei">
+                {t('vehicles:fields.gpsImei')}
+                <span className="ml-1 text-muted-foreground font-normal">{t('vehicles:fields.gpsImeiOptional')}</span>
+              </Label>
               <Input
                 id="sync-imei"
                 placeholder={t('vehicles:placeholders.gpsImei')}
                 value={imeiInput}
                 onChange={(e) => setImeiInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && confirmSyncWithImei()}
+                onKeyDown={(e) => e.key === 'Enter' && syncWithImei()}
                 className="font-mono"
                 autoFocus
               />
@@ -917,14 +921,14 @@ export default function VehiclesPageContent() {
                 {t('vehicles:dialogs.sync.imeiCreationHint')}
               </p>
             </div>
-            <DialogFooter className="gap-2">
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button variant="outline" onClick={() => { setSyncImeiDialogOpen(false); setPendingSyncVehicleId(null); }}>
                 {t('vehicles:actions.cancel')}
               </Button>
-              <Button
-                onClick={confirmSyncWithImei}
-                disabled={!imeiInput.trim() || syncingVehicleId !== null}
-              >
+              <Button variant="outline" onClick={syncWithoutImei} disabled={syncingVehicleId !== null}>
+                {t('vehicles:dialogs.sync.syncWithoutGps')}
+              </Button>
+              <Button onClick={syncWithImei} disabled={!imeiInput.trim() || syncingVehicleId !== null}>
                 {t('vehicles:dialogs.sync.syncWithGps')}
               </Button>
             </DialogFooter>
@@ -936,7 +940,7 @@ export default function VehiclesPageContent() {
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Wifi className="w-5 h-5 text-blue-600" />
+                <Wifi className="w-5 h-5" />
                 {t('vehicles:dialogs.addGps.title')}
               </DialogTitle>
               <DialogDescription>

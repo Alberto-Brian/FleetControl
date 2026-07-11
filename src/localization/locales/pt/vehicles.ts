@@ -128,7 +128,13 @@ export const ptVehicles = {
       acquisition: "Aquisição",
       registrationInfo: "Registos",
       noNotes: "Sem observações registadas",
-      fullEditHint: "Para edição completa, utilize o botão 'Editar' na lista principal"
+      fullEditHint: "Para edição completa, utilize o botão 'Editar' na lista principal",
+      syncInfo: "Sincronização & GPS",
+      syncStatus: "Estado na nuvem",
+      syncedWithApi: "Sincronizado",
+      pendingSync: "Não sincronizado",
+      gpsDevice: "GPS / IMEI",
+      noGps: "Sem GPS",
     },
     delete: {
       title: "Excluir Veículo",
@@ -147,9 +153,9 @@ export const ptVehicles = {
     },
     sync: {
       title: "Sincronizar veículo com a API",
-      description: "Este veículo não tem IMEI configurado. Podes adicionar o IMEI do GPS agora para activar o rastreamento, ou sincronizar só os dados do veículo.",
+      description: "Podes sincronizar este veículo com IMEI (activa o rastreamento GPS) ou apenas os dados do veículo. Podes sempre adicionar o IMEI posteriormente.",
       imeiHint: "Se deixares em branco, o veículo é sincronizado sem rastreamento GPS.",
-      imeiCreationHint: "Se preenchido, o device de rastreamento GPS é criado automaticamente ao sincronizar com a API.",
+      imeiCreationHint: "Se preenchido, o dispositivo GPS é criado automaticamente no servidor de rastreamento.",
       imeiEditHint: "IMEI do dispositivo GPS instalado neste veículo. Utilizado para rastreamento em tempo real.",
       syncWithGps: "Sincronizar com GPS",
       syncWithoutGps: "Sincronizar sem GPS",
