@@ -16,6 +16,7 @@ import { DeviceSidebar }            from '@/components/tracking/DeviceSidebar';
 import { TrackingToolbar }          from '@/components/tracking/TrackingToolbar';
 import { DeviceInfoPanel }          from '@/components/tracking/DeviceInfoPanel';
 import { Loader2 }                  from 'lucide-react';
+import { useMapSettings }           from '@/hooks/useMapSettings';
 
 interface TrackingPageContentProps {
   showControls?: boolean;
@@ -26,6 +27,7 @@ interface TrackingPageContentProps {
 export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpenSettings }: TrackingPageContentProps) {
   const { t }               = useTranslation('tracking');
   const { state, dispatch, isConnected, reconnectCount } = useTracking();
+  const { labelType, animateMarkers, pulseMarkers } = useMapSettings();
   const mapRef             = useRef<any>(null);
   const zoomCycleRef       = useRef<0 | 1 | 2>(0); // 0=bairro(14) 1=rua(18) 2=todos
   const initialViewDoneRef = useRef(false);
@@ -167,6 +169,9 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
         showHistory={state.showHistory}
         trail={state.trail}
         tileLayerId={tileLayer}
+        labelType={labelType}
+        animateMarkers={animateMarkers}
+        pulseMarkers={pulseMarkers}
         onSelectDevice={(device) => dispatch({ type: 'SELECT_DEVICE', payload: device })}
       />
 

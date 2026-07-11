@@ -7,11 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
   Edit, Gauge, RefreshCw, CheckCircle2, Clock, Settings2, Ban,
-  Truck, Tag, Calendar, DollarSign, FileText, RotateCcw, Hash, Wifi, Upload, WifiOff
+  Truck, Tag, Calendar, DollarSign, FileText, RotateCcw, Hash, Wifi, Upload, WifiOff, MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useVehicles } from '@/contexts/VehiclesContext';
 import { useTranslation } from 'react-i18next';
+import { useLicense } from '@/hooks/useLicense';
 
 // Importar os dialogs
 import UpdateMileageDialog from './UpdateMileageDialog';
@@ -26,6 +27,8 @@ interface ViewVehicleDialogProps {
 export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDialogProps) {
   const { state: { selectedVehicle } } = useVehicles();
   const { t } = useTranslation();
+  const { license } = useLicense();
+  const isConnected = license?.mode === 'connected' && license?.isValid;
   
   const [mileageDialogOpen, setMileageDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
@@ -360,7 +363,16 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
               )}
             </div>
 
-            <div className="text-center text-xs text-muted-foreground pt-4">
+            {!isConnected && (
+              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50">
+                <MapPin className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-blue-700/80 dark:text-blue-300/70 leading-relaxed">
+                  {t('vehicles:connectedHint.viewGps')}
+                </p>
+              </div>
+            )}
+
+            <div className="text-center text-xs text-muted-foreground pt-2">
                <p>{t('vehicles:dialogs.view.fullEditHint')}</p>
             </div>
           </div>

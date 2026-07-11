@@ -181,7 +181,11 @@ export const ptTrips = {
       driver: "Motorista",
       status: "Status",
       actions: "Acções"
-  }
+  },
+
+  connectedHint: {
+    liveTracking: 'No modo conectado, cada viagem é rastreada em tempo real por GPS — consulta o percurso exacto, velocidade e paragens directamente no mapa.',
+  },
 } as const;
 
 export default ptTrips;

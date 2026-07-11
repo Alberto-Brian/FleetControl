@@ -11,6 +11,8 @@ import LangToggle from '@/components/LangToggle';
 import { useFontFamily, useFontSize } from '@/hooks/useFontFamily';
 import { useGlassSettings }           from '@/hooks/useGlassSettings';
 import { useLayoutSettings }          from '@/hooks/useLayoutSettings';
+import { useLayoutPadding }           from '@/hooks/useLayoutPadding';
+import { useMapSettings }             from '@/hooks/useMapSettings';
 import { toast } from 'sonner';
 import {
   Settings, Globe, Palette, Info, Package, AlertCircle,
@@ -18,7 +20,7 @@ import {
   Clock, Loader2, CheckCircle, XCircle, Camera, Trash2, Save,
   Building, Hash, AtSign, ImageIcon, FileText, Bell, Car,
   Fuel, Sliders, RotateCcw, Eye, EyeOff, Droplets,
-  Key, ShieldCheck, RefreshCw, PanelLeft,
+  Key, ShieldCheck, RefreshCw, PanelLeft, Maximize2,
 } from 'lucide-react';
 import { Button }   from '@/components/ui/button';
 import { Switch }   from '@/components/ui/switch';
@@ -771,6 +773,10 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
   const { sizeId, setFontSize, sizeOptions }                         = useFontSize();
   const { settings: glass, update: updateGlass, reset: resetGlass }  = useGlassSettings();
   const { sidebarCollapsed, setSidebarCollapsed }                    = useLayoutSettings();
+  const { hasPadding, setHasPadding }                                = useLayoutPadding();
+  const { labelType, animateMarkers, pulseMarkers, setLabelType, setAnimateMarkers, setPulseMarkers } = useMapSettings();
+  const { license }                                                   = useLicense();
+  const isConnectedMode = license?.mode === 'connected' && license?.isValid;
   const [systemVersion, setSystemVersion] = useState('');
 
   // Backup states
@@ -886,6 +892,15 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                   ))}
                 </nav>
               </div>
+              <div className="px-3 py-3 border-t border-border shrink-0">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 shrink-0" />
+                  Recarregar aplicação
+                </button>
+              </div>
             </aside>
 
             {/* Conteúdo */}
@@ -975,8 +990,8 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                         </div>
                       </div>
 
-                      {/* Transparência e desfoque */}
-                      <div>
+                      {/* Transparência e desfoque — apenas em modo conectado */}
+                      {isConnectedMode && <div>
                         <h3 className="text-base font-semibold mb-1">{t('appearance.glassPanel')}</h3>
                         <p className="text-sm text-muted-foreground mb-4">{t('appearance.glassPanelDesc')}</p>
                         <div className="space-y-5 p-4 rounded-lg border border-border bg-card/50">
@@ -1034,7 +1049,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                             </button>
                           </div>
                         </div>
-                      </div>
+                      </div>}
 
                       {/* Menu lateral */}
                       <div>
@@ -1056,6 +1071,78 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                           />
                         </div>
                       </div>
+
+                      {/* Layout da interface */}
+                      <div>
+                        <h3 className="text-base font-semibold mb-1">{t('appearance.layoutTitle')}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">{t('appearance.layoutDesc')}</p>
+                        <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                              <Maximize2 className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">{t('appearance.layoutPadding')}</p>
+                              <p className="text-xs text-muted-foreground">{t('appearance.layoutPaddingDesc')}</p>
+                            </div>
+                          </div>
+                          <Switch checked={hasPadding} onCheckedChange={setHasPadding} />
+                        </div>
+                      </div>
+
+                      {/* Mapa de rastreamento — apenas em modo conectado */}
+                      {isConnectedMode && <div>
+                        <h3 className="text-base font-semibold mb-1">{t('appearance.mapTitle')}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">{t('appearance.mapDesc')}</p>
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-sm font-medium mb-2">{t('appearance.mapLabelType')}</p>
+                            <div className="grid grid-cols-3 gap-2">
+                              {(['plate', 'brand_model', 'both'] as const).map(type => {
+                                const keyMap = { plate: 'mapLabelPlate', brand_model: 'mapLabelBrandModel', both: 'mapLabelBoth' } as const;
+                                return (
+                                  <button
+                                    key={type}
+                                    onClick={() => setLabelType(type)}
+                                    className={cn(
+                                      'py-2.5 px-3 rounded-lg border text-center text-xs font-medium transition-all',
+                                      labelType === type
+                                        ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                                        : 'border-border bg-card/50 hover:border-primary/40 hover:bg-muted/30',
+                                    )}
+                                  >
+                                    {t(`appearance.${keyMap[type]}`)}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                                <MapPin className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{t('appearance.mapAnimateMarkers')}</p>
+                                <p className="text-xs text-muted-foreground">{t('appearance.mapAnimateMarkersDesc')}</p>
+                              </div>
+                            </div>
+                            <Switch checked={animateMarkers} onCheckedChange={setAnimateMarkers} />
+                          </div>
+                          <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                                <MapPin className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{t('appearance.mapPulseMarkers')}</p>
+                                <p className="text-xs text-muted-foreground">{t('appearance.mapPulseMarkersDesc')}</p>
+                              </div>
+                            </div>
+                            <Switch checked={pulseMarkers} onCheckedChange={setPulseMarkers} />
+                          </div>
+                        </div>
+                      </div>}
                     </div>
                   )}
 

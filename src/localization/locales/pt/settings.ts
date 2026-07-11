@@ -80,6 +80,24 @@ export const ptSettings = {
     sidebarDesc:          'Configurar o comportamento do menu de navegação',
     sidebarCollapsed:     'Iniciar colapsado',
     sidebarCollapsedDesc: 'Mostrar apenas ícones ao abrir a aplicação',
+
+    // Layout
+    layoutTitle:          'Layout da interface',
+    layoutDesc:           'Controla os espaçamentos e cantos arredondados da interface',
+    layoutPadding:        'Espaçamento e bordas arredondadas',
+    layoutPaddingDesc:    'Manter espaçamento e cantos arredondados no painel de conteúdo',
+
+    // Mapa
+    mapTitle:             'Mapa de rastreamento',
+    mapDesc:              'Personaliza a apresentação dos dispositivos no mapa',
+    mapLabelType:         'Etiqueta dos veículos no mapa',
+    mapLabelPlate:        'Matrícula',
+    mapLabelBrandModel:   'Marca/Modelo',
+    mapLabelBoth:         'Ambos',
+    mapAnimateMarkers:    'Animar marcadores',
+    mapAnimateMarkersDesc:'Animar os ícones ao adicioná-los ao mapa',
+    mapPulseMarkers:      'Pulsação dos marcadores',
+    mapPulseMarkersDesc:  'Animação suave de batimento nos ícones dos veículos no mapa',
   },
 
   // ── Idioma ────────────────────────────────────────────────────────────────

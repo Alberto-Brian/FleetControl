@@ -2,24 +2,7 @@ import React from "react";
 import DragWindowRegion from "@/components/DragWindowRegion";
 import { useLicense }   from "@/hooks/useLicense";
 import { useTracking }  from "@/contexts/TrackingContext";
-import { Truck, Wifi, WifiOff, AlertCircle, Loader2 } from "lucide-react";
-
-// ─── Logo + nome do sistema (lado esquerdo da titlebar) ──────────────────────
-function FleetControlTitle() {
-    return (
-        <div className="flex items-center gap-2 px-3 select-none">
-            <div
-                className="flex items-center justify-center rounded flex-shrink-0"
-                style={{ width: 16, height: 16, background: 'rgba(59,130,246,0.75)' }}
-            >
-                <Truck style={{ width: 10, height: 10, color: '#fff' }} />
-            </div>
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.3 }}>
-                FleetControl
-            </span>
-        </div>
-    );
-}
+import { Wifi, WifiOff, AlertCircle, Loader2 } from "lucide-react";
 
 // ─── Badge de estado da ligação (lado direito da titlebar) ───────────────────
 function ConnectionStatusBadge() {
@@ -61,13 +44,14 @@ export default function BaseLayout({ children }: { children: React.ReactNode }) 
     const { license } = useLicense();
     const isMapMode   = license?.isValid && license.mode === 'connected';
 
+    // O nav rail / sidebar usa position:fixed e cobre a parte esquerda da barra de drag.
+    // A barra de drag permanece visível na parte direita (área arrastável + botões de janela).
     return (
         <div className="flex flex-col h-screen overflow-hidden">
             <DragWindowRegion
                 title="FleetControl"
                 dark={isMapMode}
-                leftContent={isMapMode  ? <FleetControlTitle />        : undefined}
-                rightContent={isMapMode ? <ConnectionStatusBadge />    : undefined}
+                rightContent={isMapMode ? <ConnectionStatusBadge /> : undefined}
             />
             <main className="flex-1 overflow-hidden">{children}</main>
         </div>

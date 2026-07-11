@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDrivers } from '@/contexts/DriversContext';
+import { useLicense } from '@/hooks/useLicense';
 import { cn } from '@/lib/utils';
 import { driverStatus, driverAvailability } from '@/lib/db/schemas/drivers';
 
@@ -28,6 +29,8 @@ interface ViewDriverDialogProps {
 export default function ViewDriverDialog({ open, onOpenChange }: ViewDriverDialogProps) {
   const { t } = useTranslation();
   const { state: { selectedDriver } } = useDrivers();
+  const { license } = useLicense();
+  const isConnected = license?.mode === 'connected' && license?.isValid;
 
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [availabilityDialogOpen, setAvailabilityDialogOpen] = useState(false);
@@ -328,6 +331,15 @@ export default function ViewDriverDialog({ open, onOpenChange }: ViewDriverDialo
                 </div>
               )}
             </div>
+
+            {!isConnected && (
+              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50">
+                <Navigation className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-blue-700/80 dark:text-blue-300/70 leading-relaxed">
+                  {t('drivers:connectedHint.driverLocation')}
+                </p>
+              </div>
+            )}
 
             <div className="text-center text-xs text-muted-foreground pt-4">
               <p>{t('drivers:dialogs.view.fullEditHint')}</p>

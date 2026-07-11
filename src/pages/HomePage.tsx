@@ -16,6 +16,7 @@ import UserMenu         from '@/components/UserMenu';
 import SettingsDialog   from '@/components/SettingsDialog';
 import { useLicense }          from '@/hooks/useLicense';
 import { useLayoutSettings }   from '@/hooks/useLayoutSettings';
+import { useLayoutPadding }    from '@/hooks/useLayoutPadding';
 import { TrackingPageContent } from '@/pages/provider/TrackingPageContent';
 
 // Page imports
@@ -31,8 +32,9 @@ import ReportsPage      from '@/pages/ReportsPage';
 import AnalyticsPage    from '@/pages/AnalyticsPage';
 import TrackingPage     from '@/pages/TrackingPage';
 
-// ─── constante para a largura do nav rail em modo mapa ───────────────────────
-const NAV_RAIL_W = 56; // px
+// ─── larguras do nav rail em modo connected ───────────────────────────────────
+const NAV_RAIL_COLLAPSED_W = 56;  // ícones apenas
+const NAV_RAIL_EXPANDED_W  = 180; // ícones + etiquetas
 
 export default function HomePage() {
   const { t }    = useTranslation();
@@ -48,6 +50,7 @@ export default function HomePage() {
 
   const { sidebarCollapsed, toggleSidebarCollapsed } = useLayoutSettings();
   const isCompact = isMobileOverlay || sidebarCollapsed;
+  const { hasPadding } = useLayoutPadding();
 
   const menuItems = [
     { id: 'dashboard',   icon: Home,          label: t('navigation:menu.dashboard')   },
@@ -97,7 +100,9 @@ export default function HomePage() {
   // MODO MAPA (connected) — mapa é o fundo de todo o sistema
   // ─────────────────────────────────────────────────────────────────────────────
   if (isConnected) {
-    const activeItem = menuItems.find(m => m.id === activeSection);
+    const activeItem  = menuItems.find(m => m.id === activeSection);
+    // Espelha o standalone: expandido = ícones + texto, colapsado = ícones apenas
+    const navRailW    = sidebarCollapsed ? NAV_RAIL_COLLAPSED_W : NAV_RAIL_EXPANDED_W;
 
     return (
       <div className="relative h-full overflow-hidden">
@@ -106,7 +111,7 @@ export default function HomePage() {
         <div className="absolute inset-0" style={{ zIndex: 0 }}>
           <TrackingPageContent
             showControls={activeSection === 'tracking'}
-            leftOffset={NAV_RAIL_W}
+            leftOffset={navRailW}
             onOpenSettings={() => setIsSettingsOpen(true)}
           />
         </div>
@@ -114,41 +119,74 @@ export default function HomePage() {
         {/* ── 2. Camada de UI ── */}
         <div className="relative h-full" style={{ zIndex: 10, pointerEvents: 'none' }}>
 
-          {/* Nav Rail */}
+          {/* Nav Rail — fixed: cobre a parte esquerda da barra de drag visualmente */}
           <aside
-            className="absolute left-0 top-0 bottom-0 flex flex-col items-center py-3 overflow-hidden"
+            className="fixed left-0 top-0 bottom-0 flex flex-col py-3 overflow-hidden"
             style={{
-              width:        NAV_RAIL_W,
-              background:   'rgba(8,14,28,0.97)',
-              boxShadow:    '3px 0 24px rgba(0,0,0,0.5)',
+              width:         navRailW,
+              transition:    'width 200ms ease-in-out',
+              background:    'rgba(8,14,28,0.97)',
+              boxShadow:     '3px 0 24px rgba(0,0,0,0.5)',
+              zIndex:        1000,
               pointerEvents: 'auto',
+              alignItems:    sidebarCollapsed ? 'center' : 'stretch',
             }}
           >
             {/* Logo */}
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mb-3"
-              style={{ background: 'rgba(59,130,246,0.85)' }}
-            >
-              <Truck className="w-5 h-5 text-white" />
+            <div className={`flex items-center flex-shrink-0 mb-3 ${sidebarCollapsed ? 'justify-center' : 'px-3 gap-2.5'}`}>
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'rgba(59,130,246,0.85)' }}
+              >
+                <Truck className="w-5 h-5 text-white" />
+              </div>
+              {!sidebarCollapsed && (
+                <div className="overflow-hidden">
+                  <p className="text-sm font-bold text-white whitespace-nowrap">{t('navigation:app.name')}</p>
+                  <p className="text-[10px] whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.4)' }}>{t('navigation:app.tagline')}</p>
+                </div>
+              )}
             </div>
 
-            {/* Nav items */}
-            <div className="flex-1 flex flex-col items-center gap-0.5 w-full px-2 overflow-y-auto">
+            {/* Nav items — ícones sempre visíveis; texto só quando expandido */}
+            <div className={`flex-1 flex flex-col gap-0.5 overflow-y-auto ${sidebarCollapsed ? 'items-center px-2' : 'px-2'}`}>
               {menuItems.map(item => {
                 const Icon     = item.icon;
                 const isActive = activeSection === item.id;
                 return (
                   <NavRailButton
                     key={item.id}
-                    icon={<Icon className="w-5 h-5" />}
+                    icon={<Icon className="w-[18px] h-[18px]" />}
                     label={item.label}
                     active={isActive}
+                    collapsed={sidebarCollapsed}
                     onClick={() => setActiveSection(item.id)}
                   />
                 );
               })}
             </div>
 
+            {/* Definições + Toggle no fundo — mesmo padrão do standalone */}
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              title={sidebarCollapsed ? t('navigation:header.settings') : undefined}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.75)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.4)'; (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+              className={`flex items-center gap-3 rounded-lg flex-shrink-0 transition-all mx-2 ${
+                sidebarCollapsed ? 'w-5 h-5 justify-center' : 'w-[calc(100%-1rem)] px-2.5 py-2.5'
+              }`}
+              style={{ color: 'rgba(255,255,255,0.4)', background: 'transparent' }}
+            >
+              <Settings className="w-[16px] h-[16px] flex-shrink-0" />
+              {!sidebarCollapsed && (
+                <span className="text-sm font-medium">{t('navigation:header.settings')}</span>
+              )}
+            </button>
+            <NavRailToggle
+              collapsed={sidebarCollapsed}
+              onClick={toggleSidebarCollapsed}
+              t={t}
+            />
           </aside>
 
           {/* Painel de conteúdo flutuante (secções que não são rastreamento) */}
@@ -156,16 +194,16 @@ export default function HomePage() {
             <div
               className="absolute flex flex-col overflow-hidden"
               style={{
-                top:           8,
-                bottom:        8,
-                left:          NAV_RAIL_W + 6,
-                right:         8,
+                top:           hasPadding ? 8 : 0,
+                bottom:        hasPadding ? 8 : 0,
+                left:          hasPadding ? navRailW + 6 : navRailW,
+                right:         hasPadding ? 8 : 0,
                 background:    'var(--glass-bg)',
                 backdropFilter: 'var(--glass-filter)',
                 WebkitBackdropFilter: 'var(--glass-filter)',
-                borderRadius:  14,
-                border:        '1px solid rgba(255,255,255,0.07)',
-                boxShadow:     '0 8px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3)',
+                borderRadius:  hasPadding ? 14 : 0,
+                border:        hasPadding ? '1px solid rgba(255,255,255,0.07)' : 'none',
+                boxShadow:     hasPadding ? '0 8px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3)' : 'none',
                 pointerEvents: 'auto',
               } as React.CSSProperties}
             >
@@ -201,7 +239,7 @@ export default function HomePage() {
 
               {/* Conteúdo com scroll */}
               <div className="flex-1 overflow-y-auto overflow-x-hidden">
-                <div className="p-4">
+                <div className={hasPadding ? 'p-4' : 'p-2'}>
                   {renderContent()}
                 </div>
               </div>
@@ -217,6 +255,9 @@ export default function HomePage() {
   // ─────────────────────────────────────────────────────────────────────────────
   // MODO STANDALONE — layout clássico com sidebar lateral
   // ─────────────────────────────────────────────────────────────────────────────
+  // Largura efectiva da sidebar (afecta o marginLeft do conteúdo)
+  const sidebarW = isCompact ? 56 : 220;
+
   return (
     <div className="flex h-full bg-background overflow-hidden">
       {/* Overlay mobile */}
@@ -227,19 +268,22 @@ export default function HomePage() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — fixed: cobre o topo (barra drag) na parte esquerda */}
       <aside
         style={{
-          width:      isCompact ? 56 : 220,
+          position:   'fixed',
+          left:       0,
+          top:        0,
+          bottom:     0,
+          width:      sidebarW,
           transition: 'width 200ms ease-in-out, transform 200ms ease-in-out',
-          flexShrink: 0,
+          zIndex:     50,
         }}
         className={[
-          isMobileOverlay ? 'fixed z-50' : 'relative',
           isMobileOverlay
             ? (isSidebarOpen ? 'translate-x-0' : '-translate-x-full')
             : 'translate-x-0',
-          'h-full bg-muted/30 backdrop-blur-xl border-r border-border flex flex-col py-4',
+          'bg-muted/30 backdrop-blur-xl border-r border-border flex flex-col py-4',
         ].join(' ')}
       >
         {/* Logo */}
@@ -282,7 +326,7 @@ export default function HomePage() {
           </nav>
         </ScrollArea>
 
-        <div className="px-2 mt-auto pt-3 border-t border-border space-y-0.5">
+        <div className="px-2 mt-auto pt-3 space-y-0.5">
           <button
             onClick={() => setIsSettingsOpen(true)}
             className={`w-full flex items-center gap-3 px-2.5 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-muted-foreground transition-colors ${isCompact ? 'justify-center' : ''}`}
@@ -309,8 +353,14 @@ export default function HomePage() {
         </div>
       </aside>
 
-      {/* Conteúdo principal */}
-      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+      {/* Conteúdo principal — margem esquerda compensa a sidebar fixed */}
+      <main
+        className="flex-1 flex flex-col overflow-hidden min-w-0"
+        style={{
+          marginLeft: isMobileOverlay ? 0 : sidebarW,
+          transition: 'margin-left 200ms ease-in-out',
+        }}
+      >
         <header className="h-14 min-h-[56px] border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             {(isMobileOverlay || !isSidebarOpen) && (
@@ -335,7 +385,7 @@ export default function HomePage() {
           <UserMenu />
         </header>
 
-        <div className={`flex-1 min-h-0 overflow-hidden ${activeSection === 'tracking' ? '' : 'overflow-y-auto p-4 md:p-6'}`}>
+        <div className={`flex-1 min-h-0 overflow-hidden ${activeSection === 'tracking' ? '' : hasPadding ? 'overflow-y-auto p-4 md:p-6' : 'overflow-y-auto p-2'}`}>
           {renderContent()}
         </div>
       </main>
@@ -347,22 +397,25 @@ export default function HomePage() {
 
 // ─── Botão do nav rail ───────────────────────────────────────────────────────
 function NavRailButton({
-  icon, label, active, onClick,
+  icon, label, active, collapsed, onClick,
 }: {
-  icon:    React.ReactNode;
-  label:   string;
-  active:  boolean;
-  onClick: () => void;
+  icon:      React.ReactNode;
+  label:     string;
+  active:    boolean;
+  collapsed: boolean;
+  onClick:   () => void;
 }) {
   const [hovered, setHovered] = useState(false);
 
   return (
     <button
       onClick={onClick}
-      title={label}
+      title={collapsed ? label : undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="w-10 h-10 rounded-xl flex items-center justify-center transition-all flex-shrink-0"
+      className={`flex items-center gap-3 rounded-lg transition-all flex-shrink-0 ${
+        collapsed ? 'w-10 h-10 justify-center' : 'w-full px-2.5 py-2.5'
+      }`}
       style={{
         background: active
           ? 'rgba(59,130,246,0.25)'
@@ -375,7 +428,44 @@ function NavRailButton({
           : '1px solid transparent',
       }}
     >
-      {icon}
+      <span className="flex-shrink-0">{icon}</span>
+      {!collapsed && (
+        <span className="text-sm font-medium truncate">{label}</span>
+      )}
+    </button>
+  );
+}
+
+// ─── Toggle do nav rail (modo conectado) ─────────────────────────────────────
+function NavRailToggle({
+  collapsed, onClick, t,
+}: {
+  collapsed: boolean;
+  onClick:   () => void;
+  t:         (key: string) => string;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      title={collapsed ? t('navigation:sidebar.expand') : t('navigation:sidebar.collapse')}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`flex items-center gap-3 rounded-lg flex-shrink-0 mt-1 transition-all mx-2 ${
+        collapsed ? 'w-10 h-10 justify-center' : 'w-[calc(100%-1rem)] px-2.5 py-2'
+      }`}
+      style={{
+        color:      hovered ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.35)',
+        background: hovered ? 'rgba(255,255,255,0.08)' : 'transparent',
+      }}
+    >
+      {collapsed
+        ? <ChevronRight className="w-4 h-4 flex-shrink-0" />
+        : <ChevronLeft  className="w-4 h-4 flex-shrink-0" />
+      }
+      {!collapsed && (
+        <span className="text-xs font-medium">{t('navigation:sidebar.collapse')}</span>
+      )}
     </button>
   );
 }

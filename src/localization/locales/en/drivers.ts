@@ -439,6 +439,11 @@ export const enDrivers = {
       driverAlreadyInShift: 'This driver is already in this shift',
     },
   },
+
+  connectedHint: {
+    driverLocation: 'In connected mode, you can view the driver\'s real-time location on the live map and consult their full route history.',
+    driverActivity: 'In connected mode, driver availability syncs automatically with the central platform and is visible across all devices.',
+  },
 } as const;
 
 export default enDrivers;

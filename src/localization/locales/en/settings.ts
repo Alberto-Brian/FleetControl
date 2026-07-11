@@ -78,6 +78,24 @@ export const enSettings = {
     sidebarDesc:          'Configure the navigation menu behaviour',
     sidebarCollapsed:     'Start collapsed',
     sidebarCollapsedDesc: 'Show only icons when opening the application',
+
+    // Layout
+    layoutTitle:          'Interface layout',
+    layoutDesc:           'Controls the padding and rounded corners of the interface',
+    layoutPadding:        'Padding & rounded corners',
+    layoutPaddingDesc:    'Keep padding and rounded corners on the content panel',
+
+    // Map
+    mapTitle:             'Tracking map',
+    mapDesc:              'Customize how devices appear on the map',
+    mapLabelType:         'Vehicle label on map',
+    mapLabelPlate:        'Plate',
+    mapLabelBrandModel:   'Brand/Model',
+    mapLabelBoth:         'Both',
+    mapAnimateMarkers:    'Animate markers',
+    mapAnimateMarkersDesc:'Animate icons when adding them to the map',
+    mapPulseMarkers:      'Marker pulse',
+    mapPulseMarkersDesc:  'Slow heartbeat animation on vehicle icons on the map',
   },
 
   language: {

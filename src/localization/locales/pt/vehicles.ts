@@ -310,5 +310,10 @@ export const ptVehicles = {
   warnings: {
     noAvailableVehicles: "Sem veículos disponíveis",
     categoryExistsInactive: "A categoria '{{name}}' existe mas está inactiva. Deseja activá-la?"
+  },
+
+  connectedHint: {
+    viewGps:    'No modo conectado, este veículo aparece no mapa em tempo real com posição, velocidade e histórico de percursos.',
+    statusSync: 'No modo conectado, as alterações de status sincronizam automaticamente com a plataforma central e ficam visíveis em todos os dispositivos.',
   }
 } as const;

@@ -11,10 +11,28 @@ import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css';
 import type { Position }      from '@/hooks/useApiConnection';
 import type { TrackedDevice, PositionHistory } from '@/helpers/tracking-helpers';
 import { getDeviceColor, getDeviceTrailColor, formatSpeed } from '@/helpers/tracking-helpers';
+import type { MapLabelType } from '@/hooks/useMapSettings';
+
+// CSS da animação de pulse — injectado uma vez no documento
+const PULSE_STYLE_ID = 'fc-marker-pulse-style';
+function ensurePulseStyle() {
+  if (document.getElementById(PULSE_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = PULSE_STYLE_ID;
+  style.textContent = `
+    @keyframes fc-heartbeat {
+      0%, 100% { transform: scale(1); }
+      30%       { transform: scale(1.13); }
+      60%       { transform: scale(1.05); }
+    }
+    .fc-pulse { animation: fc-heartbeat 3.5s ease-in-out infinite; }
+  `;
+  document.head.appendChild(style);
+}
 
 // Ícone SVG circular com seta de direcção e label
 function createDeviceIcon(
-  color: string, course: number, isSelected: boolean, isMoving: boolean, name?: string,
+  color: string, course: number, isSelected: boolean, isMoving: boolean, name?: string, shouldPulse = false,
 ) {
   const size = isSelected ? 40 : 30;
   const r    = isSelected ? 14 : 11;
@@ -63,8 +81,9 @@ function createDeviceIcon(
       ">${escapedName}</div>`
     : '';
 
+  const pulseClass = shouldPulse && !isSelected ? 'fc-pulse' : '';
   return L.divIcon({
-    html:       `<div style="position:relative;width:${size}px;height:${size}px">${svg}${label}</div>`,
+    html:       `<div class="${pulseClass}" style="position:relative;width:${size}px;height:${size}px">${svg}${label}</div>`,
     className:  '',
     iconSize:   [size, size],
     iconAnchor: [cx, cy],
@@ -139,7 +158,17 @@ interface Props {
   showHistory:      boolean;
   trail:            Record<number, [number, number][]>;
   tileLayerId?:     TileLayerId;
+  labelType?:       MapLabelType;
+  animateMarkers?:  boolean;
+  pulseMarkers?:    boolean;
   onSelectDevice:   (device: TrackedDevice) => void;
+}
+
+function getDeviceLabel(name: string, type: MapLabelType = 'both'): string {
+  if (type === 'both') return name;
+  const idx = name.indexOf(' - ');
+  if (idx === -1) return name;
+  return type === 'plate' ? name.slice(0, idx) : name.slice(idx + 3);
 }
 
 function createClusterIcon(cluster: any) {
@@ -167,8 +196,10 @@ function createEndpointIcon(color: string, label: 'S' | 'F') {
 }
 
 export function TrackingMap({
-  mapRef, positions, historyPositions, devices, selectedDevice, showHistory, trail, tileLayerId = 'osm', onSelectDevice,
+  mapRef, positions, historyPositions, devices, selectedDevice, showHistory, trail,
+  tileLayerId = 'osm', labelType = 'both', animateMarkers = true, pulseMarkers = false, onSelectDevice,
 }: Props) {
+  useEffect(() => { ensurePulseStyle(); }, []);
   const center: [number, number] = positions.length > 0
     ? [positions[0].latitude, positions[0].longitude]
     : [-8.8368, 13.2343];
@@ -229,14 +260,15 @@ export function TrackingMap({
       })}
 
       {!showHistory && (
-        <MarkerClusterGroup iconCreateFunction={createClusterIcon} chunkedLoading animate animateAddingMarkers>
+        <MarkerClusterGroup iconCreateFunction={createClusterIcon} chunkedLoading animate animateAddingMarkers={animateMarkers}>
           {positions.map(pos => {
             const device     = devices.find(d => d.traccar_id === pos.deviceId);
             const deviceName = device?.name ?? `Device ${pos.deviceId}`;
             const isSelected = selectedDevice?.traccar_id === pos.deviceId;
             const isMoving   = (pos.speed ?? 0) > 0;
             const color      = getDeviceColor(device?.status ?? 'unknown', pos.speed ?? 0);
-            const icon       = createDeviceIcon(color, pos.course ?? 0, isSelected, isMoving, deviceName);
+            const mapLabel   = getDeviceLabel(deviceName, labelType);
+            const icon       = createDeviceIcon(color, pos.course ?? 0, isSelected, isMoving, mapLabel, pulseMarkers);
 
             return (
               <Marker

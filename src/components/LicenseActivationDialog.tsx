@@ -1,7 +1,7 @@
 // ========================================
 // FILE: src/components/LicenseActivationDialog.tsx
 // ========================================
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea }  from "@/components/ui/scroll-area";
 import { useToast }    from "@/components/ui/use-toast";
@@ -22,10 +22,19 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Props
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [version, setVersion] = useState('');
+  const textareaRef           = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (open) getSystemVersion().then(setVersion);
   }, [open]);
+
+  // Foca o textarea quando o diálogo abre ou quando muda para o tab de activação.
+  // O setTimeout garante que o foco é aplicado depois do FocusTrap do Radix UI.
+  useEffect(() => {
+    if (!open || tab !== 'activate') return;
+    const id = setTimeout(() => textareaRef.current?.focus(), 80);
+    return () => clearTimeout(id);
+  }, [open, tab]);
 
   // LK- curta → válida via API (online). ST- curta → deve colar a FULL key (offline/RSA).
   const isConnectedDisplayKey  = /^LK-[A-F0-9]{5}(-[A-F0-9]{5}){4}$/i.test(key.trim());
@@ -136,12 +145,17 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Props
                         </div>
                       </div>
                       <textarea
+                        ref={textareaRef}
                         value={key}
                         onChange={e => setKey(e.target.value.trim())}
                         placeholder="Cole aqui o conteúdo da linha FULL: do ficheiro de licença..."
-                        className="w-full px-4 py-3 border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-xs bg-background resize-none transition-colors"
+                        className="w-full px-4 py-3 border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary font-mono text-xs bg-background resize-none transition-colors cursor-text caret-foreground"
                         rows={5}
                         disabled={loading}
+                        onMouseDown={() => {
+                          // setTimeout garante foco após os event listeners de captura do Radix UI
+                          setTimeout(() => textareaRef.current?.focus(), 0);
+                        }}
                       />
 
                       {/* LK- curta → vai à API */}

@@ -9,12 +9,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, Clock, Settings2, Ban, RefreshCw, ArrowRight, FileText } from 'lucide-react';
+import { CheckCircle2, Clock, Settings2, Ban, RefreshCw, ArrowRight, FileText, Wifi } from 'lucide-react';
 import { updateStatusVehicle } from '@/helpers/vehicle-helpers';
 import { IUpdateStatus } from '@/lib/types/vehicle';
 import { VehicleStatus } from '@/lib/db/schemas/vehicles';
 import { cn } from '@/lib/utils';
 import { useVehicles } from '@/contexts/VehiclesContext';
+import { useLicense } from '@/hooks/useLicense';
 
 interface ChangeStatusDialogProps {
   open: boolean;
@@ -27,7 +28,9 @@ export default function ChangeStatusDialog({
 }: ChangeStatusDialogProps) {
     const { t } = useTranslation();
     const { showSuccess, handleError } = useErrorHandler();
-    
+    const { license } = useLicense();
+    const isConnected = license?.mode === 'connected' && license?.isValid;
+
     // ✨ ACESSA O VEÍCULO DO CONTEXTO
     const { state: { selectedVehicle }, updateVehicle } = useVehicles();
     
@@ -299,6 +302,16 @@ export default function ChangeStatusDialog({
                     </div>
                   </div>
                 </div>
+
+                {/* Hint modo conectado — só standalone */}
+                {!isConnected && (
+                  <div className="flex items-start gap-2.5 p-3 rounded-lg bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50">
+                    <Wifi className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-blue-700/80 dark:text-blue-300/70 leading-relaxed">
+                      {t('vehicles:connectedHint.statusSync')}
+                    </p>
+                  </div>
+                )}
 
                 {/* Botões de Ação */}
                 <div className="flex justify-end gap-3 pt-4 border-t">

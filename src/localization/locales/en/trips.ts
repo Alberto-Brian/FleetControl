@@ -181,7 +181,11 @@ export const enTrips = {
       driver: "Driver",
       status: "Status",
       actions: "Actions"
-  }
+  },
+
+  connectedHint: {
+    liveTracking: 'In connected mode, each trip is tracked in real-time via GPS — view the exact route, speed and stops directly on the map.',
+  },
 } as const;
 
 export default enTrips;

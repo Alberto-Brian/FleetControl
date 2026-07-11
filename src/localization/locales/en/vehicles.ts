@@ -310,5 +310,10 @@ export const enVehicles = {
   warnings: {
     noAvailableVehicles: "No available vehicles",
     categoryExistsInactive: "Category '{{name}}' exists but is inactive. Do you want to activate it?"
+  },
+
+  connectedHint: {
+    viewGps:    'In connected mode, this vehicle appears on the live map with real-time position, speed and route history.',
+    statusSync: 'In connected mode, status changes sync automatically with the central platform and are visible across all devices.',
   }
 } as const;

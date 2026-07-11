@@ -1,5 +1,5 @@
 import { closeWindow, maximizeWindow, minimizeWindow } from "@/helpers/window-helpers";
-import React, { useState, type ReactNode } from "react";
+import React, { useState, useEffect, type ReactNode } from "react";
 
 interface DragWindowRegionProps {
     title?:        ReactNode;
@@ -53,33 +53,44 @@ export default function DragWindowRegion({
     leftContent,
     rightContent,
 }: DragWindowRegionProps) {
-    const lightBg     = 'rgba(250,251,252,0.96)';
-    const lightBorder = '1px solid rgba(0,0,0,0.09)';
-    const darkBg      = 'rgba(8,14,28,0.94)';
-    const darkBorder  = '1px solid rgba(255,255,255,0.05)';
+    // Detecta o tema actual e actualiza quando muda
+    const [isSystemDark, setIsSystemDark] = useState(() =>
+        document.documentElement.classList.contains('dark')
+    );
+
+    useEffect(() => {
+        const observer = new MutationObserver(() => {
+            setIsSystemDark(document.documentElement.classList.contains('dark'));
+        });
+        observer.observe(document.documentElement, { attributeFilter: ['class'] });
+        return () => observer.disconnect();
+    }, []);
+
+    // Em modo conectado (dark=true) força sempre dark; caso contrário segue o tema
+    const effectiveDark = dark || isSystemDark;
+
+    const bg    = effectiveDark ? 'rgba(8,14,28,0.97)'     : 'rgba(250,251,252,0.96)';
+    const color = effectiveDark ? 'rgba(255,255,255,0.55)'  : 'rgba(0,0,0,0.5)';
 
     return (
         <div
             id="drag-window-region"
             className="flex w-screen flex-row-reverse items-stretch select-none"
-            style={{
-                background:   dark ? darkBg   : lightBg,
-                borderBottom: dark ? darkBorder : lightBorder,
-            }}
+            style={{ background: bg }}
         >
             {/* Botões de janela — direita */}
             <div className="flex items-stretch flex-shrink-0">
-                <WinBtn title="Minimize" onClick={minimizeWindow} dark={dark}>
+                <WinBtn title="Minimize" onClick={minimizeWindow} dark={effectiveDark}>
                     <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden>
                         <rect fill="currentColor" width="10" height="1" x="1" y="6" />
                     </svg>
                 </WinBtn>
-                <WinBtn title="Maximize" onClick={maximizeWindow} dark={dark}>
+                <WinBtn title="Maximize" onClick={maximizeWindow} dark={effectiveDark}>
                     <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden>
                         <rect width="9" height="9" x="1.5" y="1.5" fill="none" stroke="currentColor" strokeWidth="1.1" />
                     </svg>
                 </WinBtn>
-                <WinBtn title="Close" onClick={closeWindow} closeBtn dark={dark}>
+                <WinBtn title="Close" onClick={closeWindow} closeBtn dark={effectiveDark}>
                     <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden>
                         <polygon fill="currentColor" fillRule="evenodd"
                             points="11 1.576 6.583 6 11 10.424 10.424 11 6 6.583 1.576 11 1 10.424 5.417 6 1 1.576 1.576 1 6 5.417 10.424 1" />
@@ -91,10 +102,7 @@ export default function DragWindowRegion({
             {rightContent && (
                 <div
                     className="flex items-center flex-shrink-0"
-                    style={{
-                        borderLeft: dark ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.06)',
-                        paddingLeft: 12, paddingRight: 12,
-                    }}
+                    style={{ paddingLeft: 12, paddingRight: 12 }}
                 >
                     {rightContent}
                 </div>
@@ -104,12 +112,12 @@ export default function DragWindowRegion({
             <div className="draglayer w-full" />
 
             {/* Conteúdo esquerdo (dark) ou título (light) */}
-            {dark && leftContent ? (
+            {effectiveDark && leftContent ? (
                 <div className="flex items-center flex-shrink-0">{leftContent}</div>
-            ) : !dark && title ? (
+            ) : !effectiveDark && title ? (
                 <div
                     className="flex flex-1 items-center whitespace-nowrap px-3"
-                    style={{ fontSize: 12, color: 'rgba(0,0,0,0.5)', fontWeight: 500 }}
+                    style={{ fontSize: 12, color, fontWeight: 500 }}
                 >
                     {String(title)}
                 </div>

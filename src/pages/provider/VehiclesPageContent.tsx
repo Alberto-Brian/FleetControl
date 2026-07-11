@@ -16,7 +16,7 @@ import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import {
   Search, Truck, Edit, Trash2, Eye, Tag, LayoutGrid, List, Rows,
-  Plus, Filter, MoreHorizontal, CheckCircle2, Clock, Settings2, Ban, Upload, Wifi
+  Plus, Filter, MoreHorizontal, CheckCircle2, Clock, Settings2, Ban, Upload, Wifi,
 } from 'lucide-react';
 import { getAllVehicles, deleteVehicle, syncVehicleToApi, registerGpsOnVehicle } from '@/helpers/vehicle-helpers';
 import { useLicense } from '@/hooks/useLicense';
@@ -720,29 +720,33 @@ export default function VehiclesPageContent() {
                     </SelectContent>
                   </Select>
 
-                  <Select value={syncFilter} onValueChange={(v) => { setSyncFilter(v as typeof syncFilter); setCurrentPage(1); }}>
-                    <SelectTrigger className="w-full sm:w-[200px] h-10 text-sm bg-muted/20 border-none">
-                      <Wifi className="w-4 h-4 text-muted-foreground" />
-                      <SelectValue placeholder={t('vehicles:filters.sync')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t('vehicles:filters.syncAll')}</SelectItem>
-                      <SelectItem value="synced">{t('vehicles:filters.synced')}</SelectItem>
-                      <SelectItem value="not_synced">{t('vehicles:filters.notSynced')}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {isConnected && (
+                    <Select value={syncFilter} onValueChange={(v) => { setSyncFilter(v as typeof syncFilter); setCurrentPage(1); }}>
+                      <SelectTrigger className="w-full sm:w-[200px] h-10 text-sm bg-muted/20 border-none">
+                        <Wifi className="w-4 h-4 text-muted-foreground" />
+                        <SelectValue placeholder={t('vehicles:filters.sync')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t('vehicles:filters.syncAll')}</SelectItem>
+                        <SelectItem value="synced">{t('vehicles:filters.synced')}</SelectItem>
+                        <SelectItem value="not_synced">{t('vehicles:filters.notSynced')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
 
-                  <Select value={imeiFilter} onValueChange={(v) => { setImeiFilter(v as typeof imeiFilter); setCurrentPage(1); }}>
-                    <SelectTrigger className="w-full sm:w-[185px] h-10 text-sm bg-muted/20 border-none">
-                      <Upload className="w-4 h-4 text-muted-foreground" />
-                      <SelectValue placeholder={t('vehicles:filters.imei')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t('vehicles:filters.imeiAll')}</SelectItem>
-                      <SelectItem value="with_imei">{t('vehicles:filters.withImei')}</SelectItem>
-                      <SelectItem value="without_imei">{t('vehicles:filters.withoutImei')}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {isConnected && (
+                    <Select value={imeiFilter} onValueChange={(v) => { setImeiFilter(v as typeof imeiFilter); setCurrentPage(1); }}>
+                      <SelectTrigger className="w-full sm:w-[185px] h-10 text-sm bg-muted/20 border-none">
+                        <Upload className="w-4 h-4 text-muted-foreground" />
+                        <SelectValue placeholder={t('vehicles:filters.imei')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t('vehicles:filters.imeiAll')}</SelectItem>
+                        <SelectItem value="with_imei">{t('vehicles:filters.withImei')}</SelectItem>
+                        <SelectItem value="without_imei">{t('vehicles:filters.withoutImei')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 {/* View modes */}

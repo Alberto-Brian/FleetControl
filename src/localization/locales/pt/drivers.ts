@@ -438,6 +438,11 @@ export const ptDrivers = {
     },
   },
 
+  connectedHint: {
+    driverLocation: 'No modo conectado, podes visualizar a localização em tempo real do motorista no mapa e consultar o histórico de percursos.',
+    driverActivity: 'No modo conectado, a disponibilidade do motorista sincroniza automaticamente com a plataforma central e fica visível em todos os dispositivos.',
+  },
+
 } as const;
 
 export default ptDrivers;

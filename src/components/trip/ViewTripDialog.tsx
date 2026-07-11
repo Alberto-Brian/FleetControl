@@ -11,6 +11,7 @@ import {
   MapPin, Calendar, Truck, User, Gauge, TrendingUp, Clock, FileText, Target, Route, Flag, XCircle
 } from 'lucide-react';
 import { useTrips } from '@/contexts/TripsContext';
+import { useLicense } from '@/hooks/useLicense';
 
 interface ViewTripDialogProps {
   open: boolean;
@@ -20,6 +21,8 @@ interface ViewTripDialogProps {
 export default function ViewTripDialog({ open, onOpenChange }: ViewTripDialogProps) {
   const { t } = useTranslation();
   const { state: { selectedTrip } } = useTrips();
+  const { license } = useLicense();
+  const isConnected = license?.mode === 'connected' && license?.isValid;
 
   // ✅ EARLY RETURN
   if (!selectedTrip || !open) return null;
@@ -275,6 +278,15 @@ export default function ViewTripDialog({ open, onOpenChange }: ViewTripDialogPro
           ) : (
             <div className="text-center py-8 bg-muted/20 rounded-lg">
               <p className="text-sm text-muted-foreground">{t('trips:info.noObservations')}</p>
+            </div>
+          )}
+
+          {!isConnected && (
+            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50">
+              <MapPin className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-700/80 dark:text-blue-300/70 leading-relaxed">
+                {t('trips:connectedHint.liveTracking')}
+              </p>
             </div>
           )}
         </div>
