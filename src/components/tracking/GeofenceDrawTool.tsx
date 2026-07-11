@@ -89,9 +89,10 @@ export function GeofenceDrawTool({ mode, onConfirm, onCancel }: Props) {
 
     map.on('dblclick', (e: L.LeafletMouseEvent) => {
       L.DomEvent.preventDefault(e.originalEvent);
-      if (points.length < 3) { cleanup(); onCancel(); return; }
+      const userPoints = points.slice(0, -2); // strip 2 phantom click events from dblclick
+      if (userPoints.length < 3) { cleanup(); onCancel(); return; }
 
-      const wkt = `POLYGON((${points.map(p => `${p.lng} ${p.lat}`).join(', ')}, ${points[0].lng} ${points[0].lat}))`;
+      const wkt = `POLYGON((${userPoints.map(p => `${p.lng} ${p.lat}`).join(', ')}, ${userPoints[0].lng} ${userPoints[0].lat}))`;
       onConfirm(wkt);
     });
   }
