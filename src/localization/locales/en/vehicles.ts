@@ -106,6 +106,16 @@ export const enVehicles = {
   },
 
   dialogs: {
+    addGps: {
+      title: "Add GPS to vehicle",
+      description: "This vehicle is synced with the API but has no GPS device configured. Enter the IMEI to enable tracking.",
+      hint: "The device will be registered on the tracking server and linked to this vehicle.",
+      badge: "Add GPS",
+      action: "Add GPS",
+      tooltip: "Register GPS device on this vehicle",
+      register: "Register GPS",
+      registering: "Registering...",
+    },
     new: {
       title: "New Vehicle",
       description: "Register a new vehicle in the fleet"
@@ -261,6 +271,8 @@ export const enVehicles = {
     statusUpdateError: "Error updating status",
     syncSuccess: "Vehicle synced with the API",
     syncError: "Error syncing vehicle with the API",
+    addGpsSuccess: "GPS registered successfully on vehicle",
+    addGpsError: "Error registering GPS on vehicle",
     categoryCreateSuccess: "Category created successfully",
     categoryCreateError: "Error creating category",
     categoryUpdateSuccess: "Category updated successfully",

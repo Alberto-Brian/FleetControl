@@ -6,30 +6,49 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.css';
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css';
 import type { Position }      from '@/hooks/useApiConnection';
 import type { TrackedDevice, PositionHistory } from '@/helpers/tracking-helpers';
 import { getDeviceColor, getDeviceTrailColor, formatSpeed } from '@/helpers/tracking-helpers';
 
-// Ícone SVG com seta de direcção + label com nome
+// Ícone SVG: pin/teardrop com seta de direcção e label
 function createDeviceIcon(
   color: string, course: number, isSelected: boolean, isMoving: boolean, name?: string,
 ) {
-  const size = isSelected ? 44 : 36;
-  const r    = isSelected ? 14 : 12;
-  const sw   = isSelected ? 3  : 2;
-  const cx   = size / 2;
-  const cy   = size / 2;
+  const W  = isSelected ? 36 : 28;
+  const H  = isSelected ? 52 : 40;
+  const r  = isSelected ? 15 : 11;
+  const cx = W / 2;
+  const cy = r + 2;
+  const sw = isSelected ? 2.5 : 2;
 
+  // Raio da cauda do pin (triângulo)
+  const tailW = r * 0.52;
+  const tailY = cy + r * 0.72;
+
+  // Anel pulsante para veículo seleccionado
   const pulse = isSelected
-    ? `<circle cx="${cx}" cy="${cy}" r="${cx - 2}" fill="${color}" opacity="0.15"/>`
+    ? `<circle cx="${cx}" cy="${cy}" r="${r + 5}" fill="${color}" opacity="0.16"/>`
     : '';
 
   const svg = `
-    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+    <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
       ${pulse}
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" stroke="white" stroke-width="${sw}" opacity="0.95"/>
+      <!-- Cauda do pin -->
+      <polygon points="${cx - tailW},${tailY} ${cx + tailW},${tailY} ${cx},${H}"
+               fill="${color}"/>
+      <!-- Bordas da cauda -->
+      <line x1="${cx - tailW}" y1="${tailY}" x2="${cx}" y2="${H}" stroke="white" stroke-width="${sw - 0.5}" stroke-linecap="round"/>
+      <line x1="${cx + tailW}" y1="${tailY}" x2="${cx}" y2="${H}" stroke="white" stroke-width="${sw - 0.5}" stroke-linecap="round"/>
+      <!-- Balão circular -->
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" stroke="white" stroke-width="${sw}"/>
+      <!-- Destaque interno (profundidade) -->
+      <circle cx="${cx - r * 0.25}" cy="${cy - r * 0.25}" r="${r * 0.3}" fill="white" opacity="0.2"/>
+      <!-- Seta de direcção -->
       <g transform="translate(${cx},${cy}) rotate(${course})">
-        <path d="M0,-9 L5,5 L0,2 L-5,5 Z" fill="white" opacity="${isMoving ? 1 : 0.5}"/>
+        <path d="M0,${-r * 0.62} L${r * 0.38},${r * 0.3} L0,${r * 0.1} L${-r * 0.38},${r * 0.3} Z"
+              fill="white" opacity="${isMoving ? 0.95 : 0.42}"/>
       </g>
     </svg>`;
 
@@ -40,30 +59,28 @@ function createDeviceIcon(
   const label = escapedName
     ? `<div style="
         position:absolute;
-        top:${size + 4}px;
+        top:${H + 3}px;
         left:50%;
         transform:translateX(-50%);
         white-space:nowrap;
         background:rgba(10,17,32,0.88);
-        color:rgba(255,255,255,0.88);
+        color:rgba(255,255,255,0.9);
         font-size:10px;
-        font-weight:600;
-        padding:2px 6px;
-        border-radius:4px;
+        font-weight:700;
+        padding:2px 7px;
+        border-radius:5px;
         font-family:system-ui,sans-serif;
         pointer-events:none;
-        border:1px solid rgba(255,255,255,0.1);
-        max-width:120px;
-        overflow:hidden;
-        text-overflow:ellipsis;
+        border:1px solid rgba(255,255,255,0.12);
+        letter-spacing:0.02em;
       ">${escapedName}</div>`
     : '';
 
   return L.divIcon({
-    html:       `<div style="position:relative;width:${size}px;height:${size}px">${svg}${label}</div>`,
+    html:       `<div style="position:relative;width:${W}px;height:${H}px">${svg}${label}</div>`,
     className:  '',
-    iconSize:   [size, size],
-    iconAnchor: [size / 2, size / 2],
+    iconSize:   [W, H],
+    iconAnchor: [cx, H],
   });
 }
 
@@ -224,7 +241,7 @@ export function TrackingMap({
       })}
 
       {!showHistory && (
-        <MarkerClusterGroup iconCreateFunction={createClusterIcon} chunkedLoading>
+        <MarkerClusterGroup iconCreateFunction={createClusterIcon} chunkedLoading animate animateAddingMarkers>
           {positions.map(pos => {
             const device     = devices.find(d => d.traccar_id === pos.deviceId);
             const deviceName = device?.name ?? `Device ${pos.deviceId}`;

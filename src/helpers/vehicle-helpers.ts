@@ -100,3 +100,12 @@ export async function syncVehicleToApi(vehicleId: string, imei?: string): Promis
         throw error;
     }
 }
+
+export async function registerGpsOnVehicle(vehicleId: string, imei: string): Promise<IVehicle | null> {
+    try {
+        return await window._vehicles.registerGps(vehicleId, imei);
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+}

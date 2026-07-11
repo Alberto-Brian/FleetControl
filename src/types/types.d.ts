@@ -79,7 +79,8 @@ interface IVehicles {
     getAvailable: () => Promise<IVehicle[]>;
     updateStatus: (vehicleId: string, data: IUpdateStatus) => Promise<IVehicle | null>;
     updateMileage: (vehicleId: string, mileage: number) => Promise<IVehicle | null>;
-    syncToApi: (vehicleId: string, imei?: string) => Promise<IVehicle | null>;
+    syncToApi:   (vehicleId: string, imei?: string) => Promise<IVehicle | null>;
+    registerGps: (vehicleId: string, imei: string)  => Promise<IVehicle | null>;
 }
 
 interface IVehicleCategories {

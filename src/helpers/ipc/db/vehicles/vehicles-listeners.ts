@@ -16,6 +16,7 @@ import {
   GET_VEHICLES_BY_CATEGORY,
   COUNT_VEHICLES_BY_STATUS,
   SYNC_VEHICLE_TO_API,
+  REGISTER_GPS_ON_VEHICLE,
 } from "./vehicles-channels";
 
 import {
@@ -79,7 +80,8 @@ export function addVehiclesEventListeners() {
   ipcMain.handle(UPDATE_VEHICLE_MILEAGE, async (_, vehicleId: string, mileage: number) => await updateVehicleMileageEvent(vehicleId, mileage));
   ipcMain.handle(GET_VEHICLES_BY_CATEGORY, async (_, categoryId: string) => await getVehiclesByCategoryEvent(categoryId));
   ipcMain.handle(COUNT_VEHICLES_BY_STATUS, async () => await countVehiclesByStatusEvent());
-  ipcMain.handle(SYNC_VEHICLE_TO_API, async (_, vehicleId: string, imei?: string) => await syncVehicleToApiEvent(vehicleId, imei));
+  ipcMain.handle(SYNC_VEHICLE_TO_API,     async (_, vehicleId: string, imei?: string) => await syncVehicleToApiEvent(vehicleId, imei));
+  ipcMain.handle(REGISTER_GPS_ON_VEHICLE, async (_, vehicleId: string, imei: string)  => await registerGpsOnVehicleEvent(vehicleId, imei));
 }
 
 async function getAllVehiclesEvent(params?: IPaginationParams) {
@@ -303,6 +305,35 @@ async function getVehiclesByCategoryEvent(categoryId: string) {
 
 async function countVehiclesByStatusEvent() {
   return await countVehiclesByStatus();
+}
+
+// Regista um IMEI num veículo já sincronizado com a API (sem GPS configurado)
+async function registerGpsOnVehicleEvent(vehicleId: string, imei: string) {
+  const vehicle = await findVehicleById(vehicleId);
+  if (!vehicle) throw new Error(new NotFoundError(T_ERRORS.VEHICLE_NOT_FOUND).toIpcString());
+
+  if (!imei?.trim()) throw new Error('IMEI é obrigatório');
+
+  try {
+    await axios.post(`${API_URL}/api/vehicles/${vehicleId}/register-gps`, {
+      traccar_unique_id: imei.trim(),
+    }, {
+      headers: apiHeaders(),
+      timeout: 15_000,
+    });
+  } catch (err: any) {
+    if (axios.isAxiosError(err) && err.response?.status === 409) {
+      throw new Error(err.response.data?.message ?? 'IMEI já registado');
+    }
+    throw err;
+  }
+
+  const { db } = useDb();
+  await db.update(vehicles)
+    .set({ traccar_unique_id: imei.trim() })
+    .where(eq(vehicles.id, vehicleId));
+
+  return await findVehicleById(vehicleId);
 }
 
 // Sincroniza um veículo local com a API (quando a licença conectada é activada)

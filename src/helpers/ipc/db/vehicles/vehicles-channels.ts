@@ -14,3 +14,4 @@ export const UPDATE_VEHICLE_MILEAGE = "vehicles:update-mileage";
 export const GET_VEHICLES_BY_CATEGORY = "vehicles:get-by-category";
 export const COUNT_VEHICLES_BY_STATUS = "vehicles:count-by-status";
 export const SYNC_VEHICLE_TO_API      = "vehicles:sync-to-api";
+export const REGISTER_GPS_ON_VEHICLE  = "vehicles:register-gps";

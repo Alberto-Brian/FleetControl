@@ -135,6 +135,16 @@ export const ptVehicles = {
       description: "Tem a certeza que deseja excluir o veículo",
       warning: "Esta acção não pode ser desfeita."
     },
+    addGps: {
+      title: "Adicionar GPS ao veículo",
+      description: "Este veículo já está sincronizado com a API mas não tem um dispositivo GPS configurado. Introduza o IMEI para activar o rastreamento.",
+      hint: "O dispositivo será registado no servidor de rastreamento e associado a este veículo.",
+      badge: "Adicionar GPS",
+      action: "Adicionar GPS",
+      tooltip: "Registar dispositivo GPS neste veículo",
+      register: "Registar GPS",
+      registering: "A registar...",
+    },
     sync: {
       title: "Sincronizar veículo com a API",
       description: "Este veículo não tem IMEI configurado. Podes adicionar o IMEI do GPS agora para activar o rastreamento, ou sincronizar só os dados do veículo.",
@@ -255,6 +265,8 @@ export const ptVehicles = {
     deleteSuccess: "Veículo excluído com sucesso",
     syncSuccess: "Veículo sincronizado com a API",
     syncError: "Erro ao sincronizar veículo com a API",
+    addGpsSuccess: "GPS registado com sucesso no veículo",
+    addGpsError: "Erro ao registar o GPS no veículo",
     categoryRestored: "Categoria activada com sucesso!",
     deleteError: "Erro ao excluir veículo",
     mileageUpdateSuccess: "Quilometragem actualizada com sucesso",
