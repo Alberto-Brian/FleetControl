@@ -49,6 +49,25 @@ export const ptTracking = {
     noToken: "Sem autenticação — activa a licença primeiro",
     loadFailed: "Erro ao carregar dados de rastreamento",
   },
+  geofences: {
+    panelTitle:            'Zonas de Geofencing',
+    drawCircle:            'Círculo',
+    drawPolygon:           'Polígono',
+    empty:                 'Nenhuma zona definida. Desenha uma zona no mapa.',
+    createTitle:           'Nova Zona',
+    editTitle:             'Editar Zona',
+    nameLabel:             'Nome da zona',
+    namePlaceholder:       'ex: Armazém Central',
+    nameRequired:          'O nome é obrigatório.',
+    speedLimitLabel:       'Limite de velocidade (opcional)',
+    speedLimitPlaceholder: 'ex: 80',
+    speedLimitBadge:       'Limite: {{speed}}',
+    save:                  'Guardar',
+    create:                'Criar',
+    cancel:                'Cancelar',
+    deleteConfirm:         'Apagar a zona "{{name}}"?',
+    saveError:             'Erro ao guardar a zona.',
+  },
 } as const;
 
 export type PtTracking = typeof ptTracking;

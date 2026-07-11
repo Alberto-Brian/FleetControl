@@ -49,6 +49,25 @@ export const enTracking = {
     noToken: "Not authenticated — activate license first",
     loadFailed: "Failed to load tracking data",
   },
+  geofences: {
+    panelTitle:            'Geofencing Zones',
+    drawCircle:            'Circle',
+    drawPolygon:           'Polygon',
+    empty:                 'No zones defined. Draw a zone on the map.',
+    createTitle:           'New Zone',
+    editTitle:             'Edit Zone',
+    nameLabel:             'Zone name',
+    namePlaceholder:       'e.g. Main Warehouse',
+    nameRequired:          'Name is required.',
+    speedLimitLabel:       'Speed limit (optional)',
+    speedLimitPlaceholder: 'e.g. 80',
+    speedLimitBadge:       'Limit: {{speed}}',
+    save:                  'Save',
+    create:                'Create',
+    cancel:                'Cancel',
+    deleteConfirm:         'Delete zone "{{name}}"?',
+    saveError:             'Error saving the zone.',
+  },
 } as const;
 
 export type EnTracking = typeof enTracking;
