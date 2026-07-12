@@ -2,6 +2,7 @@
 import React    from 'react';
 import { LogIn, LogOut, Gauge, CheckCheck } from 'lucide-react';
 import type { GeofenceAlert } from '@/contexts/TrackingContext';
+import { useTracking } from '@/contexts/TrackingContext';
 
 interface Props {
   alert:         GeofenceAlert;
@@ -20,8 +21,12 @@ function formatTime(iso: string): string {
 }
 
 export function AlertItem({ alert, onAcknowledge }: Props) {
+  const { state } = useTracking();
   const meta = EVENT_META[alert.eventType] ?? EVENT_META.geofenceEnter;
   const Icon = meta.icon;
+
+  const device = state.devices.find(d => d.traccar_id === alert.deviceId);
+  const deviceLabel = device?.name ?? `#${alert.deviceId}`;
 
   return (
     <div
@@ -40,10 +45,10 @@ export function AlertItem({ alert, onAcknowledge }: Props) {
         <p className="text-xs font-medium leading-tight">
           <span style={{ color: meta.color }}>{meta.label}</span>
           {' · '}
-          <span className="text-foreground">{alert.geofenceName}</span>
+          <span className="text-foreground font-semibold">{deviceLabel}</span>
         </p>
-        <p className="text-[11px] text-muted-foreground mt-0.5">
-          Device #{alert.deviceId}
+        <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+          {alert.geofenceName}
           {alert.speed != null && ` · ${Math.round(alert.speed)} km/h`}
         </p>
         <p className="text-[10px] text-muted-foreground/60 mt-0.5">{formatTime(alert.createdAt)}</p>

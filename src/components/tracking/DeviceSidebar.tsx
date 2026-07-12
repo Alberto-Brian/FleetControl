@@ -99,11 +99,12 @@ export function DeviceSidebar({
 
   return (
     <aside
-      className="absolute left-3 top-8 bottom-3 z-10 w-75 flex flex-col rounded-xl overflow-hidden pointer-events-auto"
+      className="absolute left-3 top-8 bottom-3 z-10 flex flex-col rounded-xl overflow-hidden pointer-events-auto"
       style={{
-        background: 'rgba(8, 14, 28, 0.97)',
-        border:     '1px solid rgba(255,255,255,0.08)',
-        boxShadow:  '0 12px 48px rgba(0,0,0,0.6)',
+        width:          300,
+        background:     'rgba(8, 14, 28, 0.97)',
+        border:         '1px solid rgba(255,255,255,0.08)',
+        boxShadow:      '0 12px 48px rgba(0,0,0,0.6)',
         backdropFilter: 'blur(12px)',
       }}
     >

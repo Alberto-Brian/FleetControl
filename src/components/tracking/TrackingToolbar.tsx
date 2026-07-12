@@ -1,7 +1,7 @@
 // ========================================
 // FILE: src/components/tracking/TrackingToolbar.tsx
 // ========================================
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   WifiOff, History, Layers, PanelLeft, Clock, Settings,
   ZoomIn, ZoomOut, Map, Satellite, Maximize2, Radio, X,
@@ -89,6 +89,24 @@ export function TrackingToolbar({
   const [layerOpen,        setLayerOpen]        = useState(false);
   const [mapSettingsOpen,  setMapSettingsOpen]  = useState(false);
   const { labelType, animateMarkers, pulseMarkers, setLabelType, setAnimateMarkers, setPulseMarkers } = useMapSettings();
+
+  type AlertSettings = { notifyNativeEnter: boolean; notifyNativeExit: boolean; notifyNativeSpeed: boolean };
+  const [alertSettings, setAlertSettings] = useState<AlertSettings | null>(null);
+
+  useEffect(() => {
+    if (!mapSettingsOpen) return;
+    (window as any)._tracking?.getAlertSettings()
+      ?.then((s: any) => { if (s) setAlertSettings(s); })
+      ?.catch(console.error);
+  }, [mapSettingsOpen]);
+
+  function updateAlertSetting(key: keyof AlertSettings, val: boolean) {
+    const base: AlertSettings = alertSettings ?? { notifyNativeEnter: true, notifyNativeExit: true, notifyNativeSpeed: true };
+    const next = { ...base, [key]: val };
+    setAlertSettings(next);
+    (window as any)._tracking?.updateAlertSettings(next)?.catch(console.error);
+    window.dispatchEvent(new CustomEvent('alertSettingsChanged'));
+  }
 
   const LAYERS: { id: TileLayer; label: string; icon: React.ReactNode }[] = [
     { id: 'osm',       label: t('toolbar.layerOSM'),       icon: <Map       className="w-3.5 h-3.5" /> },
@@ -429,6 +447,39 @@ export function TrackingToolbar({
                   {t('toolbar.pulseMarkers', 'Pulsação')}
                 </span>
                 <MapMiniToggle checked={pulseMarkers} onChange={() => setPulseMarkers(!pulseMarkers)} />
+              </div>
+
+              <div className="h-px mt-3 mb-2.5" style={{ background: 'rgba(255,255,255,0.08)' }} />
+
+              <p className="pb-2 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                {t('toolbar.alertNotifications', 'Notificações GPS')}
+              </p>
+              <div className="flex items-center justify-between gap-3 mb-2.5">
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                  {t('toolbar.notifyEnter', 'Entrada em zona')}
+                </span>
+                <MapMiniToggle
+                  checked={alertSettings?.notifyNativeEnter ?? true}
+                  onChange={() => updateAlertSetting('notifyNativeEnter', !(alertSettings?.notifyNativeEnter ?? true))}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3 mb-2.5">
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                  {t('toolbar.notifyExit', 'Saída de zona')}
+                </span>
+                <MapMiniToggle
+                  checked={alertSettings?.notifyNativeExit ?? true}
+                  onChange={() => updateAlertSetting('notifyNativeExit', !(alertSettings?.notifyNativeExit ?? true))}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                  {t('toolbar.notifySpeed', 'Excesso de velocidade')}
+                </span>
+                <MapMiniToggle
+                  checked={alertSettings?.notifyNativeSpeed ?? true}
+                  onChange={() => updateAlertSetting('notifyNativeSpeed', !(alertSettings?.notifyNativeSpeed ?? true))}
+                />
               </div>
             </div>
           )}

@@ -129,29 +129,34 @@ export default function HomePage() {
               boxShadow:     '3px 0 24px rgba(0,0,0,0.5)',
               zIndex:        1000,
               pointerEvents: 'auto',
-              alignItems:    sidebarCollapsed ? 'center' : 'stretch',
             }}
             onMouseEnter={navAutoCollapse ? () => setSidebarCollapsed(false) : undefined}
             onMouseLeave={navAutoCollapse ? () => setSidebarCollapsed(true)  : undefined}
           >
             {/* Logo */}
-            <div className={`flex items-center flex-shrink-0 mb-3 ${sidebarCollapsed ? 'justify-center' : 'px-3 gap-2.5'}`}>
+            <div className="flex items-center flex-shrink-0 mb-3 px-3 gap-2.5">
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: 'rgba(59,130,246,0.85)' }}
               >
                 <Truck className="w-5 h-5 text-white" />
               </div>
-              {!sidebarCollapsed && (
-                <div className="overflow-hidden">
-                  <p className="text-sm font-bold text-white whitespace-nowrap">{t('navigation:app.name')}</p>
-                  <p className="text-[10px] whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.4)' }}>{t('navigation:app.tagline')}</p>
-                </div>
-              )}
+              <div
+                style={{
+                  opacity:    sidebarCollapsed ? 0 : 1,
+                  maxWidth:   sidebarCollapsed ? 0 : 200,
+                  overflow:   'hidden',
+                  whiteSpace: 'nowrap',
+                  transition: 'opacity 180ms ease, max-width 200ms ease-in-out',
+                }}
+              >
+                <p className="text-sm font-bold text-white whitespace-nowrap">{t('navigation:app.name')}</p>
+                <p className="text-[10px] whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.4)' }}>{t('navigation:app.tagline')}</p>
+              </div>
             </div>
 
-            {/* Nav items — ícones sempre visíveis; texto só quando expandido */}
-            <div className={`flex-1 flex flex-col gap-0.5 overflow-y-auto ${sidebarCollapsed ? 'items-center px-2' : 'px-2'}`}>
+            {/* Nav items — ícones sempre visíveis; texto anima com opacity */}
+            <div className="flex-1 flex flex-col gap-0.5 overflow-y-auto px-2">
               {menuItems.map(item => {
                 const Icon     = item.icon;
                 const isActive = activeSection === item.id;
@@ -174,15 +179,22 @@ export default function HomePage() {
               title={sidebarCollapsed ? t('navigation:header.settings') : undefined}
               onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.75)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.4)'; (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
-              className={`flex items-center gap-3 rounded-lg flex-shrink-0 transition-all mx-2 ${
-                sidebarCollapsed ? 'w-5 h-5 justify-center' : 'w-[calc(100%-1rem)] px-2.5 py-2.5'
-              }`}
+              className="flex items-center gap-2.5 rounded-lg flex-shrink-0 transition-colors mx-2 w-[calc(100%-1rem)] px-2.5 py-2.5"
               style={{ color: 'rgba(255,255,255,0.4)', background: 'transparent' }}
             >
               <Settings className="w-[16px] h-[16px] flex-shrink-0" />
-              {!sidebarCollapsed && (
-                <span className="text-sm font-medium">{t('navigation:header.settings')}</span>
-              )}
+              <span
+                className="text-sm font-medium"
+                style={{
+                  opacity:    sidebarCollapsed ? 0 : 1,
+                  maxWidth:   sidebarCollapsed ? 0 : 200,
+                  overflow:   'hidden',
+                  whiteSpace: 'nowrap',
+                  transition: 'opacity 180ms ease, max-width 200ms ease-in-out',
+                }}
+              >
+                {t('navigation:header.settings')}
+              </span>
             </button>
             {!navAutoCollapse && (
               <NavRailToggle
@@ -287,22 +299,29 @@ export default function HomePage() {
           isMobileOverlay
             ? (isSidebarOpen ? 'translate-x-0' : '-translate-x-full')
             : 'translate-x-0',
-          'bg-muted/30 backdrop-blur-xl border-r border-border flex flex-col py-4',
+          'bg-muted/30 backdrop-blur-xl border-r border-border flex flex-col py-4 overflow-hidden',
         ].join(' ')}
         onMouseEnter={navAutoCollapse && !isMobileOverlay ? () => setSidebarCollapsed(false) : undefined}
         onMouseLeave={navAutoCollapse && !isMobileOverlay ? () => setSidebarCollapsed(true)  : undefined}
       >
         {/* Logo */}
-        <div className={`mb-5 flex flex-col items-center ${isCompact ? 'px-2' : 'px-4'}`}>
-          <div className={`${isCompact ? 'w-9 h-9' : 'w-10 h-10'} rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md transition-all duration-200`}>
+        <div className="mb-5 flex flex-col items-center px-2">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
             <Truck className="w-5 h-5 text-primary-foreground" />
           </div>
-          {!isCompact && (
-            <div className="mt-2 text-center overflow-hidden">
-              <h2 className="font-bold text-sm whitespace-nowrap">{t('navigation:app.name')}</h2>
-              <p className="text-xs text-muted-foreground whitespace-nowrap">{t('navigation:app.tagline')}</p>
-            </div>
-          )}
+          <div
+            className="text-center overflow-hidden"
+            style={{
+              opacity:    isCompact ? 0 : 1,
+              maxHeight:  isCompact ? 0 : 60,
+              marginTop:  isCompact ? 0 : 8,
+              overflow:   'hidden',
+              transition: 'opacity 180ms ease, max-height 200ms ease-in-out, margin-top 200ms ease-in-out',
+            }}
+          >
+            <h2 className="font-bold text-sm whitespace-nowrap">{t('navigation:app.name')}</h2>
+            <p className="text-xs text-muted-foreground whitespace-nowrap">{t('navigation:app.tagline')}</p>
+          </div>
         </div>
 
         <ScrollArea className="flex-1 px-2">
@@ -317,15 +336,23 @@ export default function HomePage() {
                     setActiveSection(item.id);
                     if (isMobileOverlay) setIsSidebarOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-2.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     active ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground'
-                  } ${isCompact ? 'justify-center' : ''}`}
+                  }`}
                   title={isCompact ? item.label : undefined}
                 >
                   <Icon className="w-[18px] h-[18px] flex-shrink-0" />
-                  {!isCompact && (
-                    <span className="truncate">{item.label}</span>
-                  )}
+                  <span
+                    style={{
+                      opacity:    isCompact ? 0 : 1,
+                      maxWidth:   isCompact ? 0 : 200,
+                      overflow:   'hidden',
+                      whiteSpace: 'nowrap',
+                      transition: 'opacity 180ms ease, max-width 200ms ease-in-out',
+                    }}
+                  >
+                    {item.label}
+                  </span>
                 </button>
               );
             })}
@@ -335,25 +362,45 @@ export default function HomePage() {
         <div className="px-2 mt-auto pt-3 space-y-0.5">
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className={`w-full flex items-center gap-3 px-2.5 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-muted-foreground transition-colors ${isCompact ? 'justify-center' : ''}`}
+            className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-muted-foreground transition-colors"
             title={isCompact ? t('navigation:header.settings') : undefined}
           >
             <Settings className="w-[18px] h-[18px] flex-shrink-0" />
-            {!isCompact && <span>{t('navigation:header.settings')}</span>}
+            <span
+              style={{
+                opacity:    isCompact ? 0 : 1,
+                maxWidth:   isCompact ? 0 : 200,
+                overflow:   'hidden',
+                whiteSpace: 'nowrap',
+                transition: 'opacity 180ms ease, max-width 200ms ease-in-out',
+              }}
+            >
+              {t('navigation:header.settings')}
+            </span>
           </button>
 
           {/* Toggle colapsar/expandir — só em desktop e sem auto-collapse */}
           {!isMobileOverlay && !navAutoCollapse && (
             <button
               onClick={toggleSidebarCollapsed}
-              className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-medium hover:bg-muted text-muted-foreground/50 hover:text-muted-foreground transition-colors ${isCompact ? 'justify-center' : ''}`}
+              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium hover:bg-muted text-muted-foreground/50 hover:text-muted-foreground transition-colors"
               title={sidebarCollapsed ? t('navigation:sidebar.expand') : t('navigation:sidebar.collapse')}
             >
               {sidebarCollapsed
                 ? <ChevronRight className="w-4 h-4 flex-shrink-0" />
                 : <ChevronLeft className="w-4 h-4 flex-shrink-0" />
               }
-              {!isCompact && <span>{t('navigation:sidebar.collapse')}</span>}
+              <span
+                style={{
+                  opacity:    isCompact ? 0 : 1,
+                  maxWidth:   isCompact ? 0 : 200,
+                  overflow:   'hidden',
+                  whiteSpace: 'nowrap',
+                  transition: 'opacity 180ms ease, max-width 200ms ease-in-out',
+                }}
+              >
+                {t('navigation:sidebar.collapse')}
+              </span>
             </button>
           )}
         </div>
@@ -419,9 +466,7 @@ function NavRailButton({
       title={collapsed ? label : undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`flex items-center gap-3 rounded-lg transition-all flex-shrink-0 ${
-        collapsed ? 'w-10 h-10 justify-center' : 'w-full px-2.5 py-2.5'
-      }`}
+      className="flex items-center gap-2.5 rounded-lg transition-colors flex-shrink-0 w-full px-2.5 py-2.5 min-h-[40px]"
       style={{
         background: active
           ? 'rgba(59,130,246,0.25)'
@@ -435,9 +480,18 @@ function NavRailButton({
       }}
     >
       <span className="flex-shrink-0">{icon}</span>
-      {!collapsed && (
-        <span className="text-sm font-medium truncate">{label}</span>
-      )}
+      <span
+        className="text-sm font-medium"
+        style={{
+          opacity:    collapsed ? 0 : 1,
+          maxWidth:   collapsed ? 0 : 200,
+          overflow:   'hidden',
+          whiteSpace: 'nowrap',
+          transition: 'opacity 180ms ease, max-width 200ms ease-in-out',
+        }}
+      >
+        {label}
+      </span>
     </button>
   );
 }
@@ -457,9 +511,7 @@ function NavRailToggle({
       title={collapsed ? t('navigation:sidebar.expand') : t('navigation:sidebar.collapse')}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`flex items-center gap-3 rounded-lg flex-shrink-0 mt-1 transition-all mx-2 ${
-        collapsed ? 'w-10 h-10 justify-center' : 'w-[calc(100%-1rem)] px-2.5 py-2'
-      }`}
+      className="flex items-center gap-2.5 rounded-lg flex-shrink-0 mt-1 transition-colors mx-2 w-[calc(100%-1rem)] px-2.5 py-2"
       style={{
         color:      hovered ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.35)',
         background: hovered ? 'rgba(255,255,255,0.08)' : 'transparent',
@@ -469,9 +521,18 @@ function NavRailToggle({
         ? <ChevronRight className="w-4 h-4 flex-shrink-0" />
         : <ChevronLeft  className="w-4 h-4 flex-shrink-0" />
       }
-      {!collapsed && (
-        <span className="text-xs font-medium">{t('navigation:sidebar.collapse')}</span>
-      )}
+      <span
+        className="text-xs font-medium"
+        style={{
+          opacity:    collapsed ? 0 : 1,
+          maxWidth:   collapsed ? 0 : 200,
+          overflow:   'hidden',
+          whiteSpace: 'nowrap',
+          transition: 'opacity 180ms ease, max-width 200ms ease-in-out',
+        }}
+      >
+        {t('navigation:sidebar.collapse')}
+      </span>
     </button>
   );
 }

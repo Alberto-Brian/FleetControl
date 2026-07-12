@@ -207,16 +207,28 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
           style={{ left: leftOffset, pointerEvents: 'none' }}
         >
           <div className="relative h-full" style={{ pointerEvents: 'none' }}>
-            {/* Painel de geofences — lado esquerdo, sempre montado */}
+            {/* Backdrop — fecha painéis ao clicar fora */}
+            {(geoPanelOpen || alertPanelOpen) && (
+              <div
+                className="absolute inset-0 z-20"
+                style={{ pointerEvents: 'auto' }}
+                onClick={() => { setGeoPanelOpen(false); setAlertPanelOpen(false); }}
+              />
+            )}
+
+            {/* Painel de geofences — lado direito (mesmo lado das alertas), sempre montado */}
             <div
-              className="absolute left-0 top-0 bottom-0 w-72 z-30 flex flex-col bg-background border-r"
+              className="absolute right-0 top-0 bottom-0 w-80 z-30 flex flex-col bg-background border-l"
               style={{
-                transform:     geoPanelOpen ? 'translateX(0)' : 'translateX(-100%)',
+                transform:     geoPanelOpen ? 'translateX(0)' : 'translateX(100%)',
                 transition:    'transform 280ms cubic-bezier(0.4,0,0.2,1)',
                 pointerEvents: geoPanelOpen ? 'auto' : 'none',
               }}
             >
-              <GeofencePanel onStartDraw={(mode) => { setGeoPanelOpen(false); setDrawMode(mode); }} />
+              <GeofencePanel
+                onStartDraw={(mode) => { setGeoPanelOpen(false); setDrawMode(mode); }}
+                onClose={() => setGeoPanelOpen(false)}
+              />
             </div>
 
             {/* Painel de alertas — lado direito, sempre montado */}
@@ -292,9 +304,9 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
               onStopFollow={() => dispatch({ type: 'SET_FOLLOW', payload: null })}
               unreadAlerts={state.unreadAlerts}
               isAlertPanelOpen={alertPanelOpen}
-              onToggleAlerts={() => setAlertPanelOpen(v => !v)}
+              onToggleAlerts={() => { setAlertPanelOpen(v => !v); setGeoPanelOpen(false); }}
               isGeoPanelOpen={geoPanelOpen}
-              onToggleGeoPanel={() => setGeoPanelOpen(v => !v)}
+              onToggleGeoPanel={() => { setGeoPanelOpen(v => !v); setAlertPanelOpen(false); }}
             />
 
             {state.selectedDevice && (

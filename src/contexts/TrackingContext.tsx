@@ -238,7 +238,9 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
         geofenceExit:  'Saiu',
         speedLimit:    'Velocidade excessiva',
       };
-      toast.warning(`${labels[latest.eventType] ?? latest.eventType} · ${latest.geofenceName}`);
+      const device = state.devices.find(d => d.traccar_id === latest.deviceId);
+      const deviceLabel = device?.name ?? `#${latest.deviceId}`;
+      toast.warning(`${labels[latest.eventType] ?? latest.eventType} · ${deviceLabel} · ${latest.geofenceName}`);
       if (alertSettings) sendNativeNotification(latest, alertSettings);
     }
   }, [geofenceAlerts, alertSettings]);
