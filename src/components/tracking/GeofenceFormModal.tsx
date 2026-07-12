@@ -8,7 +8,7 @@ import { Label }  from '@/components/ui/label';
 
 import type { LocalGeofence } from '@/contexts/TrackingContext';
 
-interface TraccarDevice { id: number; name: string; uniqueId: string; }
+interface TraccarDevice { id: string; traccarId: number; name: string; uniqueId: string; }
 
 interface Props {
   open:         boolean;
@@ -40,7 +40,7 @@ export function GeofenceFormModal({ open, pendingWkt, editing, onClose, onCreate
         const list: TraccarDevice[] = res?.data ?? res ?? [];
         setDevices(list);
         // Pré-seleccionar todos por defeito
-        setSelectedIds(new Set(list.map((d: TraccarDevice) => Number(d.id))));
+        setSelectedIds(new Set(list.map((d: TraccarDevice) => Number(d.traccarId))));
       })
       .catch(() => setDevices([]));
   }, [open, isEdit]);
@@ -55,7 +55,7 @@ export function GeofenceFormModal({ open, pendingWkt, editing, onClose, onCreate
 
   function toggleAll() {
     setSelectedIds(prev =>
-      prev.size === devices.length ? new Set() : new Set(devices.map(d => Number(d.id)))
+      prev.size === devices.length ? new Set() : new Set(devices.map(d => Number(d.traccarId)))
     );
   }
 
@@ -152,14 +152,14 @@ export function GeofenceFormModal({ open, pendingWkt, editing, onClose, onCreate
                   {devices.map(d => (
                     <label
                       key={d.id}
-                      htmlFor={`dev-${d.id}`}
+                      htmlFor={`dev-${d.traccarId}`}
                       className="flex items-center gap-2.5 cursor-pointer select-none"
                     >
                       <input
                         type="checkbox"
-                        id={`dev-${d.id}`}
-                        checked={selectedIds.has(Number(d.id))}
-                        onChange={() => toggleDevice(Number(d.id))}
+                        id={`dev-${d.traccarId}`}
+                        checked={selectedIds.has(Number(d.traccarId))}
+                        onChange={() => toggleDevice(Number(d.traccarId))}
                         className="h-4 w-4 rounded border border-input accent-primary"
                       />
                       <span className="text-sm leading-none">{d.name || d.uniqueId}</span>
