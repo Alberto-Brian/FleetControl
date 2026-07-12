@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useVehicles } from '@/contexts/VehiclesContext';
 import { useTranslation } from 'react-i18next';
 import { useLicense } from '@/hooks/useLicense';
+import { registerGpsOnVehicle, updateVehicle } from '@/helpers/vehicle-helpers';
 
 // Importar os dialogs
 import UpdateMileageDialog from './UpdateMileageDialog';
@@ -25,14 +26,46 @@ interface ViewVehicleDialogProps {
 }
 
 export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDialogProps) {
-  const { state: { selectedVehicle } } = useVehicles();
+  const { state: { selectedVehicle }, dispatch } = useVehicles();
   const { t } = useTranslation();
   const { license } = useLicense();
   const isConnected = license?.mode === 'connected' && license?.isValid;
-  
+
   const [mileageDialogOpen, setMileageDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [gpsDialogOpen, setGpsDialogOpen] = useState(false);
+  const [newImei, setNewImei] = useState('');
+  const [savingGps, setSavingGps] = useState(false);
+
+  async function handleSaveImei() {
+    if (!selectedVehicle || !newImei.trim()) return;
+    setSavingGps(true);
+    try {
+      await registerGpsOnVehicle(selectedVehicle.id, newImei.trim());
+      const updated = { ...selectedVehicle, traccar_unique_id: newImei.trim() };
+      dispatch({ type: 'UPDATE_VEHICLE', payload: updated });
+      dispatch({ type: 'SELECT_VEHICLE', payload: updated });
+      setGpsDialogOpen(false);
+      setNewImei('');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingGps(false);
+    }
+  }
+
+  async function handleRemoveGps() {
+    if (!selectedVehicle) return;
+    try {
+      await updateVehicle(selectedVehicle.id, { traccar_unique_id: null });
+      const updated = { ...selectedVehicle, traccar_unique_id: null };
+      dispatch({ type: 'UPDATE_VEHICLE', payload: updated });
+      dispatch({ type: 'SELECT_VEHICLE', payload: updated });
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
   if (!selectedVehicle || !open) return null;
 
@@ -309,19 +342,42 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs">{t('vehicles:dialogs.view.gpsDevice')}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      {selectedVehicle.traccar_unique_id ? (
-                        <>
-                          <Wifi className="w-3.5 h-3.5 text-emerald-500" />
-                          <span className="font-medium font-mono text-xs">{selectedVehicle.traccar_unique_id}</span>
-                        </>
-                      ) : (
-                        <>
-                          <WifiOff className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="font-medium text-muted-foreground">{t('vehicles:dialogs.view.noGps')}</span>
-                        </>
-                      )}
-                    </div>
+                    {selectedVehicle.traccar_unique_id ? (
+                      <div className="flex items-start gap-1.5 mt-0.5 flex-wrap">
+                        <Wifi className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                        <span className="font-medium font-mono text-xs flex-1 break-all">{selectedVehicle.traccar_unique_id}</span>
+                        {isConnected && (
+                          <div className="flex gap-2 w-full mt-1">
+                            <button
+                              onClick={() => { setNewImei(selectedVehicle.traccar_unique_id ?? ''); setGpsDialogOpen(true); }}
+                              className="text-[11px] text-blue-500 hover:text-blue-600 underline"
+                            >
+                              Actualizar IMEI
+                            </button>
+                            <span className="text-muted-foreground/40 text-[11px]">·</span>
+                            <button
+                              onClick={handleRemoveGps}
+                              className="text-[11px] text-destructive hover:text-destructive/80 underline"
+                            >
+                              Remover GPS
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <WifiOff className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                        <span className="font-medium text-muted-foreground flex-1">{t('vehicles:dialogs.view.noGps')}</span>
+                        {isConnected && (
+                          <button
+                            onClick={() => { setNewImei(''); setGpsDialogOpen(true); }}
+                            className="text-[11px] text-blue-500 hover:text-blue-600 underline flex-shrink-0"
+                          >
+                            Registar GPS
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -383,6 +439,49 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
       <UpdateMileageDialog open={mileageDialogOpen} onOpenChange={setMileageDialogOpen} />
       <ChangeStatusDialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen} />
       <EditVehicleDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} />
+
+      {/* Dialog IMEI GPS */}
+      <Dialog open={gpsDialogOpen} onOpenChange={open => { setGpsDialogOpen(open); if (!open) setNewImei(''); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedVehicle?.traccar_unique_id ? 'Actualizar dispositivo GPS' : 'Registar dispositivo GPS'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium">IMEI / Identificador único</p>
+              <input
+                type="text"
+                value={newImei}
+                onChange={e => setNewImei(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSaveImei(); }}
+                placeholder="Ex: 123456789012345"
+                autoFocus
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <p className="text-xs text-muted-foreground">
+                Identificador único do dispositivo GPS instalado no veículo.
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setGpsDialogOpen(false); setNewImei(''); }}
+                className="h-9 px-4 rounded-md border text-sm font-medium hover:bg-muted transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveImei}
+                disabled={!newImei.trim() || savingGps}
+                className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {savingGps ? 'A guardar...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

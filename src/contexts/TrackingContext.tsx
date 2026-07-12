@@ -253,8 +253,18 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
 
   // Re-load alert settings whenever SettingsDialog persists a change
   useEffect(() => {
-    window.addEventListener('alertSettingsChanged', loadAlertSettings);
-    return () => window.removeEventListener('alertSettingsChanged', loadAlertSettings);
+    function handleAlertSettingsChanged(e: Event) {
+      const detail = (e as CustomEvent<Partial<AlertSettings>>).detail;
+      if (detail && typeof detail.notifyNativeEnter === 'boolean') {
+        // TrackingToolbar passed the new values directly — apply immediately without re-fetching
+        setAlertSettings(prev => prev ? { ...prev, ...detail } : (detail as AlertSettings));
+      } else {
+        // SettingsDialog saved and fired the event without detail — re-fetch from API
+        loadAlertSettings();
+      }
+    }
+    window.addEventListener('alertSettingsChanged', handleAlertSettingsChanged);
+    return () => window.removeEventListener('alertSettingsChanged', handleAlertSettingsChanged);
   }, [loadAlertSettings]);
 
   return (

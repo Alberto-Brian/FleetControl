@@ -1,7 +1,7 @@
 // ========================================
 // FILE: src/components/tracking/TrackingToolbar.tsx
 // ========================================
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   WifiOff, History, Layers, PanelLeft, Clock, Settings,
   ZoomIn, ZoomOut, Map, Satellite, Maximize2, Radio, X,
@@ -89,6 +89,8 @@ export function TrackingToolbar({
   const [layerOpen,        setLayerOpen]        = useState(false);
   const [mapSettingsOpen,  setMapSettingsOpen]  = useState(false);
   const { labelType, animateMarkers, pulseMarkers, setLabelType, setAnimateMarkers, setPulseMarkers } = useMapSettings();
+  const settingsRef = useRef<HTMLDivElement>(null);
+  const layerRef    = useRef<HTMLDivElement>(null);
 
   type AlertSettings = { notifyNativeEnter: boolean; notifyNativeExit: boolean; notifyNativeSpeed: boolean };
   const [alertSettings, setAlertSettings] = useState<AlertSettings | null>(null);
@@ -100,12 +102,28 @@ export function TrackingToolbar({
       ?.catch(console.error);
   }, [mapSettingsOpen]);
 
+  // Close popups when clicking outside their containers
+  useEffect(() => {
+    if (!mapSettingsOpen && !layerOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (mapSettingsOpen && settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+        setMapSettingsOpen(false);
+      }
+      if (layerOpen && layerRef.current && !layerRef.current.contains(e.target as Node)) {
+        setLayerOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [mapSettingsOpen, layerOpen]);
+
   function updateAlertSetting(key: keyof AlertSettings, val: boolean) {
     const base: AlertSettings = alertSettings ?? { notifyNativeEnter: true, notifyNativeExit: true, notifyNativeSpeed: true };
     const next = { ...base, [key]: val };
     setAlertSettings(next);
+    // Dispatch with detail so TrackingContext applies the new values instantly (no API roundtrip race)
+    window.dispatchEvent(new CustomEvent('alertSettingsChanged', { detail: next }));
     (window as any)._tracking?.updateAlertSettings(next)?.catch(console.error);
-    window.dispatchEvent(new CustomEvent('alertSettingsChanged'));
   }
 
   const LAYERS: { id: TileLayer; label: string; icon: React.ReactNode }[] = [
@@ -294,7 +312,7 @@ export function TrackingToolbar({
         </MapBtn>
 
         {/* Camadas */}
-        <div className="relative">
+        <div className="relative" ref={layerRef}>
           <MapBtn
             title={t('toolbar.layers')}
             active={layerOpen}
@@ -374,7 +392,7 @@ export function TrackingToolbar({
           </MapBtn>
           {unreadAlerts > 0 && (
             <span
-              className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center pointer-events-none"
+              className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 rounded-full text-[8px] font-bold flex items-center justify-center px-0.5 pointer-events-none"
               style={{ background: '#ef4444', color: 'white' }}
             >
               {unreadAlerts > 9 ? '9+' : unreadAlerts}
@@ -383,7 +401,7 @@ export function TrackingToolbar({
         </div>
 
         {/* Definições do mapa */}
-        <div className="relative">
+        <div className="relative" ref={settingsRef}>
           <MapBtn
             title={t('toolbar.mapSettings', 'Definições do mapa')}
             active={mapSettingsOpen}
@@ -497,7 +515,7 @@ function MapMiniToggle({ checked, onChange }: { checked: boolean; onChange: () =
   return (
     <button
       onClick={onChange}
-      className="relative flex-shrink-0 rounded-full transition-colors duration-200"
+      className="relative flex-shrink-0 rounded-full transition-colors duration-200 focus:outline-none"
       style={{
         width:      32,
         height:     18,

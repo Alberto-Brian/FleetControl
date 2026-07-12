@@ -271,7 +271,7 @@ export function TrackingMap({
       })}
 
       {!showHistory && (
-        <MarkerClusterGroup iconCreateFunction={createClusterIcon} chunkedLoading animate animateAddingMarkers={animateMarkers}>
+        <MarkerClusterGroup iconCreateFunction={createClusterIcon} chunkedLoading animate animateAddingMarkers={animateMarkers} maxClusterRadius={40}>
           {positions.map(pos => {
             const device     = devices.find(d => d.traccar_id === pos.deviceId);
             const deviceName = device?.name ?? `Device ${pos.deviceId}`;

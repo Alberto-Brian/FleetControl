@@ -59,7 +59,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           icon:        '!mt-0.5 !size-4',
           closeButton: [
             '!top-2.5 !right-2.5 !size-5 !rounded-lg',
-            '!opacity-0 group-hover:!opacity-60 hover:!opacity-100',
+            '!opacity-50 hover:!opacity-100',
             '!bg-transparent !border-0',
             '!transition-opacity',
           ].join(' '),
