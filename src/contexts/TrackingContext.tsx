@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState, useCallback, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { useApiConnection } from '@/hooks/useApiConnection';
 import type { Position, Device, ConnectionState, TraccarStatus } from '@/hooks/useApiConnection';
@@ -219,6 +219,13 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
     }).catch(console.error);
   }, []);
 
+  // Named loader so it can be shared between the isConnected effect and the custom event listener
+  const loadAlertSettings = useCallback(() => {
+    (window as any)._tracking.getAlertSettings()
+      .then((s: any) => { if (s) setAlertSettings(s); })
+      .catch(console.error);
+  }, []);
+
   // Geofence alerts from socket
   useEffect(() => {
     if (geofenceAlerts.length === 0) return;
@@ -234,15 +241,19 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
       toast.warning(`${labels[latest.eventType] ?? latest.eventType} · ${latest.geofenceName}`);
       if (alertSettings) sendNativeNotification(latest, alertSettings);
     }
-  }, [geofenceAlerts]);
+  }, [geofenceAlerts, alertSettings]);
 
   // Load alert settings when connected
   useEffect(() => {
     if (!isConnected) return;
-    (window as any)._tracking.getAlertSettings()
-      .then((s: any) => { if (s) setAlertSettings(s); })
-      .catch(console.error);
-  }, [isConnected]);
+    loadAlertSettings();
+  }, [isConnected, loadAlertSettings]);
+
+  // Re-load alert settings whenever SettingsDialog persists a change
+  useEffect(() => {
+    window.addEventListener('alertSettingsChanged', loadAlertSettings);
+    return () => window.removeEventListener('alertSettingsChanged', loadAlertSettings);
+  }, [loadAlertSettings]);
 
   return (
     <Ctx.Provider value={{

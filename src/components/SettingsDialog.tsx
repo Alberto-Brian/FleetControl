@@ -798,7 +798,10 @@ function GeofenceAlertsTab() {
         <SaveButton
           status={status}
           isDirty={isDirty}
-          onClick={() => save(() => (window as any)._tracking.updateAlertSettings(localSettings).then(() => {}))}
+          onClick={() => save(async () => {
+            await (window as any)._tracking.updateAlertSettings(localSettings);
+            window.dispatchEvent(new CustomEvent('alertSettingsChanged'));
+          })}
         />
       </div>
 
