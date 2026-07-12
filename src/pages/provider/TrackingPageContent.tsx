@@ -34,6 +34,7 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
   const mapRef             = useRef<any>(null);
   const zoomCycleRef       = useRef<0 | 1 | 2>(0); // 0=bairro(14) 1=rua(18) 2=todos
   const initialViewDoneRef = useRef(false);
+  const alertsLoadedRef    = useRef(false);
   const [tileLayer, setTileLayer] = useState<TileLayerId>('osm');
 
   const [alertPanelOpen,   setAlertPanelOpen]   = useState(false);
@@ -64,9 +65,10 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
     }
   }, [state.positions, state.followMode]);
 
-  // Load alerts when connected
+  // Load alerts once on first connection (guard prevents duplicates on reconnect)
   useEffect(() => {
-    if (!isConnected) return;
+    if (!isConnected || alertsLoadedRef.current) return;
+    alertsLoadedRef.current = true;
     (window as any)._tracking.getAlerts({ limit: 100 })
       .then((res: any) => {
         if (res?.data) dispatch({ type: 'ALERTS_RECEIVED', payload: res.data });
