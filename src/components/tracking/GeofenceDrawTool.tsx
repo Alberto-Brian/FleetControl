@@ -41,12 +41,15 @@ export function GeofenceDrawTool({ mode, onConfirm, onCancel }: Props) {
   function cleanup() {
     map.getContainer().style.cursor = '';
     map.off('mousedown').off('mousemove').off('mouseup').off('click').off('dblclick');
+    map.dragging.enable();
+    map.doubleClickZoom.enable();
     if (layerRef.current) { map.removeLayer(layerRef.current); layerRef.current = null; }
     stateRef.current = { drawing: false, points: [] };
   }
 
   function setupCircleMode() {
     let preview: L.Circle | null = null;
+    map.dragging.disable();
 
     map.on('mousedown', (e: L.LeafletMouseEvent) => {
       L.DomEvent.preventDefault(e.originalEvent);
@@ -70,6 +73,7 @@ export function GeofenceDrawTool({ mode, onConfirm, onCancel }: Props) {
 
       const { lat, lng } = stateRef.current.center;
       const wkt = `CIRCLE (${lat} ${lng}, ${Math.round(radius)})`;
+      cleanup();
       onConfirm(wkt);
     });
   }
@@ -77,6 +81,7 @@ export function GeofenceDrawTool({ mode, onConfirm, onCancel }: Props) {
   function setupPolygonMode() {
     const points: L.LatLng[] = [];
     let preview: L.Polygon | null = null;
+    map.doubleClickZoom.disable();
 
     map.on('click', (e: L.LeafletMouseEvent) => {
       points.push(e.latlng);
@@ -89,10 +94,12 @@ export function GeofenceDrawTool({ mode, onConfirm, onCancel }: Props) {
 
     map.on('dblclick', (e: L.LeafletMouseEvent) => {
       L.DomEvent.preventDefault(e.originalEvent);
+      L.DomEvent.stopPropagation(e.originalEvent);
       const userPoints = points.slice(0, -2); // strip 2 phantom click events from dblclick
       if (userPoints.length < 3) { cleanup(); onCancel(); return; }
 
       const wkt = `POLYGON((${userPoints.map(p => `${p.lng} ${p.lat}`).join(', ')}, ${userPoints[0].lng} ${userPoints[0].lat}))`;
+      cleanup();
       onConfirm(wkt);
     });
   }
