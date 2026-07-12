@@ -40,7 +40,7 @@ export function GeofenceFormModal({ open, pendingWkt, editing, onClose, onCreate
         const list: TraccarDevice[] = res?.data ?? res ?? [];
         setDevices(list);
         // Pré-seleccionar todos por defeito
-        setSelectedIds(new Set(list.map((d: TraccarDevice) => d.id)));
+        setSelectedIds(new Set(list.map((d: TraccarDevice) => Number(d.id))));
       })
       .catch(() => setDevices([]));
   }, [open, isEdit]);
@@ -55,7 +55,7 @@ export function GeofenceFormModal({ open, pendingWkt, editing, onClose, onCreate
 
   function toggleAll() {
     setSelectedIds(prev =>
-      prev.size === devices.length ? new Set() : new Set(devices.map(d => d.id))
+      prev.size === devices.length ? new Set() : new Set(devices.map(d => Number(d.id)))
     );
   }
 
@@ -158,8 +158,8 @@ export function GeofenceFormModal({ open, pendingWkt, editing, onClose, onCreate
                       <input
                         type="checkbox"
                         id={`dev-${d.id}`}
-                        checked={selectedIds.has(d.id)}
-                        onChange={() => toggleDevice(d.id)}
+                        checked={selectedIds.has(Number(d.id))}
+                        onChange={() => toggleDevice(Number(d.id))}
                         className="h-4 w-4 rounded border border-input accent-primary"
                       />
                       <span className="text-sm leading-none">{d.name || d.uniqueId}</span>
