@@ -209,7 +209,7 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
             {geoPanelOpen && (
               <div
                 className="absolute left-0 top-0 bottom-0 w-72 z-30 flex flex-col bg-background border-r"
-                style={{ marginLeft: leftOffset, pointerEvents: 'auto' }}
+                style={{ pointerEvents: 'auto' }}
               >
                 <GeofencePanel onStartDraw={(mode) => { setGeoPanelOpen(false); setDrawMode(mode); }} />
               </div>
