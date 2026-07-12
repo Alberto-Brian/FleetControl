@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import UserMenu from '@/components/UserMenu';
+import { useMapSettings } from '@/hooks/useMapSettings';
 
 type TileLayer = 'osm' | 'satellite' | 'hybrid' | 'terrain' | 'carto';
 
@@ -25,7 +26,6 @@ interface Props {
   mapRef?:          React.MutableRefObject<any>;
   currentLayer?:    TileLayer;
   onLayerChange?:   (layer: TileLayer) => void;
-  onOpenSettings?:  () => void;
   followMode?:      boolean;
   followDeviceName?: string | null;
   onFitAll?:        () => void;
@@ -75,7 +75,6 @@ export function TrackingToolbar({
   mapRef,
   currentLayer = 'osm',
   onLayerChange,
-  onOpenSettings,
   followMode = false,
   followDeviceName,
   onFitAll,
@@ -87,7 +86,9 @@ export function TrackingToolbar({
   onToggleGeoPanel,
 }: Props) {
   const { t } = useTranslation('tracking');
-  const [layerOpen, setLayerOpen] = useState(false);
+  const [layerOpen,        setLayerOpen]        = useState(false);
+  const [mapSettingsOpen,  setMapSettingsOpen]  = useState(false);
+  const { labelType, animateMarkers, pulseMarkers, setLabelType, setAnimateMarkers, setPulseMarkers } = useMapSettings();
 
   const LAYERS: { id: TileLayer; label: string; icon: React.ReactNode }[] = [
     { id: 'osm',       label: t('toolbar.layerOSM'),       icon: <Map       className="w-3.5 h-3.5" /> },
@@ -363,16 +364,100 @@ export function TrackingToolbar({
           )}
         </div>
 
-        {onOpenSettings && (
-          <MapBtn title={t('toolbar.settings')} onClick={onOpenSettings}>
+        {/* Definições do mapa */}
+        <div className="relative">
+          <MapBtn
+            title={t('toolbar.mapSettings', 'Definições do mapa')}
+            active={mapSettingsOpen}
+            onClick={() => setMapSettingsOpen(v => !v)}
+          >
             <Settings className="w-4 h-4" />
           </MapBtn>
-        )}
+
+          {mapSettingsOpen && (
+            <div
+              className="absolute top-full right-0 mt-2 rounded-xl p-3 z-50"
+              style={{
+                background: 'rgba(10,17,32,0.98)',
+                border:     '1px solid rgba(255,255,255,0.1)',
+                boxShadow:  '0 8px 32px rgba(0,0,0,0.6)',
+                minWidth:   210,
+              }}
+            >
+              <p className="pb-2.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                {t('toolbar.mapSettings', 'Definições do mapa')}
+              </p>
+
+              {/* Etiqueta dos marcadores */}
+              <p className="text-[10px] mb-1.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                {t('toolbar.markerLabel', 'Etiqueta dos marcadores')}
+              </p>
+              <div className="flex gap-1 mb-3">
+                {([
+                  { id: 'plate' as const,       label: t('toolbar.labelPlate',      'Matrícula') },
+                  { id: 'brand_model' as const, label: t('toolbar.labelBrand',      'Marca')     },
+                  { id: 'both' as const,        label: t('toolbar.labelBoth',       'Ambos')     },
+                ]).map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => setLabelType(item.id)}
+                    className="flex-1 py-1.5 px-1 rounded-lg text-[10px] font-medium transition-all"
+                    style={{
+                      color:      labelType === item.id ? '#60a5fa' : 'rgba(255,255,255,0.55)',
+                      background: labelType === item.id ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.05)',
+                      border:     labelType === item.id ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-px mb-3" style={{ background: 'rgba(255,255,255,0.08)' }} />
+
+              {/* Animar marcadores */}
+              <div className="flex items-center justify-between gap-3 mb-2.5">
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                  {t('toolbar.animateMarkers', 'Animar marcadores')}
+                </span>
+                <MapMiniToggle checked={animateMarkers} onChange={() => setAnimateMarkers(!animateMarkers)} />
+              </div>
+
+              {/* Pulsação */}
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                  {t('toolbar.pulseMarkers', 'Pulsação')}
+                </span>
+                <MapMiniToggle checked={pulseMarkers} onChange={() => setPulseMarkers(!pulseMarkers)} />
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="w-8 h-8 flex items-center justify-center">
           <UserMenu compact />
         </div>
       </div>
     </div>
+  );
+}
+
+function MapMiniToggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return (
+    <button
+      onClick={onChange}
+      className="relative flex-shrink-0 rounded-full transition-colors duration-200"
+      style={{
+        width:      32,
+        height:     18,
+        background: checked ? 'rgba(59,130,246,0.85)' : 'rgba(255,255,255,0.18)',
+      }}
+    >
+      <span
+        className="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-transform duration-200"
+        style={{ transform: checked ? 'translateX(15px)' : 'translateX(2px)' }}
+      />
+    </button>
   );
 }
 

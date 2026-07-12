@@ -857,7 +857,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
   const { fontId, setFont, options: fontOptions }                    = useFontFamily();
   const { sizeId, setFontSize, sizeOptions }                         = useFontSize();
   const { settings: glass, update: updateGlass, reset: resetGlass }  = useGlassSettings();
-  const { sidebarCollapsed, setSidebarCollapsed }                    = useLayoutSettings();
+  const { sidebarCollapsed, setSidebarCollapsed, navAutoCollapse, setNavAutoCollapse } = useLayoutSettings();
   const { hasPadding, setHasPadding }                                = useLayoutPadding();
   const { labelType, animateMarkers, pulseMarkers, setLabelType, setAnimateMarkers, setPulseMarkers } = useMapSettings();
   const { license }                                                   = useLicense();
@@ -1141,20 +1141,40 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                       <div>
                         <h3 className="text-base font-semibold mb-1">{t('appearance.sidebarTitle')}</h3>
                         <p className="text-sm text-muted-foreground mb-4">{t('appearance.sidebarDesc')}</p>
-                        <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                              <PanelLeft className="w-5 h-5" />
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                                <PanelLeft className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{t('appearance.sidebarCollapsed')}</p>
+                                <p className="text-xs text-muted-foreground">{t('appearance.sidebarCollapsedDesc')}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-sm font-medium">{t('appearance.sidebarCollapsed')}</p>
-                              <p className="text-xs text-muted-foreground">{t('appearance.sidebarCollapsedDesc')}</p>
-                            </div>
+                            <Switch
+                              checked={sidebarCollapsed}
+                              onCheckedChange={setSidebarCollapsed}
+                            />
                           </div>
-                          <Switch
-                            checked={sidebarCollapsed}
-                            onCheckedChange={setSidebarCollapsed}
-                          />
+                          <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                                <PanelLeft className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{t('appearance.sidebarAutoCollapse', 'Auto-recolher no hover')}</p>
+                                <p className="text-xs text-muted-foreground">{t('appearance.sidebarAutoCollapseDesc', 'Expande ao passar o rato e recolhe ao sair — o botão de recolher desaparece')}</p>
+                              </div>
+                            </div>
+                            <Switch
+                              checked={navAutoCollapse}
+                              onCheckedChange={v => {
+                                setNavAutoCollapse(v);
+                                if (v) setSidebarCollapsed(true);
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
 

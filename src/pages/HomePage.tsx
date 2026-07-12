@@ -48,7 +48,7 @@ export default function HomePage() {
   const isConnected     = license?.mode === 'connected';
   const isMobileOverlay = windowWidth < 640;
 
-  const { sidebarCollapsed, toggleSidebarCollapsed } = useLayoutSettings();
+  const { sidebarCollapsed, setSidebarCollapsed, toggleSidebarCollapsed, navAutoCollapse } = useLayoutSettings();
   const isCompact = isMobileOverlay || sidebarCollapsed;
   const { hasPadding } = useLayoutPadding();
 
@@ -131,6 +131,8 @@ export default function HomePage() {
               pointerEvents: 'auto',
               alignItems:    sidebarCollapsed ? 'center' : 'stretch',
             }}
+            onMouseEnter={navAutoCollapse ? () => setSidebarCollapsed(false) : undefined}
+            onMouseLeave={navAutoCollapse ? () => setSidebarCollapsed(true)  : undefined}
           >
             {/* Logo */}
             <div className={`flex items-center flex-shrink-0 mb-3 ${sidebarCollapsed ? 'justify-center' : 'px-3 gap-2.5'}`}>
@@ -182,11 +184,13 @@ export default function HomePage() {
                 <span className="text-sm font-medium">{t('navigation:header.settings')}</span>
               )}
             </button>
-            <NavRailToggle
-              collapsed={sidebarCollapsed}
-              onClick={toggleSidebarCollapsed}
-              t={t}
-            />
+            {!navAutoCollapse && (
+              <NavRailToggle
+                collapsed={sidebarCollapsed}
+                onClick={toggleSidebarCollapsed}
+                t={t}
+              />
+            )}
           </aside>
 
           {/* Painel de conteúdo flutuante (secções que não são rastreamento) */}
@@ -285,6 +289,8 @@ export default function HomePage() {
             : 'translate-x-0',
           'bg-muted/30 backdrop-blur-xl border-r border-border flex flex-col py-4',
         ].join(' ')}
+        onMouseEnter={navAutoCollapse && !isMobileOverlay ? () => setSidebarCollapsed(false) : undefined}
+        onMouseLeave={navAutoCollapse && !isMobileOverlay ? () => setSidebarCollapsed(true)  : undefined}
       >
         {/* Logo */}
         <div className={`mb-5 flex flex-col items-center ${isCompact ? 'px-2' : 'px-4'}`}>
@@ -336,8 +342,8 @@ export default function HomePage() {
             {!isCompact && <span>{t('navigation:header.settings')}</span>}
           </button>
 
-          {/* Toggle colapsar/expandir — só em desktop */}
-          {!isMobileOverlay && (
+          {/* Toggle colapsar/expandir — só em desktop e sem auto-collapse */}
+          {!isMobileOverlay && !navAutoCollapse && (
             <button
               onClick={toggleSidebarCollapsed}
               className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-xs font-medium hover:bg-muted text-muted-foreground/50 hover:text-muted-foreground transition-colors ${isCompact ? 'justify-center' : ''}`}

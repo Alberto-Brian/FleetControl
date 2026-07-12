@@ -207,22 +207,29 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
           style={{ left: leftOffset, pointerEvents: 'none' }}
         >
           <div className="relative h-full" style={{ pointerEvents: 'none' }}>
-            {/* Painel de geofences — lado esquerdo */}
-            {geoPanelOpen && (
-              <div
-                className="absolute left-0 top-0 bottom-0 w-72 z-30 flex flex-col bg-background border-r"
-                style={{ pointerEvents: 'auto' }}
-              >
-                <GeofencePanel onStartDraw={(mode) => { setGeoPanelOpen(false); setDrawMode(mode); }} />
-              </div>
-            )}
+            {/* Painel de geofences — lado esquerdo, sempre montado */}
+            <div
+              className="absolute left-0 top-0 bottom-0 w-72 z-30 flex flex-col bg-background border-r"
+              style={{
+                transform:     geoPanelOpen ? 'translateX(0)' : 'translateX(-100%)',
+                transition:    'transform 280ms cubic-bezier(0.4,0,0.2,1)',
+                pointerEvents: geoPanelOpen ? 'auto' : 'none',
+              }}
+            >
+              <GeofencePanel onStartDraw={(mode) => { setGeoPanelOpen(false); setDrawMode(mode); }} />
+            </div>
 
-            {/* Painel de alertas — lado direito */}
-            {alertPanelOpen && (
-              <div className="absolute right-0 top-0 bottom-0 w-80 z-30 flex flex-col bg-background border-l" style={{ pointerEvents: 'auto' }}>
-                <AlertPanel onClose={() => setAlertPanelOpen(false)} />
-              </div>
-            )}
+            {/* Painel de alertas — lado direito, sempre montado */}
+            <div
+              className="absolute right-0 top-0 bottom-0 w-80 z-30 flex flex-col bg-background border-l"
+              style={{
+                transform:     alertPanelOpen ? 'translateX(0)' : 'translateX(100%)',
+                transition:    'transform 280ms cubic-bezier(0.4,0,0.2,1)',
+                pointerEvents: alertPanelOpen ? 'auto' : 'none',
+              }}
+            >
+              <AlertPanel onClose={() => setAlertPanelOpen(false)} />
+            </div>
 
             {/* Modal de formulário de geofence (após desenho) */}
             <GeofenceFormModal
@@ -233,7 +240,18 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
               onUpdated={(g) => dispatch({ type: 'GEOFENCE_ADDED', payload: g })}
             />
 
-            {state.isSidebarOpen && (
+            {/* DeviceSidebar — sempre montado, animada */}
+            <div
+              className="absolute inset-0"
+              style={{
+                visibility: state.isSidebarOpen ? 'visible' : 'hidden',
+                opacity:    state.isSidebarOpen ? 1 : 0,
+                transform:  state.isSidebarOpen ? 'translateX(0)' : 'translateX(-16px)',
+                transition: state.isSidebarOpen
+                  ? 'opacity 250ms ease, transform 250ms ease'
+                  : 'opacity 250ms ease, transform 250ms ease, visibility 0s 250ms',
+              }}
+            >
               <DeviceSidebar
                 devices={state.devices}
                 positions={state.positions}
@@ -253,7 +271,7 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
                 onFilterStatus={(status) => dispatch({ type: 'FILTER_STATUS', payload: status })}
                 onToggleSidebar={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
               />
-            )}
+            </div>
 
             <TrackingToolbar
               isConnected={isConnected}
@@ -268,7 +286,6 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
               mapRef={mapRef}
               currentLayer={tileLayer}
               onLayerChange={setTileLayer}
-              onOpenSettings={onOpenSettings}
               followMode={state.followMode}
               followDeviceName={state.followMode && state.selectedDevice ? state.selectedDevice.name : null}
               onFitAll={fitAllDevices}
