@@ -81,26 +81,27 @@ export function GeofenceDrawTool({ mode, onConfirm, onCancel }: Props) {
   function setupPolygonMode() {
     const points: L.LatLng[] = [];
     let preview: L.Polygon | null = null;
+    let lastClickTime = 0;
     map.doubleClickZoom.disable();
 
+    // Duplo-clique detectado por timing no evento click (mais fiável que o evento dblclick no Electron)
     map.on('click', (e: L.LeafletMouseEvent) => {
+      const now = Date.now();
+      if (now - lastClickTime < 350) {
+        // Segundo clique em menos de 350ms = confirmar polígono
+        if (points.length < 3) { cleanup(); onCancel(); return; }
+        const wkt = `POLYGON((${points.map(p => `${p.lng} ${p.lat}`).join(', ')}, ${points[0].lng} ${points[0].lat}))`;
+        cleanup();
+        onConfirm(wkt);
+        return;
+      }
+      lastClickTime = now;
       points.push(e.latlng);
       if (preview) { map.removeLayer(preview); }
       if (points.length >= 2) {
         preview = L.polygon(points, { color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.15 }).addTo(map);
         layerRef.current = preview;
       }
-    });
-
-    map.on('dblclick', (e: L.LeafletMouseEvent) => {
-      L.DomEvent.preventDefault(e.originalEvent);
-      L.DomEvent.stopPropagation(e.originalEvent);
-      const userPoints = points.slice(0, -2); // strip 2 phantom click events from dblclick
-      if (userPoints.length < 3) { cleanup(); onCancel(); return; }
-
-      const wkt = `POLYGON((${userPoints.map(p => `${p.lng} ${p.lat}`).join(', ')}, ${userPoints[0].lng} ${userPoints[0].lat}))`;
-      cleanup();
-      onConfirm(wkt);
     });
   }
 
