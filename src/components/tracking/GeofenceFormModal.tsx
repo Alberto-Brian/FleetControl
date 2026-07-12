@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input }  from '@/components/ui/input';
 import { Label }  from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+
 import type { LocalGeofence } from '@/contexts/TrackingContext';
 
 interface TraccarDevice { id: number; name: string; uniqueId: string; }
@@ -152,11 +152,15 @@ export function GeofenceFormModal({ open, pendingWkt, editing, onClose, onCreate
                   {devices.map(d => (
                     <label
                       key={d.id}
+                      htmlFor={`dev-${d.id}`}
                       className="flex items-center gap-2.5 cursor-pointer select-none"
                     >
-                      <Checkbox
+                      <input
+                        type="checkbox"
+                        id={`dev-${d.id}`}
                         checked={selectedIds.has(d.id)}
-                        onCheckedChange={() => toggleDevice(d.id)}
+                        onChange={() => toggleDevice(d.id)}
+                        className="h-4 w-4 rounded border border-input accent-primary"
                       />
                       <span className="text-sm leading-none">{d.name || d.uniqueId}</span>
                       <span className="text-xs text-muted-foreground ml-auto font-mono">{d.uniqueId}</span>
