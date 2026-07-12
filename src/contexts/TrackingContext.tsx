@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { useApiConnection } from '@/hooks/useApiConnection';
 import type { Position, Device, ConnectionState, TraccarStatus } from '@/hooks/useApiConnection';
 import type { TrackedDevice } from '@/helpers/tracking-helpers';
+import { sendNativeNotification } from '@/helpers/notifications';
+import type { AlertSettings } from '@/helpers/notifications';
 
 export interface LocalGeofence {
   id:           number; // traccarId
@@ -166,6 +168,7 @@ const Ctx = createContext<TrackingContextValue | null>(null);
 
 export function TrackingProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initial);
+  const [alertSettings, setAlertSettings] = useState<AlertSettings | null>(null);
 
   // Socket único para toda a app
   const {
@@ -229,8 +232,17 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
         speedLimit:    'Velocidade excessiva',
       };
       toast.warning(`${labels[latest.eventType] ?? latest.eventType} · ${latest.geofenceName}`);
+      if (alertSettings) sendNativeNotification(latest, alertSettings);
     }
   }, [geofenceAlerts]);
+
+  // Load alert settings when connected
+  useEffect(() => {
+    if (!isConnected) return;
+    (window as any)._tracking.getAlertSettings()
+      .then((s: any) => { if (s) setAlertSettings(s); })
+      .catch(console.error);
+  }, [isConnected]);
 
   return (
     <Ctx.Provider value={{

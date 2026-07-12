@@ -759,6 +759,88 @@ function LicenseTab() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GeofenceAlertsTab
+// ─────────────────────────────────────────────────────────────────────────────
+function GeofenceAlertsTab() {
+  const { t } = useTranslation('tracking');
+  const [localSettings, setLocalSettings] = useState<{
+    notifyNativeEnter: boolean;
+    notifyNativeExit:  boolean;
+    notifyNativeSpeed: boolean;
+    cooldownSpeedMs:   number;
+  }>({ notifyNativeEnter: true, notifyNativeExit: true, notifyNativeSpeed: true, cooldownSpeedMs: 60000 });
+  const { status, isDirty, markDirty, save } = useSaveStatus();
+
+  useEffect(() => {
+    (window as any)._tracking.getAlertSettings()
+      .then((s: any) => {
+        if (s) setLocalSettings({
+          notifyNativeEnter: s.notifyNativeEnter ?? true,
+          notifyNativeExit:  s.notifyNativeExit  ?? true,
+          notifyNativeSpeed: s.notifyNativeSpeed ?? true,
+          cooldownSpeedMs:   s.cooldownSpeedMs   ?? 60000,
+        });
+      })
+      .catch(console.error);
+  }, []);
+
+  function update<K extends keyof typeof localSettings>(k: K, v: typeof localSettings[K]) {
+    setLocalSettings(p => ({ ...p, [k]: v }));
+    markDirty();
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
+        <div>
+          <h3 className="text-base font-semibold mb-0.5">{t('settings.alertsTitle')}</h3>
+        </div>
+        <SaveButton
+          status={status}
+          isDirty={isDirty}
+          onClick={() => save(() => (window as any)._tracking.updateAlertSettings(localSettings).then(() => {}))}
+        />
+      </div>
+
+      <SettingSection title={t('settings.alertsTitle')}>
+        <SettingRow label={t('settings.notifyEnter')}>
+          <Switch
+            checked={localSettings.notifyNativeEnter}
+            onCheckedChange={v => update('notifyNativeEnter', v)}
+          />
+        </SettingRow>
+        <SettingRow label={t('settings.notifyExit')}>
+          <Switch
+            checked={localSettings.notifyNativeExit}
+            onCheckedChange={v => update('notifyNativeExit', v)}
+          />
+        </SettingRow>
+        <SettingRow label={t('settings.notifySpeed')}>
+          <Switch
+            checked={localSettings.notifyNativeSpeed}
+            onCheckedChange={v => update('notifyNativeSpeed', v)}
+          />
+        </SettingRow>
+        <SettingRow label={t('settings.cooldownSpeed')}>
+          <NumberInput
+            value={(localSettings.cooldownSpeedMs) / 1000}
+            onChange={v => update('cooldownSpeedMs', v * 1000)}
+            min={0}
+            unit="s"
+          />
+        </SettingRow>
+      </SettingSection>
+
+      {isDirty && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Componente Principal
 // ─────────────────────────────────────────────────────────────────────────────
 interface SettingsDialogProps {
@@ -796,7 +878,8 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
     { id: 'appearance', icon: Palette,     label: t('nav.appearance') },
     { id: 'language',   icon: Globe,       label: t('nav.language')   },
     { id: 'company',    icon: Building2,   label: t('nav.company')    },
-    { id: 'pdf',        icon: FileText,    label: t('nav.pdf')        },
+    { id: 'pdf',            icon: FileText,    label: t('nav.pdf')                        },
+    { id: 'geofence-alerts', icon: Bell,       label: t('nav.geofenceAlerts', 'Alertas GPS') },
     // { id: 'alerts',     icon: Bell,      label: t('nav.alerts')     },
     // { id: 'trips',      icon: Car,       label: t('nav.trips')      },
     // { id: 'fuel',       icon: Fuel,      label: t('nav.fuel')       },
@@ -1168,6 +1251,9 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
 
                   {/* ── PDF ── */}
                   {activeTab === 'pdf' && <PdfTab />}
+
+                  {/* ── Alertas GPS (Geofencing) ── */}
+                  {activeTab === 'geofence-alerts' && <GeofenceAlertsTab />}
 
                   {/* ── Alertas ── */}
                   {activeTab === 'alerts' && (

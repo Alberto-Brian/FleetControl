@@ -17,6 +17,7 @@ import { syncThemeWithLocal } from "./helpers/theme-helpers";
 import { updateAppLanguage } from "./helpers/language-helpers";
 import { initFont, initFontSize } from "./hooks/useFontFamily";
 import { initGlassSettings } from "./hooks/useGlassSettings";
+import { requestNotificationPermission } from "@/helpers/notifications";
 import { useTranslation } from "react-i18next";
 import './styles/scrollbar-styles.css';
 import "./localization/i18n";
@@ -35,6 +36,7 @@ function AppContent() {
     useEffect(() => {
         syncThemeWithLocal();
         updateAppLanguage(i18n);
+        requestNotificationPermission();
     }, [i18n]);
 
     // Verificar se já existe usuário no sistema

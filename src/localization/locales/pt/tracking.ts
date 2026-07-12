@@ -76,6 +76,13 @@ export const ptTracking = {
     exit:       'Saiu',
     speed:      'Velocidade',
   },
+  settings: {
+    alertsTitle:   'Alertas de Geofencing',
+    notifyEnter:   'Notificação ao entrar numa zona',
+    notifyExit:    'Notificação ao sair de uma zona',
+    notifySpeed:   'Notificação de velocidade excessiva',
+    cooldownSpeed: 'Intervalo mínimo entre alertas de velocidade',
+  },
 } as const;
 
 export type PtTracking = typeof ptTracking;

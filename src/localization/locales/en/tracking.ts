@@ -76,6 +76,13 @@ export const enTracking = {
     exit:       'Exited',
     speed:      'Speed',
   },
+  settings: {
+    alertsTitle:   'Geofencing Alerts',
+    notifyEnter:   'Notify on zone entry',
+    notifyExit:    'Notify on zone exit',
+    notifySpeed:   'Notify on speed violation',
+    cooldownSpeed: 'Minimum interval between speed alerts',
+  },
 } as const;
 
 export type EnTracking = typeof enTracking;
