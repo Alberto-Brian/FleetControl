@@ -228,6 +228,21 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
               <GeofencePanel
                 onStartDraw={(mode) => { setGeoPanelOpen(false); setDrawMode(mode); }}
                 onClose={() => setGeoPanelOpen(false)}
+                onFocusGeofence={(g) => {
+                  // Parse center from WKT and fly to it
+                  const circleMatch = g.area.match(/CIRCLE\s*\(\s*(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/i);
+                  if (circleMatch) {
+                    mapRef.current?.setView([parseFloat(circleMatch[1]), parseFloat(circleMatch[2])], 16, { animate: true });
+                    return;
+                  }
+                  const polyMatch = g.area.match(/POLYGON\s*\(\s*\((.+)\)\s*\)/i);
+                  if (polyMatch) {
+                    const pts = polyMatch[1].split(',').map((p: string) => p.trim().split(/\s+/).map(Number));
+                    const lat = pts.reduce((s: number, p: number[]) => s + p[0], 0) / pts.length;
+                    const lon = pts.reduce((s: number, p: number[]) => s + p[1], 0) / pts.length;
+                    mapRef.current?.setView([lat, lon], 15, { animate: true });
+                  }
+                }}
               />
             </div>
 
@@ -240,7 +255,13 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
                 pointerEvents: alertPanelOpen ? 'auto' : 'none',
               }}
             >
-              <AlertPanel onClose={() => setAlertPanelOpen(false)} />
+              <AlertPanel
+                onClose={() => setAlertPanelOpen(false)}
+                onFocusCoords={(lat, lon) => {
+                  mapRef.current?.setView([lat, lon], 17, { animate: true });
+                  setAlertPanelOpen(false);
+                }}
+              />
             </div>
 
             {/* Modal de formulário de geofence (após desenho) */}

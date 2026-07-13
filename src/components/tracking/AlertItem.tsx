@@ -7,6 +7,7 @@ import { useTracking } from '@/contexts/TrackingContext';
 interface Props {
   alert:         GeofenceAlert;
   onAcknowledge: (id: string) => void;
+  onSelect:      (a: GeofenceAlert) => void;
 }
 
 const EVENT_META = {
@@ -20,7 +21,7 @@ function formatTime(iso: string): string {
   return d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
 }
 
-export function AlertItem({ alert, onAcknowledge }: Props) {
+export function AlertItem({ alert, onAcknowledge, onSelect }: Props) {
   const { state } = useTracking();
   const meta = EVENT_META[alert.eventType] ?? EVENT_META.geofenceEnter;
   const Icon = meta.icon;
@@ -30,9 +31,10 @@ export function AlertItem({ alert, onAcknowledge }: Props) {
 
   return (
     <div
-      className={`flex items-start gap-2.5 px-3 py-2.5 border-b transition-colors ${
-        alert.acknowledged ? 'opacity-50' : 'hover:bg-muted/30'
+      className={`flex items-start gap-2.5 px-3 py-2.5 border-b transition-colors cursor-pointer ${
+        alert.acknowledged ? 'opacity-50 hover:bg-muted/20' : 'hover:bg-muted/30'
       }`}
+      onClick={() => onSelect(alert)}
     >
       <div
         className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
@@ -57,7 +59,7 @@ export function AlertItem({ alert, onAcknowledge }: Props) {
       {!alert.acknowledged && (
         <button
           className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted flex-shrink-0"
-          onClick={() => onAcknowledge(alert.id)}
+          onClick={e => { e.stopPropagation(); onAcknowledge(alert.id); }}
           title="Marcar como lido"
         >
           <CheckCheck className="w-3.5 h-3.5 text-muted-foreground" />
