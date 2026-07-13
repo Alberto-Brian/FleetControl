@@ -96,11 +96,19 @@ export function TrackingToolbar({
   const [alertSettings, setAlertSettings] = useState<AlertSettings | null>(null);
 
   useEffect(() => {
-    if (!mapSettingsOpen) return;
+    // Só carrega se ainda não temos settings locais — evita sobrescrever toggles do utilizador
+    if (!mapSettingsOpen || alertSettings !== null) return;
+    let cancelled = false;
     (window as any)._tracking?.getAlertSettings()
-      ?.then((s: any) => { if (s) setAlertSettings(s); })
+      ?.then((s: any) => {
+        if (!cancelled && s) {
+          // Aplica só se o utilizador ainda não fez alterações (prev ainda é null)
+          setAlertSettings(prev => prev === null ? s : prev);
+        }
+      })
       ?.catch(console.error);
-  }, [mapSettingsOpen]);
+    return () => { cancelled = true; };
+  }, [mapSettingsOpen, alertSettings]);
 
   // Close popups when clicking outside their containers
   useEffect(() => {
@@ -517,14 +525,20 @@ function MapMiniToggle({ checked, onChange }: { checked: boolean; onChange: () =
       onClick={onChange}
       className="relative flex-shrink-0 rounded-full transition-colors duration-200 focus:outline-none"
       style={{
-        width:      32,
-        height:     18,
-        background: checked ? 'rgba(59,130,246,0.85)' : 'rgba(255,255,255,0.18)',
+        width:      36,
+        height:     20,
+        background: checked ? 'rgba(59,130,246,0.9)' : 'rgba(255,255,255,0.18)',
       }}
     >
       <span
-        className="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-transform duration-200"
-        style={{ transform: checked ? 'translateX(15px)' : 'translateX(2px)' }}
+        className="absolute rounded-full bg-white shadow-sm transition-transform duration-200"
+        style={{
+          top:       2,
+          left:      2,
+          width:     16,
+          height:    16,
+          transform: checked ? 'translateX(16px)' : 'translateX(0)',
+        }}
       />
     </button>
   );

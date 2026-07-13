@@ -3,6 +3,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Sonner toast — botão de fechar ───────────────────────────────────────── */
+[data-sonner-toast] [data-close-button] {
+  position: absolute !important;
+  top:      10px     !important;
+  right:    10px     !important;
+  left:     auto     !important;
+  width:    20px     !important;
+  height:   20px     !important;
+  border-radius: 6px !important;
+  opacity:  0.45     !important;
+  border:   none     !important;
+  background: transparent !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: opacity 150ms ease, background 150ms ease !important;
+}
+[data-sonner-toast] [data-close-button]:hover {
+  opacity:    1    !important;
+  background: rgba(128, 128, 128, 0.15) !important;
+}
+
 @layer base {
     @font-face {
         font-family: "Geist";

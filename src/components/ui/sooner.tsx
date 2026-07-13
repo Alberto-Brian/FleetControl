@@ -57,12 +57,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           title:       '!text-[13px] !font-semibold !leading-snug',
           description: '!text-[12px] !font-normal !opacity-80 !mt-0.5 !leading-snug',
           icon:        '!mt-0.5 !size-4',
-          closeButton: [
-            '!top-2.5 !right-2.5 !size-5 !rounded-lg',
-            '!opacity-50 hover:!opacity-100',
-            '!bg-transparent !border-0',
-            '!transition-opacity',
-          ].join(' '),
+          closeButton: '',
           actionButton:  '!rounded-lg !text-xs !font-semibold !h-7 !px-3',
           cancelButton:  '!rounded-lg !text-xs !h-7 !px-3',
         },
