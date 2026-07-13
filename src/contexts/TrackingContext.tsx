@@ -231,10 +231,11 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
   // Geofence alerts from socket
   // alertSettings is read via ref so changes to settings never re-trigger this effect
   // (re-triggering would show duplicate toasts/notifications for already-seen alerts)
+  // dispatch only [latest] — not the full array — to avoid exponential duplication in state
   useEffect(() => {
     if (geofenceAlerts.length === 0) return;
-    dispatch({ type: 'ALERTS_RECEIVED', payload: geofenceAlerts });
     const latest = geofenceAlerts[0];
+    dispatch({ type: 'ALERTS_RECEIVED', payload: [latest] });
     if (latest) {
       const settings = alertSettingsRef.current;
       const settingKey: Record<string, keyof AlertSettings> = {

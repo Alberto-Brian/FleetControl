@@ -90,7 +90,8 @@ export function GeofenceDrawTool({ mode, onConfirm, onCancel }: Props) {
       if (now - lastClickTime < 350) {
         // Segundo clique em menos de 350ms = confirmar polígono
         if (points.length < 3) { cleanup(); onCancel(); return; }
-        const wkt = `POLYGON((${points.map(p => `${p.lng} ${p.lat}`).join(', ')}, ${points[0].lng} ${points[0].lat}))`;
+        // Traccar uses lat-lon order for ALL WKT types (same as CIRCLE format)
+        const wkt = `POLYGON ((${points.map(p => `${p.lat} ${p.lng}`).join(', ')}, ${points[0].lat} ${points[0].lng}))`;
         cleanup();
         onConfirm(wkt);
         return;

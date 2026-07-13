@@ -92,7 +92,12 @@ export function TrackingToolbar({
   const settingsRef = useRef<HTMLDivElement>(null);
   const layerRef    = useRef<HTMLDivElement>(null);
 
-  type AlertSettings = { notifyNativeEnter: boolean; notifyNativeExit: boolean; notifyNativeSpeed: boolean };
+  type AlertSettings = {
+    notifyNativeEnter: boolean;
+    notifyNativeExit:  boolean;
+    notifyNativeSpeed: boolean;
+    cooldownSpeedMs?:  number;
+  };
   const [alertSettings, setAlertSettings] = useState<AlertSettings | null>(null);
 
   useEffect(() => {
@@ -125,8 +130,10 @@ export function TrackingToolbar({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [mapSettingsOpen, layerOpen]);
 
-  function updateAlertSetting(key: keyof AlertSettings, val: boolean) {
-    const base: AlertSettings = alertSettings ?? { notifyNativeEnter: true, notifyNativeExit: true, notifyNativeSpeed: true };
+  const DEFAULT_SETTINGS: AlertSettings = { notifyNativeEnter: true, notifyNativeExit: true, notifyNativeSpeed: true, cooldownSpeedMs: 60000 };
+
+  function updateAlertSetting<K extends keyof AlertSettings>(key: K, val: AlertSettings[K]) {
+    const base: AlertSettings = alertSettings ?? DEFAULT_SETTINGS;
     const next = { ...base, [key]: val };
     setAlertSettings(next);
     // Dispatch with detail so TrackingContext applies the new values instantly (no API roundtrip race)
@@ -506,6 +513,31 @@ export function TrackingToolbar({
                   checked={alertSettings?.notifyNativeSpeed ?? true}
                   onChange={() => updateAlertSetting('notifyNativeSpeed', !(alertSettings?.notifyNativeSpeed ?? true))}
                 />
+              </div>
+
+              {/* Intervalo mínimo entre alertas de velocidade */}
+              <div className="flex items-center justify-between gap-3 mt-2.5">
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                  {t('toolbar.speedCooldown', 'Intervalo velocidade')}
+                </span>
+                <select
+                  value={alertSettings?.cooldownSpeedMs ?? 60000}
+                  onChange={e => updateAlertSetting('cooldownSpeedMs', Number(e.target.value))}
+                  className="text-xs rounded-md border-none outline-none cursor-pointer"
+                  style={{
+                    background:  'rgba(255,255,255,0.10)',
+                    color:       'rgba(255,255,255,0.85)',
+                    padding:     '2px 6px',
+                    height:      22,
+                  }}
+                >
+                  <option value={0}>Sem intervalo</option>
+                  <option value={30000}>30 s</option>
+                  <option value={60000}>1 min</option>
+                  <option value={300000}>5 min</option>
+                  <option value={900000}>15 min</option>
+                  <option value={1800000}>30 min</option>
+                </select>
               </div>
             </div>
           )}
