@@ -16,14 +16,14 @@ function parseArea(area: string): { type: 'circle'; lat: number; lon: number; ra
     return { type: 'circle', lat: parseFloat(circleMatch[1]), lon: parseFloat(circleMatch[2]), radius: parseFloat(circleMatch[3]) };
   }
 
-  // POLYGON((lon lat, ...))
+  // POLYGON ((lat lon, ...)) — Traccar WKT format (lat first, same as CIRCLE)
   const polygonMatch = area.match(/POLYGON\s*\(\s*\((.+)\)\s*\)/i);
   if (polygonMatch) {
     const points: [number, number][] = polygonMatch[1]
       .split(',')
       .map(p => p.trim().split(/\s+/).map(Number))
       .filter(p => p.length === 2)
-      .map(([lon, lat]) => [lat, lon]); // Leaflet usa [lat, lon]
+      .map(([lat, lon]) => [lat, lon]); // Traccar stores lat-lon; Leaflet also uses [lat, lon]
     return { type: 'polygon', points };
   }
 

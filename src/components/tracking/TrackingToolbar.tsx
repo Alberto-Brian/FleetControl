@@ -88,6 +88,7 @@ export function TrackingToolbar({
   const { t } = useTranslation('tracking');
   const [layerOpen,        setLayerOpen]        = useState(false);
   const [mapSettingsOpen,  setMapSettingsOpen]  = useState(false);
+  const [cooldownOpen,     setCooldownOpen]     = useState(false);
   const { labelType, animateMarkers, pulseMarkers, setLabelType, setAnimateMarkers, setPulseMarkers } = useMapSettings();
   const settingsRef = useRef<HTMLDivElement>(null);
   const layerRef    = useRef<HTMLDivElement>(null);
@@ -121,6 +122,7 @@ export function TrackingToolbar({
     function handleClickOutside(e: MouseEvent) {
       if (mapSettingsOpen && settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
         setMapSettingsOpen(false);
+        setCooldownOpen(false);
       }
       if (layerOpen && layerRef.current && !layerRef.current.contains(e.target as Node)) {
         setLayerOpen(false);
@@ -516,29 +518,74 @@ export function TrackingToolbar({
               </div>
 
               {/* Intervalo mínimo entre alertas de velocidade */}
-              <div className="flex items-center justify-between gap-3 mt-2.5">
-                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
-                  {t('toolbar.speedCooldown', 'Intervalo velocidade')}
-                </span>
-                <select
-                  value={alertSettings?.cooldownSpeedMs ?? 60000}
-                  onChange={e => updateAlertSetting('cooldownSpeedMs', Number(e.target.value))}
-                  className="text-xs rounded-md border-none outline-none cursor-pointer"
-                  style={{
-                    background:  'rgba(255,255,255,0.10)',
-                    color:       'rgba(255,255,255,0.85)',
-                    padding:     '2px 6px',
-                    height:      22,
-                  }}
-                >
-                  <option value={0}>Sem intervalo</option>
-                  <option value={30000}>30 s</option>
-                  <option value={60000}>1 min</option>
-                  <option value={300000}>5 min</option>
-                  <option value={900000}>15 min</option>
-                  <option value={1800000}>30 min</option>
-                </select>
-              </div>
+              {(() => {
+                const OPTS = [
+                  { ms: 0,       label: 'Sem intervalo' },
+                  { ms: 30000,   label: '30 s' },
+                  { ms: 60000,   label: '1 min' },
+                  { ms: 300000,  label: '5 min' },
+                  { ms: 900000,  label: '15 min' },
+                  { ms: 1800000, label: '30 min' },
+                ];
+                const current = alertSettings?.cooldownSpeedMs ?? 60000;
+                const currentLabel = OPTS.find(o => o.ms === current)?.label ?? '1 min';
+                return (
+                  <div className="flex items-center justify-between gap-3 mt-2.5">
+                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                      {t('toolbar.speedCooldown', 'Intervalo velocidade')}
+                    </span>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setCooldownOpen(p => !p)}
+                        className="flex items-center gap-1 text-xs rounded-md px-2"
+                        style={{
+                          height:     22,
+                          background: 'rgba(255,255,255,0.12)',
+                          color:      'rgba(255,255,255,0.85)',
+                          minWidth:   80,
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <span>{currentLabel}</span>
+                        <span style={{ opacity: 0.5, fontSize: 9 }}>▼</span>
+                      </button>
+                      {cooldownOpen && (
+                        <div
+                          className="absolute right-0 rounded-lg overflow-hidden z-50"
+                          style={{
+                            bottom:     26,
+                            minWidth:   100,
+                            background: 'rgba(18,26,46,0.97)',
+                            border:     '1px solid rgba(255,255,255,0.12)',
+                            boxShadow:  '0 4px 20px rgba(0,0,0,0.5)',
+                          }}
+                        >
+                          {OPTS.map(o => (
+                            <button
+                              key={o.ms}
+                              type="button"
+                              onClick={() => {
+                                updateAlertSetting('cooldownSpeedMs', o.ms);
+                                setCooldownOpen(false);
+                              }}
+                              className="w-full text-left text-xs px-3 py-1.5 transition-colors"
+                              style={{
+                                color:      o.ms === current ? 'rgba(96,165,250,1)' : 'rgba(255,255,255,0.75)',
+                                background: o.ms === current ? 'rgba(59,130,246,0.12)' : 'transparent',
+                              }}
+                              onMouseEnter={e => { if (o.ms !== current) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)'; }}
+                              onMouseLeave={e => { if (o.ms !== current) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                            >
+                              {o.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
