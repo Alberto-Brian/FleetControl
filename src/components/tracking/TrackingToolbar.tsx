@@ -392,10 +392,10 @@ export function TrackingToolbar({
           </MapBtn>
           {unreadAlerts > 0 && (
             <span
-              className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 rounded-full text-[8px] font-bold flex items-center justify-center px-0.5 pointer-events-none"
+              className="absolute top-0.5 right-0.5 min-w-[18px] h-3.5 rounded-full text-[8px] font-bold flex items-center justify-center px-0.5 pointer-events-none"
               style={{ background: '#ef4444', color: 'white' }}
             >
-              {unreadAlerts > 9 ? '9+' : unreadAlerts}
+              {unreadAlerts > 99 ? '99+' : unreadAlerts}
             </span>
           )}
         </div>
