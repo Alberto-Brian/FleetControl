@@ -236,15 +236,26 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'ALERTS_RECEIVED', payload: geofenceAlerts });
     const latest = geofenceAlerts[0];
     if (latest) {
-      const labels: Record<string, string> = {
-        geofenceEnter: 'Entrou',
-        geofenceExit:  'Saiu',
-        speedLimit:    'Velocidade excessiva',
+      const settings = alertSettingsRef.current;
+      const settingKey: Record<string, keyof AlertSettings> = {
+        geofenceEnter: 'notifyNativeEnter',
+        geofenceExit:  'notifyNativeExit',
+        speedLimit:    'notifyNativeSpeed',
       };
-      const device = state.devices.find(d => d.traccar_id === latest.deviceId);
-      const deviceLabel = device?.name ?? `#${latest.deviceId}`;
-      toast.warning(`${labels[latest.eventType] ?? latest.eventType} · ${deviceLabel} · ${latest.geofenceName}`);
-      if (alertSettingsRef.current) sendNativeNotification(latest, alertSettingsRef.current);
+      const key = settingKey[latest.eventType];
+      // If settings not yet loaded, default to showing; if loaded, respect the toggle
+      const enabled = !settings || !key || settings[key];
+      if (enabled) {
+        const labels: Record<string, string> = {
+          geofenceEnter: 'Entrou',
+          geofenceExit:  'Saiu',
+          speedLimit:    'Velocidade excessiva',
+        };
+        const device = state.devices.find(d => d.traccar_id === latest.deviceId);
+        const deviceLabel = device?.name ?? `#${latest.deviceId}`;
+        toast.warning(`${labels[latest.eventType] ?? latest.eventType} · ${deviceLabel} · ${latest.geofenceName}`);
+        if (settings) sendNativeNotification(latest, settings);
+      }
     }
   }, [geofenceAlerts]);
 
