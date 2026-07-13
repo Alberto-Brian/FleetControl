@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { useApiConnection } from '@/hooks/useApiConnection';
 import type { Position, Device, ConnectionState, TraccarStatus } from '@/hooks/useApiConnection';
@@ -169,6 +169,8 @@ const Ctx = createContext<TrackingContextValue | null>(null);
 export function TrackingProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initial);
   const [alertSettings, setAlertSettings] = useState<AlertSettings | null>(null);
+  const alertSettingsRef = useRef<AlertSettings | null>(null);
+  useEffect(() => { alertSettingsRef.current = alertSettings; }, [alertSettings]);
 
   // Socket único para toda a app
   const {
@@ -227,10 +229,11 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Geofence alerts from socket
+  // alertSettings is read via ref so changes to settings never re-trigger this effect
+  // (re-triggering would show duplicate toasts/notifications for already-seen alerts)
   useEffect(() => {
     if (geofenceAlerts.length === 0) return;
     dispatch({ type: 'ALERTS_RECEIVED', payload: geofenceAlerts });
-    // Toast for the most recent
     const latest = geofenceAlerts[0];
     if (latest) {
       const labels: Record<string, string> = {
@@ -241,9 +244,9 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
       const device = state.devices.find(d => d.traccar_id === latest.deviceId);
       const deviceLabel = device?.name ?? `#${latest.deviceId}`;
       toast.warning(`${labels[latest.eventType] ?? latest.eventType} · ${deviceLabel} · ${latest.geofenceName}`);
-      if (alertSettings) sendNativeNotification(latest, alertSettings);
+      if (alertSettingsRef.current) sendNativeNotification(latest, alertSettingsRef.current);
     }
-  }, [geofenceAlerts, alertSettings]);
+  }, [geofenceAlerts]);
 
   // Load alert settings when connected
   useEffect(() => {
