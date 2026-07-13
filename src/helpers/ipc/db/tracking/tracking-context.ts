@@ -14,6 +14,7 @@ import {
   LINK_VEHICLE_DEVICE,
   UNLINK_VEHICLE_DEVICE,
   CREATE_GEOFENCE, UPDATE_GEOFENCE, DELETE_GEOFENCE,
+  GET_GEOFENCE_DEVICES, ASSIGN_GEOFENCE_DEVICE, REMOVE_GEOFENCE_DEVICE,
   GET_ALERTS, ACKNOWLEDGE_ALERT, ACKNOWLEDGE_ALL_ALERTS,
   GET_ALERT_SETTINGS, UPDATE_ALERT_SETTINGS,
 } from './tracking-channels';
@@ -38,6 +39,10 @@ export function exposeTrackingContext() {
     updateGeofence:       (traccarId: number, data: { name?: string; area?: string; attributes?: Record<string, unknown> }) =>
                             ipcRenderer.invoke(UPDATE_GEOFENCE, traccarId, data),
     deleteGeofence:       (traccarId: number) => ipcRenderer.invoke(DELETE_GEOFENCE, traccarId),
+
+    getGeofenceDevices:   (traccarId: number) => ipcRenderer.invoke(GET_GEOFENCE_DEVICES, traccarId),
+    assignGeofenceDevice: (traccarId: number, deviceId: number) => ipcRenderer.invoke(ASSIGN_GEOFENCE_DEVICE, traccarId, deviceId),
+    removeGeofenceDevice: (traccarId: number, deviceId: number) => ipcRenderer.invoke(REMOVE_GEOFENCE_DEVICE, traccarId, deviceId),
 
     getAlerts:            (params?: { page?: number; limit?: number; from?: string; to?: string; deviceId?: number; type?: string; acknowledged?: boolean }) =>
                             ipcRenderer.invoke(GET_ALERTS, params),

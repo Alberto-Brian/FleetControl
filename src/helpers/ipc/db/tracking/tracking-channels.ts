@@ -18,6 +18,11 @@ export const CREATE_GEOFENCE         = 'tracking:create-geofence';
 export const UPDATE_GEOFENCE         = 'tracking:update-geofence';
 export const DELETE_GEOFENCE         = 'tracking:delete-geofence';
 
+// Geofence ↔ Device assignment
+export const GET_GEOFENCE_DEVICES    = 'tracking:get-geofence-devices';
+export const ASSIGN_GEOFENCE_DEVICE  = 'tracking:assign-geofence-device';
+export const REMOVE_GEOFENCE_DEVICE  = 'tracking:remove-geofence-device';
+
 // Alerts
 export const GET_ALERTS              = 'tracking:get-alerts';
 export const ACKNOWLEDGE_ALERT       = 'tracking:acknowledge-alert';

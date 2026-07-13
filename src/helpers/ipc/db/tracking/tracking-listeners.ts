@@ -16,6 +16,7 @@ import {
   LINK_VEHICLE_DEVICE,
   UNLINK_VEHICLE_DEVICE,
   CREATE_GEOFENCE, UPDATE_GEOFENCE, DELETE_GEOFENCE,
+  GET_GEOFENCE_DEVICES, ASSIGN_GEOFENCE_DEVICE, REMOVE_GEOFENCE_DEVICE,
   GET_ALERTS, ACKNOWLEDGE_ALERT, ACKNOWLEDGE_ALL_ALERTS,
   GET_ALERT_SETTINGS, UPDATE_ALERT_SETTINGS,
 } from './tracking-channels';
@@ -131,6 +132,27 @@ export function addTrackingEventListeners() {
 
   ipcMain.handle(DELETE_GEOFENCE, async (_event, traccarId: number) => {
     await axios.delete(`${API_URL}/api/traccar/geofences/${traccarId}`, {
+      headers: apiHeaders(), timeout: 10_000,
+    });
+    return true;
+  });
+
+  ipcMain.handle(GET_GEOFENCE_DEVICES, async (_event, traccarId: number) => {
+    const { data } = await axios.get(`${API_URL}/api/traccar/geofences/${traccarId}/devices`, {
+      headers: apiHeaders(), timeout: 10_000,
+    });
+    return data.data;
+  });
+
+  ipcMain.handle(ASSIGN_GEOFENCE_DEVICE, async (_event, traccarId: number, deviceId: number) => {
+    await axios.post(`${API_URL}/api/traccar/geofences/${traccarId}/devices/${deviceId}`, {}, {
+      headers: apiHeaders(), timeout: 10_000,
+    });
+    return true;
+  });
+
+  ipcMain.handle(REMOVE_GEOFENCE_DEVICE, async (_event, traccarId: number, deviceId: number) => {
+    await axios.delete(`${API_URL}/api/traccar/geofences/${traccarId}/devices/${deviceId}`, {
       headers: apiHeaders(), timeout: 10_000,
     });
     return true;

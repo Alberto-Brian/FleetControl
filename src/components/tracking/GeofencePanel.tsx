@@ -1,9 +1,10 @@
 // src/components/tracking/GeofencePanel.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation }  from 'react-i18next';
 import {
   MapPin, Pencil, Trash2, Circle, Pentagon, X, Gauge,
   ChevronLeft, MapPinned, TriangleAlert, LogIn, LogOut,
+  Plus, Minus, Loader2, Radio,
 } from 'lucide-react';
 import { Button }   from '@/components/ui/button';
 import {
@@ -56,6 +57,8 @@ const ALERT_META = {
 
 // ── Detalhe de geofence ──────────────────────────────────────────────────────
 
+interface TraccarDeviceInfo { id: number; name: string; uniqueId: string; }
+
 function GeofenceDetail({
   geofence,
   onBack,
@@ -74,6 +77,45 @@ function GeofenceDetail({
   const radius    = geoType === 'circle' ? parseCircleRadius(geofence.area) : null;
   const vertices  = geoType === 'polygon' ? parsePolygonVertices(geofence.area) : null;
   const speedLimit = geofence.attributes?.speedLimit as number | undefined;
+
+  // Devices assigned to this geofence (from Traccar)
+  const [assignedDevices, setAssignedDevices] = useState<TraccarDeviceInfo[]>([]);
+  const [loadingDevices,  setLoadingDevices]  = useState(true);
+  const [togglingId,      setTogglingId]      = useState<number | null>(null);
+
+  // All known devices (from tracking state)
+  const allDevices: TraccarDeviceInfo[] = state.devices.map(d => ({
+    id:       d.traccar_id,
+    name:     d.name,
+    uniqueId: d.uniqueId,
+  }));
+
+  useEffect(() => {
+    setLoadingDevices(true);
+    (window as any)._tracking.getGeofenceDevices(geofence.id)
+      .then((list: TraccarDeviceInfo[]) => setAssignedDevices(list ?? []))
+      .catch(() => setAssignedDevices([]))
+      .finally(() => setLoadingDevices(false));
+  }, [geofence.id]);
+
+  const assignedIds = new Set(assignedDevices.map(d => d.id));
+
+  async function toggleDevice(device: TraccarDeviceInfo) {
+    setTogglingId(device.id);
+    try {
+      if (assignedIds.has(device.id)) {
+        await (window as any)._tracking.removeGeofenceDevice(geofence.id, device.id);
+        setAssignedDevices(prev => prev.filter(d => d.id !== device.id));
+      } else {
+        await (window as any)._tracking.assignGeofenceDevice(geofence.id, device.id);
+        setAssignedDevices(prev => [...prev, device]);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setTogglingId(null);
+    }
+  }
 
   const recentAlerts = state.alerts
     .filter(a => a.geofenceId === geofence.id)
@@ -124,10 +166,10 @@ function GeofenceDetail({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {/* Info cards */}
-        <div className="p-3 space-y-2">
+        <div className="p-3 space-y-3">
+
+          {/* Info da zona */}
           <div className="rounded-lg border p-3 space-y-2.5 text-xs">
-            {/* Tipo + dimensão */}
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Tipo</span>
               <span className="font-medium">{geoType === 'circle' ? 'Círculo' : 'Polígono'}</span>
@@ -161,6 +203,74 @@ function GeofenceDetail({
             )}
           </div>
 
+          {/* Dispositivos monitorados */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5 px-0.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                Dispositivos
+              </p>
+              {!loadingDevices && (
+                <span className="text-[10px] text-muted-foreground/50">
+                  {assignedDevices.length} activo{assignedDevices.length !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+
+            {loadingDevices ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground/50" />
+              </div>
+            ) : allDevices.length === 0 ? (
+              <p className="text-xs text-muted-foreground/50 py-2 px-0.5">
+                Sem dispositivos sincronizados
+              </p>
+            ) : (
+              <div className="rounded-lg border overflow-hidden">
+                {allDevices.map(device => {
+                  const isAssigned = assignedIds.has(device.id);
+                  const isToggling = togglingId === device.id;
+                  return (
+                    <div
+                      key={device.id}
+                      className="flex items-center gap-2.5 px-2.5 py-2.5 border-b last:border-b-0 hover:bg-muted/30 transition-colors"
+                    >
+                      <div
+                        className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ background: isAssigned ? '#22c55e18' : 'transparent' }}
+                      >
+                        <Radio
+                          className="w-3 h-3"
+                          style={{ color: isAssigned ? '#22c55e' : 'var(--muted-foreground)', opacity: isAssigned ? 1 : 0.4 }}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{device.name}</p>
+                        <p className="text-[10px] text-muted-foreground/60 font-mono">{device.uniqueId}</p>
+                      </div>
+                      <button
+                        className="w-6 h-6 flex items-center justify-center rounded transition-colors flex-shrink-0"
+                        style={{
+                          background: isAssigned ? '#ef444418' : '#22c55e18',
+                          color:      isAssigned ? '#ef4444'   : '#22c55e',
+                        }}
+                        onClick={() => toggleDevice(device)}
+                        disabled={isToggling}
+                        title={isAssigned ? 'Remover desta zona' : 'Adicionar a esta zona'}
+                      >
+                        {isToggling
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : isAssigned
+                            ? <Minus className="w-3 h-3" />
+                            : <Plus  className="w-3 h-3" />
+                        }
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Alertas recentes desta zona */}
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 mb-1.5 px-0.5">
@@ -178,7 +288,7 @@ function GeofenceDetail({
                     <div key={a.id} className="flex items-center gap-2 px-2.5 py-2 border-b last:border-b-0">
                       <Icon className="w-3 h-3 flex-shrink-0" style={{ color: meta.color }} />
                       <span className="text-xs flex-1 truncate"
-                        style={{ color: a.acknowledged ? undefined : 'inherit', opacity: a.acknowledged ? 0.5 : 1 }}>
+                        style={{ opacity: a.acknowledged ? 0.5 : 1 }}>
                         {device?.name ?? `#${a.deviceId}`}
                         {a.speed != null && ` · ${Math.round(a.speed)} km/h`}
                       </span>
@@ -191,6 +301,7 @@ function GeofenceDetail({
               </div>
             )}
           </div>
+
         </div>
       </div>
     </div>
