@@ -8,10 +8,11 @@ import { Wifi, WifiOff, AlertCircle, Loader2 } from "lucide-react";
 function ConnectionStatusBadge() {
     const { connState, traccarStatus } = useTracking();
 
-    const isOnline     = connState === 'connected' && traccarStatus?.connected;
-    const isApiOnly    = connState === 'connected' && !traccarStatus?.connected;
-    const isConnecting = connState === 'connecting';
-    const isError      = connState === 'error';
+    const isOnline        = connState === 'connected' && traccarStatus?.connected;
+    const isApiOnly       = connState === 'connected' && !traccarStatus?.connected;
+    const isConnecting    = connState === 'connecting';
+    const isReconnecting  = connState === 'reconnecting';
+    const isError         = connState === 'error';
 
     return (
         <div className="flex items-center gap-1.5 select-none">
@@ -27,11 +28,15 @@ function ConnectionStatusBadge() {
                 <><Loader2 style={{ width: 11, height: 11, color: '#60a5fa' }} className="animate-spin" />
                   <span style={{ fontSize: 11, fontWeight: 600, color: '#60a5fa' }}>A ligar...</span></>
             )}
+            {isReconnecting && (
+                <><Loader2 style={{ width: 11, height: 11, color: '#fbbf24' }} className="animate-spin" />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#fbbf24' }}>A reconectar...</span></>
+            )}
             {isError && (
                 <><AlertCircle style={{ width: 11, height: 11, color: '#f87171' }} />
                   <span style={{ fontSize: 11, fontWeight: 600, color: '#f87171' }}>Erro de ligação</span></>
             )}
-            {!isOnline && !isApiOnly && !isConnecting && !isError && (
+            {!isOnline && !isApiOnly && !isConnecting && !isReconnecting && !isError && (
                 <><WifiOff style={{ width: 11, height: 11, color: 'rgba(255,255,255,0.3)' }} />
                   <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>Offline</span></>
             )}

@@ -58,11 +58,12 @@ interface TraccarEvent {
 }
 
 /** Estados possíveis da conexão Socket.IO */
-type ConnectionState = 
-  | 'idle' 
-  | 'connecting' 
-  | 'connected' 
-  | 'disconnected' 
+type ConnectionState =
+  | 'idle'
+  | 'connecting'
+  | 'connected'
+  | 'reconnecting'   // servidor em baixo, a tentar reconectar
+  | 'disconnected'
   | 'error';
 
 /** Retorno do hook useApiConnection */
@@ -154,9 +155,9 @@ export function useApiConnection(): UseApiConnectionReturn {
       auth: { token },
       transports: ['websocket'],
       reconnection: true,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: Infinity,   // nunca desiste — tenta indefinidamente
       reconnectionDelay: 1000,
-      reconnectionDelayMax: 10000,
+      reconnectionDelayMax: 15000,      // máximo 15s entre tentativas
       randomizationFactor: 0.5,
       timeout: 20000,
     });
@@ -189,7 +190,8 @@ export function useApiConnection(): UseApiConnectionReturn {
     socket.on('connect_error', (err: Error) => {
       console.error('[Socket] 💥 Erro de conexão:', err.message);
       setError(err);
-      setState('error');
+      // Durante reconexão automática não sobrescreve 'reconnecting' com 'error'
+      setState(prev => prev === 'reconnecting' ? 'reconnecting' : 'error');
     });
 
     socket.on('reconnect', (attemptNumber: number) => {
@@ -200,13 +202,16 @@ export function useApiConnection(): UseApiConnectionReturn {
     });
 
     socket.on('reconnect_attempt', (attemptNumber: number) => {
-      console.log(`[Socket] 🔄 Tentativa de reconexão ${attemptNumber}/10`);
+      console.log(`[Socket] 🔄 Tentativa de reconexão #${attemptNumber}`);
+      setState('reconnecting');
     });
 
     socket.on('reconnect_error', (err: Error) => {
-      console.error('[Socket] 💥 Erro na reconexão:', err.message);
+      console.error('[Socket] Reconexão falhou:', err.message);
     });
 
+    // Com reconnectionAttempts: Infinity este evento nunca dispara,
+    // mas mantemos o handler por segurança
     socket.on('reconnect_failed', () => {
       console.error('[Socket] 💥 Falhou todas as tentativas de reconexão');
       setState('error');

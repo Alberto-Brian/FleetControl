@@ -1,5 +1,5 @@
 // src/components/tracking/GeofencePanel.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation }  from 'react-i18next';
 import {
   MapPin, Pencil, Trash2, Circle, Pentagon, X, Gauge,
@@ -83,35 +83,48 @@ function GeofenceDetail({
   const [loadingDevices,  setLoadingDevices]  = useState(true);
   const [togglingId,      setTogglingId]      = useState<number | null>(null);
 
-  // All known devices (from tracking state)
+  // All known devices (from tracking state) — IDs normalised to number
   const allDevices: TraccarDeviceInfo[] = state.devices.map(d => ({
-    id:       d.traccar_id,
+    id:       Number(d.traccar_id),
     name:     d.name,
     uniqueId: d.uniqueId,
   }));
 
+  const reloadAssigned = useCallback(
+    () => (window as any)._tracking.getGeofenceDevices(geofence.id)
+      .then((list: any[]) => setAssignedDevices(
+        (list ?? []).map((d: any) => ({ id: Number(d.id), name: d.name, uniqueId: d.uniqueId }))
+      ))
+      .catch(() => setAssignedDevices([])),
+    [geofence.id],
+  );
+
   useEffect(() => {
     setLoadingDevices(true);
-    (window as any)._tracking.getGeofenceDevices(geofence.id)
-      .then((list: TraccarDeviceInfo[]) => setAssignedDevices(list ?? []))
-      .catch(() => setAssignedDevices([]))
-      .finally(() => setLoadingDevices(false));
+    reloadAssigned().finally(() => setLoadingDevices(false));
   }, [geofence.id]);
 
-  const assignedIds = new Set(assignedDevices.map(d => d.id));
+  const assignedIds = new Set(assignedDevices.map(d => Number(d.id)));
 
   async function toggleDevice(device: TraccarDeviceInfo) {
     setTogglingId(device.id);
+    const wasAssigned = assignedIds.has(device.id);
+    // Optimistic update for instant UI feedback
+    if (wasAssigned) {
+      setAssignedDevices(prev => prev.filter(d => Number(d.id) !== device.id));
+    } else {
+      setAssignedDevices(prev => [...prev, device]);
+    }
     try {
-      if (assignedIds.has(device.id)) {
+      if (wasAssigned) {
         await (window as any)._tracking.removeGeofenceDevice(geofence.id, device.id);
-        setAssignedDevices(prev => prev.filter(d => d.id !== device.id));
       } else {
         await (window as any)._tracking.assignGeofenceDevice(geofence.id, device.id);
-        setAssignedDevices(prev => [...prev, device]);
       }
     } catch (e) {
       console.error(e);
+      // On error revert to actual Traccar state
+      await reloadAssigned();
     } finally {
       setTogglingId(null);
     }
