@@ -87,7 +87,6 @@ interface UseApiConnectionReturn {
 // CONFIGURAÇÃO
 // ========================================
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const NAMESPACE = '/traccar';
 
 // ========================================
@@ -96,9 +95,18 @@ const NAMESPACE = '/traccar';
 
 export function useApiConnection(): UseApiConnectionReturn {
   // -- Refs para persistir entre renders --
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef    = useRef<Socket | null>(null);
   const currentTokenRef = useRef<string | null>(null);
-  
+  // URL do servidor: começa com o valor de build, substituída pela URL guardada nas definições
+  const socketUrlRef = useRef<string>(import.meta.env.VITE_API_URL || 'http://localhost:3001');
+
+  // Carrega a URL guardada nas definições (sobrepõe a variável de ambiente)
+  useEffect(() => {
+    (window as any).system?.getServerUrl?.()
+      .then((u: string) => { if (u) socketUrlRef.current = u; })
+      .catch(() => {});
+  }, []);
+
   // -- Estados --
   const [state, setState] = useState<ConnectionState>('idle');
   const [error, setError] = useState<Error | null>(null);
@@ -151,7 +159,7 @@ export function useApiConnection(): UseApiConnectionReturn {
 
     console.log('[Socket] Iniciando conexão...');
 
-    const socket = io(`${SOCKET_URL}${NAMESPACE}`, {
+    const socket = io(`${socketUrlRef.current}${NAMESPACE}`, {
       auth: { token },
       transports: ['websocket'],
       reconnection: true,
@@ -281,6 +289,21 @@ export function useApiConnection(): UseApiConnectionReturn {
     });
 
   }, [cleanupSocket]);
+
+  // Quando o utilizador altera a URL nas definições, reconecta imediatamente
+  useEffect(() => {
+    function handleServerUrlChanged(e: Event) {
+      const newUrl = (e as CustomEvent<string>).detail;
+      if (newUrl) socketUrlRef.current = newUrl;
+      const token = currentTokenRef.current;
+      if (token) {
+        cleanupSocket();
+        connect(token);
+      }
+    }
+    window.addEventListener('serverUrlChanged', handleServerUrlChanged);
+    return () => window.removeEventListener('serverUrlChanged', handleServerUrlChanged);
+  }, [cleanupSocket, connect]);
 
   // -- Cleanup ao desmontar --
   useEffect(() => {

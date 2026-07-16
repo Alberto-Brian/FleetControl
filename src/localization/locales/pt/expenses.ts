@@ -221,6 +221,19 @@ export const ptExpenses = {
     allCategories: 'Todas as categorias',
   },
 
+  table: {
+    actions: 'Acções',
+  },
+
+  compact: {
+    colDateExpVenc:   'Dt. Despesa / Venc.',
+    colDatePgtoCriacao: 'Dt. Pgto / Criação',
+    prefixDesp:    'Desp: ',
+    prefixVenc:    'Venc: ',
+    prefixPgto:    'Pgto: ',
+    prefixCreated: 'Criado: ',
+  },
+
   viewModes: {
     compact: 'Compacto',
     normal: 'Normal',

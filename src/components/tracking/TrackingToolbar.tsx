@@ -88,16 +88,24 @@ export function TrackingToolbar({
   const { t } = useTranslation('tracking');
   const [layerOpen,        setLayerOpen]        = useState(false);
   const [mapSettingsOpen,  setMapSettingsOpen]  = useState(false);
-  const [cooldownOpen,     setCooldownOpen]     = useState(false);
+  const [cooldownOpen,          setCooldownOpen]          = useState(false);
+  const [cooldownIgnitionOpen,  setCooldownIgnitionOpen]  = useState(false);
+  const [cooldownMovingOpen,    setCooldownMovingOpen]    = useState(false);
   const { labelType, animateMarkers, pulseMarkers, setLabelType, setAnimateMarkers, setPulseMarkers } = useMapSettings();
   const settingsRef = useRef<HTMLDivElement>(null);
   const layerRef    = useRef<HTMLDivElement>(null);
 
   type AlertSettings = {
-    notifyNativeEnter: boolean;
-    notifyNativeExit:  boolean;
-    notifyNativeSpeed: boolean;
-    cooldownSpeedMs?:  number;
+    notifyNativeEnter:   boolean;
+    notifyNativeExit:    boolean;
+    notifyNativeSpeed:   boolean;
+    notifyIgnitionOn:    boolean;
+    notifyIgnitionOff:   boolean;
+    notifyDeviceMoving:  boolean;
+    notifyDeviceStopped: boolean;
+    cooldownSpeedMs?:    number;
+    cooldownIgnitionMs?: number;
+    cooldownMovingMs?:   number;
   };
   const [alertSettings, setAlertSettings] = useState<AlertSettings | null>(null);
 
@@ -123,6 +131,8 @@ export function TrackingToolbar({
       if (mapSettingsOpen && settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
         setMapSettingsOpen(false);
         setCooldownOpen(false);
+        setCooldownIgnitionOpen(false);
+        setCooldownMovingOpen(false);
       }
       if (layerOpen && layerRef.current && !layerRef.current.contains(e.target as Node)) {
         setLayerOpen(false);
@@ -132,7 +142,12 @@ export function TrackingToolbar({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [mapSettingsOpen, layerOpen]);
 
-  const DEFAULT_SETTINGS: AlertSettings = { notifyNativeEnter: true, notifyNativeExit: true, notifyNativeSpeed: true, cooldownSpeedMs: 60000 };
+  const DEFAULT_SETTINGS: AlertSettings = {
+    notifyNativeEnter: true, notifyNativeExit: true, notifyNativeSpeed: true,
+    notifyIgnitionOn: false, notifyIgnitionOff: false,
+    notifyDeviceMoving: false, notifyDeviceStopped: false,
+    cooldownSpeedMs: 60000, cooldownIgnitionMs: 0, cooldownMovingMs: 0,
+  };
 
   function updateAlertSetting<K extends keyof AlertSettings>(key: K, val: AlertSettings[K]) {
     const base: AlertSettings = alertSettings ?? DEFAULT_SETTINGS;
@@ -266,7 +281,7 @@ export function TrackingToolbar({
             <div className="flex items-center gap-1.5">
               <Radio className="w-3 h-3 animate-pulse" style={{ color: '#a78bfa' }} />
               <span className="text-xs font-medium" style={{ color: '#a78bfa' }}>
-                {followDeviceName ? followDeviceName : t('toolbar.followActive', 'A seguir...')}
+                {followDeviceName ? followDeviceName : t('toolbar.followActive')}
               </span>
               {onStopFollow && (
                 <button
@@ -275,7 +290,7 @@ export function TrackingToolbar({
                   style={{ color: 'rgba(167,139,250,0.6)' }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#a78bfa'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(167,139,250,0.6)'; }}
-                  title={t('toolbar.stopFollow', 'Parar seguimento')}
+                  title={t('toolbar.stopFollow')}
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -313,7 +328,7 @@ export function TrackingToolbar({
       >
         {/* Fit all */}
         {onFitAll && (
-          <MapBtn title={t('toolbar.fitAll', 'Ver todos')} onClick={onFitAll}>
+          <MapBtn title={t('toolbar.fitAll')} onClick={onFitAll}>
             <Maximize2 className="w-4 h-4" />
           </MapBtn>
         )}
@@ -391,7 +406,7 @@ export function TrackingToolbar({
       >
         {/* Geofences */}
         <MapBtn
-          title={t('toolbar.geofences', 'Zonas')}
+          title={t('toolbar.geofences')}
           active={isGeoPanelOpen}
           onClick={onToggleGeoPanel}
         >
@@ -401,7 +416,7 @@ export function TrackingToolbar({
         {/* Alertas */}
         <div className="relative">
           <MapBtn
-            title={t('toolbar.alerts', 'Alertas')}
+            title={t('toolbar.alerts')}
             active={isAlertPanelOpen}
             onClick={onToggleAlerts}
           >
@@ -420,7 +435,7 @@ export function TrackingToolbar({
         {/* Definições do mapa */}
         <div className="relative" ref={settingsRef}>
           <MapBtn
-            title={t('toolbar.mapSettings', 'Definições do mapa')}
+            title={t('toolbar.mapSettings')}
             active={mapSettingsOpen}
             onClick={() => setMapSettingsOpen(v => !v)}
           >
@@ -429,27 +444,29 @@ export function TrackingToolbar({
 
           {mapSettingsOpen && (
             <div
-              className="absolute top-full right-0 mt-2 rounded-xl p-3 z-50"
+              className="absolute top-full right-0 mt-2 rounded-xl z-50 overflow-y-auto [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full"
               style={{
                 background: 'rgba(10,17,32,0.98)',
                 border:     '1px solid rgba(255,255,255,0.1)',
                 boxShadow:  '0 8px 32px rgba(0,0,0,0.6)',
+                maxHeight:  'calc(100vh - 80px)',
+                padding:    12,
                 minWidth:   210,
               }}
             >
               <p className="pb-2.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                {t('toolbar.mapSettings', 'Definições do mapa')}
+                {t('toolbar.mapSettings')}
               </p>
 
               {/* Etiqueta dos marcadores */}
               <p className="text-[10px] mb-1.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                {t('toolbar.markerLabel', 'Etiqueta dos marcadores')}
+                {t('toolbar.markerLabel')}
               </p>
               <div className="flex gap-1 mb-3">
                 {([
-                  { id: 'plate' as const,       label: t('toolbar.labelPlate',      'Matrícula') },
-                  { id: 'brand_model' as const, label: t('toolbar.labelBrand',      'Marca')     },
-                  { id: 'both' as const,        label: t('toolbar.labelBoth',       'Ambos')     },
+                  { id: 'plate' as const,       label: t('toolbar.labelPlate') },
+                  { id: 'brand_model' as const, label: t('toolbar.labelBrand') },
+                  { id: 'both' as const,        label: t('toolbar.labelBoth')  },
                 ]).map(item => (
                   <button
                     key={item.id}
@@ -471,7 +488,7 @@ export function TrackingToolbar({
               {/* Animar marcadores */}
               <div className="flex items-center justify-between gap-3 mb-2.5">
                 <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
-                  {t('toolbar.animateMarkers', 'Animar marcadores')}
+                  {t('toolbar.animateMarkers')}
                 </span>
                 <MapMiniToggle checked={animateMarkers} onChange={() => setAnimateMarkers(!animateMarkers)} />
               </div>
@@ -479,7 +496,7 @@ export function TrackingToolbar({
               {/* Pulsação */}
               <div className="flex items-center justify-between gap-3">
                 <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
-                  {t('toolbar.pulseMarkers', 'Pulsação')}
+                  {t('toolbar.pulseMarkers')}
                 </span>
                 <MapMiniToggle checked={pulseMarkers} onChange={() => setPulseMarkers(!pulseMarkers)} />
               </div>
@@ -487,11 +504,12 @@ export function TrackingToolbar({
               <div className="h-px mt-3 mb-2.5" style={{ background: 'rgba(255,255,255,0.08)' }} />
 
               <p className="pb-2 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                {t('toolbar.alertNotifications', 'Notificações GPS')}
+                {t('toolbar.alertNotifications')}
               </p>
+
               <div className="flex items-center justify-between gap-3 mb-2.5">
                 <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
-                  {t('toolbar.notifyEnter', 'Entrada em zona')}
+                  {t('toolbar.notifyEnter')}
                 </span>
                 <MapMiniToggle
                   checked={alertSettings?.notifyNativeEnter ?? true}
@@ -500,90 +518,137 @@ export function TrackingToolbar({
               </div>
               <div className="flex items-center justify-between gap-3 mb-2.5">
                 <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
-                  {t('toolbar.notifyExit', 'Saída de zona')}
+                  {t('toolbar.notifyExit')}
                 </span>
                 <MapMiniToggle
                   checked={alertSettings?.notifyNativeExit ?? true}
                   onChange={() => updateAlertSetting('notifyNativeExit', !(alertSettings?.notifyNativeExit ?? true))}
                 />
               </div>
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-3 mb-2.5">
                 <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
-                  {t('toolbar.notifySpeed', 'Excesso de velocidade')}
+                  {t('toolbar.notifySpeed')}
                 </span>
                 <MapMiniToggle
                   checked={alertSettings?.notifyNativeSpeed ?? true}
                   onChange={() => updateAlertSetting('notifyNativeSpeed', !(alertSettings?.notifyNativeSpeed ?? true))}
                 />
               </div>
+              <div className="flex items-center justify-between gap-3 mb-2.5">
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                  {t('toolbar.notifyIgnitionOn')}
+                </span>
+                <MapMiniToggle
+                  checked={alertSettings?.notifyIgnitionOn ?? false}
+                  onChange={() => updateAlertSetting('notifyIgnitionOn', !(alertSettings?.notifyIgnitionOn ?? false))}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3 mb-2.5">
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                  {t('toolbar.notifyIgnitionOff')}
+                </span>
+                <MapMiniToggle
+                  checked={alertSettings?.notifyIgnitionOff ?? false}
+                  onChange={() => updateAlertSetting('notifyIgnitionOff', !(alertSettings?.notifyIgnitionOff ?? false))}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3 mb-2.5">
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                  {t('toolbar.notifyDeviceMoving')}
+                </span>
+                <MapMiniToggle
+                  checked={alertSettings?.notifyDeviceMoving ?? false}
+                  onChange={() => updateAlertSetting('notifyDeviceMoving', !(alertSettings?.notifyDeviceMoving ?? false))}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                  {t('toolbar.notifyDeviceStopped')}
+                </span>
+                <MapMiniToggle
+                  checked={alertSettings?.notifyDeviceStopped ?? false}
+                  onChange={() => updateAlertSetting('notifyDeviceStopped', !(alertSettings?.notifyDeviceStopped ?? false))}
+                />
+              </div>
 
-              {/* Intervalo mínimo entre alertas de velocidade */}
+              {/* Intervalos mínimos entre alertas */}
               {(() => {
                 const OPTS = [
-                  { ms: 0,       label: 'Sem intervalo' },
-                  { ms: 30000,   label: '30 s' },
-                  { ms: 60000,   label: '1 min' },
-                  { ms: 300000,  label: '5 min' },
-                  { ms: 900000,  label: '15 min' },
-                  { ms: 1800000, label: '30 min' },
+                  { ms: 0,       label: t('toolbar.noInterval') },
+                  { ms: 30000,   label: t('toolbar.opt30s') },
+                  { ms: 60000,   label: t('toolbar.opt1m') },
+                  { ms: 300000,  label: t('toolbar.opt5m') },
+                  { ms: 900000,  label: t('toolbar.opt15m') },
+                  { ms: 1800000, label: t('toolbar.opt30m') },
                 ];
-                const current = alertSettings?.cooldownSpeedMs ?? 60000;
-                const currentLabel = OPTS.find(o => o.ms === current)?.label ?? '1 min';
+
+                type CooldownField = 'cooldownSpeedMs' | 'cooldownIgnitionMs' | 'cooldownMovingMs';
+                const COOLDOWNS: { label: string; field: CooldownField; open: boolean; setOpen: (v: boolean) => void; default: number }[] = [
+                  { label: t('toolbar.cooldownSpeedLabel'),    field: 'cooldownSpeedMs',    open: cooldownOpen,         setOpen: setCooldownOpen,         default: 60000 },
+                  { label: t('toolbar.cooldownIgnitionLabel'), field: 'cooldownIgnitionMs', open: cooldownIgnitionOpen, setOpen: setCooldownIgnitionOpen, default: 0 },
+                  { label: t('toolbar.cooldownMovementLabel'), field: 'cooldownMovingMs',   open: cooldownMovingOpen,   setOpen: setCooldownMovingOpen,   default: 0 },
+                ];
+
                 return (
-                  <div className="flex items-center justify-between gap-3 mt-2.5">
-                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
-                      {t('toolbar.speedCooldown', 'Intervalo velocidade')}
-                    </span>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setCooldownOpen(p => !p)}
-                        className="flex items-center gap-1 text-xs rounded-md px-2"
-                        style={{
-                          height:     22,
-                          background: 'rgba(255,255,255,0.12)',
-                          color:      'rgba(255,255,255,0.85)',
-                          minWidth:   80,
-                          justifyContent: 'space-between',
-                        }}
-                      >
-                        <span>{currentLabel}</span>
-                        <span style={{ opacity: 0.5, fontSize: 9 }}>▼</span>
-                      </button>
-                      {cooldownOpen && (
-                        <div
-                          className="absolute right-0 rounded-lg overflow-hidden z-50"
-                          style={{
-                            bottom:     26,
-                            minWidth:   100,
-                            background: 'rgba(18,26,46,0.97)',
-                            border:     '1px solid rgba(255,255,255,0.12)',
-                            boxShadow:  '0 4px 20px rgba(0,0,0,0.5)',
-                          }}
-                        >
-                          {OPTS.map(o => (
+                  <>
+                    {COOLDOWNS.map(cd => {
+                      const current = (alertSettings as any)?.[cd.field] ?? cd.default;
+                      const currentLabel = OPTS.find(o => o.ms === current)?.label ?? t('toolbar.noInterval');
+                      return (
+                        <div key={cd.field} className="flex items-center justify-between gap-3 mt-2.5">
+                          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                            {cd.label}
+                          </span>
+                          <div className="relative">
                             <button
-                              key={o.ms}
                               type="button"
-                              onClick={() => {
-                                updateAlertSetting('cooldownSpeedMs', o.ms);
-                                setCooldownOpen(false);
-                              }}
-                              className="w-full text-left text-xs px-3 py-1.5 transition-colors"
+                              onClick={() => cd.setOpen(!cd.open)}
+                              className="flex items-center gap-1 text-xs rounded-md px-2"
                               style={{
-                                color:      o.ms === current ? 'rgba(96,165,250,1)' : 'rgba(255,255,255,0.75)',
-                                background: o.ms === current ? 'rgba(59,130,246,0.12)' : 'transparent',
+                                height:         22,
+                                background:     'rgba(255,255,255,0.12)',
+                                color:          'rgba(255,255,255,0.85)',
+                                minWidth:       80,
+                                justifyContent: 'space-between',
                               }}
-                              onMouseEnter={e => { if (o.ms !== current) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)'; }}
-                              onMouseLeave={e => { if (o.ms !== current) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                             >
-                              {o.label}
+                              <span>{currentLabel}</span>
+                              <span style={{ opacity: 0.5, fontSize: 9 }}>▼</span>
                             </button>
-                          ))}
+                            {cd.open && (
+                              <div
+                                className="absolute right-0 rounded-lg overflow-hidden z-50"
+                                style={{
+                                  bottom:     26,
+                                  minWidth:   100,
+                                  background: 'rgba(18,26,46,0.97)',
+                                  border:     '1px solid rgba(255,255,255,0.12)',
+                                  boxShadow:  '0 4px 20px rgba(0,0,0,0.5)',
+                                }}
+                              >
+                                {OPTS.map(o => (
+                                  <button
+                                    key={o.ms}
+                                    type="button"
+                                    onClick={() => { updateAlertSetting(cd.field, o.ms); cd.setOpen(false); }}
+                                    className="w-full text-left text-xs px-3 py-1.5 transition-colors"
+                                    style={{
+                                      color:      o.ms === current ? 'rgba(96,165,250,1)' : 'rgba(255,255,255,0.75)',
+                                      background: o.ms === current ? 'rgba(59,130,246,0.12)' : 'transparent',
+                                    }}
+                                    onMouseEnter={e => { if (o.ms !== current) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)'; }}
+                                    onMouseLeave={e => { if (o.ms !== current) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                                  >
+                                    {o.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      );
+                    })}
+                  </>
                 );
               })()}
             </div>

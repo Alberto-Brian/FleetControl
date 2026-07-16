@@ -19,9 +19,11 @@ import {
   GET_GEOFENCE_DEVICES, ASSIGN_GEOFENCE_DEVICE, REMOVE_GEOFENCE_DEVICE,
   GET_ALERTS, ACKNOWLEDGE_ALERT, ACKNOWLEDGE_ALL_ALERTS,
   GET_ALERT_SETTINGS, UPDATE_ALERT_SETTINGS,
+  GET_COMMAND_TYPES, SEND_DEVICE_COMMAND,
+  GET_GPS_SUMMARY, GET_GPS_STOPS, GET_GPS_EVENTS,
 } from './tracking-channels';
 
-const API_URL = process.env.API_URL || 'http://localhost:3001';
+import { getApiUrl } from '@/helpers/server-config';
 
 // Usa o access token guardado em memória pelo auth service ou license service
 // O auth service já existe no teu projecto (exposeServiceAuthContext)
@@ -35,7 +37,7 @@ function apiHeaders() {
 
 export function addTrackingEventListeners() {
   ipcMain.handle(GET_TRACKED_DEVICES, async () => {
-    const { data } = await axios.get(`${API_URL}/api/traccar/devices`, {
+    const { data } = await axios.get(`${getApiUrl()}/api/traccar/devices`, {
       headers: apiHeaders(),
       timeout: 10_000,
     });
@@ -43,7 +45,7 @@ export function addTrackingEventListeners() {
   });
 
   ipcMain.handle(CREATE_TRACKED_DEVICE, async (_event, payload: { name: string; uniqueId: string }) => {
-    const { data } = await axios.post(`${API_URL}/api/traccar/devices`, payload, {
+    const { data } = await axios.post(`${getApiUrl()}/api/traccar/devices`, payload, {
       headers: apiHeaders(),
       timeout: 15_000,
     });
@@ -52,15 +54,15 @@ export function addTrackingEventListeners() {
 
   ipcMain.handle(GET_DEVICE_POSITIONS, async (_event, deviceId?: number) => {
     const url = deviceId
-      ? `${API_URL}/api/traccar/positions/live?deviceId=${deviceId}`
-      : `${API_URL}/api/traccar/positions/live`;
+      ? `${getApiUrl()}/api/traccar/positions/live?deviceId=${deviceId}`
+      : `${getApiUrl()}/api/traccar/positions/live`;
     const { data } = await axios.get(url, { headers: apiHeaders(), timeout: 10_000 });
     return data.data;
   });
 
   ipcMain.handle(GET_POSITION_HISTORY, async (_event, deviceId: number, from: string, to: string) => {
     const { data } = await axios.get(
-      `${API_URL}/api/traccar/devices/${deviceId}/positions`,
+      `${getApiUrl()}/api/traccar/devices/${deviceId}/positions`,
       { params: { from, to }, headers: apiHeaders(), timeout: 15_000 },
     );
     return data.data;
@@ -68,7 +70,7 @@ export function addTrackingEventListeners() {
 
   ipcMain.handle(SYNC_DEVICES, async () => {
     // console.log('O MEU TOKEN: ', apiHeaders());
-    const { data } = await axios.post(`${API_URL}/api/traccar/devices/sync`, {}, {
+    const { data } = await axios.post(`${getApiUrl()}/api/traccar/devices/sync`, {}, {
       headers: apiHeaders(),
       timeout: 15_000,
     });
@@ -76,7 +78,7 @@ export function addTrackingEventListeners() {
   });
 
   ipcMain.handle(SYNC_GEOFENCES, async () => {
-    const { data } = await axios.post(`${API_URL}/api/traccar/geofences/sync`, {}, {
+    const { data } = await axios.post(`${getApiUrl()}/api/traccar/geofences/sync`, {}, {
       headers: apiHeaders(),
       timeout: 15_000,
     });
@@ -84,7 +86,7 @@ export function addTrackingEventListeners() {
   });
 
   ipcMain.handle(GET_GEOFENCES, async () => {
-    const { data } = await axios.get(`${API_URL}/api/traccar/geofences`, {
+    const { data } = await axios.get(`${getApiUrl()}/api/traccar/geofences`, {
       headers: apiHeaders(),
       timeout: 10_000,
     });
@@ -92,7 +94,7 @@ export function addTrackingEventListeners() {
   });
 
   ipcMain.handle(GET_LINK_SUGGESTIONS, async () => {
-    const { data } = await axios.get(`${API_URL}/api/traccar/link-suggestions`, {
+    const { data } = await axios.get(`${getApiUrl()}/api/traccar/link-suggestions`, {
       headers: apiHeaders(),
       timeout: 15_000,
     });
@@ -101,7 +103,7 @@ export function addTrackingEventListeners() {
 
   ipcMain.handle(LINK_VEHICLE_DEVICE, async (_event, vehicleId: string, traccarDeviceId: string) => {
     const { data } = await axios.patch(
-      `${API_URL}/api/traccar/vehicles/${vehicleId}/link-device`,
+      `${getApiUrl()}/api/traccar/vehicles/${vehicleId}/link-device`,
       { traccarDeviceId },
       { headers: apiHeaders(), timeout: 10_000 },
     );
@@ -110,86 +112,121 @@ export function addTrackingEventListeners() {
 
   ipcMain.handle(UNLINK_VEHICLE_DEVICE, async (_event, vehicleId: string) => {
     const { data } = await axios.delete(
-      `${API_URL}/api/traccar/vehicles/${vehicleId}/link-device`,
+      `${getApiUrl()}/api/traccar/vehicles/${vehicleId}/link-device`,
       { headers: apiHeaders(), timeout: 10_000 },
     );
     return data;
   });
 
   ipcMain.handle(CREATE_GEOFENCE, async (_event, data) => {
-    const { data: res } = await axios.post(`${API_URL}/api/traccar/geofences`, data, {
+    const { data: res } = await axios.post(`${getApiUrl()}/api/traccar/geofences`, data, {
       headers: apiHeaders(), timeout: 15_000,
     });
     return res.data;
   });
 
   ipcMain.handle(UPDATE_GEOFENCE, async (_event, traccarId: number, data) => {
-    const { data: res } = await axios.put(`${API_URL}/api/traccar/geofences/${traccarId}`, data, {
+    const { data: res } = await axios.put(`${getApiUrl()}/api/traccar/geofences/${traccarId}`, data, {
       headers: apiHeaders(), timeout: 15_000,
     });
     return res.data;
   });
 
   ipcMain.handle(DELETE_GEOFENCE, async (_event, traccarId: number) => {
-    await axios.delete(`${API_URL}/api/traccar/geofences/${traccarId}`, {
+    await axios.delete(`${getApiUrl()}/api/traccar/geofences/${traccarId}`, {
       headers: apiHeaders(), timeout: 10_000,
     });
     return true;
   });
 
   ipcMain.handle(GET_GEOFENCE_DEVICES, async (_event, traccarId: number) => {
-    const { data } = await axios.get(`${API_URL}/api/traccar/geofences/${traccarId}/devices`, {
+    const { data } = await axios.get(`${getApiUrl()}/api/traccar/geofences/${traccarId}/devices`, {
       headers: apiHeaders(), timeout: 10_000,
     });
     return data.data;
   });
 
   ipcMain.handle(ASSIGN_GEOFENCE_DEVICE, async (_event, traccarId: number, deviceId: number) => {
-    await axios.post(`${API_URL}/api/traccar/geofences/${traccarId}/devices/${deviceId}`, {}, {
+    await axios.post(`${getApiUrl()}/api/traccar/geofences/${traccarId}/devices/${deviceId}`, {}, {
       headers: apiHeaders(), timeout: 10_000,
     });
     return true;
   });
 
   ipcMain.handle(REMOVE_GEOFENCE_DEVICE, async (_event, traccarId: number, deviceId: number) => {
-    await axios.delete(`${API_URL}/api/traccar/geofences/${traccarId}/devices/${deviceId}`, {
+    await axios.delete(`${getApiUrl()}/api/traccar/geofences/${traccarId}/devices/${deviceId}`, {
       headers: apiHeaders(), timeout: 10_000,
     });
     return true;
   });
 
   ipcMain.handle(GET_ALERTS, async (_event, params) => {
-    const { data } = await axios.get(`${API_URL}/api/alerts`, {
+    const { data } = await axios.get(`${getApiUrl()}/api/alerts`, {
       params, headers: apiHeaders(), timeout: 10_000,
     });
     return data;
   });
 
   ipcMain.handle(ACKNOWLEDGE_ALERT, async (_event, id: string) => {
-    await axios.patch(`${API_URL}/api/alerts/${id}/acknowledge`, {}, {
+    await axios.patch(`${getApiUrl()}/api/alerts/${id}/acknowledge`, {}, {
       headers: apiHeaders(), timeout: 10_000,
     });
     return true;
   });
 
   ipcMain.handle(ACKNOWLEDGE_ALL_ALERTS, async () => {
-    const { data } = await axios.patch(`${API_URL}/api/alerts/acknowledge-all`, {}, {
+    const { data } = await axios.patch(`${getApiUrl()}/api/alerts/acknowledge-all`, {}, {
       headers: apiHeaders(), timeout: 10_000,
     });
     return data;
   });
 
   ipcMain.handle(GET_ALERT_SETTINGS, async () => {
-    const { data } = await axios.get(`${API_URL}/api/alerts/settings`, {
+    const { data } = await axios.get(`${getApiUrl()}/api/alerts/settings`, {
       headers: apiHeaders(), timeout: 10_000,
     });
     return data.data;
   });
 
   ipcMain.handle(UPDATE_ALERT_SETTINGS, async (_event, data) => {
-    const { data: res } = await axios.put(`${API_URL}/api/alerts/settings`, data, {
+    const { data: res } = await axios.put(`${getApiUrl()}/api/alerts/settings`, data, {
       headers: apiHeaders(), timeout: 10_000,
     });
     return res.data;
+  });
+
+  ipcMain.handle(GET_COMMAND_TYPES, async (_event, traccarDeviceId: number) => {
+    const { data } = await axios.get(`${getApiUrl()}/api/traccar/devices/${traccarDeviceId}/commands/types`, {
+      headers: apiHeaders(), timeout: 10_000,
+    });
+    return data.data;
+  });
+
+  ipcMain.handle(SEND_DEVICE_COMMAND, async (_event, traccarDeviceId: number, type: string, attributes?: Record<string, unknown>) => {
+    const { data } = await axios.post(`${getApiUrl()}/api/traccar/devices/${traccarDeviceId}/commands`, { type, attributes }, {
+      headers: apiHeaders(), timeout: 15_000,
+    });
+    return data.data;
+  });
+
+  ipcMain.handle(GET_GPS_SUMMARY, async (_event, params: { deviceId: number; from: string; to: string }) => {
+    const { data } = await axios.get(`${getApiUrl()}/api/traccar/reports/summary`, {
+      params, headers: apiHeaders(), timeout: 20_000,
+    });
+    return data.data;
+  });
+
+  ipcMain.handle(GET_GPS_STOPS, async (_event, params: { deviceId: number; from: string; to: string }) => {
+    const { data } = await axios.get(`${getApiUrl()}/api/traccar/reports/stops`, {
+      params, headers: apiHeaders(), timeout: 20_000,
+    });
+    return data.data;
+  });
+
+  ipcMain.handle(GET_GPS_EVENTS, async (_event, params: { deviceId: number; from: string; to: string; type?: string }) => {
+    const { data } = await axios.get(`${getApiUrl()}/api/traccar/reports/events`, {
+      params, headers: apiHeaders(), timeout: 20_000,
+    });
+    return data.data;
   });
 }

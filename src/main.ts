@@ -1,5 +1,11 @@
 // src/main.ts
 import { app, dialog, BrowserWindow } from "electron";
+
+// Define o nome antes de qualquer janela/notificação para que o SO
+// mostre "FleetControl" em vez do nome padrão do Electron
+app.setName('FleetControl');
+// Necessário para que as notificações Windows usem o nome correcto (não "electron.app.Electron")
+if (process.platform === 'win32') app.setAppUserModelId('FleetControl');
 import registerListeners from "./helpers/ipc/listeners-register";
 import path from "path";
 import { initializeDatabase, getDbManager } from './lib/db/db_client';
@@ -87,6 +93,9 @@ async function createWindow() {
     });
     
     registerListeners(mainWindow);
+
+    // Garante que o renderer processa eventos socket mesmo com a janela minimizada
+    mainWindow.webContents.setBackgroundThrottling(false);
 
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
         await mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);

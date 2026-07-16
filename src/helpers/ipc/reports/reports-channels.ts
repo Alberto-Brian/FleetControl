@@ -18,6 +18,7 @@ export const REPORTS_CHANNELS = {
   GET_FUEL_DATA: 'reports:getFuelData',
   GET_MAINTENANCE_DATA: 'reports:getMaintenanceData',
   GET_FINANCIAL_DATA: 'reports:getFinancialData',
+  GET_EXPENSES_DATA: 'reports:getExpensesData',
   GET_GENERAL_DATA: 'reports:getGeneralData',
 
   // Relatórios gerados (histórico)

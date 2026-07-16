@@ -26,10 +26,24 @@ interface ElectronWindow {
     close: () => Promise<void>;
 }
 
+export interface DbFileInfo {
+    filename:    string;
+    filepath:    string;
+    size:        number;
+    createdAt:   string; // ISO string (serialized from Date in main)
+    recordCount: number;
+    isActive:    boolean;
+}
+
 interface System {
-    getSystemVersion: () => Promise<string>;
-    getSchemaVersion: () => Promise<number>;
-    forceDbRotation: () => Promise<void>
+    getSystemVersion:  () => Promise<string>;
+    getSchemaVersion:  () => Promise<number>;
+    forceDbRotation:   () => Promise<void>;
+    getServerUrl:      () => Promise<string>;
+    setServerUrl:      (url: string) => Promise<boolean>;
+    showNotification:  (title: string, body: string) => void;
+    listDatabases:     () => Promise<DbFileInfo[]>;
+    getDatabaseStats:  (filepath: string) => Promise<Record<string, number> & { error?: string }>;
 }
 
 export interface License {

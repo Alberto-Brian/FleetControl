@@ -35,11 +35,29 @@ import AllActivitiesDialog from '@/components/dashboard/AllActivitiesDialog';
 // Context & Helpers
 import { useDashboard } from '@/contexts/DashboardContext';
 import { loadDashboardData } from '@/helpers/dashboard-helpers';
+import { useTracking } from '@/contexts/TrackingContext';
+import { Zap, ZapOff, Play, Square, LogIn, LogOut, Gauge, MapPin as MapPinIcon } from 'lucide-react';
 
-export function DashboardPageContent() {
+interface DashboardPageContentProps {
+  onNavigate?: (section: string) => void;
+}
+
+export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) {
   const { t } = useTranslation();
+
+  const GPS_ALERT_META: Record<string, { icon: React.ElementType; color: string; label: string }> = {
+    geofenceEnter: { icon: LogIn,   color: '#22c55e', label: t('tracking:alertDetail.events.geofenceEnter') },
+    geofenceExit:  { icon: LogOut,  color: '#f59e0b', label: t('tracking:alertDetail.events.geofenceExit') },
+    speedLimit:    { icon: Gauge,   color: '#ef4444', label: t('tracking:alertDetail.events.speedLimit') },
+    ignitionOn:    { icon: Zap,     color: '#10b981', label: t('tracking:alertDetail.events.ignitionOn') },
+    ignitionOff:   { icon: ZapOff,  color: '#6b7280', label: t('tracking:alertDetail.events.ignitionOff') },
+    deviceMoving:  { icon: Play,    color: '#3b82f6', label: t('tracking:alertDetail.events.deviceMoving') },
+    deviceStopped: { icon: Square,  color: '#8b5cf6', label: t('tracking:alertDetail.events.deviceStopped') },
+  };
   const { handleError } = useErrorHandler();
   const { state, setStats, setActivities, setChartData, setLoading } = useDashboard();
+  const { state: trackingState, isConnected: trackingConnected } = useTracking();
+  const recentAlerts = trackingState.alerts.slice(0, 6);
   const [showAllActivities, setShowAllActivities] = useState(false);
   useEffect(() => {
     loadData();
@@ -140,7 +158,7 @@ export function DashboardPageContent() {
         />
         <StatCard 
           icon={AlertTriangle}
-          title="Pending Alerts"
+          title={t('dashboard:stats.alerts.pending')}
           value={stats.overdueFines + stats.scheduledMaintenances}
           subtitle={`${stats.scheduledMaintenances} ${t('dashboard:stats.maintenances.inProgress')}`}
           trend={1}
@@ -330,13 +348,13 @@ export function DashboardPageContent() {
                 {t('dashboard:alerts.title')}
               </CardTitle>
               <Badge variant="destructive" className="rounded-full px-2">
-                {stats.overdueFines + stats.scheduledMaintenances}
+                {stats.overdueFines + stats.scheduledMaintenances + trackingState.unreadAlerts}
               </Badge>
             </div>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Multas Vencidas */}
                 {stats.overdueFines > 0 && (
                   <div className="p-3 rounded-xl border border-red-100 dark:border-red-900 bg-white dark:bg-slate-900 hover:shadow-md transition-all cursor-pointer">
@@ -349,13 +367,7 @@ export function DashboardPageContent() {
                           <p className="text-sm font-semibold">{t('dashboard:alerts.overdueFines', { count: stats.overdueFines })}</p>
                           <span className="text-[10px] text-muted-foreground">{t('common:today')}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {t('dashboard:alerts.actionRequired')}
-                        </p>
-                        <div className="mt-2 flex gap-2">
-                          <Button variant="link" className="h-auto p-0 text-xs text-blue-600">{t('dashboard:alerts.resolve')}</Button>
-                          <Button variant="link" className="h-auto p-0 text-xs text-slate-400">{t('dashboard:alerts.ignore')}</Button>
-                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{t('dashboard:alerts.actionRequired')}</p>
                       </div>
                     </div>
                   </div>
@@ -373,19 +385,56 @@ export function DashboardPageContent() {
                           <p className="text-sm font-semibold">{t('dashboard:alerts.pendingMaintenances', { count: stats.scheduledMaintenances })}</p>
                           <span className="text-[10px] text-muted-foreground">{t('common:today')}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {t('dashboard:alerts.requiresAttention')}
-                        </p>
-                        <div className="mt-2 flex gap-2">
-                          <Button variant="link" className="h-auto p-0 text-xs text-blue-600">{t('dashboard:alerts.viewDetails')}</Button>
-                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{t('dashboard:alerts.requiresAttention')}</p>
                       </div>
                     </div>
                   </div>
                 )}
 
+                {/* Alertas GPS em tempo real */}
+                {recentAlerts.length > 0 && (
+                  <>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1 pt-1">
+                      {t('dashboard:alerts.gpsRecent')}
+                    </p>
+                    {recentAlerts.map(alert => {
+                      const meta = GPS_ALERT_META[alert.eventType] ?? GPS_ALERT_META.geofenceEnter;
+                      const Icon = meta.icon;
+                      const device = trackingState.devices.find(d => d.traccar_id === alert.deviceId);
+                      const deviceLabel = device?.name ?? `#${alert.deviceId}`;
+                      return (
+                        <div
+                          key={alert.id}
+                          className="p-2.5 rounded-xl border bg-card hover:shadow-sm transition-all cursor-pointer flex items-center gap-3"
+                          style={{ borderColor: `${meta.color}33` }}
+                          onClick={() => onNavigate?.('tracking')}
+                        >
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${meta.color}22` }}>
+                            <Icon className="w-3.5 h-3.5" style={{ color: meta.color }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold truncate">
+                              <span style={{ color: meta.color }}>{meta.label}</span>
+                              {' · '}
+                              {deviceLabel}
+                            </p>
+                            {alert.geofenceName && (
+                              <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1">
+                                <MapPinIcon className="w-2.5 h-2.5" /> {alert.geofenceName}
+                              </p>
+                            )}
+                          </div>
+                          {!alert.acknowledged && (
+                            <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+
                 {/* Sem alertas */}
-                {stats.overdueFines === 0 && stats.scheduledMaintenances === 0 && (
+                {stats.overdueFines === 0 && stats.scheduledMaintenances === 0 && recentAlerts.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
                     <Bell className="w-12 h-12 mx-auto mb-2 opacity-20" />
                     <p className="text-sm">{t('dashboard:alerts.noAlerts')}</p>
@@ -393,8 +442,18 @@ export function DashboardPageContent() {
                 )}
               </div>
             </ScrollArea>
-            <Button variant="outline" className="w-full mt-4 text-xs">
+            <Button
+              variant="outline"
+              className="w-full mt-4 text-xs"
+              onClick={() => onNavigate?.('tracking')}
+              disabled={!trackingConnected}
+            >
               {t('dashboard:alerts.viewHistory')}
+              {trackingState.unreadAlerts > 0 && (
+                <Badge variant="destructive" className="ml-2 rounded-full px-1.5 text-[10px]">
+                  {trackingState.unreadAlerts}
+                </Badge>
+              )}
             </Button>
           </CardContent>
         </Card>

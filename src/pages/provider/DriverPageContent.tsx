@@ -65,7 +65,8 @@ export default function DriversPageContent() {
   const [activeTab, setActiveTab]                   = useState('drivers');
   const [searchTerm, setSearchTerm]                 = useState('');
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('all');
-  const [viewMode, setViewMode]                     = useState<ViewMode>('cards');
+  const [viewMode, setViewMode]                     = useState<ViewMode>(() => (localStorage.getItem('viewMode_drivers') as ViewMode) || 'cards');
+  useEffect(() => { localStorage.setItem('viewMode_drivers', viewMode); }, [viewMode]);
 
   // Mapa driverId → turnos activos em que está inserido
   const [driverShiftsMap, setDriverShiftsMap] = useState<Record<string, IDriverShiftBadge[]>>({});

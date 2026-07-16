@@ -132,6 +132,7 @@ export const ptDashboard = {
     viewDetails: "Ver Detalhes",
     noAlerts: "Nenhum alerta no momento",
     viewHistory: "Ver Histórico de Alertas",
+    gpsRecent: "Alertas GPS Recentes",
   },
 
   table: {

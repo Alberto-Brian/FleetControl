@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Bell, CheckCheck, X, ChevronLeft, LogIn, LogOut, Gauge,
-  MapPin, Clock, Navigation,
+  MapPin, Clock, Navigation, Zap, ZapOff, Play, Square,
 } from 'lucide-react';
 import { Button }        from '@/components/ui/button';
 import { useTracking }   from '@/contexts/TrackingContext';
@@ -15,14 +15,18 @@ interface Props {
   onFocusCoords?:     (lat: number, lon: number) => void;
 }
 
-const EVENT_META = {
-  geofenceEnter: { icon: LogIn,  color: '#22c55e', label: 'Entrou na zona',         bg: '#22c55e18' },
-  geofenceExit:  { icon: LogOut, color: '#f59e0b', label: 'Saiu da zona',            bg: '#f59e0b18' },
-  speedLimit:    { icon: Gauge,  color: '#ef4444', label: 'Velocidade excessiva',    bg: '#ef444418' },
-} as const;
+const EVENT_ICONS: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
+  geofenceEnter:  { icon: LogIn,   color: '#22c55e', bg: '#22c55e18' },
+  geofenceExit:   { icon: LogOut,  color: '#f59e0b', bg: '#f59e0b18' },
+  speedLimit:     { icon: Gauge,   color: '#ef4444', bg: '#ef444418' },
+  ignitionOn:     { icon: Zap,     color: '#10b981', bg: '#10b98118' },
+  ignitionOff:    { icon: ZapOff,  color: '#6b7280', bg: '#6b728018' },
+  deviceMoving:   { icon: Play,    color: '#3b82f6', bg: '#3b82f618' },
+  deviceStopped:  { icon: Square,  color: '#8b5cf6', bg: '#8b5cf618' },
+};
 
 function formatFull(iso: string): string {
-  return new Date(iso).toLocaleString('pt-PT', {
+  return new Date(iso).toLocaleString([], {
     day: '2-digit', month: 'long', year: 'numeric',
     hour: '2-digit', minute: '2-digit', second: '2-digit',
   });
@@ -41,10 +45,21 @@ function AlertDetail({
   onAcknowledge:  (id: string) => void;
   onFocusCoords?: (lat: number, lon: number) => void;
 }) {
+  const { t }     = useTranslation('tracking');
   const { state } = useTracking();
-  const meta      = EVENT_META[alert.eventType as keyof typeof EVENT_META] ?? EVENT_META.geofenceEnter;
-  const Icon      = meta.icon;
+  const icons     = EVENT_ICONS[alert.eventType] ?? EVENT_ICONS.geofenceEnter;
+  const Icon      = icons.icon;
   const device    = state.devices.find(d => d.traccar_id === alert.deviceId);
+  const EVENT_LABELS: Record<string, string> = {
+    geofenceEnter: t('alertDetail.events.geofenceEnter'),
+    geofenceExit:  t('alertDetail.events.geofenceExit'),
+    speedLimit:    t('alertDetail.events.speedLimit'),
+    ignitionOn:    t('alertDetail.events.ignitionOn'),
+    ignitionOff:   t('alertDetail.events.ignitionOff'),
+    deviceMoving:  t('alertDetail.events.deviceMoving'),
+    deviceStopped: t('alertDetail.events.deviceStopped'),
+  };
+  const eventLabel = EVENT_LABELS[alert.eventType] ?? alert.eventType;
 
   return (
     <div className="flex flex-col h-full">
@@ -53,27 +68,27 @@ function AlertDetail({
         <button
           className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted"
           onClick={onBack}
-          title="Voltar"
+          title={t('alertDetail.back')}
         >
           <ChevronLeft className="w-3.5 h-3.5" />
         </button>
         <div
           className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ background: meta.bg }}
+          style={{ background: icons.bg }}
         >
-          <Icon className="w-3 h-3" style={{ color: meta.color }} />
+          <Icon className="w-3 h-3" style={{ color: icons.color }} />
         </div>
-        <span className="text-sm font-semibold flex-1 truncate" style={{ color: meta.color }}>
-          {meta.label}
+        <span className="text-sm font-semibold flex-1 truncate" style={{ color: icons.color }}>
+          {eventLabel}
         </span>
         {!alert.acknowledged && (
           <button
             className="flex items-center gap-1 text-xs px-2 h-6 rounded hover:bg-muted text-muted-foreground"
             onClick={() => onAcknowledge(alert.id)}
-            title="Marcar como lido"
+            title={t('alertDetail.markRead')}
           >
             <CheckCheck className="w-3 h-3" />
-            <span>Lido</span>
+            <span>{t('alertDetail.read')}</span>
           </button>
         )}
       </div>
@@ -85,7 +100,7 @@ function AlertDetail({
           <div className="flex items-start gap-2">
             <Clock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Data e hora</p>
+              <p className="text-muted-foreground text-[10px] uppercase tracking-wide">{t('alertDetail.datetime')}</p>
               <p className="font-medium mt-0.5">{formatFull(alert.createdAt)}</p>
             </div>
           </div>
@@ -96,7 +111,7 @@ function AlertDetail({
           <div className="flex items-start gap-2">
             <Navigation className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Dispositivo</p>
+              <p className="text-muted-foreground text-[10px] uppercase tracking-wide">{t('alertDetail.device')}</p>
               <p className="font-medium mt-0.5">{device?.name ?? `#${alert.deviceId}`}</p>
               {device?.uniqueId && (
                 <p className="text-muted-foreground/70 font-mono text-[10px] mt-0.5">{device.uniqueId}</p>
@@ -106,28 +121,30 @@ function AlertDetail({
 
           <div className="h-px bg-border" />
 
-          {/* Zona */}
-          <div className="flex items-start gap-2">
-            <MapPin className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Zona</p>
-              <p className="font-medium mt-0.5">{alert.geofenceName}</p>
+          {/* Zona — só para alertas com geofence */}
+          {alert.geofenceName != null && (
+            <div className="flex items-start gap-2">
+              <MapPin className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-muted-foreground text-[10px] uppercase tracking-wide">{t('alertDetail.zone')}</p>
+                <p className="font-medium mt-0.5">{alert.geofenceName}</p>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Velocidade (só para alertas de velocidade ou quando disponível) */}
+          {/* Velocidade */}
           {alert.speed != null && (
             <>
               <div className="h-px bg-border" />
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Velocidade detectada</span>
+                <span className="text-muted-foreground">{t('alertDetail.speedDetected')}</span>
                 <span className="font-semibold font-mono" style={{ color: '#ef4444' }}>
                   {Math.round(alert.speed)} km/h
                 </span>
               </div>
               {alert.speedLimit != null && (
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Limite configurado</span>
+                  <span className="text-muted-foreground">{t('alertDetail.speedLimit')}</span>
                   <span className="font-mono text-orange-500">{alert.speedLimit} km/h</span>
                 </div>
               )}
@@ -139,14 +156,14 @@ function AlertDetail({
         {alert.latitude != null && alert.longitude != null && (
           <div className="rounded-lg border p-3 space-y-2 text-xs">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-              Localização
+              {t('alertDetail.location')}
             </p>
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Latitude</span>
+              <span className="text-muted-foreground">{t('alertDetail.latitude')}</span>
               <span className="font-mono">{alert.latitude.toFixed(6)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Longitude</span>
+              <span className="text-muted-foreground">{t('alertDetail.longitude')}</span>
               <span className="font-mono">{alert.longitude.toFixed(6)}</span>
             </div>
             {onFocusCoords && (
@@ -155,7 +172,7 @@ function AlertDetail({
                 onClick={() => onFocusCoords(alert.latitude!, alert.longitude!)}
               >
                 <MapPin className="w-3 h-3" />
-                Ver no mapa
+                {t('alertDetail.viewOnMap')}
               </button>
             )}
           </div>
@@ -167,7 +184,7 @@ function AlertDetail({
             className="w-1.5 h-1.5 rounded-full flex-shrink-0"
             style={{ background: alert.acknowledged ? '#22c55e' : '#f59e0b' }}
           />
-          {alert.acknowledged ? 'Lido' : 'Por ler'}
+          {alert.acknowledged ? t('alertDetail.read') : t('alertDetail.unread')}
         </div>
       </div>
     </div>

@@ -48,6 +48,11 @@ export const enReport = {
       shortTitle: 'General',
       description: 'Executive summary of all operations',
     },
+    expenses: {
+      title: 'Expenses Report',
+      shortTitle: 'Expenses',
+      description: 'Detailed expense report with date field filter',
+    },
   },
   
   actions: {
@@ -84,16 +89,33 @@ export const enReport = {
   
   dialog: {
     title: 'Generate Report',
+    newReport: 'New Report',
     selectReport: 'Select report type',
     selectDateRange: 'Select period',
+    step1Type: '1. Report Type',
+    step2DateField: '2. Filter by date field',
+    step3Period: '3. Period',
+    step2Period: '2. Period',
+    dateFrom: 'Start date',
+    dateTo: 'End date',
     generating: 'Generating report...',
     success: 'Report generated successfully!',
     error: 'Error generating report',
+    validationBothDates: 'Please fill in both dates',
+    validationStartAfterEnd: 'Start date cannot be after end date',
+    validationMaxRange: 'Maximum period of 365 days',
     delete: {
       title: 'Remove report?',
       description: 'This record will be removed from history. The downloaded PDF file will not be affected.',
       confirm: 'Remove',
     },
+  },
+
+  expenseDateFields: {
+    expense_date:  'Expense Date',
+    due_date:      'Due Date',
+    payment_date:  'Payment Date',
+    created_at:    'Creation Date',
   },
   
   messages: {

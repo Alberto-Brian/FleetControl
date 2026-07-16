@@ -131,6 +131,7 @@ export const enDashboard = {
     viewDetails: "View Details",
     noAlerts: "No alerts at the moment",
     viewHistory: "View Alert History",
+    gpsRecent: "Recent GPS Alerts",
   },
 
   table: {

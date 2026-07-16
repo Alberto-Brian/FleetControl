@@ -518,6 +518,76 @@ export async function getFinancialReportData(startDate: string, endDate: string)
   };
 }
 
+// ==================== EXPENSES DETAILED REPORT ====================
+
+export type ExpenseDateField = 'expense_date' | 'due_date' | 'payment_date' | 'created_at';
+
+export async function getExpensesReportData(
+  startDate: string,
+  endDate: string,
+  dateField: ExpenseDateField = 'expense_date',
+) {
+  const { db } = useDb();
+
+  const fieldCol = {
+    expense_date:  expenses.expense_date,
+    due_date:      expenses.due_date,
+    payment_date:  expenses.payment_date,
+    created_at:    expenses.created_at,
+  }[dateField];
+
+  const expensesList = await db
+    .select({
+      id:              expenses.id,
+      expense_date:    expenses.expense_date,
+      due_date:        expenses.due_date,
+      payment_date:    expenses.payment_date,
+      created_at:      expenses.created_at,
+      description:     expenses.description,
+      amount:          expenses.amount,
+      status:          expenses.status,
+      supplier:        expenses.supplier,
+      document_number: expenses.document_number,
+      category_name:   expense_categories.name,
+      category_color:  expense_categories.color,
+    })
+    .from(expenses)
+    .leftJoin(expense_categories, eq(expenses.category_id, expense_categories.id))
+    .where(and(
+      isNull(expenses.deleted_at),
+      gte(fieldCol, startDate),
+      lte(fieldCol, endDate),
+    ))
+    .orderBy(fieldCol);
+
+  const total = expensesList.reduce((s, e) => s + (e.amount ?? 0), 0);
+
+  const catMap = new Map<string, { name: string; color?: string | null; total: number; count: number }>();
+  for (const e of expensesList) {
+    const key = e.category_name ?? 'Sem Categoria';
+    const cur = catMap.get(key) ?? { name: key, color: e.category_color, total: 0, count: 0 };
+    cur.total += e.amount ?? 0;
+    cur.count++;
+    catMap.set(key, cur);
+  }
+  const byCategory = Array.from(catMap.values())
+    .sort((a, b) => b.total - a.total)
+    .map(c => ({ ...c, percentage: total > 0 ? (c.total / total) * 100 : 0 }));
+
+  const byStatus = {
+    paid:      expensesList.filter(e => e.status === 'paid').reduce((s, e) => s + (e.amount ?? 0), 0),
+    pending:   expensesList.filter(e => e.status === 'pending').reduce((s, e) => s + (e.amount ?? 0), 0),
+    overdue:   expensesList.filter(e => e.status === 'overdue').reduce((s, e) => s + (e.amount ?? 0), 0),
+    cancelled: expensesList.filter(e => e.status === 'cancelled').reduce((s, e) => s + (e.amount ?? 0), 0),
+  };
+
+  return {
+    expenses: expensesList,
+    dateField,
+    stats: { total, count: expensesList.length, byCategory, byStatus },
+  };
+}
+
 // ==================== GENERAL REPORT ====================
 
 export async function getGeneralReportData(startDate: string, endDate: string) {

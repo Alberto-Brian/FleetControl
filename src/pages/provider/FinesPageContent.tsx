@@ -39,7 +39,8 @@ export default function FinesPageContent() {
 
   const [searchTerm, setSearchTerm]     = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [viewMode, setViewMode]         = useState<ViewMode>('cards');
+  const [viewMode, setViewMode]         = useState<ViewMode>(() => (localStorage.getItem('viewMode_fines') as ViewMode) || 'cards');
+  useEffect(() => { localStorage.setItem('viewMode_fines', viewMode); }, [viewMode]);
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Paginação

@@ -41,7 +41,7 @@ const config: ForgeConfig = {
             //iconUrl: './build/icons/icon.ico', // URL pública do ícone
             // Nome do executável
             name: APP_NAME,
-            authors: 'Alberto Kiowa Massanza',
+            authors: 'AKM Systems',
             description: 'Sistema de Gestão de Frotas',
         }),
         new MakerZIP({}, ["darwin"]),
@@ -71,7 +71,7 @@ const config: ForgeConfig = {
                 categories: ['Utility'],
                 
                 // Informações de manutenção
-                maintainer: 'Alberto Kiowa Massanza <albertokiowa10@gmail.com>',
+                maintainer: 'AKM Systems <albertobrian16@gmail.com>',
                 homepage: 'https://github.com/alberto-kiowa/electric-drizzle',
                 
                 // Dependências do sistema

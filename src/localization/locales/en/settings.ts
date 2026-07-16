@@ -24,6 +24,52 @@ export const enSettings = {
     system:         'System',
     backups:        'Backups',
     about:          'About',
+    license:        'License',
+    geofenceAlerts: 'GPS Alerts',
+    server:         'Server',
+  },
+
+  // ── License ───────────────────────────────────────────────────────────────
+  license: {
+    title:          'License',
+    subtitle:       'License information and management',
+    active:         'Active License',
+    reactivate:     'Reactivate',
+    modeStandalone: 'Standalone (Offline)',
+    modeConnected:  'Connected (Online)',
+    typeTrial:      'Trial',
+    typeBasic:      'Basic',
+    typeProfessional:'Professional',
+    typeEnterprise: 'Enterprise',
+    client:         'Client',
+    email:          'Email',
+    nif:            'Tax ID',
+    users:          'Users',
+    usersUpTo:      'Up to {{max}}',
+    validity:       'Validity',
+    validityDays:   '({{days}} days)',
+    features:       'Features',
+    dangerZone:     'Danger Zone',
+    removeWarning:  'Removing the license blocks system access. You can only re-enter by activating a new license.',
+    remove:         'Remove License',
+    removeConfirm:  'Are you sure you want to remove the license? The system will be locked until you activate a new one.',
+    noLicense:      'No active license',
+    noLicenseFound: 'No license found.',
+    activate:       'Activate License',
+  },
+
+  // ── Server ────────────────────────────────────────────────────────────────
+  server: {
+    title:          'Server Configuration',
+    subtitle:       'FleetControl API server URL',
+    apiUrl:         'API URL',
+    apiUrlDesc:     'FleetControl server base address (e.g. http://192.168.1.10:3001)',
+    apiUrlPlaceholder: 'http://localhost:3001',
+    saved:          'URL saved. Restart the app to apply.',
+    testConnection: 'Test connection',
+    testing:        'Testing...',
+    connectionOk:   'Connection successful',
+    connectionFail: 'Cannot reach server',
   },
 
   appearance: {
@@ -76,8 +122,10 @@ export const enSettings = {
     // Sidebar menu
     sidebarTitle:         'Side menu',
     sidebarDesc:          'Configure the navigation menu behaviour',
-    sidebarCollapsed:     'Start collapsed',
-    sidebarCollapsedDesc: 'Show only icons when opening the application',
+    sidebarCollapsed:          'Start collapsed',
+    sidebarCollapsedDesc:      'Show only icons when opening the application',
+    sidebarAutoCollapse:       'Auto-collapse on hover',
+    sidebarAutoCollapseDesc:   'Expands on mouse-over and collapses when the cursor leaves — the collapse button disappears',
 
     // Layout
     layoutTitle:          'Interface layout',

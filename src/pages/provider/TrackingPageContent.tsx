@@ -161,7 +161,15 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
     if (!state.selectedDevice) return;
     dispatch({ type: 'TOGGLE_HISTORY', payload: true });
     try {
-      const hist = await getPositionHistory(state.selectedDevice.traccar_id, from, to);
+      const raw = await getPositionHistory(state.selectedDevice.traccar_id, from, to);
+      // Normalize timeseries DB field names to match Position shape expected by TrackingMap
+      const hist = raw.map((p: any) => ({
+        ...p,
+        deviceId:  p.deviceId  ?? p.traccarDeviceId,
+        timestamp: p.timestamp ?? (typeof p.fixTime === 'string'
+          ? p.fixTime.replace(' ', 'T')
+          : p.fixTime instanceof Date ? p.fixTime.toISOString() : null),
+      }));
       dispatch({ type: 'SET_HISTORY', payload: hist as any });
     } catch (err) {
       console.error('[Tracking] Erro ao carregar histórico:', err);

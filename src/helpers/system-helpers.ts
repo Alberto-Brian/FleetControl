@@ -9,3 +9,11 @@ export async function forceDbRotation() {
     return await window.system.forceDbRotation();
 }
 
+export async function listDatabases() {
+    return await window.system.listDatabases();
+}
+
+export async function getDatabaseStats(filepath: string) {
+    return await window.system.getDatabaseStats(filepath);
+}
+

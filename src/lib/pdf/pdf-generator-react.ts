@@ -17,12 +17,13 @@ import { TripsReportPDF }       from './templates/TripsReportPDF';
 import { FuelReportPDF }        from './templates/FuelReportPDF';
 import { MaintenanceReportPDF } from './templates/MaintenanceReportPDF';
 import { FinancialReportPDF }   from './templates/FinancialReportPDF';
+import { ExpensesReportPDF }    from './templates/ExpensesReportPDF';
 import { GeneralReportPDF }     from './templates/GeneralReportPDF';
 import { languageLocalStorageKey } from '@/helpers/language-helpers';
 
 export type ReportType =
   | 'vehicles' | 'drivers' | 'trips' | 'fuel'
-  | 'maintenance' | 'financial' | 'general';
+  | 'maintenance' | 'financial' | 'expenses' | 'general';
 
 export interface ReportOptions {
   type:      ReportType;
@@ -136,6 +137,8 @@ export class ReactPDFGenerator {
         return React.createElement(MaintenanceReportPDF, { maintenances: data.maintenances, stats: data.stats, dateRange });
       case 'financial':
         return React.createElement(FinancialReportPDF,   { expenses:     data.expenses,     stats: data.stats, dateRange });
+      case 'expenses':
+        return React.createElement(ExpensesReportPDF,    { expenses: data.expenses, stats: data.stats, dateField: data.dateField ?? 'expense_date', dateRange });
       case 'general':
         return React.createElement(GeneralReportPDF,     { dashboard:    data.dashboard,    dateRange });
       default:

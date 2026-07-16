@@ -53,7 +53,8 @@ export default function FuelPageContent() {
 
   const [activeTab,    setActiveTab]   = useState('refuelings');
   const [searchTerm,   setSearchTerm]  = useState('');
-  const [viewMode,     setViewMode]    = useState<ViewMode>('cards');
+  const [viewMode,     setViewMode]    = useState<ViewMode>(() => (localStorage.getItem('viewMode_fuel') as ViewMode) || 'cards');
+  useEffect(() => { localStorage.setItem('viewMode_fuel', viewMode); }, [viewMode]);
   const [stationSearch, setStationSearch] = useState('');
 
   // Paginação

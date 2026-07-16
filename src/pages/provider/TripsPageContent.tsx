@@ -57,7 +57,8 @@ export default function TripsPageContent() {
   const [activeTab, setActiveTab]       = useState('trips');
   const [searchTerm, setSearchTerm]     = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [viewMode, setViewMode]         = useState<ViewMode>('cards');
+  const [viewMode, setViewMode]         = useState<ViewMode>(() => (localStorage.getItem('viewMode_trips') as ViewMode) || 'cards');
+  useEffect(() => { localStorage.setItem('viewMode_trips', viewMode); }, [viewMode]);
   const [routeSearch, setRouteSearch]   = useState('');
 
   // Paginação

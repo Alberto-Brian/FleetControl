@@ -14,6 +14,7 @@ const REPORT_TITLES: Record<ReportType, { pt: string; en: string }> = {
   fuel:        { pt: 'Relatório de Combustível', en: 'Fuel Report'        },
   maintenance: { pt: 'Relatório de Manutenções', en: 'Maintenance Report' },
   financial:   { pt: 'Relatório Financeiro',     en: 'Financial Report'   },
+  expenses:    { pt: 'Relatório de Despesas',    en: 'Expenses Report'    },
   general:     { pt: 'Relatório Geral',          en: 'General Report'     },
 };
 
@@ -149,6 +150,24 @@ export async function generateFinancialReport(
   }
 }
 
+export async function generateExpensesReport(
+  dateRange: DateRange,
+  dateField: string = 'expense_date',
+  action: 'download' | 'preview' | 'print' = 'download'
+) {
+  try {
+    const data    = await window._reports.getExpensesData({ start: dateRange.start, end: dateRange.end, dateField });
+    const options = { type: 'expenses' as ReportType, dateRange, data, fileName: `relatorio-despesas-${dateRange.start}.pdf` };
+
+    if (action === 'preview') return await reactPdfGenerator.previewReport(options);
+    if (action === 'print')   return await reactPdfGenerator.printReport(options);
+    return await _downloadAndSave(options);
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
 export async function generateGeneralReport(
   dateRange: DateRange,
   action: 'download' | 'preview' | 'print' = 'download'
@@ -180,6 +199,7 @@ export async function generateReport(
     case 'fuel':        return await generateFuelReport(dateRange, action);
     case 'maintenance': return await generateMaintenanceReport(dateRange, action);
     case 'financial':   return await generateFinancialReport(dateRange, action);
+    case 'expenses':    return await generateExpensesReport(dateRange, 'expense_date', action);
     case 'general':     return await generateGeneralReport(dateRange, action);
     default:            throw new Error(`Tipo de relatório desconhecido: ${type}`);
   }

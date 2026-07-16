@@ -17,6 +17,8 @@ import {
   GET_GEOFENCE_DEVICES, ASSIGN_GEOFENCE_DEVICE, REMOVE_GEOFENCE_DEVICE,
   GET_ALERTS, ACKNOWLEDGE_ALERT, ACKNOWLEDGE_ALL_ALERTS,
   GET_ALERT_SETTINGS, UPDATE_ALERT_SETTINGS,
+  GET_COMMAND_TYPES, SEND_DEVICE_COMMAND,
+  GET_GPS_SUMMARY, GET_GPS_STOPS, GET_GPS_EVENTS,
 } from './tracking-channels';
 
 export function exposeTrackingContext() {
@@ -50,5 +52,13 @@ export function exposeTrackingContext() {
     acknowledgeAllAlerts: ()            => ipcRenderer.invoke(ACKNOWLEDGE_ALL_ALERTS),
     getAlertSettings:     ()            => ipcRenderer.invoke(GET_ALERT_SETTINGS),
     updateAlertSettings:  (data: Record<string, unknown>) => ipcRenderer.invoke(UPDATE_ALERT_SETTINGS, data),
+
+    getCommandTypes:      (traccarDeviceId: number) => ipcRenderer.invoke(GET_COMMAND_TYPES, traccarDeviceId),
+    sendCommand:          (traccarDeviceId: number, type: string, attributes?: Record<string, unknown>) =>
+                            ipcRenderer.invoke(SEND_DEVICE_COMMAND, traccarDeviceId, type, attributes),
+
+    getGpsSummary:        (params: { deviceId: number; from: string; to: string }) => ipcRenderer.invoke(GET_GPS_SUMMARY, params),
+    getGpsStops:          (params: { deviceId: number; from: string; to: string }) => ipcRenderer.invoke(GET_GPS_STOPS, params),
+    getGpsEvents:         (params: { deviceId: number; from: string; to: string; type?: string }) => ipcRenderer.invoke(GET_GPS_EVENTS, params),
   });
 }

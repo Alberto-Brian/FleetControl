@@ -81,7 +81,7 @@ export default function HomePage() {
 
   function renderContent() {
     switch (activeSection) {
-      case 'dashboard':   return <DashboardPage />;
+      case 'dashboard':   return <DashboardPage onNavigate={setActiveSection} />;
       case 'vehicles':    return <VehiclesPage />;
       case 'drivers':     return <DriversPage />;
       case 'trips':       return <TripsPage />;

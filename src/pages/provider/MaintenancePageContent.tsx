@@ -57,7 +57,8 @@ export function MaintenancePageContent() {
   const [activeTab, setActiveTab]     = useState('maintenances');
   const [searchTerm, setSearchTerm]   = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [viewMode, setViewMode]       = useState<ViewMode>('cards');
+  const [viewMode, setViewMode]       = useState<ViewMode>(() => (localStorage.getItem('viewMode_maintenance') as ViewMode) || 'cards');
+  useEffect(() => { localStorage.setItem('viewMode_maintenance', viewMode); }, [viewMode]);
   const [categorySearch, setCategorySearch] = useState('');
   const [workshopSearch, setWorkshopSearch] = useState('');
 

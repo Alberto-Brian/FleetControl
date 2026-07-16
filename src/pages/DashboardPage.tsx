@@ -5,10 +5,14 @@ import React from 'react';
 import { DashboardProvider } from '@/contexts/DashboardContext';
 import { DashboardPageContent } from '@/pages/provider/DashboardPageContent'
 
-export default function DashboardPage() {
+interface DashboardPageProps {
+  onNavigate?: (section: string) => void;
+}
+
+export default function DashboardPage({ onNavigate }: DashboardPageProps) {
   return (
     <DashboardProvider>
-      <DashboardPageContent />
+      <DashboardPageContent onNavigate={onNavigate} />
     </DashboardProvider>
   );
 }

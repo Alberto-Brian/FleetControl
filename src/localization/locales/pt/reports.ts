@@ -44,6 +44,11 @@ export const ptReport = {
       shortTitle: 'Geral',
       description: 'Resumo executivo de todas as operações',
     },
+    expenses: {
+      title: 'Relatório de Despesas',
+      shortTitle: 'Despesas',
+      description: 'Relatório detalhado de despesas com filtro por campo de data',
+    },
   },
   
   // Ações
@@ -83,16 +88,33 @@ export const ptReport = {
   // Dialog
   dialog: {
     title: 'Gerar Relatório',
+    newReport: 'Novo Relatório',
     selectReport: 'Selecione o tipo de relatório',
     selectDateRange: 'Selecione o período',
+    step1Type: '1. Tipo de Relatório',
+    step2DateField: '2. Filtrar por campo de data',
+    step3Period: '3. Período',
+    step2Period: '2. Período',
+    dateFrom: 'Data inicial',
+    dateTo: 'Data final',
     generating: 'Gerando relatório...',
     success: 'Relatório gerado com sucesso!',
     error: 'Erro ao gerar relatório',
+    validationBothDates: 'Preencha ambas as datas',
+    validationStartAfterEnd: 'Data inicial não pode ser posterior à data final',
+    validationMaxRange: 'Período máximo de 365 dias',
     delete: {
       title: 'Remover relatório?',
       description: 'Este registo será removido do histórico. O arquivo PDF já descarregado não será afectado.',
       confirm: 'Remover',
     },
+  },
+
+  expenseDateFields: {
+    expense_date:  'Data da Despesa',
+    due_date:      'Data de Vencimento',
+    payment_date:  'Data de Pagamento',
+    created_at:    'Data de Criação',
   },
   
   // Mensagens

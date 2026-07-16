@@ -20,8 +20,7 @@ import {
   Clock, Loader2, CheckCircle, XCircle, Camera, Trash2, Save,
   Building, Hash, AtSign, ImageIcon, FileText, Bell, Car,
   Fuel, Sliders, RotateCcw, Eye, EyeOff, Droplets,
-  Key, ShieldCheck, RefreshCw, PanelLeft, Maximize2, Server, WifiOff, Wifi,
-  Database,
+  Key, ShieldCheck, RefreshCw, PanelLeft, Maximize2,
 } from 'lucide-react';
 import { Button }   from '@/components/ui/button';
 import { Switch }   from '@/components/ui/switch';
@@ -31,7 +30,7 @@ import { Progress } from '@/components/ui/progress';
 import { cn }       from '@/lib/utils';
 
 import { exportBackup, restoreBackup }           from '@/helpers/backup-helpers';
-import { getSystemVersion, listDatabases, getDatabaseStats } from '@/helpers/system-helpers';
+import { getSystemVersion, forceDbRotation }      from '@/helpers/system-helpers';
 import { getCompanySettings, updateCompanySettings, uploadCompanyLogo, removeCompanyLogo } from '@/helpers/company-helpers';
 import { getSystemSettings, updateSystemSettings, resetSystemSettings }                    from '@/helpers/system-settings-helpers';
 import { removeLicense }                          from '@/helpers/license-helpers';
@@ -625,25 +624,24 @@ function SystemSettingsTab({ children, tabTitle, tabDesc, fields }: {
 // Tab: Licença
 // ─────────────────────────────────────────────────────────────────────────────
 function LicenseTab() {
-  const { t }                                = useTranslation('settings');
   const { license, loading, refreshLicense } = useLicense();
   const [showActivation, setShowActivation]  = useState(false);
   const [removing, setRemoving]              = useState(false);
 
   const modeLabel: Record<string, string> = {
-    standalone: t('license.modeStandalone'),
-    connected:  t('license.modeConnected'),
+    standalone: 'Standalone (Offline)',
+    connected:  'Conectado (Online)',
   };
 
   const typeLabel: Record<string, string> = {
-    trial:        t('license.typeTrial'),
-    basic:        t('license.typeBasic'),
-    professional: t('license.typeProfessional'),
-    enterprise:   t('license.typeEnterprise'),
+    trial:        'Avaliação',
+    basic:        'Básica',
+    professional: 'Profissional',
+    enterprise:   'Empresarial',
   };
 
   async function handleRemove() {
-    if (!confirm(t('license.removeConfirm'))) return;
+    if (!confirm('Tens a certeza que queres remover a licença? O sistema ficará bloqueado até activares uma nova.')) return;
     setRemoving(true);
     try {
       await removeLicense();
@@ -671,22 +669,23 @@ function LicenseTab() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-base font-semibold mb-0.5">{t('license.title')}</h3>
-          <p className="text-sm text-muted-foreground">{t('license.subtitle')}</p>
+          <h3 className="text-base font-semibold mb-0.5">Licença</h3>
+          <p className="text-sm text-muted-foreground">Informações e gestão da licença do sistema</p>
         </div>
         <Button size="sm" variant="outline" className="gap-2" onClick={() => setShowActivation(true)}>
-          <RefreshCw className="w-4 h-4" />{t('license.reactivate')}
+          <RefreshCw className="w-4 h-4" />Reactivar
         </Button>
       </div>
 
       {license?.isValid ? (
         <div className="space-y-4">
+          {/* Status badge */}
           <div className="flex items-center gap-3 p-4 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30">
             <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center shrink-0">
               <ShieldCheck className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-green-800 dark:text-green-300">{t('license.active')}</p>
+              <p className="text-sm font-semibold text-green-800 dark:text-green-300">Licença Activa</p>
               <p className="text-xs text-green-600 dark:text-green-400">
                 {license.mode ? modeLabel[license.mode] ?? license.mode : '—'}
                 {license.licenseType ? ` · ${typeLabel[license.licenseType] ?? license.licenseType}` : ''}
@@ -694,20 +693,21 @@ function LicenseTab() {
             </div>
           </div>
 
+          {/* Info grid */}
           <div className="p-4 rounded-xl border border-border bg-card/50 space-y-3 text-sm">
             {[
-              { label: t('license.client'),   value: license.clientName },
-              { label: t('license.email'),    value: license.clientEmail },
-              { label: t('license.nif'),      value: license.clientNIF },
-              { label: t('license.users'),    value: license.maxUsers != null ? t('license.usersUpTo', { max: license.maxUsers }) : undefined },
+              { label: 'Cliente',      value: license.clientName },
+              { label: 'Email',        value: license.clientEmail },
+              { label: 'NIF',          value: license.clientNIF },
+              { label: 'Utilizadores', value: license.maxUsers != null ? `Até ${license.maxUsers}` : undefined },
               {
-                label: t('license.validity'),
+                label: 'Validade',
                 value: license.expiryDate
-                  ? `${new Date(license.expiryDate).toLocaleDateString()}${license.daysRemaining != null ? ` ${t('license.validityDays', { days: license.daysRemaining })}` : ''}`
+                  ? `${new Date(license.expiryDate).toLocaleDateString('pt-PT')}${license.daysRemaining != null ? ` (${license.daysRemaining} dias)` : ''}`
                   : undefined,
               },
               {
-                label: t('license.features'),
+                label: 'Funcionalidades',
                 value: license.features?.length ? license.features.join(', ') : undefined,
               },
             ]
@@ -720,16 +720,17 @@ function LicenseTab() {
               ))}
           </div>
 
+          {/* Danger zone */}
           <div className="pt-4 border-t border-border space-y-3">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('license.dangerZone')}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Zona de Risco</p>
             <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5">
               <div className="flex items-start gap-2 mb-3">
                 <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
-                <p className="text-xs text-destructive">{t('license.removeWarning')}</p>
+                <p className="text-xs text-destructive">Remover a licença bloqueia o acesso ao sistema. Só podes voltar a entrar activando uma nova licença.</p>
               </div>
               <Button variant="destructive" size="sm" className="w-full gap-2" onClick={handleRemove} disabled={removing}>
                 {removing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                {t('license.remove')}
+                Remover Licença
               </Button>
             </div>
           </div>
@@ -739,12 +740,12 @@ function LicenseTab() {
           <div className="flex items-center gap-3 p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
             <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">{t('license.noLicense')}</p>
-              <p className="text-xs text-amber-600 dark:text-amber-400">{license?.error ?? t('license.noLicenseFound')}</p>
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Sem licença activa</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400">{license?.error ?? 'Nenhuma licença encontrada.'}</p>
             </div>
           </div>
           <Button className="w-full gap-2" onClick={() => setShowActivation(true)}>
-            <Key className="w-4 h-4" />{t('license.activate')}
+            <Key className="w-4 h-4" />Activar Licença
           </Button>
         </div>
       )}
@@ -759,123 +760,27 @@ function LicenseTab() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Tab: Servidor
-// ─────────────────────────────────────────────────────────────────────────────
-function ServerTab() {
-  const { t } = useTranslation('settings');
-  const [url, setUrl]           = useState('');
-  const [testing, setTesting]   = useState(false);
-  const [testResult, setTestResult] = useState<'ok' | 'fail' | null>(null);
-  const { status, isDirty, markDirty, save } = useSaveStatus();
-  const savedUrlRef = useRef('');
-
-  useEffect(() => {
-    (window as any).system.getServerUrl().then((u: string) => {
-      const loaded = u || 'http://localhost:3001';
-      setUrl(loaded);
-      savedUrlRef.current = loaded;
-    });
-  }, []);
-
-  async function handleTest() {
-    setTesting(true);
-    setTestResult(null);
-    try {
-      const res = await fetch(`${url}/health`, { signal: AbortSignal.timeout(5000) });
-      setTestResult(res.ok ? 'ok' : 'fail');
-    } catch {
-      setTestResult('fail');
-    } finally {
-      setTesting(false);
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="text-base font-semibold mb-0.5">{t('server.title')}</h3>
-          <p className="text-sm text-muted-foreground">{t('server.subtitle')}</p>
-        </div>
-        <SaveButton
-          status={status}
-          isDirty={isDirty}
-          onClick={() => save(async () => {
-            const trimmedUrl = url.trim();
-            await (window as any).system.setServerUrl(trimmedUrl);
-            if (trimmedUrl !== savedUrlRef.current) {
-              window.dispatchEvent(new CustomEvent('serverUrlChanged', { detail: trimmedUrl }));
-              savedUrlRef.current = trimmedUrl;
-            }
-          })}
-        />
-      </div>
-
-      <SettingSection title={t('server.apiUrl')}>
-        <div className="py-2 space-y-3">
-          <div className="space-y-1.5">
-            <p className="text-xs text-muted-foreground">{t('server.apiUrlDesc')}</p>
-            <div className="flex gap-2">
-              <Input
-                value={url}
-                onChange={e => { setUrl(e.target.value); markDirty(); setTestResult(null); }}
-                placeholder={t('server.apiUrlPlaceholder')}
-                className="font-mono text-sm"
-              />
-              <Button variant="outline" size="sm" onClick={handleTest} disabled={testing} className="shrink-0 gap-2">
-                {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : testResult === 'ok' ? <Wifi className="w-3.5 h-3.5 text-green-500" /> : testResult === 'fail' ? <WifiOff className="w-3.5 h-3.5 text-destructive" /> : <Wifi className="w-3.5 h-3.5" />}
-                {testing ? t('server.testing') : t('server.testConnection')}
-              </Button>
-            </div>
-          </div>
-          {testResult === 'ok' && (
-            <p className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
-              <CheckCircle className="w-3.5 h-3.5" />{t('server.connectionOk')}
-            </p>
-          )}
-          {testResult === 'fail' && (
-            <p className="flex items-center gap-1.5 text-xs text-destructive">
-              <XCircle className="w-3.5 h-3.5" />{t('server.connectionFail')}
-            </p>
-          )}
-        </div>
-      </SettingSection>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // GeofenceAlertsTab
 // ─────────────────────────────────────────────────────────────────────────────
 function GeofenceAlertsTab() {
   const { t } = useTranslation('tracking');
-  // Os três campos de localStorage são lidos imediatamente para não depender do servidor
-  const [localSettings, setLocalSettings] = useState(() => ({
-    nativeNotificationsEnabled: localStorage.getItem('nativeNotificationsEnabled') === 'true',
-    notifyWhenFocused:          localStorage.getItem('notifyWhenFocused') === 'true',
-    osOnlyNotifications:        localStorage.getItem('osOnlyNotifications') === 'true',
-    notifyNativeEnter:    true, notifyNativeExit: true, notifyNativeSpeed: true,
-    notifyIgnitionOn:     false, notifyIgnitionOff: false,
-    notifyDeviceMoving:   false, notifyDeviceStopped: false,
-    cooldownSpeedMs:      60000,
-  }));
+  const [localSettings, setLocalSettings] = useState<{
+    notifyNativeEnter: boolean;
+    notifyNativeExit:  boolean;
+    notifyNativeSpeed: boolean;
+    cooldownSpeedMs:   number;
+  }>({ notifyNativeEnter: true, notifyNativeExit: true, notifyNativeSpeed: true, cooldownSpeedMs: 60000 });
   const { status, isDirty, markDirty, save } = useSaveStatus();
 
-  // Só actualiza os campos do servidor — os campos de localStorage já estão no estado inicial
   useEffect(() => {
     (window as any)._tracking.getAlertSettings()
       .then((s: any) => {
-        if (s) setLocalSettings(prev => ({
-          ...prev,
-          notifyNativeEnter:   s.notifyNativeEnter   ?? prev.notifyNativeEnter,
-          notifyNativeExit:    s.notifyNativeExit    ?? prev.notifyNativeExit,
-          notifyNativeSpeed:   s.notifyNativeSpeed   ?? prev.notifyNativeSpeed,
-          notifyIgnitionOn:    s.notifyIgnitionOn    ?? prev.notifyIgnitionOn,
-          notifyIgnitionOff:   s.notifyIgnitionOff   ?? prev.notifyIgnitionOff,
-          notifyDeviceMoving:  s.notifyDeviceMoving   ?? prev.notifyDeviceMoving,
-          notifyDeviceStopped: s.notifyDeviceStopped  ?? prev.notifyDeviceStopped,
-          cooldownSpeedMs:     s.cooldownSpeedMs     ?? prev.cooldownSpeedMs,
-        }));
+        if (s) setLocalSettings({
+          notifyNativeEnter: s.notifyNativeEnter ?? true,
+          notifyNativeExit:  s.notifyNativeExit  ?? true,
+          notifyNativeSpeed: s.notifyNativeSpeed ?? true,
+          cooldownSpeedMs:   s.cooldownSpeedMs   ?? 60000,
+        });
       })
       .catch(console.error);
   }, []);
@@ -885,96 +790,44 @@ function GeofenceAlertsTab() {
     markDirty();
   }
 
-  async function handleToggleNativeNotifications() {
-    const next = !localSettings.nativeNotificationsEnabled;
-    if (next) await requestNotificationPermission();
-    update('nativeNotificationsEnabled', next);
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <h3 className="text-base font-semibold mb-0.5">{t('settings.alertsTitle')}</h3>
-          <p className="text-sm text-muted-foreground">{t('settings.alertsDesc')}</p>
         </div>
         <SaveButton
           status={status}
           isDirty={isDirty}
           onClick={() => save(async () => {
-            localStorage.setItem('nativeNotificationsEnabled', String(localSettings.nativeNotificationsEnabled));
-            localStorage.setItem('notifyWhenFocused', String(localSettings.notifyWhenFocused));
-            localStorage.setItem('osOnlyNotifications', String(localSettings.osOnlyNotifications));
-            const { nativeNotificationsEnabled, notifyWhenFocused, osOnlyNotifications, ...serverSettings } = localSettings;
-            await (window as any)._tracking.updateAlertSettings(serverSettings);
-            window.dispatchEvent(new CustomEvent('alertSettingsChanged', { detail: localSettings }));
+            await (window as any)._tracking.updateAlertSettings(localSettings);
+            window.dispatchEvent(new CustomEvent('alertSettingsChanged'));
           })}
         />
       </div>
 
-      {/* Notificações nativas do SO */}
-      <SettingSection title={t('settings.nativeOsTitle')}>
-        <SettingRow
-          label={t('settings.nativeOsNotifications')}
-          description={t('settings.nativeOsNotificationsDesc')}
-        >
-          <Switch
-            checked={localSettings.nativeNotificationsEnabled}
-            onCheckedChange={handleToggleNativeNotifications}
-          />
-        </SettingRow>
-        {localSettings.nativeNotificationsEnabled && (
-          <>
-            <SettingRow
-              label={t('settings.osOnlyNotifications')}
-              description={t('settings.osOnlyNotificationsDesc')}
-            >
-              <Switch
-                checked={localSettings.osOnlyNotifications}
-                onCheckedChange={v => update('osOnlyNotifications', v)}
-              />
-            </SettingRow>
-            {!localSettings.osOnlyNotifications && (
-              <SettingRow
-                label={t('settings.notifyWhenFocused')}
-                description={t('settings.notifyWhenFocusedDesc')}
-              >
-                <Switch
-                  checked={localSettings.notifyWhenFocused}
-                  onCheckedChange={v => update('notifyWhenFocused', v)}
-                />
-              </SettingRow>
-            )}
-          </>
-        )}
-      </SettingSection>
-
-      {/* Tipos de alerta */}
       <SettingSection title={t('settings.alertsTitle')}>
         <SettingRow label={t('settings.notifyEnter')}>
-          <Switch checked={localSettings.notifyNativeEnter}  onCheckedChange={v => update('notifyNativeEnter', v)} />
+          <Switch
+            checked={localSettings.notifyNativeEnter}
+            onCheckedChange={v => update('notifyNativeEnter', v)}
+          />
         </SettingRow>
         <SettingRow label={t('settings.notifyExit')}>
-          <Switch checked={localSettings.notifyNativeExit}   onCheckedChange={v => update('notifyNativeExit', v)} />
+          <Switch
+            checked={localSettings.notifyNativeExit}
+            onCheckedChange={v => update('notifyNativeExit', v)}
+          />
         </SettingRow>
         <SettingRow label={t('settings.notifySpeed')}>
-          <Switch checked={localSettings.notifyNativeSpeed}  onCheckedChange={v => update('notifyNativeSpeed', v)} />
-        </SettingRow>
-        <SettingRow label={t('settings.notifyIgnitionOn')}>
-          <Switch checked={localSettings.notifyIgnitionOn}   onCheckedChange={v => update('notifyIgnitionOn', v)} />
-        </SettingRow>
-        <SettingRow label={t('settings.notifyIgnitionOff')}>
-          <Switch checked={localSettings.notifyIgnitionOff}  onCheckedChange={v => update('notifyIgnitionOff', v)} />
-        </SettingRow>
-        <SettingRow label={t('settings.notifyDeviceMoving')}>
-          <Switch checked={localSettings.notifyDeviceMoving}  onCheckedChange={v => update('notifyDeviceMoving', v)} />
-        </SettingRow>
-        <SettingRow label={t('settings.notifyDeviceStopped')}>
-          <Switch checked={localSettings.notifyDeviceStopped} onCheckedChange={v => update('notifyDeviceStopped', v)} />
+          <Switch
+            checked={localSettings.notifyNativeSpeed}
+            onCheckedChange={v => update('notifyNativeSpeed', v)}
+          />
         </SettingRow>
         <SettingRow label={t('settings.cooldownSpeed')}>
           <NumberInput
-            value={localSettings.cooldownSpeedMs / 1000}
+            value={(localSettings.cooldownSpeedMs) / 1000}
             onChange={v => update('cooldownSpeedMs', v * 1000)}
             min={0}
             unit="s"
@@ -985,168 +838,6 @@ function GeofenceAlertsTab() {
       {isDirty && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400">
           <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Tab: Bases de dados
-// ─────────────────────────────────────────────────────────────────────────────
-const TABLE_LABELS: Record<string, string> = {
-  vehicles:     'Viaturas',
-  drivers:      'Condutores',
-  trips:        'Viagens',
-  refuelings:   'Abastecimentos',
-  maintenances: 'Manutenções',
-  expenses:     'Despesas',
-  fines:        'Multas',
-  users:        'Utilizadores',
-  routes:       'Rotas',
-};
-
-function DatabasesTab() {
-  const [dbs, setDbs]           = useState<import('@/types/types').DbFileInfo[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [stats, setStats]       = useState<Record<string, number> | null>(null);
-  const [statsLoading, setStatsLoading] = useState(false);
-  const [statsError, setStatsError]     = useState<string | null>(null);
-
-  useEffect(() => {
-    listDatabases()
-      .then(setDbs)
-      .catch(() => setDbs([]))
-      .finally(() => setLoading(false));
-  }, []);
-
-  async function handleSelect(filepath: string) {
-    setSelected(filepath);
-    setStats(null);
-    setStatsError(null);
-    setStatsLoading(true);
-    try {
-      const result = await getDatabaseStats(filepath);
-      if (result?.error) {
-        setStatsError(result.error as string);
-      } else {
-        setStats(result as Record<string, number>);
-      }
-    } catch (e: any) {
-      setStatsError(String(e?.message ?? e));
-    } finally {
-      setStatsLoading(false);
-    }
-  }
-
-  function formatSize(bytes: number) {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
-  }
-
-  const selectedDb = dbs.find(d => d.filepath === selected);
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-base font-semibold mb-0.5">Bases de Dados</h3>
-        <p className="text-sm text-muted-foreground">
-          Consulte os registos de bases de dados anteriores em modo somente leitura.
-        </p>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          A carregar…
-        </div>
-      ) : dbs.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-10 text-muted-foreground">
-          <Database className="w-10 h-10 opacity-30" />
-          <p className="text-sm">Nenhuma base de dados encontrada.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3">
-          {dbs.map(db => (
-            <button
-              key={db.filepath}
-              onClick={() => handleSelect(db.filepath)}
-              className={cn(
-                'w-full text-left p-4 rounded-lg border transition-colors',
-                selected === db.filepath
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-primary/50 hover:bg-muted/50',
-              )}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Database className="w-4 h-4 shrink-0 text-muted-foreground" />
-                  <span className="text-sm font-medium truncate">{db.filename}</span>
-                  {db.isActive && (
-                    <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                      Activa
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
-                  <span>{formatSize(db.size)}</span>
-                  <span>{new Date(db.createdAt).toLocaleDateString('pt-PT')}</span>
-                </div>
-              </div>
-              <div className="mt-1 ml-6 text-xs text-muted-foreground">
-                {db.recordCount.toLocaleString('pt-PT')} registos totais
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {selected && (
-        <div className="rounded-lg border bg-card/50 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold flex items-center gap-2">
-              <Database className="w-4 h-4" />
-              {selectedDb?.filename ?? 'Base de dados'}
-            </h4>
-            {selectedDb?.isActive && (
-              <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-1 rounded bg-primary/10 text-primary">
-                Em uso
-              </span>
-            )}
-          </div>
-
-          {statsLoading && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              A ler estatísticas…
-            </div>
-          )}
-
-          {statsError && (
-            <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md text-xs text-destructive">
-              <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              {statsError}
-            </div>
-          )}
-
-          {stats && !statsLoading && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {Object.entries(stats)
-                .filter(([k]) => k !== 'error')
-                .map(([table, count]) => (
-                  <div key={table} className="p-3 rounded-md bg-muted/50 border border-border/50">
-                    <p className="text-xs text-muted-foreground mb-0.5">
-                      {TABLE_LABELS[table] ?? table}
-                    </p>
-                    <p className="text-lg font-bold tabular-nums">
-                      {(count as number).toLocaleString('pt-PT')}
-                    </p>
-                  </div>
-                ))}
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -1192,15 +883,13 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
     { id: 'language',   icon: Globe,       label: t('nav.language')   },
     { id: 'company',    icon: Building2,   label: t('nav.company')    },
     { id: 'pdf',            icon: FileText,    label: t('nav.pdf')                        },
-    { id: 'geofence-alerts', icon: Bell,       label: t('nav.geofenceAlerts') },
+    { id: 'geofence-alerts', icon: Bell,       label: t('nav.geofenceAlerts', 'Alertas GPS') },
     // { id: 'alerts',     icon: Bell,      label: t('nav.alerts')     },
     // { id: 'trips',      icon: Car,       label: t('nav.trips')      },
     // { id: 'fuel',       icon: Fuel,      label: t('nav.fuel')       },
     // { id: 'system',     icon: Sliders,   label: t('nav.system')     },
     { id: 'backups',    icon: HardDrive,   label: t('nav.backups')    },
-    { id: 'databases',  icon: Database,    label: 'Bases de Dados'    },
-    { id: 'server',     icon: Server,      label: t('nav.server')     },
-    { id: 'license',    icon: Key,         label: t('nav.license')    },
+    { id: 'license',    icon: Key,         label: 'Licença'           },
     { id: 'about',      icon: Info,        label: t('nav.about')      },
   ];
 
@@ -1475,8 +1164,8 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                                 <PanelLeft className="w-5 h-5" />
                               </div>
                               <div>
-                                <p className="text-sm font-medium">{t('appearance.sidebarAutoCollapse')}</p>
-                                <p className="text-xs text-muted-foreground">{t('appearance.sidebarAutoCollapseDesc')}</p>
+                                <p className="text-sm font-medium">{t('appearance.sidebarAutoCollapse', 'Auto-recolher no hover')}</p>
+                                <p className="text-xs text-muted-foreground">{t('appearance.sidebarAutoCollapseDesc', 'Expande ao passar o rato e recolhe ao sair — o botão de recolher desaparece')}</p>
                               </div>
                             </div>
                             <Switch
@@ -1773,14 +1462,26 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                         <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                         <p className="text-xs text-amber-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: t('backups.warning') }} />
                       </div>
+                      <div className="pt-4 border-t border-border space-y-4">
+                        <div>
+                          <h4 className="text-sm font-semibold text-destructive mb-1">{t('backups.advanced')}</h4>
+                          <p className="text-xs text-muted-foreground">{t('backups.advancedDesc')}</p>
+                        </div>
+                        <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5 space-y-3">
+                          <div className="flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-destructive">{t('backups.rotation')}</p>
+                              <p className="text-xs text-muted-foreground leading-relaxed">{t('backups.rotationDesc')}</p>
+                            </div>
+                          </div>
+                          <Button variant="destructive" size="sm" onClick={async () => { try { await forceDbRotation(); } catch {} }} disabled={isBusy} className="w-full gap-2">
+                            <HardDrive className="w-4 h-4" />{t('backups.rotationButton')}
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   )}
-
-                  {/* ── Bases de Dados ── */}
-                  {activeTab === 'databases' && <DatabasesTab />}
-
-                  {/* ── Servidor ── */}
-                  {activeTab === 'server' && <ServerTab />}
 
                   {/* ── Licença ── */}
                   {activeTab === 'license' && <LicenseTab />}

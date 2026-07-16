@@ -29,3 +29,12 @@ export const ACKNOWLEDGE_ALERT       = 'tracking:acknowledge-alert';
 export const ACKNOWLEDGE_ALL_ALERTS  = 'tracking:acknowledge-all-alerts';
 export const GET_ALERT_SETTINGS      = 'tracking:get-alert-settings';
 export const UPDATE_ALERT_SETTINGS   = 'tracking:update-alert-settings';
+
+// Device commands
+export const GET_COMMAND_TYPES       = 'tracking:get-command-types';
+export const SEND_DEVICE_COMMAND     = 'tracking:send-device-command';
+
+// GPS reports
+export const GET_GPS_SUMMARY         = 'tracking:get-gps-summary';
+export const GET_GPS_STOPS           = 'tracking:get-gps-stops';
+export const GET_GPS_EVENTS          = 'tracking:get-gps-events';

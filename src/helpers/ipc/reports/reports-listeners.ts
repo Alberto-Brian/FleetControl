@@ -11,6 +11,7 @@ import {
   getFuelReportData,
   getMaintenanceReportData,
   getFinancialReportData,
+  getExpensesReportData,
   getGeneralReportData,
 } from "@/lib/db/queries/reports.queries";
 
@@ -81,6 +82,16 @@ export async function addReportsEventListeners() {
       return await getFinancialReportData(dateRange.start, dateRange.end);
     } catch (error) {
       console.error("Erro ao buscar dados financeiros:", error);
+      throw error;
+    }
+  });
+
+  // Despesas detalhadas (com campo de data configurável)
+  ipcMain.handle(REPORTS_CHANNELS.GET_EXPENSES_DATA, async (_, { start, end, dateField }) => {
+    try {
+      return await getExpensesReportData(start, end, dateField);
+    } catch (error) {
+      console.error("Erro ao buscar dados de despesas:", error);
       throw error;
     }
   });

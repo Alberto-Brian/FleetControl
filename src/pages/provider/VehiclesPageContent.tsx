@@ -74,7 +74,8 @@ export default function VehiclesPageContent() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [syncFilter, setSyncFilter] = useState<'all' | 'synced' | 'not_synced'>('all');
   const [imeiFilter, setImeiFilter] = useState<'all' | 'with_imei' | 'without_imei'>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => (localStorage.getItem('viewMode_vehicles') as ViewMode) || 'cards');
+  useEffect(() => { localStorage.setItem('viewMode_vehicles', viewMode); }, [viewMode]);
 
   // Paginação
   const [currentPage, setCurrentPage] = useState(1);

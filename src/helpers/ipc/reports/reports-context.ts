@@ -28,10 +28,13 @@ export function exposeReportsContext() {
     getMaintenanceData: (dateRange: DateRange) => 
       ipcRenderer.invoke(REPORTS_CHANNELS.GET_MAINTENANCE_DATA, dateRange),
     
-    getFinancialData: (dateRange: DateRange) => 
+    getFinancialData: (dateRange: DateRange) =>
       ipcRenderer.invoke(REPORTS_CHANNELS.GET_FINANCIAL_DATA, dateRange),
-    
-    getGeneralData: (dateRange: DateRange) => 
+
+    getExpensesData: (params: { start: string; end: string; dateField: string }) =>
+      ipcRenderer.invoke(REPORTS_CHANNELS.GET_EXPENSES_DATA, params),
+
+    getGeneralData: (dateRange: DateRange) =>
       ipcRenderer.invoke(REPORTS_CHANNELS.GET_GENERAL_DATA, dateRange),
 
     listGenerated:   (filters?: any)  => ipcRenderer.invoke(REPORTS_CHANNELS.LIST_GENERATED, filters),

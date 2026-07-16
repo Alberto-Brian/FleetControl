@@ -56,7 +56,8 @@ export default function ExpensesPageContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => (localStorage.getItem('viewMode_expenses') as ViewMode) || 'cards');
+  useEffect(() => { localStorage.setItem('viewMode_expenses', viewMode); }, [viewMode]);
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Paginação
@@ -225,34 +226,52 @@ export default function ExpensesPageContent() {
   function renderCompactView() {
   return (
     <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
-      <div className="bg-muted/50 px-6 py-4 grid grid-cols-12 gap-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground border-b">
-        <div className="col-span-3">{t('expenses:fields.description')}</div>
+      <div className="bg-muted/50 px-6 py-4 grid grid-cols-12 gap-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground border-b">
+        <div className="col-span-2">{t('expenses:fields.description')}</div>
         <div className="col-span-2">{t('expenses:fields.category')}</div>
-        <div className="col-span-2">{t('expenses:fields.dueDate')}</div>
-        <div className="col-span-2">{t('expenses:fields.status')}</div>
+        <div className="col-span-2">{t('expenses:compact.colDateExpVenc')}</div>
+        <div className="col-span-2">{t('expenses:compact.colDatePgtoCriacao')}</div>
+        <div className="col-span-1">{t('expenses:fields.status')}</div>
         <div className="col-span-2">{t('expenses:fields.amount')}</div>
         <div className="col-span-1 text-right">{t('expenses:table.actions')}</div>
       </div>
       <div className="divide-y">
         {expenses.map((expense) => (
-          <div 
-            key={expense.id} 
-            className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors duration-150"
+          <div
+            key={expense.id}
+            className="px-6 py-3 grid grid-cols-12 gap-2 items-center hover:bg-muted/10 transition-colors duration-150"
           >
-            <div className="col-span-3">
+            <div className="col-span-2">
               <span className="text-sm font-medium truncate block">{expense.description}</span>
               {expense.vehicle_license && <span className="text-xs text-muted-foreground font-mono">{expense.vehicle_license}</span>}
             </div>
             <div className="col-span-2">
               <div className="flex items-center gap-2">
-                {expense.category_color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: expense.category_color }} />}
+                {expense.category_color && <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: expense.category_color }} />}
                 <span className="text-sm text-muted-foreground truncate">{expense.category_name}</span>
               </div>
             </div>
             <div className="col-span-2">
-              <span className="text-sm">{expense.due_date ? new Date(expense.due_date).toLocaleDateString('pt-PT') : '-'}</span>
+              <div className="text-xs leading-tight">
+                <span className="text-muted-foreground">{t('expenses:compact.prefixDesp')}</span>
+                <span>{expense.expense_date ? new Date(expense.expense_date).toLocaleDateString() : '—'}</span>
+              </div>
+              <div className="text-xs leading-tight mt-0.5">
+                <span className="text-muted-foreground">{t('expenses:compact.prefixVenc')}</span>
+                <span>{expense.due_date ? new Date(expense.due_date).toLocaleDateString() : '—'}</span>
+              </div>
             </div>
-            <div className="col-span-2">{getStatusBadge(expense)}</div>
+            <div className="col-span-2">
+              <div className="text-xs leading-tight">
+                <span className="text-muted-foreground">{t('expenses:compact.prefixPgto')}</span>
+                <span>{expense.payment_date ? new Date(expense.payment_date).toLocaleDateString() : '—'}</span>
+              </div>
+              <div className="text-xs leading-tight mt-0.5">
+                <span className="text-muted-foreground">{t('expenses:compact.prefixCreated')}</span>
+                <span>{expense.created_at ? new Date(expense.created_at.replace(' ', 'T')).toLocaleDateString() : '—'}</span>
+              </div>
+            </div>
+            <div className="col-span-1">{getStatusBadge(expense)}</div>
             <div className="col-span-2">
               <span className="text-sm font-bold">{expense.amount.toLocaleString('pt-PT')} Kz</span>
             </div>

@@ -12,12 +12,13 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import {
   FileText, Download, Eye, Printer, Calendar,
-  Truck, Users, MapPin, Fuel, Wrench, DollarSign, Activity, Loader2,
+  Truck, Users, MapPin, Fuel, Wrench, DollarSign, Activity, Loader2, Receipt,
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // ==================== TIPOS ====================
 
-type ReportType = 'vehicles' | 'drivers' | 'trips' | 'fuel' | 'maintenance' | 'financial' | 'general';
+type ReportType = 'vehicles' | 'drivers' | 'trips' | 'fuel' | 'maintenance' | 'financial' | 'expenses' | 'general';
 type ActionType = 'download' | 'preview' | 'print';
 
 interface ReportDefinition {
@@ -35,7 +36,7 @@ interface DateRange {
 interface GenerateReportDialogProps {
   open:          boolean;
   onOpenChange:  (open: boolean) => void;
-  onGenerate:    (type: ReportType, dateRange: DateRange, action: ActionType) => Promise<void>;
+  onGenerate:    (type: ReportType, dateRange: DateRange, action: ActionType, dateField?: string) => Promise<void>;
   generating:    ReportType | null;
   defaultType?:  ReportType;
 }
@@ -49,18 +50,10 @@ const REPORT_DEFINITIONS: ReportDefinition[] = [
   { type: 'fuel',        icon: Fuel,       color: 'text-amber-600',   bgColor: 'bg-amber-50 dark:bg-amber-950/20'     },
   { type: 'maintenance', icon: Wrench,     color: 'text-rose-600',    bgColor: 'bg-rose-50 dark:bg-rose-950/20'       },
   { type: 'financial',   icon: DollarSign, color: 'text-green-600',   bgColor: 'bg-green-50 dark:bg-green-950/20'     },
+  { type: 'expenses',    icon: Receipt,    color: 'text-orange-600',  bgColor: 'bg-orange-50 dark:bg-orange-950/20'   },
   { type: 'general',     icon: Activity,   color: 'text-slate-600',   bgColor: 'bg-slate-50 dark:bg-slate-950/20'     },
 ];
 
-const DATE_PRESETS = [
-  { value: 'today',     label: 'Hoje'            },
-  { value: 'thisWeek',  label: 'Esta Semana'     },
-  { value: 'thisMonth', label: 'Este Mês'        },
-  { value: 'lastMonth', label: 'Mês Passado'     },
-  { value: 'last90Days',label: 'Últimos 90 Dias' },
-  { value: 'thisYear',  label: 'Este Ano'        },
-  { value: 'custom',    label: 'Personalizado'   },
-];
 
 function getPresetRange(preset: string): DateRange {
   const now = new Date();
@@ -95,13 +88,31 @@ export function GenerateReportDialog({
 }: GenerateReportDialogProps) {
   const { t } = useTranslation();
 
-  const [selectedType, setSelectedType] = useState<ReportType>(defaultType || 'vehicles');
-  const [datePreset,   setDatePreset]   = useState('thisMonth');
-  const [customStart,  setCustomStart]  = useState('');
-  const [customEnd,    setCustomEnd]    = useState('');
-  const [dateError,    setDateError]    = useState('');
+  const EXPENSE_DATE_FIELDS = [
+    { value: 'expense_date',  label: t('reports:expenseDateFields.expense_date') },
+    { value: 'due_date',      label: t('reports:expenseDateFields.due_date') },
+    { value: 'payment_date',  label: t('reports:expenseDateFields.payment_date') },
+    { value: 'created_at',    label: t('reports:expenseDateFields.created_at') },
+  ];
 
-  const isCustom    = datePreset === 'custom';
+  const DATE_PRESETS = [
+    { value: 'today',     label: t('reports:dateRange.presets.today')     },
+    { value: 'thisWeek',  label: t('reports:dateRange.presets.thisWeek')  },
+    { value: 'thisMonth', label: t('reports:dateRange.presets.thisMonth') },
+    { value: 'lastMonth', label: t('reports:dateRange.presets.lastMonth') },
+    { value: 'last90Days',label: t('reports:dateRange.presets.last90Days')},
+    { value: 'thisYear',  label: t('reports:dateRange.presets.thisYear')  },
+    { value: 'custom',    label: t('reports:dateRange.presets.custom')    },
+  ];
+
+  const [selectedType,  setSelectedType]  = useState<ReportType>(defaultType || 'vehicles');
+  const [datePreset,    setDatePreset]    = useState('thisMonth');
+  const [customStart,   setCustomStart]   = useState('');
+  const [customEnd,     setCustomEnd]     = useState('');
+  const [dateError,     setDateError]     = useState('');
+  const [expDateField,  setExpDateField]  = useState('expense_date');
+
+  const isCustom     = datePreset === 'custom';
   const isGenerating = generating === selectedType;
 
   React.useEffect(() => {
@@ -111,6 +122,7 @@ export function GenerateReportDialog({
       setCustomStart('');
       setCustomEnd('');
       setDateError('');
+      setExpDateField('expense_date');
     }
   }, [open, defaultType]);
 
@@ -118,16 +130,16 @@ export function GenerateReportDialog({
     if (!isCustom) return getPresetRange(datePreset);
 
     if (!customStart || !customEnd) {
-      setDateError('Preencha ambas as datas');
+      setDateError(t('reports:dialog.validationBothDates'));
       return null;
     }
     if (new Date(customStart) > new Date(customEnd)) {
-      setDateError('Data inicial não pode ser posterior à data final');
+      setDateError(t('reports:dialog.validationStartAfterEnd'));
       return null;
     }
     const diffDays = Math.ceil((new Date(customEnd).getTime() - new Date(customStart).getTime()) / 86400000);
     if (diffDays > 365) {
-      setDateError('Período máximo de 365 dias');
+      setDateError(t('reports:dialog.validationMaxRange'));
       return null;
     }
     setDateError('');
@@ -137,7 +149,7 @@ export function GenerateReportDialog({
   const handleAction = async (action: ActionType) => {
     const dateRange = getDateRange();
     if (!dateRange) return;
-    await onGenerate(selectedType, dateRange, action);
+    await onGenerate(selectedType, dateRange, action, selectedType === 'expenses' ? expDateField : undefined);
     if (action === 'download') onOpenChange(false);
   };
 
@@ -152,7 +164,7 @@ export function GenerateReportDialog({
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
             <FileText className="w-5 h-5" />
-            Novo Relatório
+            {t('reports:dialog.newReport')}
           </DialogTitle>
         </DialogHeader>
 
@@ -161,7 +173,7 @@ export function GenerateReportDialog({
           {/* ── 1. Tipo ── */}
           <div className="space-y-3">
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              1. Tipo de Relatório
+              {t('reports:dialog.step1Type')}
             </Label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {REPORT_DEFINITIONS.map(def => (
@@ -189,10 +201,29 @@ export function GenerateReportDialog({
             </div>
           </div>
 
-          {/* ── 2. Período ── */}
+          {/* ── 2. Campo de data (apenas para Despesas) ── */}
+          {selectedType === 'expenses' && (
+            <div className="space-y-3">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {t('reports:dialog.step2DateField')}
+              </Label>
+              <Select value={expDateField} onValueChange={setExpDateField}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EXPENSE_DATE_FIELDS.map(f => (
+                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* ── 3. Período ── */}
           <div className="space-y-3">
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              2. Período
+              {selectedType === 'expenses' ? t('reports:dialog.step3Period') : t('reports:dialog.step2Period')}
             </Label>
 
             <div className="flex flex-wrap gap-2">
@@ -213,7 +244,7 @@ export function GenerateReportDialog({
             {isCustom && (
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Data inicial</Label>
+                  <Label className="text-xs text-muted-foreground">{t('reports:dialog.dateFrom')}</Label>
                   <Input
                     type="date"
                     value={customStart}
@@ -223,7 +254,7 @@ export function GenerateReportDialog({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Data final</Label>
+                  <Label className="text-xs text-muted-foreground">{t('reports:dialog.dateTo')}</Label>
                   <Input
                     type="date"
                     value={customEnd}
@@ -258,7 +289,7 @@ export function GenerateReportDialog({
         {/* ── Footer ── */}
         <DialogFooter className="px-6 py-4 border-t bg-muted/20 flex-row justify-between gap-2">
           <Button variant="ghost" className="h-9" onClick={() => onOpenChange(false)}>
-            Cancelar
+            {t('reports:actions.cancel')}
           </Button>
           <div className="flex gap-2">
             <Button
@@ -266,7 +297,7 @@ export function GenerateReportDialog({
               disabled={!!generating}
               onClick={() => handleAction('print')}
             >
-              <Printer className="w-4 h-4" /> Imprimir
+              <Printer className="w-4 h-4" /> {t('reports:actions.print')}
             </Button>
             <Button
               variant="outline" size="sm" className="h-9 gap-1.5"
@@ -274,7 +305,7 @@ export function GenerateReportDialog({
               onClick={() => handleAction('preview')}
             >
               {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
-              Visualizar
+              {t('reports:actions.preview')}
             </Button>
             <Button
               size="sm" className="h-9 gap-1.5"
@@ -282,7 +313,7 @@ export function GenerateReportDialog({
               onClick={() => handleAction('download')}
             >
               {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              Gerar PDF
+              {t('reports:actions.generatePDF')}
             </Button>
           </div>
         </DialogFooter>

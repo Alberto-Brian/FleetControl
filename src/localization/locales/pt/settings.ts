@@ -25,6 +25,52 @@ export const ptSettings = {
     system:         'Sistema',
     backups:        'Backups',
     about:          'Sobre',
+    license:        'Licença',
+    geofenceAlerts: 'Alertas GPS',
+    server:         'Servidor',
+  },
+
+  // ── Licença ───────────────────────────────────────────────────────────────
+  license: {
+    title:          'Licença',
+    subtitle:       'Informações e gestão da licença do sistema',
+    active:         'Licença Activa',
+    reactivate:     'Reactivar',
+    modeStandalone: 'Standalone (Offline)',
+    modeConnected:  'Conectado (Online)',
+    typeTrial:      'Avaliação',
+    typeBasic:      'Básica',
+    typeProfessional:'Profissional',
+    typeEnterprise: 'Empresarial',
+    client:         'Cliente',
+    email:          'Email',
+    nif:            'NIF',
+    users:          'Utilizadores',
+    usersUpTo:      'Até {{max}}',
+    validity:       'Validade',
+    validityDays:   '({{days}} dias)',
+    features:       'Funcionalidades',
+    dangerZone:     'Zona de Risco',
+    removeWarning:  'Remover a licença bloqueia o acesso ao sistema. Só podes voltar a entrar activando uma nova licença.',
+    remove:         'Remover Licença',
+    removeConfirm:  'Tens a certeza que queres remover a licença? O sistema ficará bloqueado até activares uma nova.',
+    noLicense:      'Sem licença activa',
+    noLicenseFound: 'Nenhuma licença encontrada.',
+    activate:       'Activar Licença',
+  },
+
+  // ── Servidor ──────────────────────────────────────────────────────────────
+  server: {
+    title:          'Configuração do Servidor',
+    subtitle:       'URL do servidor de API do FleetControl',
+    apiUrl:         'URL da API',
+    apiUrlDesc:     'Endereço base do servidor FleetControl (ex: http://192.168.1.10:3001)',
+    apiUrlPlaceholder: 'http://localhost:3001',
+    saved:          'URL guardada. Reinicia a aplicação para aplicar.',
+    testConnection: 'Testar ligação',
+    testing:        'A testar...',
+    connectionOk:   'Ligação bem-sucedida',
+    connectionFail: 'Sem ligação ao servidor',
   },
 
   // ── Aparência ─────────────────────────────────────────────────────────────
@@ -78,8 +124,10 @@ export const ptSettings = {
     // Menu lateral
     sidebarTitle:         'Menu lateral',
     sidebarDesc:          'Configurar o comportamento do menu de navegação',
-    sidebarCollapsed:     'Iniciar colapsado',
-    sidebarCollapsedDesc: 'Mostrar apenas ícones ao abrir a aplicação',
+    sidebarCollapsed:          'Iniciar colapsado',
+    sidebarCollapsedDesc:      'Mostrar apenas ícones ao abrir a aplicação',
+    sidebarAutoCollapse:       'Auto-recolher no hover',
+    sidebarAutoCollapseDesc:   'Expande ao passar o rato e recolhe ao sair — o botão de recolher desaparece',
 
     // Layout
     layoutTitle:          'Layout da interface',

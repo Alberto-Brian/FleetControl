@@ -9,7 +9,8 @@ import {
   Search, BarChart3, Activity, Clock, Printer,
   Eye, CheckCircle2, LayoutGrid, List, Trash2,
   RefreshCcw, Plus, ChevronRight, AlertCircle,
-  Loader2, History,
+  Loader2, History, Navigation, ParkingCircle,
+  Zap,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,16 +25,17 @@ import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { pt as ptLocale } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { generateReport } from '@/helpers/report-helpers';
+import { generateReport, generateExpensesReport } from '@/helpers/report-helpers';
 import { GenerateReportDialog } from '@/components/reports/GenerateReportDialog';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 
 // ==================== TIPOS ====================
 
-type ReportType = 'vehicles' | 'drivers' | 'trips' | 'fuel' | 'maintenance' | 'financial' | 'general';
+type ReportType = 'vehicles' | 'drivers' | 'trips' | 'fuel' | 'maintenance' | 'financial' | 'expenses' | 'general';
 type ReportCategory = 'all' | 'fleet' | 'financial' | 'operational';
 type ViewMode = 'grid' | 'list';
-type ActiveTab = 'reports' | 'history';
+type ActiveTab = 'reports' | 'history' | 'gps';
 
 interface ReportDefinition {
   type: ReportType;
@@ -56,6 +58,42 @@ interface GeneratedReport {
   stats: any;
   created_at: string;
 }
+
+// ==================== GPS REPORT TYPES ====================
+
+interface GpsDevice { id: string; traccar_id: number; name: string; uniqueId: string; status: string; }
+
+interface GpsSummary {
+  deviceId:     number;
+  distance:     number;
+  maxSpeed:     number;
+  averageSpeed: number;
+  engineHours:  number;
+  spentFuel?:   number;
+  startTime?:   string;
+  endTime?:     string;
+}
+
+interface GpsStop {
+  deviceId:  number;
+  latitude:  number;
+  longitude: number;
+  startTime: string;
+  endTime:   string;
+  duration:  number;
+  address?:  string;
+}
+
+interface GpsEvent {
+  id:          number;
+  deviceId:    number;
+  type:        string;
+  eventTime:   string;
+  geofenceId?: number;
+  attributes?: Record<string, unknown>;
+}
+
+type GpsSubTab = 'summary' | 'stops' | 'events';
 
 // ==================== CONFIG ====================
 
@@ -105,6 +143,299 @@ function getReportDef(type: ReportType): ReportDefinition {
   return REPORT_DEFINITIONS.find(r => r.type === type) || REPORT_DEFINITIONS[6];
 }
 
+// ==================== HELPERS GPS ====================
+
+function fmtDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}min`;
+  return `${m}min`;
+}
+
+function fmtDate(iso?: string): string {
+  if (!iso) return '-';
+  return new Date(iso).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+const EVENT_LABELS: Record<string, string> = {
+  geofenceEnter:   'Entrou em zona',
+  geofenceExit:    'Saiu de zona',
+  speedLimit:      'Excesso velocidade',
+  deviceOverspeed: 'Excesso velocidade',
+  ignitionOn:      'Ignição ligada',
+  ignitionOff:     'Ignição desligada',
+  deviceMoving:    'Em movimento',
+  deviceStopped:   'Parado',
+};
+
+// ==================== GPS REPORTS TAB ====================
+
+function GpsReportsTab() {
+  const [devices,     setDevices]     = useState<GpsDevice[]>([]);
+  const [selectedId,  setSelectedId]  = useState<string>('');
+  const [from,        setFrom]        = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() - 7);
+    return d.toISOString().slice(0, 16);
+  });
+  const [to,          setTo]          = useState(() => new Date().toISOString().slice(0, 16));
+  const [subTab,      setSubTab]      = useState<GpsSubTab>('summary');
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState<string | null>(null);
+
+  const [summary,     setSummary]     = useState<GpsSummary[]>([]);
+  const [stops,       setStops]       = useState<GpsStop[]>([]);
+  const [events,      setEvents]      = useState<GpsEvent[]>([]);
+
+  useEffect(() => {
+    (window as any)._tracking?.getDevices()
+      ?.then((devs: GpsDevice[]) => setDevices(devs ?? []))
+      ?.catch(console.error);
+  }, []);
+
+  async function handleGenerate() {
+    if (!selectedId) return;
+    setLoading(true);
+    setError(null);
+    const params = { deviceId: Number(selectedId), from: new Date(from).toISOString(), to: new Date(to).toISOString() };
+    try {
+      if (subTab === 'summary') {
+        const data = await (window as any)._tracking?.getGpsSummary(params);
+        setSummary(Array.isArray(data) ? data : [data].filter(Boolean));
+      } else if (subTab === 'stops') {
+        const data = await (window as any)._tracking?.getGpsStops(params);
+        setStops(data ?? []);
+      } else {
+        const data = await (window as any)._tracking?.getGpsEvents(params);
+        setEvents(data ?? []);
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? err?.message ?? 'Erro ao carregar dados');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const SUB_TABS: { key: GpsSubTab; label: string; icon: React.ElementType }[] = [
+    { key: 'summary', label: 'Resumo',    icon: BarChart3        },
+    { key: 'stops',   label: 'Paragens',  icon: ParkingCircle    },
+    { key: 'events',  label: 'Eventos',   icon: Zap              },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Controls */}
+      <Card className="border-none shadow-sm">
+        <CardContent className="p-5">
+          <div className="flex flex-col sm:flex-row gap-4 items-end">
+            {/* Device selector */}
+            <div className="flex-1 min-w-[220px]">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Dispositivo</label>
+              <SearchableSelect
+                placeholder="Seleccionar dispositivo..."
+                searchPlaceholder="Pesquisar por nome ou IMEI..."
+                emptyMessage="Nenhum dispositivo encontrado."
+                value={selectedId}
+                onValueChange={setSelectedId}
+                options={devices.map(d => ({
+                  value:         String(d.traccar_id),
+                  searchText:    `${d.name} ${d.uniqueId}`,
+                  label: (
+                    <span className="flex items-center gap-2 w-full">
+                      <span className={cn('w-2 h-2 rounded-full flex-shrink-0', d.status === 'online' ? 'bg-green-500' : 'bg-slate-400')} />
+                      <span className="font-medium truncate">{d.name}</span>
+                      <span className="text-xs text-muted-foreground ml-auto font-mono">{d.uniqueId}</span>
+                    </span>
+                  ),
+                  selectedLabel: (
+                    <span className="flex items-center gap-2">
+                      <span className={cn('w-2 h-2 rounded-full flex-shrink-0', d.status === 'online' ? 'bg-green-500' : 'bg-slate-400')} />
+                      {d.name}
+                    </span>
+                  ),
+                }))}
+              />
+            </div>
+
+            {/* Date from */}
+            <div className="flex-1 min-w-[170px]">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">De</label>
+              <input
+                type="datetime-local"
+                value={from}
+                onChange={e => setFrom(e.target.value)}
+                className="w-full h-9 px-3 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            {/* Date to */}
+            <div className="flex-1 min-w-[170px]">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Até</label>
+              <input
+                type="datetime-local"
+                value={to}
+                onChange={e => setTo(e.target.value)}
+                className="w-full h-9 px-3 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            <Button onClick={handleGenerate} disabled={!selectedId || loading} className="h-9 gap-2 flex-shrink-0 self-end">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <BarChart3 className="w-4 h-4" />}
+              Gerar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Sub-tabs */}
+      <div className="flex gap-1 bg-muted/40 p-1 rounded-lg border border-border w-fit">
+        {SUB_TABS.map(st => (
+          <button
+            key={st.key}
+            type="button"
+            onClick={() => setSubTab(st.key)}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors',
+              subTab === st.key
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <st.icon className="w-4 h-4" />
+            {st.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm border border-destructive/20">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {/* Results */}
+      {subTab === 'summary' && summary.length > 0 && (
+        <Card className="border-none shadow-sm overflow-hidden">
+          <div className="bg-muted/50 px-6 py-3 grid grid-cols-6 gap-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground border-b">
+            <div className="col-span-2">Dispositivo</div>
+            <div>Distância</div>
+            <div>Vel. Máx.</div>
+            <div>Vel. Média</div>
+            <div>Tempo motor</div>
+          </div>
+          <div className="divide-y">
+            {summary.map((s, i) => {
+              const dev = devices.find(d => d.traccar_id === s.deviceId);
+              return (
+                <div key={i} className="px-6 py-4 grid grid-cols-6 gap-4 items-center hover:bg-muted/10 transition-colors">
+                  <div className="col-span-2 flex items-center gap-2">
+                    <Navigation className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span className="font-semibold text-sm truncate">{dev?.name ?? `Device #${s.deviceId}`}</span>
+                  </div>
+                  <div className="text-sm font-medium">{(s.distance / 1000).toFixed(1)} km</div>
+                  <div className="text-sm">{Math.round(s.maxSpeed)} km/h</div>
+                  <div className="text-sm">{Math.round(s.averageSpeed)} km/h</div>
+                  <div className="text-sm">{fmtDuration(s.engineHours)}</div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {subTab === 'stops' && stops.length > 0 && (
+        <Card className="border-none shadow-sm overflow-hidden">
+          <div className="bg-muted/50 px-6 py-3 grid grid-cols-12 gap-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground border-b">
+            <div className="col-span-2">Dispositivo</div>
+            <div className="col-span-3">Início</div>
+            <div className="col-span-3">Fim</div>
+            <div className="col-span-2">Duração</div>
+            <div className="col-span-2">Localização</div>
+          </div>
+          <div className="divide-y">
+            {stops.map((s, i) => {
+              const dev = devices.find(d => d.traccar_id === s.deviceId);
+              return (
+                <div key={i} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors">
+                  <div className="col-span-2 flex items-center gap-2">
+                    <ParkingCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                    <span className="font-semibold text-sm truncate">{dev?.name ?? `Device #${s.deviceId}`}</span>
+                  </div>
+                  <div className="col-span-3 text-sm">{fmtDate(s.startTime)}</div>
+                  <div className="col-span-3 text-sm">{fmtDate(s.endTime)}</div>
+                  <div className="col-span-2 text-sm font-medium">{fmtDuration(s.duration)}</div>
+                  <div className="col-span-2 text-xs text-muted-foreground">
+                    {s.address ?? `${s.latitude.toFixed(4)}, ${s.longitude.toFixed(4)}`}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {subTab === 'events' && events.length > 0 && (
+        <Card className="border-none shadow-sm overflow-hidden">
+          <div className="bg-muted/50 px-6 py-3 grid grid-cols-12 gap-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground border-b">
+            <div className="col-span-2">Dispositivo</div>
+            <div className="col-span-4">Tipo</div>
+            <div className="col-span-3">Data/Hora</div>
+            <div className="col-span-3">Geofence</div>
+          </div>
+          <div className="divide-y">
+            {events.map((e, i) => {
+              const dev = devices.find(d => d.traccar_id === e.deviceId);
+              return (
+                <div key={i} className="px-6 py-3 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors">
+                  <div className="col-span-2 flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-violet-500 flex-shrink-0" />
+                    <span className="font-semibold text-sm truncate">{dev?.name ?? `Device #${e.deviceId}`}</span>
+                  </div>
+                  <div className="col-span-4">
+                    <Badge variant="secondary" className="text-xs">{EVENT_LABELS[e.type] ?? e.type}</Badge>
+                  </div>
+                  <div className="col-span-3 text-sm">{fmtDate(e.eventTime)}</div>
+                  <div className="col-span-3 text-xs text-muted-foreground">
+                    {e.geofenceId ? `#${e.geofenceId}` : '-'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {/* Empty states */}
+      {!loading && !error && (
+        <>
+          {subTab === 'summary' && summary.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border-2 border-dashed border-muted/50">
+              <BarChart3 className="w-10 h-10 text-muted-foreground/20 mb-3" />
+              <p className="font-bold text-base">Sem dados de resumo</p>
+              <p className="text-sm text-muted-foreground mt-1">Selecciona um dispositivo e clica em Gerar</p>
+            </div>
+          )}
+          {subTab === 'stops' && stops.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border-2 border-dashed border-muted/50">
+              <ParkingCircle className="w-10 h-10 text-muted-foreground/20 mb-3" />
+              <p className="font-bold text-base">Sem paragens registadas</p>
+              <p className="text-sm text-muted-foreground mt-1">Altera o intervalo de datas e clica em Gerar</p>
+            </div>
+          )}
+          {subTab === 'events' && events.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border-2 border-dashed border-muted/50">
+              <Zap className="w-10 h-10 text-muted-foreground/20 mb-3" />
+              <p className="font-bold text-base">Sem eventos registados</p>
+              <p className="text-sm text-muted-foreground mt-1">Altera o intervalo de datas e clica em Gerar</p>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ==================== COMPONENTE PRINCIPAL ====================
 
 export function ReportsPageContent() {
@@ -114,7 +445,8 @@ export function ReportsPageContent() {
   const [activeTab,      setActiveTab]      = useState<ActiveTab>('reports');
   const [searchTerm,     setSearchTerm]     = useState('');
   const [categoryFilter, setCategoryFilter] = useState<ReportCategory>('all');
-  const [viewMode,       setViewMode]       = useState<ViewMode>('list');
+  const [viewMode,       setViewMode]       = useState<ViewMode>(() => (localStorage.getItem('viewMode_reports') as ViewMode) || 'list');
+  useEffect(() => { localStorage.setItem('viewMode_reports', viewMode); }, [viewMode]);
   const [datePreset,     setDatePreset]     = useState('thisMonth');
   const [generating,     setGenerating]     = useState<ReportType | null>(null);
   const [historySearch,  setHistorySearch]  = useState('');
@@ -177,23 +509,28 @@ export function ReportsPageContent() {
 
   // ==================== GERAR RELATÓRIO COM PARÂMETROS PERSONALIZÁVEIS ====================
   const handleDialogGenerate = async (
-  type: ReportType,
-  dateRange: { start: string; end: string },
-  action: 'download' | 'preview' | 'print'
-) => {
-  setGenerating(type);
-  toast.loading(t('reports:toast.generating'), { id: 'gen' });
-  try {
-    await generateReport(type, dateRange, action);
-    toast.success(t('reports:toast.success'), { id: 'gen' });
-    await fetchHistory();
-    await fetchStats();
-  } catch {
-    toast.error(t('reports:toast.error'), { id: 'gen' });
-  } finally {
-    setGenerating(null);
-  }
-};
+    type: ReportType,
+    dateRange: { start: string; end: string },
+    action: 'download' | 'preview' | 'print',
+    dateField?: string,
+  ) => {
+    setGenerating(type);
+    toast.loading(t('reports:toast.generating'), { id: 'gen' });
+    try {
+      if (type === 'expenses') {
+        await generateExpensesReport(dateRange, dateField ?? 'expense_date', action);
+      } else {
+        await generateReport(type, dateRange, action);
+      }
+      toast.success(t('reports:toast.success'), { id: 'gen' });
+      await fetchHistory();
+      await fetchStats();
+    } catch {
+      toast.error(t('reports:toast.error'), { id: 'gen' });
+    } finally {
+      setGenerating(null);
+    }
+  };
 
   // ==================== REDOWNLOAD ====================
 
@@ -274,6 +611,9 @@ export function ReportsPageContent() {
                 {stats.total > 0 && (
                   <Badge variant="secondary" className="ml-1 text-xs">{stats.total}</Badge>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="gps" className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5">
+                <Navigation className="w-4 h-4" /> Rastreamento GPS
               </TabsTrigger>
             </TabsList>
             <Button className="h-9 gap-2 flex-shrink-0" onClick={() => { setDialogDefaultType(undefined); setDialogOpen(true); }}>
@@ -669,6 +1009,11 @@ export function ReportsPageContent() {
               )}
             </div>
           </TabsContent>
+          {/* ══════════ TAB: GPS ══════════ */}
+          <TabsContent value="gps" className="mt-6">
+            <GpsReportsTab />
+          </TabsContent>
+
         </Tabs>
       </div>
 

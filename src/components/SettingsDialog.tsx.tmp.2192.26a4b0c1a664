@@ -31,7 +31,7 @@ import { Progress } from '@/components/ui/progress';
 import { cn }       from '@/lib/utils';
 
 import { exportBackup, restoreBackup }           from '@/helpers/backup-helpers';
-import { getSystemVersion, listDatabases, getDatabaseStats } from '@/helpers/system-helpers';
+import { getSystemVersion, forceDbRotation }      from '@/helpers/system-helpers';
 import { getCompanySettings, updateCompanySettings, uploadCompanyLogo, removeCompanyLogo } from '@/helpers/company-helpers';
 import { getSystemSettings, updateSystemSettings, resetSystemSettings }                    from '@/helpers/system-settings-helpers';
 import { removeLicense }                          from '@/helpers/license-helpers';
@@ -992,168 +992,6 @@ function GeofenceAlertsTab() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Tab: Bases de dados
-// ─────────────────────────────────────────────────────────────────────────────
-const TABLE_LABELS: Record<string, string> = {
-  vehicles:     'Viaturas',
-  drivers:      'Condutores',
-  trips:        'Viagens',
-  refuelings:   'Abastecimentos',
-  maintenances: 'Manutenções',
-  expenses:     'Despesas',
-  fines:        'Multas',
-  users:        'Utilizadores',
-  routes:       'Rotas',
-};
-
-function DatabasesTab() {
-  const [dbs, setDbs]           = useState<import('@/types/types').DbFileInfo[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [stats, setStats]       = useState<Record<string, number> | null>(null);
-  const [statsLoading, setStatsLoading] = useState(false);
-  const [statsError, setStatsError]     = useState<string | null>(null);
-
-  useEffect(() => {
-    listDatabases()
-      .then(setDbs)
-      .catch(() => setDbs([]))
-      .finally(() => setLoading(false));
-  }, []);
-
-  async function handleSelect(filepath: string) {
-    setSelected(filepath);
-    setStats(null);
-    setStatsError(null);
-    setStatsLoading(true);
-    try {
-      const result = await getDatabaseStats(filepath);
-      if (result?.error) {
-        setStatsError(result.error as string);
-      } else {
-        setStats(result as Record<string, number>);
-      }
-    } catch (e: any) {
-      setStatsError(String(e?.message ?? e));
-    } finally {
-      setStatsLoading(false);
-    }
-  }
-
-  function formatSize(bytes: number) {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
-  }
-
-  const selectedDb = dbs.find(d => d.filepath === selected);
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-base font-semibold mb-0.5">Bases de Dados</h3>
-        <p className="text-sm text-muted-foreground">
-          Consulte os registos de bases de dados anteriores em modo somente leitura.
-        </p>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          A carregar…
-        </div>
-      ) : dbs.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-10 text-muted-foreground">
-          <Database className="w-10 h-10 opacity-30" />
-          <p className="text-sm">Nenhuma base de dados encontrada.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3">
-          {dbs.map(db => (
-            <button
-              key={db.filepath}
-              onClick={() => handleSelect(db.filepath)}
-              className={cn(
-                'w-full text-left p-4 rounded-lg border transition-colors',
-                selected === db.filepath
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-primary/50 hover:bg-muted/50',
-              )}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Database className="w-4 h-4 shrink-0 text-muted-foreground" />
-                  <span className="text-sm font-medium truncate">{db.filename}</span>
-                  {db.isActive && (
-                    <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                      Activa
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
-                  <span>{formatSize(db.size)}</span>
-                  <span>{new Date(db.createdAt).toLocaleDateString('pt-PT')}</span>
-                </div>
-              </div>
-              <div className="mt-1 ml-6 text-xs text-muted-foreground">
-                {db.recordCount.toLocaleString('pt-PT')} registos totais
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {selected && (
-        <div className="rounded-lg border bg-card/50 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold flex items-center gap-2">
-              <Database className="w-4 h-4" />
-              {selectedDb?.filename ?? 'Base de dados'}
-            </h4>
-            {selectedDb?.isActive && (
-              <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-1 rounded bg-primary/10 text-primary">
-                Em uso
-              </span>
-            )}
-          </div>
-
-          {statsLoading && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              A ler estatísticas…
-            </div>
-          )}
-
-          {statsError && (
-            <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md text-xs text-destructive">
-              <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              {statsError}
-            </div>
-          )}
-
-          {stats && !statsLoading && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {Object.entries(stats)
-                .filter(([k]) => k !== 'error')
-                .map(([table, count]) => (
-                  <div key={table} className="p-3 rounded-md bg-muted/50 border border-border/50">
-                    <p className="text-xs text-muted-foreground mb-0.5">
-                      {TABLE_LABELS[table] ?? table}
-                    </p>
-                    <p className="text-lg font-bold tabular-nums">
-                      {(count as number).toLocaleString('pt-PT')}
-                    </p>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Componente Principal
 // ─────────────────────────────────────────────────────────────────────────────
 interface SettingsDialogProps {
@@ -1198,7 +1036,6 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
     // { id: 'fuel',       icon: Fuel,      label: t('nav.fuel')       },
     // { id: 'system',     icon: Sliders,   label: t('nav.system')     },
     { id: 'backups',    icon: HardDrive,   label: t('nav.backups')    },
-    { id: 'databases',  icon: Database,    label: 'Bases de Dados'    },
     { id: 'server',     icon: Server,      label: t('nav.server')     },
     { id: 'license',    icon: Key,         label: t('nav.license')    },
     { id: 'about',      icon: Info,        label: t('nav.about')      },
@@ -1773,11 +1610,26 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                         <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                         <p className="text-xs text-amber-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: t('backups.warning') }} />
                       </div>
+                      <div className="pt-4 border-t border-border space-y-4">
+                        <div>
+                          <h4 className="text-sm font-semibold text-destructive mb-1">{t('backups.advanced')}</h4>
+                          <p className="text-xs text-muted-foreground">{t('backups.advancedDesc')}</p>
+                        </div>
+                        <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5 space-y-3">
+                          <div className="flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-destructive">{t('backups.rotation')}</p>
+                              <p className="text-xs text-muted-foreground leading-relaxed">{t('backups.rotationDesc')}</p>
+                            </div>
+                          </div>
+                          <Button variant="destructive" size="sm" onClick={async () => { try { await forceDbRotation(); } catch {} }} disabled={isBusy} className="w-full gap-2">
+                            <HardDrive className="w-4 h-4" />{t('backups.rotationButton')}
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   )}
-
-                  {/* ── Bases de Dados ── */}
-                  {activeTab === 'databases' && <DatabasesTab />}
 
                   {/* ── Servidor ── */}
                   {activeTab === 'server' && <ServerTab />}

@@ -2,9 +2,8 @@
 // FILE: src/components/tracking/DeviceInfoPanel.tsx
 // ========================================
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge  } from '@/components/ui/badge';
-import { X, MapPin, Gauge, Navigation, Clock, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { X, MapPin, Gauge, Navigation, Clock, History, ChevronDown, ChevronUp, Zap, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import type { Position }      from '@/hooks/useApiConnection';
 import type { TrackedDevice } from '@/helpers/tracking-helpers';
 import { formatSpeed }        from '@/helpers/tracking-helpers';
@@ -28,14 +27,85 @@ function toLocalDateTimeInput(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+type CommandFeedback = { type: 'success' | 'error'; message: string } | null;
+
+const COMMAND_TYPES = ['engineStop', 'engineResume', 'positionSingle'] as const;
+type CommandType = typeof COMMAND_TYPES[number];
+
+// Dark glass design tokens — same palette as DeviceSidebar
+const G = {
+  bg:        'rgba(8,14,28,0.97)',
+  border:    'rgba(255,255,255,0.08)',
+  shadow:    '0 12px 48px rgba(0,0,0,0.6)',
+  blur:      'blur(12px)',
+  textPrimary:   'rgba(255,255,255,0.97)',
+  textSecondary: 'rgba(255,255,255,0.82)',
+  textMuted:     'rgba(255,255,255,0.4)',
+  divider:       'rgba(255,255,255,0.06)',
+  itemBg:        'rgba(255,255,255,0.05)',
+  itemHover:     'rgba(255,255,255,0.08)',
+  blue:      '#60a5fa',
+  green:     '#22c55e',
+  red:       '#ef4444',
+  orange:    '#f59e0b',
+  inputBg:   'rgba(255,255,255,0.07)',
+  inputBorder: 'rgba(255,255,255,0.12)',
+} as const;
+
 export function DeviceInfoPanel({ device, position, onClose, onShowHistory }: Props) {
+  const { t } = useTranslation('tracking');
+
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<number>(24);
   const [customFrom, setCustomFrom] = useState('');
   const [customTo,   setCustomTo  ] = useState('');
   const [useCustom,  setUseCustom ] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
-  function handleShowHistory() {
+  const [commandsOpen,   setCommandsOpen  ] = useState(false);
+  const [supportedTypes, setSupportedTypes] = useState<Set<string> | null>(null);
+  const [typesLoading,   setTypesLoading  ] = useState(false);
+  const [sendingCmd,     setSendingCmd    ] = useState<string | null>(null);
+  const [cmdFeedback,    setCmdFeedback   ] = useState<CommandFeedback>(null);
+
+  const commandLabels: Record<CommandType, string> = {
+    engineStop:     t('device.engineStop'),
+    engineResume:   t('device.engineResume'),
+    positionSingle: t('device.positionSingle'),
+  };
+
+  async function handleCommandsOpen() {
+    const next = !commandsOpen;
+    setCommandsOpen(next);
+    if (next && supportedTypes === null && !typesLoading) {
+      setTypesLoading(true);
+      try {
+        const types: string[] = await (window as any)._tracking?.getCommandTypes(device.traccar_id);
+        setSupportedTypes(new Set(types ?? []));
+      } catch {
+        setSupportedTypes(new Set());
+      } finally {
+        setTypesLoading(false);
+      }
+    }
+  }
+
+  async function handleSendCommand(type: string) {
+    setSendingCmd(type);
+    setCmdFeedback(null);
+    try {
+      await (window as any)._tracking?.sendCommand(device.traccar_id, type);
+      setCmdFeedback({ type: 'success', message: t('device.commandSent') });
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? err?.message ?? 'Erro ao enviar comando';
+      setCmdFeedback({ type: 'error', message: msg });
+    } finally {
+      setSendingCmd(null);
+      setTimeout(() => setCmdFeedback(null), 4000);
+    }
+  }
+
+  async function handleShowHistory() {
     let from: string;
     let to: string;
 
@@ -47,7 +117,13 @@ export function DeviceInfoPanel({ device, position, onClose, onShowHistory }: Pr
       from = new Date(Date.now() - selectedPreset * 3600 * 1000).toISOString();
     }
 
-    onShowHistory(from, to);
+    setLoadingHistory(true);
+    try {
+      onShowHistory(from, to);
+    } finally {
+      // Small delay so the loading state is visible
+      setTimeout(() => setLoadingHistory(false), 800);
+    }
   }
 
   function handlePreset(hours: number) {
@@ -65,154 +141,313 @@ export function DeviceInfoPanel({ device, position, onClose, onShowHistory }: Pr
     setUseCustom(v => !v);
   }
 
+  const isOnline = device.status === 'online';
+
   return (
-    <div className="absolute bottom-4 right-4 z-10 w-80 bg-background/95 backdrop-blur rounded-2xl border border-border shadow-xl p-4 space-y-3 pointer-events-auto">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="font-bold text-base">{device.name}</h3>
-          <p className="text-xs text-muted-foreground font-mono">{device.uniqueId}</p>
+    <div
+      style={{
+        position:       'absolute',
+        bottom:         16,
+        right:          16,
+        zIndex:         10,
+        width:          300,
+        background:     G.bg,
+        border:         `1px solid ${G.border}`,
+        boxShadow:      G.shadow,
+        backdropFilter: G.blur,
+        WebkitBackdropFilter: G.blur,
+        borderRadius:   16,
+        overflow:       'hidden',
+        pointerEvents:  'auto',
+        color:          G.textSecondary,
+      }}
+    >
+      {/* ── Header ── */}
+      <div style={{
+        display:        'flex',
+        alignItems:     'flex-start',
+        justifyContent: 'space-between',
+        padding:        '14px 16px 12px',
+        borderBottom:   `1px solid ${G.divider}`,
+      }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+              background: isOnline ? G.green : '#6b7280',
+              boxShadow: isOnline ? `0 0 6px ${G.green}` : 'none',
+            }} />
+            <p style={{ color: G.textPrimary, fontWeight: 700, fontSize: 15, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {device.name}
+            </p>
+          </div>
+          <p style={{ color: G.textMuted, fontSize: 11, fontFamily: 'monospace', margin: '3px 0 0' }}>
+            {device.uniqueId}
+          </p>
+          <p style={{ color: isOnline ? G.green : '#6b7280', fontSize: 11, fontWeight: 600, margin: '2px 0 0' }}>
+            {isOnline ? t('sidebar.online') : t('sidebar.offline')}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge
-            variant="outline"
-            className={`text-xs ${
-              device.status === 'online'
-                ? 'text-green-600 border-green-200 bg-green-50 dark:bg-green-950/30'
-                : 'text-slate-500 border-slate-200'
-            }`}
-          >
-            {device.status}
-          </Badge>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
+        <button
+          onClick={onClose}
+          style={{
+            width: 28, height: 28, borderRadius: 8, border: `1px solid ${G.border}`,
+            background: G.itemBg, cursor: 'pointer', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 8,
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = G.itemHover)}
+          onMouseLeave={e => (e.currentTarget.style.background = G.itemBg)}
+        >
+          <X style={{ width: 14, height: 14, color: G.textMuted }} />
+        </button>
       </div>
 
-      {/* Dados da posição */}
+      {/* ── Position data ── */}
       {position ? (
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-            <Gauge className="w-4 h-4 text-primary flex-shrink-0" />
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase font-bold">Velocidade</p>
-              <p className="text-sm font-bold">{formatSpeed(position.speed ?? 0)}</p>
+        <div style={{ padding: '12px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {/* Speed */}
+          <div style={{ background: G.itemBg, borderRadius: 10, padding: '8px 10px', border: `1px solid ${G.border}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+              <Gauge style={{ width: 12, height: 12, color: G.blue, flexShrink: 0 }} />
+              <span style={{ fontSize: 9, color: G.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>
+                {t('device.speed')}
+              </span>
             </div>
+            <p style={{ color: G.textPrimary, fontWeight: 700, fontSize: 14, margin: 0 }}>
+              {formatSpeed(position.speed ?? 0)}
+            </p>
           </div>
 
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-            <Navigation className="w-4 h-4 text-primary flex-shrink-0" />
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase font-bold">Rumo</p>
-              <p className="text-sm font-bold">{Math.round(position.course ?? 0)}°</p>
+          {/* Course */}
+          <div style={{ background: G.itemBg, borderRadius: 10, padding: '8px 10px', border: `1px solid ${G.border}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+              <Navigation style={{ width: 12, height: 12, color: G.blue, flexShrink: 0 }} />
+              <span style={{ fontSize: 9, color: G.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>
+                {t('device.course')}
+              </span>
             </div>
+            <p style={{ color: G.textPrimary, fontWeight: 700, fontSize: 14, margin: 0 }}>
+              {Math.round(position.course ?? 0)}°
+            </p>
           </div>
 
-          <div className="col-span-2 flex items-start gap-2 p-2 rounded-lg bg-muted/50">
-            <MapPin className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-            {position.address ? (
-              <p className="text-xs text-muted-foreground leading-relaxed">{position.address}</p>
-            ) : (
-              <p className="text-xs font-mono text-muted-foreground">
-                {(position.latitude ?? 0).toFixed(5)}, {(position.longitude ?? 0).toFixed(5)}
+          {/* Location */}
+          <div style={{ gridColumn: '1 / -1', background: G.itemBg, borderRadius: 10, padding: '8px 10px', border: `1px solid ${G.border}`, display: 'flex', gap: 8 }}>
+            <MapPin style={{ width: 12, height: 12, color: G.blue, flexShrink: 0, marginTop: 2 }} />
+            {position.address
+              ? <p style={{ color: G.textSecondary, fontSize: 11, margin: 0, lineHeight: 1.5 }}>{position.address}</p>
+              : <p style={{ color: G.textMuted, fontSize: 11, fontFamily: 'monospace', margin: 0 }}>
+                  {(position.latitude ?? 0).toFixed(5)}, {(position.longitude ?? 0).toFixed(5)}
+                </p>
+            }
+          </div>
+
+          {/* Last update */}
+          <div style={{ gridColumn: '1 / -1', background: G.itemBg, borderRadius: 10, padding: '8px 10px', border: `1px solid ${G.border}`, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Clock style={{ width: 12, height: 12, color: G.blue, flexShrink: 0 }} />
+            <div>
+              <p style={{ fontSize: 9, color: G.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, margin: 0 }}>
+                {t('device.lastUpdate')}
               </p>
-            )}
-          </div>
-
-          <div className="col-span-2 flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-            <Clock className="w-4 h-4 text-primary flex-shrink-0" />
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase font-bold">Última actualização</p>
-              <p className="text-xs font-medium">
-                {new Date(position.timestamp ?? (position as any).fixTime ?? Date.now()).toLocaleString('pt-PT')}
+              <p style={{ color: G.textSecondary, fontSize: 11, fontWeight: 500, margin: '2px 0 0' }}>
+                {new Date(position.timestamp ?? (position as any).fixTime ?? Date.now()).toLocaleString()}
               </p>
             </div>
           </div>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground text-center py-2">Sem posição disponível</p>
+        <div style={{ padding: '14px 16px', textAlign: 'center', color: G.textMuted, fontSize: 12 }}>
+          {t('device.noPosition')}
+        </div>
       )}
 
-      {/* Secção de histórico expansível */}
-      <div className="border border-border rounded-xl overflow-hidden">
+      {/* ── Commands section ── */}
+      <div style={{ borderTop: `1px solid ${G.divider}` }}>
         <button
-          className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium hover:bg-muted/50 transition-colors"
-          onClick={() => setHistoryOpen(v => !v)}
+          onClick={handleCommandsOpen}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '11px 16px', background: 'transparent', border: 'none', cursor: 'pointer',
+            color: G.textSecondary,
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = G.itemHover)}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
-          <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-primary" />
-            Historial de percurso
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Zap style={{ width: 13, height: 13, color: G.blue }} />
+            <span style={{ fontSize: 13, fontWeight: 600 }}>{t('device.commands')}</span>
+          </div>
+          {commandsOpen
+            ? <ChevronUp   style={{ width: 13, height: 13, color: G.textMuted }} />
+            : <ChevronDown style={{ width: 13, height: 13, color: G.textMuted }} />
+          }
+        </button>
+
+        {commandsOpen && (
+          <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {typesLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', color: G.textMuted, fontSize: 12 }}>
+                <Loader2 style={{ width: 13, height: 13, animation: 'spin 1s linear infinite' }} />
+                {t('device.loadingCommands')}
+              </div>
+            ) : (
+              COMMAND_TYPES.map(cmdType => {
+                const supported = supportedTypes === null || supportedTypes.has(cmdType);
+                const sending   = sendingCmd === cmdType;
+                const isStop    = cmdType === 'engineStop';
+                return (
+                  <button
+                    key={cmdType}
+                    disabled={!supported || sending || sendingCmd !== null}
+                    onClick={() => handleSendCommand(cmdType)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 12px', borderRadius: 8, border: `1px solid ${isStop ? 'rgba(239,68,68,0.3)' : G.border}`,
+                      background: isStop ? 'rgba(239,68,68,0.1)' : G.itemBg,
+                      cursor: supported && !sendingCmd ? 'pointer' : 'not-allowed',
+                      opacity: !supported || (sendingCmd && sendingCmd !== cmdType) ? 0.45 : 1,
+                      color: isStop ? G.red : G.textSecondary,
+                      fontSize: 12, fontWeight: 600, textAlign: 'left', width: '100%',
+                    }}
+                    onMouseEnter={e => { if (supported && !sendingCmd) e.currentTarget.style.background = isStop ? 'rgba(239,68,68,0.18)' : G.itemHover; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = isStop ? 'rgba(239,68,68,0.1)' : G.itemBg; }}
+                  >
+                    {sending
+                      ? <Loader2 style={{ width: 12, height: 12, flexShrink: 0, animation: 'spin 1s linear infinite' }} />
+                      : <Zap style={{ width: 12, height: 12, flexShrink: 0 }} />
+                    }
+                    <span style={{ flex: 1 }}>{commandLabels[cmdType]}</span>
+                    {!supported && <span style={{ fontSize: 10, color: G.textMuted }}>{t('device.notAvailable')}</span>}
+                  </button>
+                );
+              })
+            )}
+
+            {cmdFeedback && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8,
+                background: cmdFeedback.type === 'success' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
+                border: `1px solid ${cmdFeedback.type === 'success' ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
+                color: cmdFeedback.type === 'success' ? G.green : G.red,
+                fontSize: 12, fontWeight: 500,
+              }}>
+                {cmdFeedback.type === 'success'
+                  ? <CheckCircle style={{ width: 13, height: 13, flexShrink: 0 }} />
+                  : <AlertCircle style={{ width: 13, height: 13, flexShrink: 0 }} />
+                }
+                {cmdFeedback.message}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── History section ── */}
+      <div style={{ borderTop: `1px solid ${G.divider}` }}>
+        <button
+          onClick={() => setHistoryOpen(v => !v)}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '11px 16px', background: 'transparent', border: 'none', cursor: 'pointer',
+            color: G.textSecondary,
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = G.itemHover)}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <History style={{ width: 13, height: 13, color: G.blue }} />
+            <span style={{ fontSize: 13, fontWeight: 600 }}>{t('device.history')}</span>
           </div>
           {historyOpen
-            ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
-            : <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            ? <ChevronUp   style={{ width: 13, height: 13, color: G.textMuted }} />
+            : <ChevronDown style={{ width: 13, height: 13, color: G.textMuted }} />
           }
         </button>
 
         {historyOpen && (
-          <div className="px-3 pb-3 space-y-2 border-t border-border pt-2">
+          <div style={{ padding: '0 12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {/* Presets */}
-            <div className="flex gap-1.5">
-              {PRESETS.map(p => (
-                <button
-                  key={p.hours}
-                  onClick={() => handlePreset(p.hours)}
-                  className={`flex-1 py-1 rounded-md text-xs font-medium transition-colors ${
-                    !useCustom && selectedPreset === p.hours
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted hover:bg-muted/80 text-muted-foreground'
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
+            <div style={{ display: 'flex', gap: 6 }}>
+              {PRESETS.map(p => {
+                const active = !useCustom && selectedPreset === p.hours;
+                return (
+                  <button
+                    key={p.hours}
+                    onClick={() => handlePreset(p.hours)}
+                    style={{
+                      flex: 1, padding: '5px 0', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                      border: `1px solid ${active ? G.blue : G.border}`,
+                      background: active ? G.blue : G.itemBg,
+                      color: active ? '#fff' : G.textMuted,
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Toggle intervalo personalizado */}
+            {/* Custom toggle */}
             <button
               onClick={handleCustomToggle}
-              className={`w-full text-xs py-1.5 rounded-md border transition-colors ${
-                useCustom
-                  ? 'border-primary text-primary bg-primary/5'
-                  : 'border-border text-muted-foreground hover:bg-muted/50'
-              }`}
+              style={{
+                padding: '6px 0', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                border: `1px solid ${useCustom ? G.blue : G.border}`,
+                background: useCustom ? 'rgba(96,165,250,0.12)' : G.itemBg,
+                color: useCustom ? G.blue : G.textMuted,
+              }}
             >
-              Intervalo personalizado
+              {t('device.customInterval')}
             </button>
 
             {useCustom && (
-              <div className="space-y-1.5">
-                <div>
-                  <label className="text-[10px] text-muted-foreground uppercase font-bold">De</label>
-                  <input
-                    type="datetime-local"
-                    value={customFrom}
-                    onChange={e => setCustomFrom(e.target.value)}
-                    className="w-full mt-0.5 text-xs px-2 py-1.5 rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-muted-foreground uppercase font-bold">Até</label>
-                  <input
-                    type="datetime-local"
-                    value={customTo}
-                    onChange={e => setCustomTo(e.target.value)}
-                    className="w-full mt-0.5 text-xs px-2 py-1.5 rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {[
+                  { label: t('device.from'), value: customFrom, onChange: setCustomFrom },
+                  { label: t('device.to'),   value: customTo,   onChange: setCustomTo   },
+                ].map(field => (
+                  <div key={field.label}>
+                    <label style={{ fontSize: 9, color: G.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>
+                      {field.label}
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={field.value}
+                      onChange={e => field.onChange(e.target.value)}
+                      style={{
+                        width: '100%', marginTop: 3, padding: '6px 8px', borderRadius: 7, fontSize: 12,
+                        border: `1px solid ${G.inputBorder}`,
+                        background: G.inputBg, color: G.textSecondary,
+                        outline: 'none', boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                ))}
               </div>
             )}
 
-            <Button
-              size="sm"
-              className="w-full text-xs"
+            {/* Show route button */}
+            <button
               onClick={handleShowHistory}
-              disabled={useCustom && (!customFrom || !customTo)}
+              disabled={loadingHistory || (useCustom && (!customFrom || !customTo))}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                padding: '9px 0', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                border: 'none',
+                background: loadingHistory ? G.itemBg : `linear-gradient(135deg, ${G.blue}, #3b82f6)`,
+                color: loadingHistory ? G.textMuted : '#fff',
+                opacity: (useCustom && (!customFrom || !customTo)) ? 0.45 : 1,
+                boxShadow: loadingHistory ? 'none' : '0 2px 10px rgba(59,130,246,0.35)',
+                transition: 'all 0.15s',
+              }}
             >
-              <History className="w-3.5 h-3.5 mr-1.5" />
-              Ver percurso
-            </Button>
+              {loadingHistory
+                ? <Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} />
+                : <History style={{ width: 14, height: 14 }} />
+              }
+              {t('device.showRoute')}
+            </button>
           </div>
         )}
       </div>

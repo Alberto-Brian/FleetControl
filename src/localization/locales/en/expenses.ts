@@ -221,6 +221,19 @@ export const enExpenses = {
     allCategories: 'All categories',
   },
 
+  table: {
+    actions: 'Actions',
+  },
+
+  compact: {
+    colDateExpVenc:     'Exp. Date / Due',
+    colDatePgtoCriacao: 'Pmt. Date / Created',
+    prefixDesp:    'Exp: ',
+    prefixVenc:    'Due: ',
+    prefixPgto:    'Pmt: ',
+    prefixCreated: 'Created: ',
+  },
+
   viewModes: {
     compact: 'Compact',
     normal: 'Normal',

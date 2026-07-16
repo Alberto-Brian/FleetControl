@@ -1,3 +1,8 @@
-export const GET_SYSTEM_VERSION = "system:version";
-export const GET_DB_VERSION = "system:db-version";
-export const FORCE_DB_ROTATION = "system:db-rotate";
+export const GET_SYSTEM_VERSION  = "system:version";
+export const GET_DB_VERSION      = "system:db-version";
+export const FORCE_DB_ROTATION   = "system:db-rotate";
+export const GET_SERVER_URL      = "system:get-server-url";
+export const SET_SERVER_URL      = "system:set-server-url";
+export const SHOW_NOTIFICATION   = "system:show-notification";
+export const LIST_DATABASES      = "system:db-list";
+export const GET_DATABASE_STATS  = "system:db-stats";

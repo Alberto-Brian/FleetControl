@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useApiConnection } from '@/hooks/useApiConnection';
 import type { Position, Device, ConnectionState, TraccarStatus } from '@/hooks/useApiConnection';
@@ -17,11 +18,11 @@ export interface LocalGeofence {
 export interface GeofenceAlert {
   id:             string;
   organizationId: string;
-  geofenceId:     number;
-  geofenceName:   string;
+  geofenceId:     number | null;
+  geofenceName:   string | null;
   deviceId:       number;
   vehicleId:      string | null;
-  eventType:      'geofenceEnter' | 'geofenceExit' | 'speedLimit';
+  eventType:      'geofenceEnter' | 'geofenceExit' | 'speedLimit' | 'ignitionOn' | 'ignitionOff' | 'deviceMoving' | 'deviceStopped';
   speed:          number | null;
   speedLimit:     number | null;
   latitude:       number | null;
@@ -167,6 +168,7 @@ interface TrackingContextValue {
 const Ctx = createContext<TrackingContextValue | null>(null);
 
 export function TrackingProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation('tracking');
   const [state, dispatch] = useReducer(reducer, initial);
   const [alertSettings, setAlertSettings] = useState<AlertSettings | null>(null);
   const alertSettingsRef = useRef<AlertSettings | null>(null);
@@ -224,7 +226,14 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
   // Named loader so it can be shared between the isConnected effect and the custom event listener
   const loadAlertSettings = useCallback(() => {
     (window as any)._tracking.getAlertSettings()
-      .then((s: any) => { if (s) setAlertSettings(s); })
+      .then((s: any) => {
+        if (s) {
+          const nativeEnabled  = localStorage.getItem('nativeNotificationsEnabled') === 'true';
+          const notifyFocused  = localStorage.getItem('notifyWhenFocused') === 'true';
+          const osOnly         = localStorage.getItem('osOnlyNotifications') === 'true';
+          setAlertSettings({ ...s, nativeNotificationsEnabled: nativeEnabled, notifyWhenFocused: notifyFocused, osOnlyNotifications: osOnly });
+        }
+      })
       .catch(console.error);
   }, []);
 
@@ -239,23 +248,42 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
     if (latest) {
       const settings = alertSettingsRef.current;
       const settingKey: Record<string, keyof AlertSettings> = {
-        geofenceEnter: 'notifyNativeEnter',
-        geofenceExit:  'notifyNativeExit',
-        speedLimit:    'notifyNativeSpeed',
+        geofenceEnter:  'notifyNativeEnter',
+        geofenceExit:   'notifyNativeExit',
+        speedLimit:     'notifyNativeSpeed',
+        ignitionOn:     'notifyIgnitionOn',
+        ignitionOff:    'notifyIgnitionOff',
+        deviceMoving:   'notifyDeviceMoving',
+        deviceStopped:  'notifyDeviceStopped',
       };
       const key = settingKey[latest.eventType];
       // If settings not yet loaded, default to showing; if loaded, respect the toggle
       const enabled = !settings || !key || settings[key];
       if (enabled) {
-        const labels: Record<string, string> = {
-          geofenceEnter: 'Entrou',
-          geofenceExit:  'Saiu',
-          speedLimit:    'Velocidade excessiva',
+        const EVENT_TOAST_LABELS: Record<string, string> = {
+          geofenceEnter: t('alerts.enter'),
+          geofenceExit:  t('alerts.exit'),
+          speedLimit:    t('alerts.speed'),
+          ignitionOn:    t('alerts.ignitionOn'),
+          ignitionOff:   t('alerts.ignitionOff'),
+          deviceMoving:  t('alerts.moving'),
+          deviceStopped: t('alerts.stopped'),
         };
         const device = state.devices.find(d => d.traccar_id === latest.deviceId);
-        const deviceLabel = device?.name ?? `#${latest.deviceId}`;
-        toast.warning(`${labels[latest.eventType] ?? latest.eventType} · ${deviceLabel} · ${latest.geofenceName}`);
-        if (settings) sendNativeNotification(latest, settings);
+        const vehicleParts = device?.vehicle
+          ? [device.vehicle.brand, device.vehicle.model, device.vehicle.license_plate].filter(Boolean)
+          : [];
+        const deviceLabel  = vehicleParts.length ? vehicleParts.join(' ') : (device?.name ?? `#${latest.deviceId}`);
+        const zonePart = latest.geofenceName ? ` · ${latest.geofenceName}` : '';
+        // Suprimir toast in-app se:
+        // - osOnlyNotifications: modo SO exclusivo
+        // - nativeEnabled + app sem foco: a notif SO vai disparar; toast apareceria obsoleto ao restaurar
+        const appInBackground = !document.hasFocus();
+        const nativeSuppressesToast = !!settings?.nativeNotificationsEnabled && appInBackground;
+        if (!settings?.osOnlyNotifications && !nativeSuppressesToast) {
+          toast.warning(`${EVENT_TOAST_LABELS[latest.eventType] ?? latest.eventType} · ${deviceLabel}${zonePart}`);
+        }
+        if (settings) sendNativeNotification(latest, settings, deviceLabel, EVENT_TOAST_LABELS[latest.eventType] ?? latest.eventType);
       }
     }
   }, [geofenceAlerts]);
