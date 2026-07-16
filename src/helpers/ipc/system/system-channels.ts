@@ -6,3 +6,5 @@ export const SET_SERVER_URL      = "system:set-server-url";
 export const SHOW_NOTIFICATION   = "system:show-notification";
 export const LIST_DATABASES      = "system:db-list";
 export const GET_DATABASE_STATS  = "system:db-stats";
+export const SET_HISTORICAL_DB   = "system:db-set-historical";
+export const GET_HISTORICAL_DB   = "system:db-get-historical";

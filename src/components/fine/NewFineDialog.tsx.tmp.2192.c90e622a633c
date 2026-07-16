@@ -178,26 +178,6 @@ export default function NewFineDialog() {
                 />
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                <Wallet className="w-4 h-4 inline mr-1" />
-                {t('fines:fields.responsibleParty')}
-              </Label>
-              <Select
-                value={formData.responsible_party || 'none'}
-                onValueChange={(value) => setFormData({ ...formData, responsible_party: value === 'none' ? undefined : value as 'company' | 'driver' })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('fines:placeholders.selectResponsibleParty')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t('common:optional')}</SelectItem>
-                  <SelectItem value="company">{t('fines:fields.responsiblePartyOptions.company')}</SelectItem>
-                  <SelectItem value="driver">{t('fines:fields.responsiblePartyOptions.driver')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           {/* Seção 2: Dados da Multa */}

@@ -220,29 +220,7 @@ export class DatabaseManager {
     }
   }
 
-  setHistoricalDatabase(filepath: string | null): void {
-    if (this.historicalDb) {
-      try { this.historicalDb.close(); } catch {}
-      this.historicalDb = null;
-      this.historicalDbPath = null;
-    }
-    if (filepath) {
-      this.historicalDb = new Database(filepath, { readonly: true });
-      this.historicalDbPath = filepath;
-      console.log('📂 Modo histórico activado:', filepath);
-    } else {
-      console.log('📂 Modo histórico desactivado');
-    }
-  }
-
-  getHistoricalDbPath(): string | null {
-    return this.historicalDbPath;
-  }
-
   getCurrentDrizzleInstance() {
-    if (this.historicalDb) {
-      return drizzle(this.historicalDb, { schema });
-    }
     if (!this.currentDb) {
       throw new Error('Database not initialized');
     }

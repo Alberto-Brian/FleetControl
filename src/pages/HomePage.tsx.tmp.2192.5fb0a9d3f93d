@@ -94,7 +94,7 @@ export default function HomePage() {
       case 'tracking':    return <TrackingPage />;
       case 'analytics':   return <AnalyticsPage />;
       case 'help':        return <HelpPage />;
-      default:            return <DashboardPage onNavigate={setActiveSection} />;
+      default:            return <DashboardPage />;
     }
   }
 
@@ -265,14 +265,12 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Conteúdo com scroll (HelpPage tem layout próprio — sem wrapper scrollável) */}
-              {activeSection === 'help' ? (
-                <div className="flex-1 overflow-hidden">{renderContent()}</div>
-              ) : (
-                <div className="flex-1 overflow-y-auto overflow-x-hidden">
-                  <div className={hasPadding ? 'p-4' : 'p-2'}>{renderContent()}</div>
+              {/* Conteúdo com scroll */}
+              <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                <div className={hasPadding ? 'p-4' : 'p-2'}>
+                  {renderContent()}
                 </div>
-              )}
+              </div>
             </div>
           )}
         </div>
@@ -375,6 +373,24 @@ export default function HomePage() {
 
         <div className="px-2 mt-auto pt-3 space-y-0.5">
           <button
+            onClick={() => setActiveSection('help')}
+            className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-muted-foreground transition-colors"
+            title={isCompact ? t('navigation:menu.help') : undefined}
+          >
+            <HelpCircle className="w-[18px] h-[18px] flex-shrink-0" />
+            <span
+              style={{
+                opacity:    isCompact ? 0 : 1,
+                maxWidth:   isCompact ? 0 : 200,
+                overflow:   'hidden',
+                whiteSpace: 'nowrap',
+                transition: 'opacity 180ms ease, max-width 200ms ease-in-out',
+              }}
+            >
+              {t('navigation:menu.help')}
+            </span>
+          </button>
+          <button
             onClick={() => setIsSettingsOpen(true)}
             className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-muted-foreground transition-colors"
             title={isCompact ? t('navigation:header.settings') : undefined}
@@ -461,7 +477,7 @@ export default function HomePage() {
           </div>
         </header>
 
-        <div className={`flex-1 min-h-0 overflow-hidden ${(activeSection === 'tracking' || activeSection === 'help') ? '' : hasPadding ? 'overflow-y-auto p-4 md:p-6' : 'overflow-y-auto p-2'}`}>
+        <div className={`flex-1 min-h-0 overflow-hidden ${activeSection === 'tracking' ? '' : hasPadding ? 'overflow-y-auto p-4 md:p-6' : 'overflow-y-auto p-2'}`}>
           {renderContent()}
         </div>
       </main>

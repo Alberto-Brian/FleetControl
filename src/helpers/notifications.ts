@@ -30,12 +30,10 @@ export function sendNativeNotification(
 ): void {
   if (!settings.nativeNotificationsEnabled) return;
 
-  // osOnlyNotifications → sempre mostra OS (ignora estado do foco)
-  // notifyWhenFocused   → mostra SO mesmo com a janela activa (em foco)
-  // default             → só mostra quando a janela não tem foco (minimizada ou em segundo plano)
-  // hasFocus() é false quando minimizada OU coberta por outra janela — cobre ambos os casos.
-  // Mais fiável que document.hidden com setBackgroundThrottling(false) activo.
-  if (!settings.osOnlyNotifications && !settings.notifyWhenFocused && document.hasFocus()) return;
+  // Só notifica via SO quando a janela não tem foco (minimizada ou em segundo plano).
+  // hasFocus() é false em ambos os casos e é mais fiável que document.hidden
+  // quando setBackgroundThrottling(false) está activo.
+  if (document.hasFocus()) return;
 
   const typeKey = alert.eventType === 'geofenceEnter'  ? 'notifyNativeEnter'
                 : alert.eventType === 'geofenceExit'   ? 'notifyNativeExit'

@@ -1,4 +1,4 @@
-import { GET_SYSTEM_VERSION, GET_DB_VERSION, FORCE_DB_ROTATION, GET_SERVER_URL, SET_SERVER_URL, SHOW_NOTIFICATION, LIST_DATABASES, GET_DATABASE_STATS } from "./system-channels";
+import { GET_SYSTEM_VERSION, GET_DB_VERSION, FORCE_DB_ROTATION, GET_SERVER_URL, SET_SERVER_URL, SHOW_NOTIFICATION, LIST_DATABASES, GET_DATABASE_STATS, SET_HISTORICAL_DB, GET_HISTORICAL_DB } from "./system-channels";
 
 export function exposeSystemContext() {
     const { contextBridge, ipcRenderer } = window.require("electron");
@@ -11,5 +11,7 @@ export function exposeSystemContext() {
         showNotification:   (title: string, body: string) => ipcRenderer.send(SHOW_NOTIFICATION, title, body),
         listDatabases:      () => ipcRenderer.invoke(LIST_DATABASES),
         getDatabaseStats:   (filepath: string) => ipcRenderer.invoke(GET_DATABASE_STATS, filepath),
+        setHistoricalDb:    (filepath: string | null) => ipcRenderer.invoke(SET_HISTORICAL_DB, filepath),
+        getHistoricalDb:    () => ipcRenderer.invoke(GET_HISTORICAL_DB),
     });
 }

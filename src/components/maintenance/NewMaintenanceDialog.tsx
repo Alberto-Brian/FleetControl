@@ -53,6 +53,7 @@ export default function NewMaintenanceDialog() {
     workshop_id: undefined,
     type: 'corrective',
     vehicle_mileage: 0,
+    next_maintenance_km: undefined,
     description: '',
     priority: 'normal',
     notes: '',
@@ -88,6 +89,7 @@ export default function NewMaintenanceDialog() {
         workshop_id: formData.workshop_id || undefined,
         type: formData.type,
         vehicle_mileage: formData.vehicle_mileage,
+        next_maintenance_km: formData.next_maintenance_km || undefined,
         description: formData.description.trim(),
         priority: formData.priority,
         notes: formData.notes?.trim() || undefined,
@@ -111,7 +113,7 @@ export default function NewMaintenanceDialog() {
   }
 
   function resetForm() {
-    setFormData({ vehicle_id: '', category_id: '', workshop_id: undefined, type: 'corrective', vehicle_mileage: 0, description: '', priority: 'normal', notes: '', parts_cost: 0, labor_cost: 0, work_order_number: '' });
+    setFormData({ vehicle_id: '', category_id: '', workshop_id: undefined, type: 'corrective', vehicle_mileage: 0, next_maintenance_km: undefined, description: '', priority: 'normal', notes: '', parts_cost: 0, labor_cost: 0, work_order_number: '' });
     setStartNow(false);
   }
 
@@ -252,19 +254,31 @@ export default function NewMaintenanceDialog() {
             )}
           </div>
 
-          {/* Oficina */}
+          {/* Próxima manutenção prevista (km) */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">{t('maintenances:fields.workshop')}</Label>
-            <SearchableSelect
-              options={workshopOptions}
-              value={formData.workshop_id || 'none'}
-              onValueChange={(value) => setFormData({ ...formData, workshop_id: value === 'none' ? undefined : value })}
-              placeholder={t('maintenances:placeholders.workshop')}
-              searchPlaceholder="Pesquisar por nome ou cidade..."
-              emptyMessage="Nenhuma oficina encontrada."
-              noneOption={{ value: 'none', label: t('common:none') }}
+            <Label>{t('maintenances:fields.nextMaintenanceKm')}</Label>
+            <Input
+              type="number" min="0"
+              placeholder={t('maintenances:placeholders.nextMaintenanceKm')}
+              value={formData.next_maintenance_km || ''}
+              onChange={(e) => setFormData({ ...formData, next_maintenance_km: parseInt(e.target.value) || undefined })}
             />
+            <p className="text-xs text-muted-foreground">{t('maintenances:info.nextMaintenanceKmHint')}</p>
           </div>
+        </div>
+
+        {/* Oficina — linha própria */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">{t('maintenances:fields.workshop')}</Label>
+          <SearchableSelect
+            options={workshopOptions}
+            value={formData.workshop_id || 'none'}
+            onValueChange={(value) => setFormData({ ...formData, workshop_id: value === 'none' ? undefined : value })}
+            placeholder={t('maintenances:placeholders.workshop')}
+            searchPlaceholder="Pesquisar por nome ou cidade..."
+            emptyMessage="Nenhuma oficina encontrada."
+            noneOption={{ value: 'none', label: t('common:none') }}
+          />
         </div>
 
 

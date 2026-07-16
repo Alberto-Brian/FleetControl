@@ -14,7 +14,8 @@ export const enNavigation = {
     fines: 'Fines',
     reports: 'Reports',
     analytics: 'Analytics',
-    tracking: "Tracking"
+    tracking: "Tracking",
+    help: 'Help',
   },
 
   // Header

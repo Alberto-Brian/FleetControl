@@ -26,7 +26,12 @@ export const enFines = {
     authority: "Authority",
     notes: "Notes",
     vehicle: "Vehicle",
-    driver: "Driver"
+    driver: "Driver",
+    responsibleParty: "Responsible for Payment",
+    responsiblePartyOptions: {
+      company: "Company",
+      driver: "Driver"
+    }
   },
   
   status: {
@@ -111,7 +116,8 @@ export const enFines = {
     authority: "Ex: Traffic Police",
     notes: "Additional information...",
     selectVehicle: "Select vehicle",
-    selectDriver: "Select driver"
+    selectDriver: "Select driver",
+    selectResponsibleParty: "Who pays this fine?"
   },
   
   alerts: {

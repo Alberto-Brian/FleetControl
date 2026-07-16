@@ -80,7 +80,6 @@ function AppContent() {
 
     // 3. Usuário autenticado → App principal com LicenseGuard
     return (
-        <HistoricalDbProvider>
         <LayoutProvider>
         <TrackingProvider>
         <LicenseGuard>
@@ -90,7 +89,6 @@ function AppContent() {
         </LicenseGuard>
         </TrackingProvider>
         </LayoutProvider>
-        </HistoricalDbProvider>
     );
 }
 

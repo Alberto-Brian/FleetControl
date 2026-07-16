@@ -7,18 +7,19 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { 
-  AlertCircle, 
-  Car, 
-  User, 
-  MapPin, 
-  Calendar, 
-  DollarSign, 
+import {
+  AlertCircle,
+  Car,
+  User,
+  MapPin,
+  Calendar,
+  DollarSign,
   FileText,
   Building2,
   Edit,
   CheckCircle2,
-  Scale
+  Scale,
+  Wallet
 } from 'lucide-react';
 import { useFines } from '@/contexts/FinesContext';
 import { isOverdue, getDaysOverdue, getDaysUntilDue } from '@/helpers/fine-helpers';
@@ -110,8 +111,8 @@ export default function ViewFineDialog({ open, onOpenChange, onEdit, onMarkAsPai
             </div>
           )}
 
-          {/* Veículo e Motorista */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Veículo, Motorista e Responsável */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 rounded-lg bg-muted/50 border">
               <div className="flex items-center gap-2 mb-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -131,6 +132,20 @@ export default function ViewFineDialog({ open, onOpenChange, onEdit, onMarkAsPai
               </div>
               <p className="text-lg font-bold">
                 {selectedFine.driver_name || t('fines:info.unknownDriver')}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-lg bg-muted/50 border">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Wallet className="w-4 h-4 text-primary" />
+                </div>
+                <p className="font-semibold text-sm">{t('fines:fields.responsibleParty')}</p>
+              </div>
+              <p className="text-lg font-bold">
+                {selectedFine.responsible_party
+                  ? t(`fines:fields.responsiblePartyOptions.${selectedFine.responsible_party}`)
+                  : '—'}
               </p>
             </div>
           </div>

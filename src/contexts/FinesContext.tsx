@@ -27,6 +27,7 @@ export interface Fine {
   points?: number | null;
   authority?: string | null;
   notes?: string | null;
+  responsible_party?: 'company' | 'driver' | null;
   created_at: string;
 }
 

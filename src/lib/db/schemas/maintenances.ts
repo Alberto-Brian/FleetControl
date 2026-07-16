@@ -53,6 +53,7 @@ export const maintenances = sqliteTable('maintenances', {
     maintenancePriority.HIGH,
     maintenancePriority.URGENT,
   ] }).notNull().default(maintenancePriority.NORMAL),
+  next_maintenance_km: integer('next_maintenance_km'),
   work_order_number: text('work_order_number'),
   notes: text('notes'),
   created_at: text('created_at').notNull().default(sql`(datetime('now', 'localtime'))`),

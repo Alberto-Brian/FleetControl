@@ -69,7 +69,7 @@ export default function DragWindowRegion({
     // Em modo conectado (dark=true) força sempre dark; caso contrário segue o tema
     const effectiveDark = dark || isSystemDark;
 
-    const bg    = effectiveDark ? 'rgba(8,14,28,0.97)'     : 'rgba(250,251,252,0.96)';
+    const bg    = effectiveDark ? 'rgba(6,10,22,0.98)'      : 'rgba(228,231,240,0.98)';
     const color = effectiveDark ? 'rgba(255,255,255,0.55)'  : 'rgba(0,0,0,0.5)';
 
     return (

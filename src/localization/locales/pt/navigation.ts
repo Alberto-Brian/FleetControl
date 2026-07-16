@@ -14,7 +14,8 @@ export const ptNavigation = {
     fines: 'Multas',
     reports: 'Relatórios',
     analytics: 'Análises',
-    tracking: "Rastreamento"
+    tracking: "Rastreamento",
+    help: 'Ajuda',
   },
 
   // Header

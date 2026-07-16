@@ -1,7 +1,7 @@
 // ========================================
 // FILE: src/components/maintenance/MaintenancePageContent.tsx (ATUALIZADO)
 // ========================================
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,11 +15,12 @@ import { maintenanceStatus } from '@/lib/db/schemas/maintenances';
 import { cn } from '@/lib/utils';
 import {
   Wrench, Search, Tag, Edit, Trash2, LayoutGrid, List, Rows,
-  Building2, AlertCircle, Clock, Flag, Settings, Phone, Mail, MapPin, Eye, Play, CheckCircle2, Filter, MoreHorizontal
+  Building2, AlertCircle, Clock, Flag, Settings, Phone, Mail, MapPin, Eye, Play, CheckCircle2, Filter, MoreHorizontal, Gauge, X
 } from 'lucide-react';
 
 import { useMaintenances } from '@/contexts/MaintenancesContext';
 import { getAllMaintenances as getAllMaintenancesHelper, deleteMaintenance as deleteMaintenanceHelper } from '@/helpers/maintenance-helpers';
+import { getSystemSettings } from '@/helpers/system-settings-helpers';
 import { getAllMaintenanceCategories as getAllCategoriesHelper, deleteMaintenanceCategory as deleteCategoryHelper } from '@/helpers/maintenance-category-helpers';
 import { getAllWorkshops, deleteWorkshop as deleteWorkshopHelper } from '@/helpers/workshop-helpers';
 
@@ -85,6 +86,9 @@ export function MaintenancePageContent() {
   const [editWorkshopDialogOpen, setEditWorkshopDialogOpen] = useState(false);
   const [startDialogOpen, setStartDialogOpen]           = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen]     = useState(false);
+  const [alertThreshold, setAlertThreshold]             = useState(10000);
+  const [alertEnabled, setAlertEnabled]                 = useState(true);
+  const [alertBannerDismissed, setAlertBannerDismissed] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => { setDebouncedSearch(searchTerm); setCurrentPage(1); }, 500);
@@ -98,9 +102,20 @@ export function MaintenancePageContent() {
   useEffect(() => {
     loadCategories();
     loadWorkshops();
+    loadAlertSettings();
     window.addEventListener('action-completed', handleActionCompleted);
     return () => window.removeEventListener('action-completed', handleActionCompleted);
   }, []);
+
+  async function loadAlertSettings() {
+    try {
+      const settings = await getSystemSettings();
+      setAlertEnabled(settings.alert_maintenance_enabled);
+      setAlertThreshold(settings.alert_mileage_threshold);
+    } catch {
+      // usa defaults
+    }
+  }
 
   const handleActionCompleted = useCallback((event: any) => {
     const { handler, result } = event.detail;
@@ -179,6 +194,15 @@ export function MaintenancePageContent() {
     } catch (error) { handleError(error, 'maintenances:workshops.toast.deleteError'); }
     finally { setIsDeletingWorkshop(false); }
   }
+
+  const upcomingAlerts = useMemo(() => {
+    if (!alertEnabled) return [];
+    return maintenances.filter(m => {
+      if (!m.next_maintenance_km) return false;
+      const currentKm = (m as any).vehicle_current_mileage ?? 0;
+      return currentKm >= m.next_maintenance_km - alertThreshold;
+    });
+  }, [maintenances, alertEnabled, alertThreshold]);
 
   const filteredCategories = categories.filter(c => c.name?.toLowerCase().includes(categorySearch.toLowerCase()));
   const filteredWorkshops  = workshops.filter(w =>
@@ -484,6 +508,52 @@ export function MaintenancePageContent() {
                 </Card>
               ))}
             </div>
+
+            {/* ---- Banner de alertas preventivos ---- */}
+            {upcomingAlerts.length > 0 && !alertBannerDismissed && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50/70 dark:border-amber-800/50 dark:bg-amber-950/20 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="shrink-0 mt-0.5 p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/40">
+                      <Gauge className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                        {upcomingAlerts.length === 1
+                          ? t('maintenances:alerts.upcomingOne')
+                          : t('maintenances:alerts.upcomingMany', { count: upcomingAlerts.length })}
+                      </p>
+                      <div className="mt-2 space-y-1.5">
+                        {upcomingAlerts.map(m => {
+                          const currentKm = (m as any).vehicle_current_mileage ?? 0;
+                          const remaining = m.next_maintenance_km! - currentKm;
+                          return (
+                            <div key={m.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-amber-700 dark:text-amber-400">
+                              <span className="font-mono font-bold">{(m as any).vehicle_license}</span>
+                              <span className="text-amber-400">•</span>
+                              <span>{(m as any).vehicle_brand} {(m as any).vehicle_model}</span>
+                              <span className="text-amber-400">—</span>
+                              {remaining <= 0
+                                ? <span className="font-bold text-red-600 dark:text-red-400">{t('maintenances:alerts.overdue')}</span>
+                                : <span>{t('maintenances:alerts.remainingKm', { km: remaining.toLocaleString('pt-PT') })}</span>
+                              }
+                              <span className="text-amber-400/70">({t('maintenances:alerts.nextAt')} {m.next_maintenance_km!.toLocaleString('pt-PT')} km)</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setAlertBannerDismissed(true)}
+                    className="shrink-0 p-1 rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-500 transition-colors"
+                    aria-label={t('common:actions.dismiss')}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Toolbar */}
             <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">

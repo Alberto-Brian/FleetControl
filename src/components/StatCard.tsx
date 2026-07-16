@@ -9,18 +9,23 @@ interface StatCardProps {
   subtitle?: string;
   trend?: number;
   color: string;
+  onClick?: () => void;
 }
 
-export default function StatCard({ 
-  icon: Icon, 
-  title, 
-  value, 
-  subtitle, 
-  trend, 
-  color 
+export default function StatCard({
+  icon: Icon,
+  title,
+  value,
+  subtitle,
+  trend,
+  color,
+  onClick,
 }: StatCardProps) {
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card
+      className={`hover:shadow-lg transition-shadow ${onClick ? 'cursor-pointer hover:ring-2 hover:ring-primary/30' : ''}`}
+      onClick={onClick}
+    >
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">

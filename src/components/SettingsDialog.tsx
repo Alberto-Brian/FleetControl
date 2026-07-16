@@ -38,6 +38,7 @@ import { removeLicense }                          from '@/helpers/license-helper
 import { requestNotificationPermission }          from '@/helpers/notifications';
 import { useLicense }                             from '@/hooks/useLicense';
 import { LicenseActivationDialog }                from '@/components/LicenseActivationDialog';
+import { useHistoricalDb }                        from '@/contexts/HistoricalDbContext';
 
 import { ICompanySettings, IUpdateCompanySettings }           from '@/lib/types/company';
 import { ISystemSettings, IUpdateSystemSettings }             from '@/lib/types/system-settings';
@@ -53,10 +54,10 @@ interface RowProps {
 }
 function SettingRow({ label, description, children }: RowProps) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-border/50 last:border-0">
+    <div className="flex items-center justify-between gap-6 py-3 border-b border-border/40 last:border-0">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium">{label}</p>
-        {description && <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{description}</p>}
+        <p className="text-sm font-medium leading-snug">{label}</p>
+        {description && <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{description}</p>}
       </div>
       <div className="shrink-0">{children}</div>
     </div>
@@ -71,9 +72,12 @@ interface SectionProps {
 function SettingSection({ title, description, children }: SectionProps) {
   return (
     <div className="space-y-1">
-      <div className="mb-3">
-        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{title}</p>
-        {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
+      <div className="flex items-start gap-2.5 mb-3">
+        <div className="mt-0.5 h-3.5 w-0.5 rounded-full bg-primary/50 shrink-0" />
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{title}</p>
+          {description && <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{description}</p>}
+        </div>
       </div>
       <div className="px-1">{children}</div>
     </div>
@@ -923,30 +927,6 @@ function GeofenceAlertsTab() {
             onCheckedChange={handleToggleNativeNotifications}
           />
         </SettingRow>
-        {localSettings.nativeNotificationsEnabled && (
-          <>
-            <SettingRow
-              label={t('settings.osOnlyNotifications')}
-              description={t('settings.osOnlyNotificationsDesc')}
-            >
-              <Switch
-                checked={localSettings.osOnlyNotifications}
-                onCheckedChange={v => update('osOnlyNotifications', v)}
-              />
-            </SettingRow>
-            {!localSettings.osOnlyNotifications && (
-              <SettingRow
-                label={t('settings.notifyWhenFocused')}
-                description={t('settings.notifyWhenFocusedDesc')}
-              >
-                <Switch
-                  checked={localSettings.notifyWhenFocused}
-                  onCheckedChange={v => update('notifyWhenFocused', v)}
-                />
-              </SettingRow>
-            )}
-          </>
-        )}
       </SettingSection>
 
       {/* Tipos de alerta */}
@@ -994,25 +974,17 @@ function GeofenceAlertsTab() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Tab: Bases de dados
 // ─────────────────────────────────────────────────────────────────────────────
-const TABLE_LABELS: Record<string, string> = {
-  vehicles:     'Viaturas',
-  drivers:      'Condutores',
-  trips:        'Viagens',
-  refuelings:   'Abastecimentos',
-  maintenances: 'Manutenções',
-  expenses:     'Despesas',
-  fines:        'Multas',
-  users:        'Utilizadores',
-  routes:       'Rotas',
-};
-
 function DatabasesTab() {
+  const { t } = useTranslation('settings');
+  const { historicalDbPath, activate, deactivate } = useHistoricalDb();
+
   const [dbs, setDbs]           = useState<import('@/types/types').DbFileInfo[]>([]);
   const [loading, setLoading]   = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [stats, setStats]       = useState<Record<string, number> | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError]     = useState<string | null>(null);
+  const [activating, setActivating]     = useState<string | null>(null);
 
   useEffect(() => {
     listDatabases()
@@ -1022,6 +994,11 @@ function DatabasesTab() {
   }, []);
 
   async function handleSelect(filepath: string) {
+    if (selected === filepath) {
+      setSelected(null);
+      setStats(null);
+      return;
+    }
     setSelected(filepath);
     setStats(null);
     setStatsError(null);
@@ -1029,124 +1006,157 @@ function DatabasesTab() {
     try {
       const result = await getDatabaseStats(filepath);
       if (result?.error) {
-        setStatsError(result.error as string);
+        setStatsError(t('databases.statsError'));
       } else {
         setStats(result as Record<string, number>);
       }
-    } catch (e: any) {
-      setStatsError(String(e?.message ?? e));
+    } catch {
+      setStatsError(t('databases.statsError'));
     } finally {
       setStatsLoading(false);
     }
   }
 
+  async function handleActivate(filepath: string) {
+    setActivating(filepath);
+    try { await activate(filepath); } finally { setActivating(null); }
+  }
+
+  async function handleDeactivate() {
+    setActivating('deactivate');
+    try { await deactivate(); } finally { setActivating(null); }
+  }
+
   function formatSize(bytes: number) {
-    if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
   }
 
   const selectedDb = dbs.find(d => d.filepath === selected);
+  const tableLabels: Record<string, string> = {
+    vehicles:    t('databases.tables.vehicles'),
+    drivers:     t('databases.tables.drivers'),
+    trips:       t('databases.tables.trips'),
+    refuelings:  t('databases.tables.refuelings'),
+    maintenances:t('databases.tables.maintenances'),
+    expenses:    t('databases.tables.expenses'),
+    fines:       t('databases.tables.fines'),
+    users:       t('databases.tables.users'),
+    routes:      t('databases.tables.routes'),
+  };
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-base font-semibold mb-0.5">Bases de Dados</h3>
-        <p className="text-sm text-muted-foreground">
-          Consulte os registos de bases de dados anteriores em modo somente leitura.
-        </p>
+        <h3 className="text-base font-semibold mb-0.5">{t('databases.title')}</h3>
+        <p className="text-sm text-muted-foreground">{t('databases.subtitle')}</p>
       </div>
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin" />
-          A carregar…
+          {t('databases.loading')}
         </div>
       ) : dbs.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-10 text-muted-foreground">
           <Database className="w-10 h-10 opacity-30" />
-          <p className="text-sm">Nenhuma base de dados encontrada.</p>
+          <p className="text-sm">{t('databases.noData')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3">
-          {dbs.map(db => (
-            <button
-              key={db.filepath}
-              onClick={() => handleSelect(db.filepath)}
-              className={cn(
-                'w-full text-left p-4 rounded-lg border transition-colors',
-                selected === db.filepath
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-primary/50 hover:bg-muted/50',
-              )}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Database className="w-4 h-4 shrink-0 text-muted-foreground" />
-                  <span className="text-sm font-medium truncate">{db.filename}</span>
-                  {db.isActive && (
-                    <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                      Activa
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
-                  <span>{formatSize(db.size)}</span>
-                  <span>{new Date(db.createdAt).toLocaleDateString('pt-PT')}</span>
-                </div>
-              </div>
-              <div className="mt-1 ml-6 text-xs text-muted-foreground">
-                {db.recordCount.toLocaleString('pt-PT')} registos totais
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {selected && (
-        <div className="rounded-lg border bg-card/50 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold flex items-center gap-2">
-              <Database className="w-4 h-4" />
-              {selectedDb?.filename ?? 'Base de dados'}
-            </h4>
-            {selectedDb?.isActive && (
-              <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-1 rounded bg-primary/10 text-primary">
-                Em uso
-              </span>
-            )}
-          </div>
-
-          {statsLoading && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              A ler estatísticas…
-            </div>
-          )}
-
-          {statsError && (
-            <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md text-xs text-destructive">
-              <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              {statsError}
-            </div>
-          )}
-
-          {stats && !statsLoading && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {Object.entries(stats)
-                .filter(([k]) => k !== 'error')
-                .map(([table, count]) => (
-                  <div key={table} className="p-3 rounded-md bg-muted/50 border border-border/50">
-                    <p className="text-xs text-muted-foreground mb-0.5">
-                      {TABLE_LABELS[table] ?? table}
-                    </p>
-                    <p className="text-lg font-bold tabular-nums">
-                      {(count as number).toLocaleString('pt-PT')}
-                    </p>
+        <div className="grid grid-cols-1 gap-2">
+          {dbs.map(db => {
+            const isHistorical = historicalDbPath === db.filepath;
+            const isExpanded   = selected === db.filepath;
+            return (
+              <div key={db.filepath} className={cn('rounded-lg border transition-colors', isExpanded ? 'border-primary' : 'border-border')}>
+                {/* Header row */}
+                <button
+                  onClick={() => handleSelect(db.filepath)}
+                  className={cn('w-full text-left p-3 rounded-lg', isExpanded ? 'bg-primary/5' : 'hover:bg-muted/50')}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Database className="w-4 h-4 shrink-0 text-muted-foreground" />
+                      <span className="text-sm font-medium truncate">{db.filename}</span>
+                      {db.isActive && !isHistorical && (
+                        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                          {t('databases.current')}
+                        </span>
+                      )}
+                      {isHistorical && (
+                        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                          {t('databases.activated')}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
+                      <span>{db.recordCount > 0 ? `${db.recordCount.toLocaleString()} ${t('databases.records')}` : formatSize(db.size)}</span>
+                      <span>{new Date(db.createdAt).toLocaleDateString()}</span>
+                    </div>
                   </div>
-                ))}
-            </div>
-          )}
+                </button>
+
+                {/* Expanded stats + actions */}
+                {isExpanded && (
+                  <div className="px-3 pb-3 space-y-3 border-t border-border/50">
+                    <div className="pt-3 flex items-center justify-between gap-2">
+                      <span className="text-xs text-muted-foreground truncate">{db.filepath}</span>
+                      <div className="shrink-0">
+                        {isHistorical ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleDeactivate}
+                            disabled={activating === 'deactivate'}
+                            className="h-7 text-xs gap-1 border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
+                          >
+                            {activating === 'deactivate' ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}
+                            {t('databases.deactivate')}
+                          </Button>
+                        ) : !db.isActive && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleActivate(db.filepath)}
+                            disabled={activating === db.filepath}
+                            className="h-7 text-xs gap-1"
+                          >
+                            {activating === db.filepath ? <Loader2 className="w-3 h-3 animate-spin" /> : <Database className="w-3 h-3" />}
+                            {t('databases.activate')}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {statsLoading && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        {t('databases.readingStats')}
+                      </div>
+                    )}
+                    {statsError && (
+                      <p className="text-xs text-destructive">{statsError}</p>
+                    )}
+                    {stats && !statsLoading && (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {Object.entries(stats)
+                          .filter(([k]) => k !== 'error' && (stats[k] as number) > 0)
+                          .map(([table, count]) => (
+                            <div key={table} className="p-2 rounded-md bg-muted/50 border border-border/50">
+                              <p className="text-[10px] text-muted-foreground mb-0.5 truncate">
+                                {tableLabels[table] ?? table}
+                              </p>
+                              <p className="text-base font-bold tabular-nums">
+                                {(count as number).toLocaleString()}
+                              </p>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -1198,7 +1208,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
     // { id: 'fuel',       icon: Fuel,      label: t('nav.fuel')       },
     // { id: 'system',     icon: Sliders,   label: t('nav.system')     },
     { id: 'backups',    icon: HardDrive,   label: t('nav.backups')    },
-    { id: 'databases',  icon: Database,    label: 'Bases de Dados'    },
+    { id: 'databases',  icon: Database,    label: t('nav.databases')  },
     { id: 'server',     icon: Server,      label: t('nav.server')     },
     { id: 'license',    icon: Key,         label: t('nav.license')    },
     { id: 'about',      icon: Info,        label: t('nav.about')      },
@@ -1269,33 +1279,57 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl h-[640px] max-h-[90vh] p-0 gap-0 flex flex-col">
+        <DialogContent className="max-w-[940px] h-[700px] max-h-[90vh] p-0 gap-0 flex flex-col">
           <div className="flex flex-1 min-h-0">
 
             {/* Sidebar */}
-            <aside className="w-56 border-r border-border bg-muted/30 flex flex-col shrink-0">
-              <DialogHeader className="p-5 pb-3 shrink-0">
-                <DialogTitle className="flex items-center gap-2 text-base">
-                  <Settings className="w-4 h-4" />{t('title')}
+            <aside className="w-56 border-r border-border bg-muted/20 flex flex-col shrink-0">
+              <DialogHeader className="px-4 pt-4 pb-3 shrink-0">
+                <DialogTitle className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Settings className="w-4 h-4 text-primary" />
+                  </div>
+                  <span className="text-sm font-semibold">{t('title')}</span>
                 </DialogTitle>
               </DialogHeader>
-              <div className="flex-1 min-h-0 overflow-y-auto px-2">
-                <nav className="space-y-0.5 py-2">
-                  {navSections.map(({ id, icon: Icon, label }) => (
-                    <button key={id} onClick={() => setActiveTab(id)}
-                      className={cn('w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all',
-                        activeTab === id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}>
-                      <Icon className="w-4 h-4 shrink-0" />{label}
-                    </button>
-                  ))}
+              <div className="px-3 mb-1">
+                <div className="h-px bg-border/60" />
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto px-2 py-1">
+                <nav className="space-y-0.5">
+                  {navSections.map(({ id, icon: Icon, label }) => {
+                    const isActive = activeTab === id;
+                    return (
+                      <button
+                        key={id}
+                        onClick={() => setActiveTab(id)}
+                        className={cn(
+                          'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all',
+                          isActive
+                            ? 'bg-primary/10 text-primary font-semibold'
+                            : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground font-medium',
+                        )}
+                      >
+                        <span className={cn(
+                          'w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-colors',
+                          isActive ? 'bg-primary/15' : 'bg-muted/80',
+                        )}>
+                          <Icon className="w-3.5 h-3.5" />
+                        </span>
+                        {label}
+                      </button>
+                    );
+                  })}
                 </nav>
               </div>
-              <div className="px-3 py-3 border-t border-border shrink-0">
+              <div className="px-2 py-2 border-t border-border shrink-0">
                 <button
                   onClick={() => window.location.reload()}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
                 >
-                  <RefreshCw className="w-3.5 h-3.5 shrink-0" />
+                  <span className="w-6 h-6 rounded-md bg-muted/80 flex items-center justify-center shrink-0">
+                    <RefreshCw className="w-3 h-3" />
+                  </span>
                   Recarregar aplicação
                 </button>
               </div>

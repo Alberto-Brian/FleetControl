@@ -150,6 +150,12 @@ export async function getAllTrips(params: IPaginationParams = {}): Promise<IPagi
     if (params.status && params.status !== 'all') {
         conditions.push(eq(trips.status, params.status));
     }
+    if (params.vehicle_id) {
+        conditions.push(eq(trips.vehicle_id, params.vehicle_id));
+    }
+    if (params.driver_id) {
+        conditions.push(eq(trips.driver_id, params.driver_id));
+    }
     const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
 
     const [{ total }] = await withTripJoins(

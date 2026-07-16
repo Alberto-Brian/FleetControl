@@ -44,6 +44,8 @@ interface System {
     showNotification:  (title: string, body: string) => void;
     listDatabases:     () => Promise<DbFileInfo[]>;
     getDatabaseStats:  (filepath: string) => Promise<Record<string, number> & { error?: string }>;
+    setHistoricalDb:   (filepath: string | null) => Promise<boolean>;
+    getHistoricalDb:   () => Promise<string | null>;
 }
 
 export interface License {

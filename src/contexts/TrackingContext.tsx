@@ -275,12 +275,10 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
           : [];
         const deviceLabel  = vehicleParts.length ? vehicleParts.join(' ') : (device?.name ?? `#${latest.deviceId}`);
         const zonePart = latest.geofenceName ? ` · ${latest.geofenceName}` : '';
-        // Suprimir toast in-app se:
-        // - osOnlyNotifications: modo SO exclusivo
-        // - nativeEnabled + app sem foco: a notif SO vai disparar; toast apareceria obsoleto ao restaurar
-        const appInBackground = !document.hasFocus();
-        const nativeSuppressesToast = !!settings?.nativeNotificationsEnabled && appInBackground;
-        if (!settings?.osOnlyNotifications && !nativeSuppressesToast) {
+        // Suprimir toast se: notificações SO activas E app em segundo plano
+        // (a notif SO vai disparar; o toast apareceria obsoleto ao restaurar a janela)
+        const nativeSuppressesToast = !!settings?.nativeNotificationsEnabled && !document.hasFocus();
+        if (!nativeSuppressesToast) {
           toast.warning(`${EVENT_TOAST_LABELS[latest.eventType] ?? latest.eventType} · ${deviceLabel}${zonePart}`);
         }
         if (settings) sendNativeNotification(latest, settings, deviceLabel, EVENT_TOAST_LABELS[latest.eventType] ?? latest.eventType);

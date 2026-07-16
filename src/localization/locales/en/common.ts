@@ -75,6 +75,7 @@ export const enCommon = {
         no: "No",
         saving: 'Saving ...',
         save: 'Save',
+        dismiss: 'Dismiss',
     },
     warnigns: {
         categoryRequired: "Please select a category",

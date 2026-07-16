@@ -23,10 +23,37 @@ export const enSettings = {
     fuel:           'Fuel',
     system:         'System',
     backups:        'Backups',
+    databases:      'Databases',
     about:          'About',
     license:        'License',
     geofenceAlerts: 'GPS Alerts',
     server:         'Server',
+  },
+
+  // ── Databases ─────────────────────────────────────────────────────────────
+  databases: {
+    title:           'Databases',
+    subtitle:        'Browse and activate historical databases in read-only mode to generate reports.',
+    noData:          'No databases found.',
+    loading:         'Loading...',
+    records:         'total records',
+    current:         'Active',
+    activate:        'Activate for reports',
+    deactivate:      'Deactivate',
+    activated:       'In use (historical)',
+    readingStats:    'Reading stats...',
+    statsError:      'Error reading stats.',
+    tables: {
+      vehicles:      'Vehicles',
+      drivers:       'Drivers',
+      trips:         'Trips',
+      refuelings:    'Refueling',
+      maintenances:  'Maintenance',
+      expenses:      'Expenses',
+      fines:         'Fines',
+      users:         'Users',
+      routes:        'Routes',
+    },
   },
 
   // ── License ───────────────────────────────────────────────────────────────

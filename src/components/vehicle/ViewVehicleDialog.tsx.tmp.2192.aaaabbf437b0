@@ -534,7 +534,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
               <div className="text-center text-xs text-muted-foreground pt-2">
                 <p>{t('vehicles:dialogs.view.fullEditHint')}</p>
               </div>
-          </div>{/* space-y-6 */}
+            </div>
             </TabsContent>
 
             {/* ── TAB: HISTÓRICO ── */}

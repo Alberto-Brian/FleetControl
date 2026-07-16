@@ -32,6 +32,7 @@ async function getFineWithDetails(fineId: string) {
             points: fines.points,
             authority: fines.authority,
             notes: fines.notes,
+            responsible_party: fines.responsible_party,
             created_at: fines.created_at,
         })
         .from(fines)
@@ -102,10 +103,11 @@ export async function getAllFines(params: IPaginationParams = {}): Promise<IPagi
         due_date:        fines.due_date,
         payment_date:    fines.payment_date,
         status:          fines.status,
-        points:          fines.points,
-        authority:       fines.authority,
-        notes:           fines.notes,
-        created_at:      fines.created_at,
+        points:            fines.points,
+        authority:         fines.authority,
+        notes:             fines.notes,
+        responsible_party: fines.responsible_party,
+        created_at:        fines.created_at,
     };
 
     const [{ total }] = await db
@@ -251,6 +253,7 @@ export async function getPendingFines() {
             status: fines.status,
             points: fines.points,
             authority: fines.authority,
+            responsible_party: fines.responsible_party,
             created_at: fines.created_at,
         })
         .from(fines)

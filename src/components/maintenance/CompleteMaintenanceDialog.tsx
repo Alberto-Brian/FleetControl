@@ -12,7 +12,7 @@ import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { completeMaintenance } from '@/helpers/maintenance-helpers';
 import { IUpdateMaintenance } from '@/lib/types/maintenance';
-import { CheckCircle2, MapPin, Calendar, TrendingUp, Wrench, DollarSign } from 'lucide-react';
+import { CheckCircle2, MapPin, Calendar, TrendingUp, Wrench, DollarSign, Gauge } from 'lucide-react';
 import { useMaintenances } from '@/contexts/MaintenancesContext';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +32,7 @@ export default function CompleteMaintenanceDialog({ open, onOpenChange }: Comple
     solution: '',
     parts_cost: 0,
     labor_cost: 0,
+    next_maintenance_km: undefined,
   });
 
   // ✅ useEffect SEMPRE executado (antes do early return)
@@ -70,6 +71,7 @@ export default function CompleteMaintenanceDialog({ open, onOpenChange }: Comple
         solution: formData.solution.trim(),
         parts_cost: formData.parts_cost || 0,
         labor_cost: formData.labor_cost || 0,
+        next_maintenance_km: formData.next_maintenance_km || undefined,
       });
 
       if (completed) {
@@ -226,6 +228,24 @@ export default function CompleteMaintenanceDialog({ open, onOpenChange }: Comple
                 />
               </div>
             </div>
+          </div>
+
+          {/* Próxima manutenção prevista (km) */}
+          <div className="space-y-2">
+            <Label htmlFor="next-maint-km" className="text-sm font-medium flex items-center gap-2">
+              <Gauge className="w-4 h-4 text-muted-foreground" />
+              {t('maintenances:fields.nextMaintenanceKm')}
+            </Label>
+            <Input
+              id="next-maint-km"
+              type="number"
+              min="0"
+              placeholder={t('maintenances:placeholders.nextMaintenanceKm')}
+              value={formData.next_maintenance_km || ''}
+              onChange={(e) => setFormData({ ...formData, next_maintenance_km: parseInt(e.target.value) || undefined })}
+              className="h-10"
+            />
+            <p className="text-xs text-muted-foreground">{t('maintenances:info.nextMaintenanceKmHint')}</p>
           </div>
 
           {/* Total */}

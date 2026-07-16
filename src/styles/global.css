@@ -157,7 +157,6 @@
         @apply overflow-hidden bg-background text-foreground;
     }
     .draglayer {
-        @apply bg-background;
         -webkit-app-region: drag;
     }
 

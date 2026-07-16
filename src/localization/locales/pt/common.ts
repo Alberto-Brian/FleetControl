@@ -73,6 +73,7 @@ export const ptCommon = {
       no: "Não",
       saving: 'A guardar...',
       save: 'Guardar',
+      dismiss: 'Dispensar',
   },
   warnigns: {
       licensePlateRequired: "Por favor, insira uma placa de veículo",

@@ -93,6 +93,7 @@ export const enMaintenances = {
     priority: 'Priority',
     workOrderNumber: 'Work Order Number',
     notes: 'Notes',
+    nextMaintenanceKm: 'Next Maintenance (km)',
     categoryName: 'Category Name',
     categoryDescription: 'Category Description',
     categoryType: 'Category Type',
@@ -124,7 +125,8 @@ export const enMaintenances = {
     searchWorkshop: 'Search by name or city...',
     selectStatus: 'Select status',
     selectPriority: 'Select priority',
-    addNotes: 'Add notes here'
+    addNotes: 'Add notes here',
+    nextMaintenanceKm: 'E.g.: 85000',
   },
 
   actions: {
@@ -201,6 +203,11 @@ export const enMaintenances = {
     diagnosisRequired: 'Please add an initial diagnosis',
     solutionRequired: 'Please describe the solution applied',
     vehicleInMaintenance: 'Maintenance in progress',
+    upcomingOne: '1 vehicle is approaching its next scheduled maintenance',
+    upcomingMany: '{{count}} vehicles are approaching their next scheduled maintenance',
+    overdue: 'Maintenance overdue',
+    remainingKm: '{{km}} km remaining',
+    nextAt: 'next at',
   },
 
   toast: {
@@ -265,6 +272,7 @@ export const enMaintenances = {
     auto: 'Auto',
     typeAutoFilled: 'Type defined by selected category',
     mileageAutoFilled: 'Mileage filled automatically ({{mileage}} km)',
+    nextMaintenanceKmHint: 'Optional. The system alerts you when the vehicle approaches this mileage.',
   },
 
   filters: {

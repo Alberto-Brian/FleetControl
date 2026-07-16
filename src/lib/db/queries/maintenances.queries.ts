@@ -32,6 +32,8 @@ export async function getMaintenanceById(maintenanceId: string): Promise<IMainte
             entry_date: maintenances.entry_date,
             exit_date: maintenances.exit_date,
             vehicle_mileage: maintenances.vehicle_mileage,
+            next_maintenance_km: maintenances.next_maintenance_km,
+            vehicle_current_mileage: vehicles.current_mileage,
             description: maintenances.description,
             diagnosis: maintenances.diagnosis,
             solution: maintenances.solution,
@@ -84,6 +86,7 @@ export async function createMaintenance(maintenanceData: ICreateMaintenance): Pr
         parts_cost: partsCost,
         labor_cost: laborCost,
         total_cost: totalCost,
+        next_maintenance_km: maintenanceData.next_maintenance_km || null,
         work_order_number: maintenanceData.work_order_number || null,
         vehicle_id: maintenanceData.vehicle_id,
         category_id: maintenanceData.category_id,
@@ -129,6 +132,9 @@ export async function getAllMaintenances(params: IPaginationParams = {}): Promis
     if (params.status && params.status !== 'all') {
         conditions.push(eq(maintenances.status, params.status));
     }
+    if (params.vehicle_id) {
+        conditions.push(eq(maintenances.vehicle_id, params.vehicle_id));
+    }
 
     const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
 
@@ -147,19 +153,21 @@ export async function getAllMaintenances(params: IPaginationParams = {}): Promis
         type:                maintenances.type,
         entry_date:          maintenances.entry_date,
         exit_date:           maintenances.exit_date,
-        vehicle_mileage:     maintenances.vehicle_mileage,
-        description:         maintenances.description,
-        diagnosis:           maintenances.diagnosis,
-        solution:            maintenances.solution,
-        parts_cost:          maintenances.parts_cost,
-        labor_cost:          maintenances.labor_cost,
-        total_cost:          maintenances.total_cost,
-        status:              maintenances.status,
-        priority:            maintenances.priority,
-        work_order_number:   maintenances.work_order_number,
-        notes:               maintenances.notes,
-        created_at:          maintenances.created_at,
-        updated_at:          maintenances.updated_at,
+        vehicle_mileage:         maintenances.vehicle_mileage,
+        next_maintenance_km:     maintenances.next_maintenance_km,
+        vehicle_current_mileage: vehicles.current_mileage,
+        description:             maintenances.description,
+        diagnosis:               maintenances.diagnosis,
+        solution:                maintenances.solution,
+        parts_cost:              maintenances.parts_cost,
+        labor_cost:              maintenances.labor_cost,
+        total_cost:              maintenances.total_cost,
+        status:                  maintenances.status,
+        priority:                maintenances.priority,
+        work_order_number:       maintenances.work_order_number,
+        notes:                   maintenances.notes,
+        created_at:              maintenances.created_at,
+        updated_at:              maintenances.updated_at,
     };
 
     const [{ total }] = await db
@@ -368,6 +376,8 @@ export async function getActiveMaintenances(): Promise<IMaintenance[]> {
             entry_date: maintenances.entry_date,
             exit_date: maintenances.exit_date,
             vehicle_mileage: maintenances.vehicle_mileage,
+            next_maintenance_km: maintenances.next_maintenance_km,
+            vehicle_current_mileage: vehicles.current_mileage,
             description: maintenances.description,
             diagnosis: maintenances.diagnosis,
             solution: maintenances.solution,

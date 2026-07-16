@@ -93,6 +93,7 @@ export const ptMaintenances = {
     priority: 'Prioridade',
     workOrderNumber: 'Nº Ordem de Serviço',
     notes: 'Observações',
+    nextMaintenanceKm: 'Próxima Manutenção (km)',
     categoryName: 'Nome da Categoria',
     categoryDescription: 'Descrição da Categoria',
     categoryType: 'Tipo de Categoria',
@@ -123,7 +124,8 @@ export const ptMaintenances = {
     searchWorkshop: 'Pesquisar por nome ou cidade...',
     selectStatus: 'Seleccione o estado',
     selectPriority: 'Seleccione a prioridade',
-    addNotes: "Adicione notas aqui"
+    addNotes: 'Adicione notas aqui',
+    nextMaintenanceKm: 'Ex: 85000',
   },
 
   actions: {
@@ -200,6 +202,11 @@ export const ptMaintenances = {
     diagnosisRequired: 'Por favor, adicione um diagnóstico inicial',
     solutionRequired: 'Por favor, descreva a solução aplicada',
     vehicleInMaintenance: 'Manutenção em andamento',
+    upcomingOne: '1 veículo aproxima-se da próxima manutenção preventiva',
+    upcomingMany: '{{count}} veículos aproximam-se da próxima manutenção preventiva',
+    overdue: 'Manutenção em atraso',
+    remainingKm: '{{km}} km restantes',
+    nextAt: 'próxima aos',
   },
 
   toast: {
@@ -264,6 +271,7 @@ export const ptMaintenances = {
     auto: 'Auto',
     typeAutoFilled: 'Tipo definido pela categoria seleccionada',
     mileageAutoFilled: 'Quilometragem preenchida automaticamente ({{mileage}} km)',
+    nextMaintenanceKmHint: 'Opcional. O sistema avisa quando o veículo se aproximar desta quilometragem.',
   },
 
   filters: {

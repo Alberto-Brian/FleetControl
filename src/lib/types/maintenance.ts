@@ -11,6 +11,7 @@ export interface IMaintenance {
     entry_date: string;
     exit_date: string | null;
     vehicle_mileage: number;
+    next_maintenance_km: number | null;
     description: string;
     diagnosis: string | null;
     solution: string | null;
@@ -23,6 +24,7 @@ export interface IMaintenance {
     notes: string | null;
     created_at: string;
     updated_at: string;
+    vehicle_current_mileage?: number | null;
 }
 
 export interface ICreateMaintenance {
@@ -31,14 +33,14 @@ export interface ICreateMaintenance {
     workshop_id?: string;
     type: MaintenanceType;
     vehicle_mileage: number;
+    next_maintenance_km?: number;
     description: string;
     priority?: MaintenancePriority;
     notes?: string;
-    // Campos adicionais que podem ser fornecidos na criação
     parts_cost?: number;
     labor_cost?: number;
     work_order_number?: string;
-    status?: MaintenanceStatus; // Permitir definir status na criação
+    status?: MaintenanceStatus;
 }
 
 export interface IUpdateMaintenance {
@@ -54,6 +56,7 @@ export interface IUpdateMaintenance {
     priority?: MaintenancePriority;
     notes?: string;
     work_order_number?: string;
+    next_maintenance_km?: number | null;
 }
 
 export interface IMaintenanceCategory {

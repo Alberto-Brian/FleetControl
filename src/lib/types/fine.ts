@@ -19,6 +19,7 @@ export interface IFine {
     points: number | null;
     authority: string | null;
     notes: string | null;
+    responsible_party: 'company' | 'driver' | null;
     created_at: string;
 }
 
@@ -35,6 +36,7 @@ export interface ICreateFine {
     points?: number;
     authority?: string;
     notes?: string;
+    responsible_party?: 'company' | 'driver';
 }
 
 export interface IUpdateFine {
@@ -52,6 +54,7 @@ export interface IUpdateFine {
     points?: number;
     authority?: string;
     notes?: string;
+    responsible_party?: 'company' | 'driver' | null;
 }
 
 export interface PayFineData {

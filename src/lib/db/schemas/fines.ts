@@ -37,6 +37,7 @@ export const fines = sqliteTable('fines', {
   points: integer('points'),
   authority: text('authority'),
   notes: text('notes'),
+  responsible_party: text('responsible_party', { enum: ['company', 'driver'] }),
   created_at: text('created_at').notNull().default(sql`(datetime('now', 'localtime'))`),
   created_by: text('created_by'),
   updated_at: text('updated_at').notNull().default(sql`(datetime('now', 'localtime'))`),

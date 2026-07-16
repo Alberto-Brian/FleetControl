@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
-import { Edit, AlertCircle, Car, User, FileText, MapPin, DollarSign, Calendar } from 'lucide-react';
+import { Edit, AlertCircle, Car, User, FileText, MapPin, DollarSign, Calendar, Wallet } from 'lucide-react';
 import { updateFine } from '@/helpers/fine-helpers';
 import { getAllVehicles } from '@/helpers/vehicle-helpers';
 import { getAllDrivers } from '@/helpers/driver-helpers';
@@ -54,6 +54,7 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
     points: 0,
     authority: '',
     notes: '',
+    responsible_party: undefined,
   });
 
   // useEffect para carregar dados
@@ -79,6 +80,7 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
         points: selectedFine.points || 0,
         authority: selectedFine.authority || '',
         notes: selectedFine.notes || '',
+        responsible_party: selectedFine.responsible_party ?? undefined,
       });
     }
   }, [open, selectedFine]);
@@ -203,6 +205,26 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
                   noneOption={{ value: 'none', label: t('fines:info.unknownDriver') }}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                <Wallet className="w-4 h-4 inline mr-1" />
+                {t('fines:fields.responsibleParty')}
+              </Label>
+              <Select
+                value={formData.responsible_party || 'none'}
+                onValueChange={(value) => setFormData({ ...formData, responsible_party: value === 'none' ? undefined : value as 'company' | 'driver' })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('fines:placeholders.selectResponsibleParty')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t('common:optional')}</SelectItem>
+                  <SelectItem value="company">{t('fines:fields.responsiblePartyOptions.company')}</SelectItem>
+                  <SelectItem value="driver">{t('fines:fields.responsiblePartyOptions.driver')}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

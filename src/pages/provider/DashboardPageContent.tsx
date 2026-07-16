@@ -132,37 +132,41 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
 
       {/* Stats Grid - Enhanced with Trends */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
+        <StatCard
           icon={Truck}
           title={t('dashboard:stats.vehicles.total')}
           value={stats.totalVehicles}
           subtitle={`${stats.activeVehicles} ${t('dashboard:stats.vehicles.totalAvailable')}`}
           trend={((stats.activeVehicles / stats.totalVehicles) * 100).toFixed(1)}
           color="bg-blue-600"
+          onClick={onNavigate ? () => onNavigate('vehicles') : undefined}
         />
-        <StatCard 
+        <StatCard
           icon={Users}
           title={t('dashboard:stats.drivers.total')}
           value={stats.totalDrivers}
           subtitle={`${stats.availableDrivers} ${t('dashboard:stats.drivers.totalAvailable')}`}
           trend={((stats.availableDrivers / stats.totalDrivers) * 100).toFixed(1)}
           color="bg-emerald-600"
+          onClick={onNavigate ? () => onNavigate('drivers') : undefined}
         />
-        <StatCard 
+        <StatCard
           icon={MapPin}
           title={t('dashboard:stats.trips.total')}
           value={stats.activeTrips}
           subtitle={`${stats.activeTrips} ${t('dashboard:stats.trips.totalInProgrees')}`}
           trend={stats.completedTrips > 0 ? ((stats.activeTrips / stats.completedTrips) * 100).toFixed(1) : 14.3}
           color="bg-violet-600"
+          onClick={onNavigate ? () => onNavigate('trips') : undefined}
         />
-        <StatCard 
+        <StatCard
           icon={AlertTriangle}
           title={t('dashboard:stats.alerts.pending')}
           value={stats.overdueFines + stats.scheduledMaintenances}
           subtitle={`${stats.scheduledMaintenances} ${t('dashboard:stats.maintenances.inProgress')}`}
           trend={1}
           color="bg-amber-600"
+          onClick={onNavigate ? () => onNavigate('maintenance') : undefined}
         />
       </div>
 

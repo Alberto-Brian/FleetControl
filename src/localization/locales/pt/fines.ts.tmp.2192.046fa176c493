@@ -113,8 +113,7 @@ export const ptFines = {
     authority: "Ex: Polícia Nacional de Trânsito",
     notes: "Informações adicionais...",
     selectVehicle: "Selecione o veículo",
-    selectDriver: "Selecione o motorista",
-    selectResponsibleParty: "Quem paga esta multa?"
+    selectDriver: "Selecione o motorista"
   },
   
   alerts: {

@@ -24,10 +24,37 @@ export const ptSettings = {
     fuel:           'Combustível',
     system:         'Sistema',
     backups:        'Backups',
+    databases:      'Bases de Dados',
     about:          'Sobre',
     license:        'Licença',
     geofenceAlerts: 'Alertas GPS',
     server:         'Servidor',
+  },
+
+  // ── Bases de Dados ────────────────────────────────────────────────────────
+  databases: {
+    title:           'Bases de Dados',
+    subtitle:        'Consulte e active bases de dados históricas em modo somente leitura para gerar relatórios.',
+    noData:          'Nenhuma base de dados encontrada.',
+    loading:         'A carregar...',
+    records:         'registos totais',
+    current:         'Activa',
+    activate:        'Activar para relatórios',
+    deactivate:      'Desactivar',
+    activated:       'Em uso (histórico)',
+    readingStats:    'A ler estatísticas...',
+    statsError:      'Erro ao ler estatísticas.',
+    tables: {
+      vehicles:      'Viaturas',
+      drivers:       'Condutores',
+      trips:         'Viagens',
+      refuelings:    'Abastecimentos',
+      maintenances:  'Manutenções',
+      expenses:      'Despesas',
+      fines:         'Multas',
+      users:         'Utilizadores',
+      routes:        'Rotas',
+    },
   },
 
   // ── Licença ───────────────────────────────────────────────────────────────

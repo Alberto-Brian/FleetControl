@@ -15,9 +15,9 @@ import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import {
-  Wrench, Pencil, Car, Building2, Tag, Calendar, 
+  Wrench, Pencil, Car, Building2, Tag, Calendar,
   DollarSign, FileText, StickyNote, AlertCircle, CheckCircle2,
-  Clock, Play, Flag
+  Clock, Play, Flag, Gauge
 } from 'lucide-react';
 import { updateMaintenance } from '@/helpers/maintenance-helpers';
 import { getAllVehicles } from '@/helpers/vehicle-helpers';
@@ -70,6 +70,7 @@ export default function EditMaintenanceDialog({ open, onOpenChange }: EditMainte
     total_cost: 0,
     description: '',
     notes: '',
+    next_maintenance_km: undefined,
   });
 
   // Load data when dialog opens
@@ -93,6 +94,7 @@ export default function EditMaintenanceDialog({ open, onOpenChange }: EditMainte
         total_cost: selectedMaintenance.total_cost,
         description: selectedMaintenance.description || '',
         notes: selectedMaintenance.notes || '',
+        next_maintenance_km: selectedMaintenance.next_maintenance_km ?? undefined,
       });
     }
   }, [selectedMaintenance, open]);
@@ -430,15 +432,30 @@ export default function EditMaintenanceDialog({ open, onOpenChange }: EditMainte
               </div>
 
               <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Gauge className="w-3.5 h-3.5" />
+                  {t('maintenances:fields.nextMaintenanceKm')}
+                </Label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder={t('maintenances:placeholders.nextMaintenanceKm')}
+                  value={formData.next_maintenance_km || ''}
+                  onChange={(e) => setFormData({ ...formData, next_maintenance_km: parseInt(e.target.value) || undefined })}
+                />
+                <p className="text-xs text-muted-foreground">{t('maintenances:info.nextMaintenanceKmHint')}</p>
+              </div>
+
+              <div className="space-y-2">
                 <Label className="text-sm font-medium flex items-center gap-1">
                   <StickyNote className="w-3.5 h-3.5" />
                   {t('maintenances:fields.notes')}
                 </Label>
-                <Textarea 
-                  placeholder={t('maintenances:placeholders.addNotes')} 
-                  value={formData.notes || ''} 
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })} 
-                  rows={2} 
+                <Textarea
+                  placeholder={t('maintenances:placeholders.addNotes')}
+                  value={formData.notes || ''}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={2}
                   className="resize-none"
                 />
               </div>
