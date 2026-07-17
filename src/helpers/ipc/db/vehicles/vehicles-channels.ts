@@ -15,3 +15,5 @@ export const GET_VEHICLES_BY_CATEGORY = "vehicles:get-by-category";
 export const COUNT_VEHICLES_BY_STATUS = "vehicles:count-by-status";
 export const SYNC_VEHICLE_TO_API      = "vehicles:sync-to-api";
 export const REGISTER_GPS_ON_VEHICLE  = "vehicles:register-gps";
+export const UNREGISTER_GPS_FROM_VEHICLE = 'vehicles:unregister-gps';
+export const TOGGLE_VEHICLE_TRACKING     = 'vehicles:toggle-tracking';

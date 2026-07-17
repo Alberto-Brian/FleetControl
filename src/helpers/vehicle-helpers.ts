@@ -109,3 +109,11 @@ export async function registerGpsOnVehicle(vehicleId: string, imei: string): Pro
         throw error;
     }
 }
+
+export async function unregisterVehicleGps(vehicleId: string): Promise<{ success: boolean }> {
+    return window._vehicles.unregisterGps(vehicleId);
+}
+
+export async function toggleVehicleTracking(vehicleId: string, enabled: boolean): Promise<{ success: boolean }> {
+    return window._vehicles.toggleTracking(vehicleId, enabled);
+}

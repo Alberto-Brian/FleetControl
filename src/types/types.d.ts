@@ -35,17 +35,26 @@ export interface DbFileInfo {
     isActive:    boolean;
 }
 
+export interface BackupDbEntry {
+    backupName: string;
+    backupDate: string; // ISO string
+    sizeBytes:  number;
+    databases:  Array<{ filename: string; filepath: string; sizeBytes: number }>;
+}
+
 interface System {
-    getSystemVersion:  () => Promise<string>;
-    getSchemaVersion:  () => Promise<number>;
-    forceDbRotation:   () => Promise<void>;
-    getServerUrl:      () => Promise<string>;
-    setServerUrl:      (url: string) => Promise<boolean>;
-    showNotification:  (title: string, body: string) => void;
-    listDatabases:     () => Promise<DbFileInfo[]>;
-    getDatabaseStats:  (filepath: string) => Promise<Record<string, number> & { error?: string }>;
-    setHistoricalDb:   (filepath: string | null) => Promise<boolean>;
-    getHistoricalDb:   () => Promise<string | null>;
+    getSystemVersion:    () => Promise<string>;
+    getSchemaVersion:    () => Promise<number>;
+    forceDbRotation:     () => Promise<void>;
+    getServerUrl:        () => Promise<string>;
+    setServerUrl:        (url: string) => Promise<boolean>;
+    showNotification:    (title: string, body: string) => void;
+    listDatabases:       () => Promise<DbFileInfo[]>;
+    getDatabaseStats:    (filepath: string) => Promise<Record<string, number> & { error?: string }>;
+    setHistoricalDb:     (filepath: string | null) => Promise<boolean>;
+    getHistoricalDb:     () => Promise<string | null>;
+    deleteDatabase:      (filepath: string, password: string) => Promise<{ success: boolean; error?: string }>;
+    listBackupDatabases: () => Promise<BackupDbEntry[]>;
 }
 
 export interface License {
@@ -58,8 +67,10 @@ export interface License {
 interface Backup {
     export: () => Promise<BackupReturn>;
     restore: () => Promise<RestoreBackupReturn>;
+    restoreFromDir: (folderPath: string) => Promise<RestoreBackupReturn>;
     getConfig: () => Promise<void>;
     updateConfig: () => Promise<void>;
+    listBackups: () => Promise<{ name: string; path: string; createdAt: Date; size: number }[]>;
     onProgress: (callback: (progress: any) => void) => void;
     onRestoreProgress: (callback: (progress: any) => void) => void;
     removeProgressListener: () => void;
@@ -95,8 +106,10 @@ interface IVehicles {
     getAvailable: () => Promise<IVehicle[]>;
     updateStatus: (vehicleId: string, data: IUpdateStatus) => Promise<IVehicle | null>;
     updateMileage: (vehicleId: string, mileage: number) => Promise<IVehicle | null>;
-    syncToApi:   (vehicleId: string, imei?: string) => Promise<IVehicle | null>;
-    registerGps: (vehicleId: string, imei: string)  => Promise<IVehicle | null>;
+    syncToApi:      (vehicleId: string, imei?: string) => Promise<IVehicle | null>;
+    registerGps:    (vehicleId: string, imei: string)  => Promise<IVehicle | null>;
+    unregisterGps:  (vehicleId: string) => Promise<{ success: boolean }>;
+    toggleTracking: (vehicleId: string, enabled: boolean) => Promise<{ success: boolean }>;
 }
 
 interface IVehicleCategories {
