@@ -40,6 +40,7 @@ export const vehicles = sqliteTable('vehicles', {
   notes: text('notes'),
   photo: text('photo'),
   is_active: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  tracking_enabled: integer('tracking_enabled', { mode: 'boolean' }).notNull().default(true),
   // IMEI do dispositivo GPS físico (opcional) — usado para criar o device Traccar ao sincronizar
   traccar_unique_id: text('traccar_unique_id'),
   // Sync com a API — guarda o UUID do veículo no Postgres após sincronização

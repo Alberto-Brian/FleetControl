@@ -23,6 +23,7 @@ export interface IVehicle extends IBase {
     photo: string | null;
     notes: string | null;
     is_active: boolean;
+    tracking_enabled: boolean;
     traccar_unique_id: string | null;
     api_vehicle_id: string | null;
     api_synced_at:  string | null;
