@@ -15,7 +15,9 @@ import { cn } from '@/lib/utils';
 import { useVehicles } from '@/contexts/VehiclesContext';
 import { useTranslation } from 'react-i18next';
 import { useLicense } from '@/hooks/useLicense';
-import { registerGpsOnVehicle, updateVehicle } from '@/helpers/vehicle-helpers';
+import { registerGpsOnVehicle, updateVehicle, unregisterVehicleGps, toggleVehicleTracking } from '@/helpers/vehicle-helpers';
+import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
 import { getRefuelingsByVehicle } from '@/helpers/refueling-helpers';
 import { IRefueling } from '@/lib/types/refueling';
 import { ITrip } from '@/lib/types/trip';
@@ -62,6 +64,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
   const [gpsDialogOpen, setGpsDialogOpen] = useState(false);
   const [newImei, setNewImei] = useState('');
   const [savingGps, setSavingGps] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Reset ao fechar ou trocar de veículo
   useEffect(() => {
@@ -117,13 +120,36 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
 
   async function handleRemoveGps() {
     if (!selectedVehicle) return;
+    setIsLoading(true);
     try {
-      await updateVehicle(selectedVehicle.id, { traccar_unique_id: null });
-      const updated = { ...selectedVehicle, traccar_unique_id: null };
+      await unregisterVehicleGps(selectedVehicle.id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updated = { ...selectedVehicle, traccar_unique_id: null, tracking_enabled: false } as any;
       dispatch({ type: 'UPDATE_VEHICLE', payload: updated });
       dispatch({ type: 'SELECT_VEHICLE', payload: updated });
-    } catch (err) {
-      console.error(err);
+      toast.success(t('vehicles:toast.gpsRemoved'));
+    } catch {
+      toast.error(t('vehicles:toast.gpsRemoveError'));
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleToggleTracking(enabled: boolean) {
+    if (!selectedVehicle) return;
+    try {
+      await toggleVehicleTracking(selectedVehicle.id, enabled);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updated = { ...selectedVehicle, tracking_enabled: enabled } as any;
+      dispatch({ type: 'UPDATE_VEHICLE', payload: updated });
+      dispatch({ type: 'SELECT_VEHICLE', payload: updated });
+      toast.success(enabled
+        ? t('vehicles:toast.trackingEnabled')
+        : t('vehicles:toast.trackingDisabled')
+      );
+      // TODO: call reloadActiveImeis() after Task 6
+    } catch {
+      toast.error(t('vehicles:toast.trackingError'));
     }
   }
 
@@ -216,18 +242,26 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
                   {selectedVehicle.brand} {selectedVehicle.model} ({selectedVehicle.year})
                 </p>
               </div>
-              <Badge
-                variant="outline"
-                className={cn(
-                  "flex items-center gap-1.5 font-bold px-3 py-1.5 rounded-full text-xs uppercase tracking-wider",
-                  statusConfig.bg,
-                  statusConfig.color,
-                  statusConfig.border
+              <div className="flex flex-col items-end gap-1.5">
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "flex items-center gap-1.5 font-bold px-3 py-1.5 rounded-full text-xs uppercase tracking-wider",
+                    statusConfig.bg,
+                    statusConfig.color,
+                    statusConfig.border
+                  )}
+                >
+                  <StatusIcon className="w-3.5 h-3.5" />
+                  {statusConfig.label}
+                </Badge>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {!(selectedVehicle as any).tracking_enabled && (selectedVehicle as any).traccar_unique_id && (
+                  <Badge variant="outline" className="text-muted-foreground border-muted-foreground/40 text-xs">
+                    {t('vehicles:gps.trackingPaused')}
+                  </Badge>
                 )}
-              >
-                <StatusIcon className="w-3.5 h-3.5" />
-                {statusConfig.label}
-              </Badge>
+              </div>
             </div>
           </DialogHeader>
 
@@ -460,7 +494,8 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
                             <span className="text-muted-foreground/40 text-[11px]">·</span>
                             <button
                               onClick={handleRemoveGps}
-                              className="text-[11px] text-destructive hover:text-destructive/80 underline"
+                              disabled={isLoading}
+                              className="text-[11px] text-destructive hover:text-destructive/80 underline disabled:opacity-50"
                             >
                               Remover GPS
                             </button>
@@ -483,6 +518,28 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
                     )}
                   </div>
                 </div>
+                {/* Tracking toggle — shown only when GPS is registered */}
+                {(() => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const v = selectedVehicle as any;
+                  if (!v.traccar_unique_id) return null;
+                  return (
+                    <div className="mt-3 flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <p className="text-sm font-medium">{t('vehicles:gps.trackingLabel')}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {v.tracking_enabled
+                            ? t('vehicles:gps.trackingEnabledDesc')
+                            : t('vehicles:gps.trackingDisabledDesc')}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={!!v.tracking_enabled}
+                        onCheckedChange={handleToggleTracking}
+                      />
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Registos */}
