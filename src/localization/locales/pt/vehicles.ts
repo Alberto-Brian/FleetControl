@@ -212,6 +212,15 @@ export const ptVehicles = {
     available: 'Categorias disponíveis',
   },
 
+  gps: {
+    trackingLabel:        'Rastreamento em tempo real',
+    trackingEnabledDesc:  'O veículo aparece no mapa com actualizações em tempo real',
+    trackingDisabledDesc: 'O veículo não aparece no mapa. O dispositivo GPS continua activo no Traccar',
+    trackingPaused:       'Rastreamento pausado',
+    enableTracking:       'Activar rastreamento',
+    disableTracking:      'Pausar rastreamento',
+  },
+
   tabs: {
     vehicles: "Veículos",
     categories: "Categorias",
@@ -284,7 +293,12 @@ export const ptVehicles = {
     categoryUpdateSuccess: "Categoria actualizada com sucesso",
     categoryUpdateError: "Erro ao actualizar categoria",
     categoryDeleteSuccess: "Categoria excluída com sucesso",
-    categoryDeleteError: "Erro ao excluir categoria"
+    categoryDeleteError: "Erro ao excluir categoria",
+    gpsRemoved: "Dispositivo GPS removido do veículo",
+    gpsRemoveError: "Erro ao remover dispositivo GPS",
+    trackingEnabled: "Rastreamento activado",
+    trackingDisabled: "Rastreamento pausado",
+    trackingError: "Erro ao actualizar rastreamento"
   },
 
   errors: {

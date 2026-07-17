@@ -212,6 +212,15 @@ export const enVehicles = {
     available: 'Available categories',
   },
 
+  gps: {
+    trackingLabel:        'Real-time tracking',
+    trackingEnabledDesc:  'Vehicle appears on the map with real-time updates',
+    trackingDisabledDesc: 'Vehicle does not appear on the map. GPS device remains active on Traccar',
+    trackingPaused:       'Tracking paused',
+    enableTracking:       'Enable tracking',
+    disableTracking:      'Pause tracking',
+  },
+
   tabs: {
     vehicles: "Vehicles",
     categories: "Categories",
@@ -284,7 +293,12 @@ export const enVehicles = {
     categoryUpdateSuccess: "Category updated successfully",
     categoryUpdateError: "Error updating category",
     categoryDeleteSuccess: "Category deleted successfully",
-    categoryDeleteError: "Error deleting category"
+    categoryDeleteError: "Error deleting category",
+    gpsRemoved: "GPS device removed from vehicle",
+    gpsRemoveError: "Error removing GPS device",
+    trackingEnabled: "Tracking enabled",
+    trackingDisabled: "Tracking paused",
+    trackingError: "Error updating tracking"
   },
 
   errors: {

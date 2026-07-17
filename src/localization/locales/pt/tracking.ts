@@ -11,6 +11,8 @@ export const ptTracking = {
     online: "online",
     offline: "offline",         // ⬅️ NOVO
     allDevices: "Todos",        // ⬅️ NOVO
+    trackingPaused: "Rastreamento pausado",
+    noLinkedVehicle: "Sem veículo",
   },
   toolbar: {
     realtime:       "Tempo real",
@@ -162,6 +164,25 @@ export const ptTracking = {
     cooldownExit:         'Intervalo mínimo entre alertas de saída',
     cooldownIgnition:     'Intervalo mínimo entre alertas de ignição',
     cooldownMovement:     'Intervalo mínimo entre alertas de movimento',
+  },
+  devicesPanel: {
+    title:         'Dispositivos Traccar',
+    subtitle:      'Todos os dispositivos GPS associados à sua organização',
+    imeiLabel:     'IMEI',
+    linkedVehicle: 'Veículo associado',
+    noVehicle:     'Sem veículo',
+    statusLabel:   'Estado',
+    viewVehicle:   'Ver veículo',
+    linkVehicle:   'Vincular veículo',
+    loading:       'A carregar dispositivos...',
+    empty:         'Nenhum dispositivo encontrado',
+    openPanel:     'Dispositivos GPS',
+  },
+  reconciliation: {
+    title:    '{{count}} veículo(s) com IMEI sem correspondência no Traccar',
+    subtitle: 'Estes veículos têm um IMEI registado que não foi encontrado nos dispositivos actuais do Traccar.',
+    details:  'Ver detalhes',
+    dismiss:  'Dispensar',
   },
 } as const;
 

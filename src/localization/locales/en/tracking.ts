@@ -11,6 +11,8 @@ export const enTracking = {
     online: "online",
     offline: "offline",
     allDevices: "All",
+    trackingPaused: "Tracking paused",
+    noLinkedVehicle: "No vehicle",
   },
   toolbar: {
     realtime:       "Real-time",
@@ -166,6 +168,25 @@ export const enTracking = {
     cooldownExit:         'Minimum interval between exit alerts',
     cooldownIgnition:     'Minimum interval between ignition alerts',
     cooldownMovement:     'Minimum interval between movement alerts',
+  },
+  devicesPanel: {
+    title:         'Traccar Devices',
+    subtitle:      'All GPS devices associated with your organization',
+    imeiLabel:     'IMEI',
+    linkedVehicle: 'Linked vehicle',
+    noVehicle:     'No vehicle',
+    statusLabel:   'Status',
+    viewVehicle:   'View vehicle',
+    linkVehicle:   'Link vehicle',
+    loading:       'Loading devices...',
+    empty:         'No devices found',
+    openPanel:     'GPS Devices',
+  },
+  reconciliation: {
+    title:    '{{count}} vehicle(s) with unmatched IMEI in Traccar',
+    subtitle: 'These vehicles have a registered IMEI that was not found in the current Traccar devices.',
+    details:  'View details',
+    dismiss:  'Dismiss',
   },
 } as const;
 
