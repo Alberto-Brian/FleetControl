@@ -86,15 +86,11 @@ export function addVehiclesEventListeners() {
   ipcMain.handle(REGISTER_GPS_ON_VEHICLE, async (_, vehicleId: string, imei: string)  => await registerGpsOnVehicleEvent(vehicleId, imei));
 
   ipcMain.handle(UNREGISTER_GPS_FROM_VEHICLE, async (_, vehicleId: string) => {
-    const token = getStoredApiToken();
-    if (!token) throw new Error('Sem token de autenticação');
-
     const response = await axios.post(
       `${API_URL}/api/vehicles/${vehicleId}/unregister-gps`,
       {},
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: apiHeaders() }
     );
-    if (response.status !== 200) throw new Error('Erro ao remover GPS na API');
 
     const { db } = useDb();
     await db.update(vehicles)
@@ -105,15 +101,11 @@ export function addVehiclesEventListeners() {
   });
 
   ipcMain.handle(TOGGLE_VEHICLE_TRACKING, async (_, vehicleId: string, enabled: boolean) => {
-    const token = getStoredApiToken();
-    if (!token) throw new Error('Sem token de autenticação');
-
     const response = await axios.patch(
       `${API_URL}/api/vehicles/${vehicleId}/tracking`,
       { tracking_enabled: enabled },
-      { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+      { headers: apiHeaders() }
     );
-    if (response.status !== 200) throw new Error('Erro ao actualizar rastreamento na API');
 
     const { db } = useDb();
     await db.update(vehicles)
