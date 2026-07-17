@@ -17,3 +17,4 @@ export const SYNC_VEHICLE_TO_API      = "vehicles:sync-to-api";
 export const REGISTER_GPS_ON_VEHICLE  = "vehicles:register-gps";
 export const UNREGISTER_GPS_FROM_VEHICLE = 'vehicles:unregister-gps';
 export const TOGGLE_VEHICLE_TRACKING     = 'vehicles:toggle-tracking';
+export const GET_ACTIVE_IMEIS            = 'vehicles:get-active-imeis';

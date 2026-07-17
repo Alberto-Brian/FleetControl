@@ -19,6 +19,7 @@ import {
   REGISTER_GPS_ON_VEHICLE,
   UNREGISTER_GPS_FROM_VEHICLE,
   TOGGLE_VEHICLE_TRACKING,
+  GET_ACTIVE_IMEIS,
 } from "./vehicles-channels";
 
 import {
@@ -45,7 +46,7 @@ import { ICreateVehicle, IUpdateStatus, IUpdateVehicle } from '@/lib/types/vehic
 import { ConflictError, NotFoundError, WarningError } from "@/lib/errors/AppError";
 import { vehicleStatus, vehicles } from "@/lib/db/schemas/vehicles";
 import { useDb } from '@/lib/db/db_helpers';
-import { eq } from 'drizzle-orm';
+import { eq, and, isNull, isNotNull } from 'drizzle-orm';
 import { getStoredApiToken } from "@/helpers/ipc/services/auth/token-store";
 
 const API_URL = process.env.API_URL || 'http://localhost:3001';
@@ -113,6 +114,19 @@ export function addVehiclesEventListeners() {
       .where(eq(vehicles.id, vehicleId));
 
     return { success: true };
+  });
+
+  ipcMain.handle(GET_ACTIVE_IMEIS, async () => {
+    const { db } = useDb();
+    const rows = await db
+      .select({ imei: vehicles.traccar_unique_id })
+      .from(vehicles)
+      .where(and(
+        isNotNull(vehicles.traccar_unique_id),
+        eq(vehicles.tracking_enabled, true),
+        isNull(vehicles.deleted_at),
+      ));
+    return rows.map(r => r.imei as string);
   });
 }
 

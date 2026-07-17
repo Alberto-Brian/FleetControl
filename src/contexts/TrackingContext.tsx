@@ -151,18 +151,20 @@ function reducer(state: TrackingState, action: Action): TrackingState {
 
 // O contexto expõe o socket completo para o LicenseGuard poder chamar connect/disconnect
 interface TrackingContextValue {
-  state:          TrackingState;
-  dispatch:       React.Dispatch<Action>;
-  isConnected:    boolean;
-  connState:      ConnectionState;
-  connError:      Error | null;
-  traccarStatus:  TraccarStatus | null;
-  reconnectCount: number;
-  connect:        (token: string) => void;
-  disconnect:     () => void;
-  geofences:      LocalGeofence[];
-  alerts:         GeofenceAlert[];
-  unreadAlerts:   number;
+  state:              TrackingState;
+  dispatch:           React.Dispatch<Action>;
+  isConnected:        boolean;
+  connState:          ConnectionState;
+  connError:          Error | null;
+  traccarStatus:      TraccarStatus | null;
+  reconnectCount:     number;
+  connect:            (token: string) => void;
+  disconnect:         () => void;
+  geofences:          LocalGeofence[];
+  alerts:             GeofenceAlert[];
+  unreadAlerts:       number;
+  activeImeis:        Set<string>;
+  reloadActiveImeis:  () => Promise<void>;
 }
 
 const Ctx = createContext<TrackingContextValue | null>(null);
@@ -173,6 +175,20 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
   const [alertSettings, setAlertSettings] = useState<AlertSettings | null>(null);
   const alertSettingsRef = useRef<AlertSettings | null>(null);
   useEffect(() => { alertSettingsRef.current = alertSettings; }, [alertSettings]);
+
+  // IMEIs activos: veículos com tracking_enabled=true e traccar_unique_id preenchido
+  const [activeImeis, setActiveImeis] = useState<Set<string>>(new Set());
+
+  const reloadActiveImeis = useCallback(async () => {
+    try {
+      const imeis: string[] = await (window as any)._vehicles.getActiveImeis();
+      setActiveImeis(new Set(imeis));
+    } catch (err) {
+      console.error('[Tracking] Erro ao carregar IMEIs activos:', err);
+    }
+  }, []);
+
+  useEffect(() => { reloadActiveImeis(); }, [reloadActiveImeis]);
 
   // Socket único para toda a app
   const {
@@ -313,9 +329,11 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
       state, dispatch,
       isConnected, connState, connError, traccarStatus, reconnectCount,
       connect, disconnect,
-      geofences:    state.geofences,
-      alerts:       state.alerts,
-      unreadAlerts: state.unreadAlerts,
+      geofences:          state.geofences,
+      alerts:             state.alerts,
+      unreadAlerts:       state.unreadAlerts,
+      activeImeis,
+      reloadActiveImeis,
     }}>
       {children}
     </Ctx.Provider>

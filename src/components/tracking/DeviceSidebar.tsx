@@ -10,6 +10,8 @@ import {
 import type { Position }      from '@/hooks/useApiConnection';
 import type { TrackedDevice } from '@/helpers/tracking-helpers';
 import { formatSpeed }        from '@/helpers/tracking-helpers';
+import { useTracking }        from '@/contexts/TrackingContext';
+import { useTranslation }     from 'react-i18next';
 
 interface Props {
   devices:            TrackedDevice[];
@@ -42,6 +44,8 @@ export function DeviceSidebar({
   onSelect, onFollowDevice, onCenterDevice,
   isConnected, isLoading = false, onRefresh, onFilterStatus, onToggleSidebar,
 }: Props) {
+  const { t } = useTranslation('tracking');
+  const { activeImeis } = useTracking();
   const [search, setSearch] = useState('');
 
   const clickTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -240,13 +244,14 @@ export function DeviceSidebar({
       <ScrollArea className="flex-1">
         <div className="py-1">
           {filtered.map(device => {
-            const pos         = getPosition(device);
-            const isSelected  = selectedDevice?.traccar_id === device.traccar_id;
-            const isFollowing = followingDeviceId === device.traccar_id;
-            const isOnline    = device.status === 'online';
-            const isMoving    = (pos?.speed ?? 0) > 2; // > 2 km/h = em movimento
-            const speed       = pos?.speed ?? 0;
-            const battery     = (pos as any)?.batteryLevel ?? (pos?.attributes as any)?.batteryLevel;
+            const pos               = getPosition(device);
+            const isSelected        = selectedDevice?.traccar_id === device.traccar_id;
+            const isFollowing       = followingDeviceId === device.traccar_id;
+            const isOnline          = device.status === 'online';
+            const isMoving          = (pos?.speed ?? 0) > 2; // > 2 km/h = em movimento
+            const speed             = pos?.speed ?? 0;
+            const battery           = (pos as any)?.batteryLevel ?? (pos?.attributes as any)?.batteryLevel;
+            const isTrackingPaused  = device.uniqueId ? !activeImeis.has(device.uniqueId) : false;
 
             return (
               <button
@@ -317,18 +322,28 @@ export function DeviceSidebar({
                 <div className="flex-1 min-w-0">
                   {/* Linha 1: Nome + velocidade/follow */}
                   <div className="flex items-start justify-between gap-1 mb-0.5">
-                    <p
-                      className="text-xs font-semibold leading-tight"
-                      style={{
-                        color: isSelected ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0.82)',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {device.name}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="text-xs font-semibold leading-tight"
+                        style={{
+                          color: isSelected ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0.82)',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {device.name}
+                      </p>
+                      {isTrackingPaused && activeImeis.size > 0 && (
+                        <span
+                          className="inline-block mt-0.5 text-[10px] px-1.5 py-0.5 rounded-sm leading-none"
+                          style={{ color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}
+                        >
+                          {t('sidebar.trackingPaused')}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
                       {isMoving && (
                         <span

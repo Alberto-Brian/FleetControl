@@ -15,6 +15,7 @@ import type { MapLabelType } from '@/hooks/useMapSettings';
 import { GeofenceOverlay } from './GeofenceOverlay';
 import { GeofenceDrawTool } from './GeofenceDrawTool';
 import type { LocalGeofence } from '@/contexts/TrackingContext';
+import { useTracking } from '@/contexts/TrackingContext';
 
 // CSS da animação de pulse — injectado uma vez no documento
 const PULSE_STYLE_ID = 'fc-marker-pulse-style';
@@ -211,9 +212,21 @@ export function TrackingMap({
   drawMode, onDrawConfirm, onDrawCancel,
 }: Props) {
   useEffect(() => { ensurePulseStyle(); }, []);
-  const center: [number, number] = positions.length > 0
-    ? [positions[0].latitude, positions[0].longitude]
-    : [-8.8368, 13.2343];
+
+  // Filtrar posições pelos IMEIs activos (tracking_enabled=true)
+  const { activeImeis } = useTracking();
+  const visiblePositions = activeImeis.size > 0
+    ? positions.filter(pos => {
+        const device = devices.find(d => d.traccar_id === pos.deviceId);
+        return device ? activeImeis.has(device.uniqueId) : false;
+      })
+    : [];
+
+  const center: [number, number] = visiblePositions.length > 0
+    ? [visiblePositions[0].latitude, visiblePositions[0].longitude]
+    : positions.length > 0
+      ? [positions[0].latitude, positions[0].longitude]
+      : [-8.8368, 13.2343];
 
   // Agrupamento das historyPositions por deviceId → polylines de histórico
   const historyLines = useMemo(() => {
@@ -272,7 +285,7 @@ export function TrackingMap({
 
       {!showHistory && (
         <MarkerClusterGroup iconCreateFunction={createClusterIcon} chunkedLoading animate animateAddingMarkers={animateMarkers} maxClusterRadius={40}>
-          {positions.map(pos => {
+          {visiblePositions.map(pos => {
             const device     = devices.find(d => d.traccar_id === pos.deviceId);
             const deviceName = device?.name ?? `Device ${pos.deviceId}`;
             const isSelected = selectedDevice?.traccar_id === pos.deviceId;

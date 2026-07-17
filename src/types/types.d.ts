@@ -110,6 +110,7 @@ interface IVehicles {
     registerGps:    (vehicleId: string, imei: string)  => Promise<IVehicle | null>;
     unregisterGps:  (vehicleId: string) => Promise<{ success: boolean }>;
     toggleTracking: (vehicleId: string, enabled: boolean) => Promise<{ success: boolean }>;
+    getActiveImeis: () => Promise<string[]>;
 }
 
 interface IVehicleCategories {

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useVehicles } from '@/contexts/VehiclesContext';
+import { useTracking } from '@/contexts/TrackingContext';
 import { useTranslation } from 'react-i18next';
 import { useLicense } from '@/hooks/useLicense';
 import { registerGpsOnVehicle, updateVehicle, unregisterVehicleGps, toggleVehicleTracking } from '@/helpers/vehicle-helpers';
@@ -47,6 +48,7 @@ interface MaintenanceRow {
 
 export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDialogProps) {
   const { state: { selectedVehicle }, dispatch } = useVehicles();
+  const { reloadActiveImeis } = useTracking();
   const { t } = useTranslation();
   const { license } = useLicense();
   const isConnected = license?.mode === 'connected' && license?.isValid;
@@ -147,7 +149,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
         ? t('vehicles:toast.trackingEnabled')
         : t('vehicles:toast.trackingDisabled')
       );
-      // TODO: call reloadActiveImeis() after Task 6
+      reloadActiveImeis(); // actualiza o filtro do mapa
     } catch {
       toast.error(t('vehicles:toast.trackingError'));
     }
