@@ -181,7 +181,7 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
 
   const reloadActiveImeis = useCallback(async () => {
     try {
-      const imeis: string[] = await (window as any)._vehicles.getActiveImeis();
+      const imeis: string[] = await window._vehicles.getActiveImeis();
       setActiveImeis(new Set(imeis));
     } catch (err) {
       console.error('[Tracking] Erro ao carregar IMEIs activos:', err);
