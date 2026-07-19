@@ -18,6 +18,8 @@ import { DeviceInfoPanel }          from '@/components/tracking/DeviceInfoPanel'
 import { GeofencePanel }            from '@/components/tracking/GeofencePanel';
 import { AlertPanel }               from '@/components/tracking/AlertPanel';
 import { GeofenceFormModal }        from '@/components/tracking/GeofenceFormModal';
+import { TraccarDevicesPanel }      from '@/components/tracking/TraccarDevicesPanel';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2 }                  from 'lucide-react';
 import { useMapSettings }           from '@/hooks/useMapSettings';
 
@@ -42,6 +44,7 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
   const [drawMode,         setDrawMode]          = useState<'circle' | 'polygon' | null>(null);
   const [pendingWkt,       setPendingWkt]        = useState<string | null>(null);
   const [geoFormOpen,      setGeoFormOpen]       = useState(false);
+  const [devicesPanelOpen, setDevicesPanelOpen]  = useState(false);
 
   useEffect(() => { loadInitial(); }, []);
   // Recarrega dados após reconexão Socket.IO (reconnectCount começa em 0, skip no mount)
@@ -281,6 +284,20 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
               onUpdated={(g) => dispatch({ type: 'GEOFENCE_ADDED', payload: g })}
             />
 
+            {/* Painel de dispositivos Traccar */}
+            {isConnected && (
+              <Dialog open={devicesPanelOpen} onOpenChange={setDevicesPanelOpen}>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>{t('devicesPanel.title')}</DialogTitle>
+                  </DialogHeader>
+                  <div className="mt-2">
+                    <TraccarDevicesPanel />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+
             {/* DeviceSidebar — sempre montado, animada */}
             <div
               className="absolute inset-0"
@@ -336,6 +353,7 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
               onToggleAlerts={() => { setAlertPanelOpen(v => !v); setGeoPanelOpen(false); }}
               isGeoPanelOpen={geoPanelOpen}
               onToggleGeoPanel={() => { setGeoPanelOpen(v => !v); setAlertPanelOpen(false); }}
+              onOpenDevicesPanel={() => setDevicesPanelOpen(true)}
             />
 
             {state.selectedDevice && (
