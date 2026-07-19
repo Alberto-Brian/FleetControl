@@ -6,6 +6,8 @@ import type { Position, Device, ConnectionState, TraccarStatus } from '@/hooks/u
 import type { TrackedDevice } from '@/helpers/tracking-helpers';
 import { sendNativeNotification } from '@/helpers/notifications';
 import type { AlertSettings } from '@/helpers/notifications';
+import { getAllVehicles } from '@/helpers/vehicle-helpers';
+import { reconcileVehicleImeis, type ReconciliationResult } from '@/lib/utils/imei-reconciliation';
 
 export interface LocalGeofence {
   id:           number; // traccarId
@@ -163,8 +165,10 @@ interface TrackingContextValue {
   geofences:          LocalGeofence[];
   alerts:             GeofenceAlert[];
   unreadAlerts:       number;
-  activeImeis:        Set<string>;
-  reloadActiveImeis:  () => Promise<void>;
+  activeImeis:                  Set<string>;
+  reloadActiveImeis:            () => Promise<void>;
+  reconciliationWarning:        ReconciliationResult['unmatched'];
+  dismissReconciliationWarning: () => void;
 }
 
 const Ctx = createContext<TrackingContextValue | null>(null);
@@ -178,6 +182,11 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
 
   // IMEIs activos: veículos com tracking_enabled=true e traccar_unique_id preenchido
   const [activeImeis, setActiveImeis] = useState<Set<string>>(new Set());
+
+  // Reconciliation: veículos locais com IMEI que não existe no Traccar
+  const [reconciliationWarning, setReconciliationWarning] = useState<ReconciliationResult['unmatched']>([]);
+  const reconciliationRunRef = useRef(false);
+  const dismissReconciliationWarning = useCallback(() => setReconciliationWarning([]), []);
 
   const reloadActiveImeis = useCallback(async () => {
     try {
@@ -224,6 +233,31 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
     }));
     dispatch({ type: 'UPDATE_DEVICES', payload: mapped });
   }, [devices]);
+
+  // Reconciliation: corre uma vez após a primeira carga de devices em modo conectado.
+  // Reseta o guard no disconnect para correr novamente na próxima ligação.
+  useEffect(() => {
+    if (!isConnected) {
+      reconciliationRunRef.current = false;
+      return;
+    }
+    if (state.devices.length === 0) return;
+    if (reconciliationRunRef.current) return;
+    reconciliationRunRef.current = true;
+
+    getAllVehicles({ limit: 9999 })
+      .then(({ data: localVehicles }) =>
+        reconcileVehicleImeis(
+          state.devices.map(d => ({ uniqueId: d.uniqueId })),
+          localVehicles
+        )
+      )
+      .then(({ unmatched }) => {
+        if (unmatched.length > 0) setReconciliationWarning(unmatched);
+      })
+      .catch(err => console.error('[Tracking] Reconciliation error:', err));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.devices, isConnected]);
 
   // Load geofences on mount
   useEffect(() => {
@@ -334,6 +368,8 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
       unreadAlerts:       state.unreadAlerts,
       activeImeis,
       reloadActiveImeis,
+      reconciliationWarning,
+      dismissReconciliationWarning,
     }}>
       {children}
     </Ctx.Provider>

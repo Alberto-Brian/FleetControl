@@ -20,7 +20,7 @@ import { AlertPanel }               from '@/components/tracking/AlertPanel';
 import { GeofenceFormModal }        from '@/components/tracking/GeofenceFormModal';
 import { TraccarDevicesPanel }      from '@/components/tracking/TraccarDevicesPanel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2 }                  from 'lucide-react';
+import { AlertTriangle, Loader2, X } from 'lucide-react';
 import { useMapSettings }           from '@/hooks/useMapSettings';
 
 interface TrackingPageContentProps {
@@ -31,7 +31,7 @@ interface TrackingPageContentProps {
 
 export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpenSettings }: TrackingPageContentProps) {
   const { t }               = useTranslation('tracking');
-  const { state, dispatch, isConnected, reconnectCount } = useTracking();
+  const { state, dispatch, isConnected, reconnectCount, reconciliationWarning, dismissReconciliationWarning } = useTracking();
   const { labelType, animateMarkers, pulseMarkers } = useMapSettings();
   const mapRef             = useRef<any>(null);
   const zoomCycleRef       = useRef<0 | 1 | 2>(0); // 0=bairro(14) 1=rua(18) 2=todos
@@ -355,6 +355,34 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
               onToggleGeoPanel={() => { setGeoPanelOpen(v => !v); setAlertPanelOpen(false); }}
               onOpenDevicesPanel={() => setDevicesPanelOpen(true)}
             />
+
+            {/* Reconciliation Warning Banner */}
+            {reconciliationWarning.length > 0 && (
+              <div
+                className="absolute top-14 left-0 right-0 z-40 flex justify-center px-4"
+                style={{ pointerEvents: 'auto' }}
+              >
+                <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-3 text-sm shadow-lg max-w-md w-full">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-amber-800 dark:text-amber-300">
+                      {t('reconciliation.title', { count: reconciliationWarning.length })}
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                      {t('reconciliation.subtitle')}
+                    </p>
+                    <ul className="mt-1 text-xs text-amber-700 dark:text-amber-400 list-disc list-inside">
+                      {reconciliationWarning.map(v => (
+                        <li key={v.id}>{v.brand} {v.model} · {v.license_plate} (IMEI: {v.traccar_unique_id})</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <button onClick={dismissReconciliationWarning} className="text-amber-600 dark:text-amber-400 hover:opacity-70">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            )}
 
             {state.selectedDevice && (
               <DeviceInfoPanel
