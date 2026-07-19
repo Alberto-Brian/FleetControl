@@ -176,6 +176,7 @@ export const ptTracking = {
     linkVehicle:   'Vincular veículo',
     loading:       'A carregar dispositivos...',
     empty:         'Nenhum dispositivo encontrado',
+    error:         'Erro ao carregar dispositivos',
     openPanel:     'Dispositivos GPS',
   },
   reconciliation: {

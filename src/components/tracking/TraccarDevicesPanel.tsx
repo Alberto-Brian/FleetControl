@@ -22,6 +22,7 @@ export function TraccarDevicesPanel({ onViewVehicle }: Props) {
   const { t }                     = useTranslation('tracking');
   const [rows,    setRows]        = useState<DeviceRow[]>([]);
   const [loading, setLoading]     = useState(true);
+  const [error,   setError]       = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -30,7 +31,7 @@ export function TraccarDevicesPanel({ onViewVehicle }: Props) {
           getTrackedDevices(),
           getAllVehicles({ limit: 1000 }),
         ]);
-        const vehicles = vehiclesResult.data ?? [];
+        const vehicles = vehiclesResult?.data ?? [];
         setRows(
           devices.map(device => ({
             device,
@@ -39,6 +40,8 @@ export function TraccarDevicesPanel({ onViewVehicle }: Props) {
             ) ?? null,
           })),
         );
+      } catch {
+        setError(t('devicesPanel.error'));
       } finally {
         setLoading(false);
       }
@@ -48,6 +51,10 @@ export function TraccarDevicesPanel({ onViewVehicle }: Props) {
 
   if (loading) {
     return <p className="text-sm text-muted-foreground p-4">{t('devicesPanel.loading')}</p>;
+  }
+
+  if (error) {
+    return <p className="text-sm text-destructive p-4">{error}</p>;
   }
 
   if (rows.length === 0) {

@@ -292,7 +292,7 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
                     <DialogTitle>{t('devicesPanel.title')}</DialogTitle>
                   </DialogHeader>
                   <div className="mt-2">
-                    <TraccarDevicesPanel />
+                    {devicesPanelOpen && <TraccarDevicesPanel />}
                   </div>
                 </DialogContent>
               </Dialog>

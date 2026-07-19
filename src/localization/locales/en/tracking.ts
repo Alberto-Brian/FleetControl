@@ -180,6 +180,7 @@ export const enTracking = {
     linkVehicle:   'Link vehicle',
     loading:       'Loading devices...',
     empty:         'No devices found',
+    error:         'Error loading devices',
     openPanel:     'GPS Devices',
   },
   reconciliation: {
