@@ -199,11 +199,12 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
       console.error('[TrackingContext] Failed to reload active IMEIs:', err);
       // Do NOT clear activeImeis on error — keep previous value to avoid blanking the map
     }
-    // Load all linked IMEIs (vehicles with any GPS assigned, regardless of tracking_enabled)
+    // Load linked IMEIs: only vehicles synced to the API (api_vehicle_id) with a GPS assigned.
+    // A vehicle without api_vehicle_id is not registered in the cloud — it must not appear on the map.
     try {
       const { data: allVehicles } = await getAllVehicles({ limit: 9999 });
-      const linked = (allVehicles as Array<{ traccar_unique_id?: string | null }>)
-        .filter(v => v.traccar_unique_id)
+      const linked = (allVehicles as Array<{ traccar_unique_id?: string | null; api_vehicle_id?: string | null }>)
+        .filter(v => v.traccar_unique_id && v.api_vehicle_id)
         .map(v => v.traccar_unique_id as string);
       setLinkedImeis(new Set(linked));
     } catch (err) {
