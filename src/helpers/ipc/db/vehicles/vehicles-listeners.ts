@@ -87,14 +87,17 @@ export function addVehiclesEventListeners() {
   ipcMain.handle(REGISTER_GPS_ON_VEHICLE, async (_, vehicleId: string, imei: string)  => await registerGpsOnVehicleEvent(vehicleId, imei));
 
   ipcMain.handle(UNREGISTER_GPS_FROM_VEHICLE, async (_, vehicleId: string) => {
-    // Try to sync with API if connected; in standalone mode (no token) skip the API call
-    try {
-      const headers = apiHeaders(); // throws if no token
-      await axios.post(`${API_URL}/api/vehicles/${vehicleId}/unregister-gps`, {}, { headers });
-    } catch (apiErr: any) {
-      // No token = standalone mode: continue with local update only
-      // Network / server errors: re-throw so the caller sees the failure
-      if (!apiErr.message?.includes('token')) throw apiErr;
+    const vehicle = await findVehicleById(vehicleId);
+    const apiId = vehicle?.api_vehicle_id;
+
+    // Só chama a API se o veículo estiver sincronizado (tem api_vehicle_id)
+    if (apiId) {
+      try {
+        const headers = apiHeaders(); // throws if no token (standalone mode)
+        await axios.post(`${API_URL}/api/vehicles/${apiId}/unregister-gps`, {}, { headers });
+      } catch (apiErr: any) {
+        if (!apiErr.message?.includes('token')) throw apiErr;
+      }
     }
 
     const { db } = useDb();
@@ -106,14 +109,17 @@ export function addVehiclesEventListeners() {
   });
 
   ipcMain.handle(TOGGLE_VEHICLE_TRACKING, async (_, vehicleId: string, enabled: boolean) => {
-    // Try to sync with API if connected; in standalone mode (no token) skip the API call
-    try {
-      const headers = apiHeaders(); // throws if no token
-      await axios.patch(`${API_URL}/api/vehicles/${vehicleId}/tracking`, { tracking_enabled: enabled }, { headers });
-    } catch (apiErr: any) {
-      // No token = standalone mode: continue with local update only
-      // Network / server errors: re-throw so the caller sees the failure
-      if (!apiErr.message?.includes('token')) throw apiErr;
+    const vehicle = await findVehicleById(vehicleId);
+    const apiId = vehicle?.api_vehicle_id;
+
+    // Só chama a API se o veículo estiver sincronizado (tem api_vehicle_id)
+    if (apiId) {
+      try {
+        const headers = apiHeaders(); // throws if no token (standalone mode)
+        await axios.patch(`${API_URL}/api/vehicles/${apiId}/tracking`, { tracking_enabled: enabled }, { headers });
+      } catch (apiErr: any) {
+        if (!apiErr.message?.includes('token')) throw apiErr;
+      }
     }
 
     const { db } = useDb();
@@ -361,15 +367,22 @@ async function countVehiclesByStatusEvent() {
   return await countVehiclesByStatus();
 }
 
-// Regista um IMEI num veículo já sincronizado com a API (sem GPS configurado)
+// Regista um IMEI num veículo, sincronizando-o com a API primeiro se necessário
 async function registerGpsOnVehicleEvent(vehicleId: string, imei: string) {
-  const vehicle = await findVehicleById(vehicleId);
+  let vehicle = await findVehicleById(vehicleId);
   if (!vehicle) throw new Error(new NotFoundError(T_ERRORS.VEHICLE_NOT_FOUND).toIpcString());
 
   if (!imei?.trim()) throw new Error('IMEI é obrigatório');
 
+  // Se o veículo não tem api_vehicle_id, sincronizar com a API antes de registar o GPS
+  if (!vehicle.api_vehicle_id) {
+    vehicle = await syncVehicleToApiEvent(vehicleId);
+  }
+
+  const apiVehicleId = vehicle.api_vehicle_id!;
+
   try {
-    await axios.post(`${API_URL}/api/vehicles/${vehicleId}/register-gps`, {
+    await axios.post(`${API_URL}/api/vehicles/${apiVehicleId}/register-gps`, {
       traccar_unique_id: imei.trim(),
     }, {
       headers: apiHeaders(),
