@@ -488,13 +488,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
                         <span className="font-medium font-mono text-xs flex-1 break-all">{selectedVehicle.traccar_unique_id}</span>
                         {isConnected && (
                           <div className="flex gap-2 w-full mt-1">
-                            <button
-                              onClick={() => { setNewImei(selectedVehicle.traccar_unique_id ?? ''); setGpsDialogOpen(true); }}
-                              className="text-[11px] text-blue-500 hover:text-blue-600 underline"
-                            >
-                              Actualizar IMEI
-                            </button>
-                            <span className="text-muted-foreground/40 text-[11px]">·</span>
+                            {/* Para mudar IMEI: remover GPS e registar novo — ver web module (futuro) */}
                             <button
                               onClick={handleRemoveGps}
                               disabled={isLoading}
@@ -727,7 +721,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>
-              {selectedVehicle?.traccar_unique_id ? 'Actualizar dispositivo GPS' : 'Registar dispositivo GPS'}
+              Registar dispositivo GPS
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-1">
