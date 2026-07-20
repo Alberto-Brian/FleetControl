@@ -166,6 +166,7 @@ interface TrackingContextValue {
   alerts:             GeofenceAlert[];
   unreadAlerts:       number;
   activeImeis:                  Set<string>;
+  linkedImeis:                  Set<string>;
   reloadActiveImeis:            () => Promise<void>;
   reconciliationWarning:        ReconciliationResult['unmatched'];
   dismissReconciliationWarning: () => void;
@@ -182,6 +183,8 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
 
   // IMEIs activos: veículos com tracking_enabled=true e traccar_unique_id preenchido
   const [activeImeis, setActiveImeis] = useState<Set<string>>(new Set());
+  // IMEIs vinculados: veículos com qualquer traccar_unique_id (independentemente de tracking_enabled)
+  const [linkedImeis, setLinkedImeis] = useState<Set<string>>(new Set());
 
   // Reconciliation: veículos locais com IMEI que não existe no Traccar
   const [reconciliationWarning, setReconciliationWarning] = useState<ReconciliationResult['unmatched']>([]);
@@ -193,7 +196,18 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
       const imeis: string[] = await window._vehicles.getActiveImeis();
       setActiveImeis(new Set(imeis));
     } catch (err) {
-      console.error('[Tracking] Erro ao carregar IMEIs activos:', err);
+      console.error('[TrackingContext] Failed to reload active IMEIs:', err);
+      // Do NOT clear activeImeis on error — keep previous value to avoid blanking the map
+    }
+    // Load all linked IMEIs (vehicles with any GPS assigned, regardless of tracking_enabled)
+    try {
+      const { data: allVehicles } = await getAllVehicles({ limit: 9999 });
+      const linked = (allVehicles as Array<{ traccar_unique_id?: string | null }>)
+        .filter(v => v.traccar_unique_id)
+        .map(v => v.traccar_unique_id as string);
+      setLinkedImeis(new Set(linked));
+    } catch (err) {
+      console.error('[TrackingContext] Failed to reload linked IMEIs:', err);
     }
   }, []);
 
@@ -367,6 +381,7 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
       alerts:             state.alerts,
       unreadAlerts:       state.unreadAlerts,
       activeImeis,
+      linkedImeis,
       reloadActiveImeis,
       reconciliationWarning,
       dismissReconciliationWarning,

@@ -45,7 +45,7 @@ export function DeviceSidebar({
   isConnected, isLoading = false, onRefresh, onFilterStatus, onToggleSidebar,
 }: Props) {
   const { t } = useTranslation('tracking');
-  const { activeImeis } = useTracking();
+  const { activeImeis, linkedImeis } = useTracking();
   const [search, setSearch] = useState('');
 
   const clickTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -251,7 +251,11 @@ export function DeviceSidebar({
             const isMoving          = (pos?.speed ?? 0) > 2; // > 2 km/h = em movimento
             const speed             = pos?.speed ?? 0;
             const battery           = (pos as any)?.batteryLevel ?? (pos?.attributes as any)?.batteryLevel;
-            const isTrackingPaused  = device.uniqueId ? !activeImeis.has(device.uniqueId) : false;
+            // Only show "Tracking Paused" for devices linked to a local vehicle (in linkedImeis)
+            // that have tracking disabled (not in activeImeis). Unlinked Traccar devices are skipped.
+            const isTrackingPaused  = device.uniqueId
+              ? linkedImeis.has(device.uniqueId) && !activeImeis.has(device.uniqueId)
+              : false;
 
             return (
               <button

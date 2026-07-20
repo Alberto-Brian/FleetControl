@@ -87,11 +87,15 @@ export function addVehiclesEventListeners() {
   ipcMain.handle(REGISTER_GPS_ON_VEHICLE, async (_, vehicleId: string, imei: string)  => await registerGpsOnVehicleEvent(vehicleId, imei));
 
   ipcMain.handle(UNREGISTER_GPS_FROM_VEHICLE, async (_, vehicleId: string) => {
-    const response = await axios.post(
-      `${API_URL}/api/vehicles/${vehicleId}/unregister-gps`,
-      {},
-      { headers: apiHeaders() }
-    );
+    // Try to sync with API if connected; in standalone mode (no token) skip the API call
+    try {
+      const headers = apiHeaders(); // throws if no token
+      await axios.post(`${API_URL}/api/vehicles/${vehicleId}/unregister-gps`, {}, { headers });
+    } catch (apiErr: any) {
+      // No token = standalone mode: continue with local update only
+      // Network / server errors: re-throw so the caller sees the failure
+      if (!apiErr.message?.includes('token')) throw apiErr;
+    }
 
     const { db } = useDb();
     await db.update(vehicles)
@@ -102,11 +106,15 @@ export function addVehiclesEventListeners() {
   });
 
   ipcMain.handle(TOGGLE_VEHICLE_TRACKING, async (_, vehicleId: string, enabled: boolean) => {
-    const response = await axios.patch(
-      `${API_URL}/api/vehicles/${vehicleId}/tracking`,
-      { tracking_enabled: enabled },
-      { headers: apiHeaders() }
-    );
+    // Try to sync with API if connected; in standalone mode (no token) skip the API call
+    try {
+      const headers = apiHeaders(); // throws if no token
+      await axios.patch(`${API_URL}/api/vehicles/${vehicleId}/tracking`, { tracking_enabled: enabled }, { headers });
+    } catch (apiErr: any) {
+      // No token = standalone mode: continue with local update only
+      // Network / server errors: re-throw so the caller sees the failure
+      if (!apiErr.message?.includes('token')) throw apiErr;
+    }
 
     const { db } = useDb();
     await db.update(vehicles)

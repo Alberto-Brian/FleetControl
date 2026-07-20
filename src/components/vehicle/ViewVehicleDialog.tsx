@@ -129,6 +129,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
       const updated = { ...selectedVehicle, traccar_unique_id: null, tracking_enabled: false } as any;
       dispatch({ type: 'UPDATE_VEHICLE', payload: updated });
       dispatch({ type: 'SELECT_VEHICLE', payload: updated });
+      reloadActiveImeis(); // update map filter — remove old IMEI from activeImeis/linkedImeis
       toast.success(t('vehicles:toast.gpsRemoved'));
     } catch {
       toast.error(t('vehicles:toast.gpsRemoveError'));
