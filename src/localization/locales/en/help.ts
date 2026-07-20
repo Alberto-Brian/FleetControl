@@ -53,6 +53,19 @@ export const enHelp = {
           'Save the record',
         ]},
         { type: 'tip', text: 'You can filter and sort the list by status, category or plate. Click any column header to sort.' },
+        {
+          type: 'list' as const,
+          items: [
+            'Register GPS: links the physical device IMEI to the vehicle — automatically creates the device on the Traccar server',
+            'Remove GPS: unlinks the device from the vehicle in the local database and API. The device remains in Traccar',
+            'Pause tracking: the vehicle stops appearing on the map but keeps the GPS linked — can be re-enabled at any time',
+            'Resume tracking: the vehicle reappears on the map with real-time updates',
+          ],
+        },
+        {
+          type: 'tip' as const,
+          content: 'To permanently disable or delete a device on the Traccar server, use the web module (coming soon).',
+        },
       ],
     },
     {
@@ -212,6 +225,15 @@ export const enHelp = {
           'Enable entry/exit notifications in Map Settings',
         ]},
         { type: 'tip', text: 'Use the "Fit all devices" button in the toolbar to centre the map on the entire fleet at once.' },
+        {
+          type: 'list' as const,
+          items: [
+            'The map only shows vehicles with an active GPS and tracking enabled',
+            'Vehicles with paused tracking appear in the sidebar list with a "Tracking paused" badge but have no marker on the map',
+            'The "GPS Devices" panel (toolbar button, visible in connected mode) lists all Traccar devices in the organization, even those not linked to vehicles',
+            'After a backup restore, the app automatically checks IMEIs and warns when any have no match in Traccar',
+          ],
+        },
       ],
     },
     {

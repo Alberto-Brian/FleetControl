@@ -53,6 +53,19 @@ export const ptHelp = {
           'Guarda o registo',
         ]},
         { type: 'tip', text: 'Podes filtrar e ordenar a lista por estado, categoria ou matrícula. Clica no cabeçalho de qualquer coluna para ordenar.' },
+        {
+          type: 'list' as const,
+          items: [
+            'Registar GPS: associa o IMEI do dispositivo físico ao veículo — cria automaticamente o registo no servidor Traccar',
+            'Remover GPS: desvincula o dispositivo do veículo na base de dados local e na API. O dispositivo permanece no Traccar',
+            'Pausar rastreamento: o veículo deixa de aparecer no mapa mas mantém o GPS associado — pode ser reactivado a qualquer momento',
+            'Retomar rastreamento: o veículo volta a aparecer no mapa com actualizações em tempo real',
+          ],
+        },
+        {
+          type: 'tip' as const,
+          content: 'Para desactivar ou eliminar definitivamente um dispositivo no servidor Traccar, use o módulo web (disponível em breve).',
+        },
       ],
     },
     {
@@ -212,6 +225,15 @@ export const ptHelp = {
           'Activa as notificações de entrada/saída em Definições do mapa',
         ]},
         { type: 'tip', text: 'Usa o botão "Ver todos os dispositivos" na barra de ferramentas para centrar o mapa em toda a frota de uma vez.' },
+        {
+          type: 'list' as const,
+          items: [
+            'O mapa mostra apenas veículos com GPS activo e rastreamento activado',
+            'Veículos com rastreamento pausado aparecem na lista lateral com o badge "Rastreamento pausado" mas não têm marcador no mapa',
+            'O painel "Dispositivos GPS" (botão na barra de ferramentas, visível em modo conectado) lista todos os dispositivos Traccar da organização, mesmo os não associados a veículos',
+            'Após restauro de backup, a app verifica automaticamente os IMEIs e avisa quando algum não tem correspondência no Traccar',
+          ],
+        },
       ],
     },
     {
