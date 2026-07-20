@@ -62,10 +62,7 @@ export const enHelp = {
             'Resume tracking: the vehicle reappears on the map with real-time updates',
           ],
         },
-        {
-          type: 'tip' as const,
-          content: 'To permanently disable or delete a device on the Traccar server, use the web module (coming soon).',
-        },
+        { type: 'tip', text: 'To permanently disable or delete a device on the Traccar server, use the web module (coming soon).' },
       ],
     },
     {

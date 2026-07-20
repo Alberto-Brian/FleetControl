@@ -62,10 +62,7 @@ export const ptHelp = {
             'Retomar rastreamento: o veículo volta a aparecer no mapa com actualizações em tempo real',
           ],
         },
-        {
-          type: 'tip' as const,
-          content: 'Para desactivar ou eliminar definitivamente um dispositivo no servidor Traccar, use o módulo web (disponível em breve).',
-        },
+        { type: 'tip', text: 'Para desactivar ou eliminar definitivamente um dispositivo no servidor Traccar, use o módulo web (disponível em breve).' },
       ],
     },
     {
