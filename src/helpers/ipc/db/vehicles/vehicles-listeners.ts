@@ -391,25 +391,10 @@ async function registerGpsOnVehicleEvent(vehicleId: string, imei: string) {
       timeout: 15_000,
     });
   } catch (err: any) {
-    if (axios.isAxiosError(err) && err.response?.status === 409) {
-      // Auto-recuperação: o API já tem este IMEI neste veículo (falha parcial anterior —
-      // API teve sucesso mas o update local falhou). Verificar se é o caso e curar estado local.
-      try {
-        const { data: apiFetch } = await axios.get(
-          `${API_URL}/api/vehicles/${apiVehicleId}`,
-          { headers: apiHeaders(), timeout: 10_000 }
-        );
-        if (apiFetch?.data?.traccar_unique_id === imei.trim()) {
-          const { db } = useDb();
-          await db.update(vehicles)
-            .set({ traccar_unique_id: imei.trim() })
-            .where(eq(vehicles.id, vehicleId));
-          return await findVehicleById(vehicleId);
-        }
-      } catch {
-        // Ignorar falha de fetch — propagar o 409 original
-      }
-      throw new Error(err.response.data?.message ?? 'IMEI já registado');
+    if (axios.isAxiosError(err)) {
+      // 404: IMEI não encontrado em traccar_devices — utilizador deve sincronizar dispositivos ou registar via web
+      // 409: device já ligado a outro veículo
+      throw new Error(err.response?.data?.message ?? 'Erro ao registar GPS');
     }
     throw err;
   }
