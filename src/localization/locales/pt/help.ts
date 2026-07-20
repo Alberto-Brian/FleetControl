@@ -58,6 +58,7 @@ export const ptHelp = {
           items: [
             'Registar GPS: associa o IMEI do dispositivo físico ao veículo — cria automaticamente o registo no servidor Traccar',
             'Remover GPS: desvincula o dispositivo do veículo na base de dados local e na API. O dispositivo permanece no Traccar',
+            'Para mudar o IMEI: remova o GPS actual e registe o novo — não existe actualização directa de IMEI',
             'Pausar rastreamento: o veículo deixa de aparecer no mapa mas mantém o GPS associado — pode ser reactivado a qualquer momento',
             'Retomar rastreamento: o veículo volta a aparecer no mapa com actualizações em tempo real',
           ],

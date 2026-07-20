@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   WifiOff, History, Layers, PanelLeft, Clock, Settings,
   ZoomIn, ZoomOut, Map, Satellite, Maximize2, Radio, X,
-  Bell, Pentagon, Wifi,
+  Bell, Pentagon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import UserMenu from '@/components/UserMenu';
@@ -35,7 +35,6 @@ interface Props {
   onToggleAlerts:     () => void;
   isGeoPanelOpen:     boolean;
   onToggleGeoPanel:   () => void;
-  onOpenDevicesPanel?: () => void;
 }
 
 function MapBtn({ title, onClick, active = false, children }: {
@@ -85,7 +84,6 @@ export function TrackingToolbar({
   onToggleAlerts,
   isGeoPanelOpen,
   onToggleGeoPanel,
-  onOpenDevicesPanel,
 }: Props) {
   const { t } = useTranslation('tracking');
   const [layerOpen,        setLayerOpen]        = useState(false);
@@ -406,16 +404,6 @@ export function TrackingToolbar({
           boxShadow:  '0 4px 20px rgba(0,0,0,0.4)',
         }}
       >
-        {/* Painel de dispositivos GPS */}
-        {isConnected && onOpenDevicesPanel && (
-          <MapBtn
-            title={t('devicesPanel.openPanel')}
-            onClick={onOpenDevicesPanel}
-          >
-            <Wifi className="w-4 h-4" />
-          </MapBtn>
-        )}
-
         {/* Geofences */}
         <MapBtn
           title={t('toolbar.geofences')}

@@ -5,7 +5,7 @@ import React, { useRef, useState } from 'react';
 import { ScrollArea }  from '@/components/ui/scroll-area';
 import {
   Search, Truck, Navigation2, RefreshCw,
-  PanelLeftClose, Radio, MapPin, Gauge, X,
+  PanelLeftClose, Radio, MapPin, Gauge, X, Wifi,
 } from 'lucide-react';
 import type { Position }      from '@/hooks/useApiConnection';
 import type { TrackedDevice } from '@/helpers/tracking-helpers';
@@ -24,9 +24,10 @@ interface Props {
   onCenterDevice?:    (device: TrackedDevice) => void;
   isConnected:        boolean;
   isLoading?:         boolean;
-  onRefresh:          () => void;
-  onFilterStatus?:    (status: 'all' | 'online' | 'offline') => void;
-  onToggleSidebar?:   () => void;
+  onRefresh:            () => void;
+  onFilterStatus?:      (status: 'all' | 'online' | 'offline') => void;
+  onToggleSidebar?:     () => void;
+  onOpenDevicesPanel?:  () => void;
 }
 
 function formatRelativeTime(dateStr?: string): string {
@@ -42,7 +43,7 @@ function formatRelativeTime(dateStr?: string): string {
 export function DeviceSidebar({
   devices, positions, selectedDevice, filteredStatus, followingDeviceId,
   onSelect, onFollowDevice, onCenterDevice,
-  isConnected, isLoading = false, onRefresh, onFilterStatus, onToggleSidebar,
+  isConnected, isLoading = false, onRefresh, onFilterStatus, onToggleSidebar, onOpenDevicesPanel,
 }: Props) {
   const { t } = useTranslation('tracking');
   const { activeImeis, linkedImeis } = useTracking();
@@ -139,6 +140,11 @@ export function DeviceSidebar({
 
           {/* Botões de ação */}
           <div className="flex items-center gap-0.5">
+            {isConnected && onOpenDevicesPanel && (
+              <IconBtn title={t('devicesPanel.openPanel')} onClick={onOpenDevicesPanel}>
+                <Wifi className="w-3.5 h-3.5" />
+              </IconBtn>
+            )}
             <IconBtn title="Actualizar" onClick={onRefresh} disabled={isLoading}>
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             </IconBtn>

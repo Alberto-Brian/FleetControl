@@ -269,6 +269,8 @@ export function TrackingMap({
         if (points.length < 2) return null;
         const deviceId  = Number(deviceIdStr);
         const device    = devices.find(d => d.traccar_id === deviceId);
+        // Não mostrar trilha de dispositivos sem tracking activo (GPS removido ou paused)
+        if (!device || !activeImeis.has(device.uniqueId)) return null;
         const isSelected = selectedDevice?.traccar_id === deviceId;
         const color     = device ? getDeviceTrailColor(deviceId) : '#6b7280';
         return (

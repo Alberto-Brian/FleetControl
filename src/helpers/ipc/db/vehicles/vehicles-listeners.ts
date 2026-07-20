@@ -112,13 +112,14 @@ export function addVehiclesEventListeners() {
     const vehicle = await findVehicleById(vehicleId);
     const apiId = vehicle?.api_vehicle_id;
 
-    // Só chama a API se o veículo estiver sincronizado (tem api_vehicle_id)
+    // tracking_enabled é uma preferência local — SQLite é autoritativo.
+    // A chamada à API é best-effort: falha silenciosa para não bloquear o toggle local.
     if (apiId) {
       try {
-        const headers = apiHeaders(); // throws if no token (standalone mode)
+        const headers = apiHeaders();
         await axios.patch(`${API_URL}/api/vehicles/${apiId}/tracking`, { tracking_enabled: enabled }, { headers });
       } catch (apiErr: any) {
-        if (!apiErr.message?.includes('token')) throw apiErr;
+        console.warn('[vehicles] toggle-tracking API sync failed (local update proceeds):', (apiErr as Error).message);
       }
     }
 

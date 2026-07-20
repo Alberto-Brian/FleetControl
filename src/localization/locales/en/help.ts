@@ -58,6 +58,7 @@ export const enHelp = {
           items: [
             'Register GPS: links the physical device IMEI to the vehicle — automatically creates the device on the Traccar server',
             'Remove GPS: unlinks the device from the vehicle in the local database and API. The device remains in Traccar',
+            'To change the IMEI: remove the current GPS and register the new one — there is no direct IMEI update',
             'Pause tracking: the vehicle stops appearing on the map but keeps the GPS linked — can be re-enabled at any time',
             'Resume tracking: the vehicle reappears on the map with real-time updates',
           ],

@@ -328,6 +328,7 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
                 onRefresh={loadInitial}
                 onFilterStatus={(status) => dispatch({ type: 'FILTER_STATUS', payload: status })}
                 onToggleSidebar={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
+                onOpenDevicesPanel={isConnected ? () => setDevicesPanelOpen(true) : undefined}
               />
             </div>
 
@@ -353,7 +354,6 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
               onToggleAlerts={() => { setAlertPanelOpen(v => !v); setGeoPanelOpen(false); }}
               isGeoPanelOpen={geoPanelOpen}
               onToggleGeoPanel={() => { setGeoPanelOpen(v => !v); setAlertPanelOpen(false); }}
-              onOpenDevicesPanel={() => setDevicesPanelOpen(true)}
             />
 
             {/* Reconciliation Warning Banner */}
