@@ -102,7 +102,7 @@ export class BackupManager {
     this.onProgress = callback;
   }
 
-  private emitProgress(step: string, current: number, total: number, message: string): void {
+  emitProgress(step: string, current: number, total: number, message: string): void {
     if (this.onProgress) {
       this.onProgress({ step, current, total, message });
     }
@@ -234,8 +234,8 @@ export class BackupManager {
         });
 
         if (result.canceled || !result.filePath) {
-          this.emitProgress('cancel', 0, 100, 'Cancelado pelo usuario');
-          return { success: false, error: 'Cancelado pelo usuario' };
+          this.emitProgress('cancel', 0, 100, 'Cancelado pelo usuário');
+          return { success: false, error: 'Cancelado pelo usuário' };
         }
 
         savePath = result.filePath;
@@ -271,11 +271,9 @@ export class BackupManager {
       //   zip.addLocalFile(userFile, '');
       // }
 
-      // Adicionar machine.id
-      const machineIdFile = path.join(this.userDataPath, 'machine.id');
-      // if (fs.existsSync(machineIdFile)) {
-      //   zip.addLocalFile(machineIdFile, '');
-      // }
+      // Adicionar machine.id (reservado para uso futuro)
+      // const machineIdFile = path.join(this.userDataPath, 'machine.id');
+      // if (fs.existsSync(machineIdFile)) zip.addLocalFile(machineIdFile, '');
 
       // Criar metadata
       const appVersion =
@@ -625,6 +623,68 @@ export class BackupManager {
   // }
 
   /**
+   * Elimina os ficheiros de base de dados actuais e copia os de uma pasta de
+   * backup automático. Deve ser chamado com o DB já fechado.
+   */
+  async performDirectoryRestore(backupFolderPath: string): Promise<void> {
+    const dbDir = path.join(this.userDataPath, 'databases');
+    const srcDir = path.join(backupFolderPath, 'databases');
+
+    if (!fs.existsSync(srcDir)) {
+      throw new Error('Pasta de bases de dados não encontrada nesta cópia de segurança');
+    }
+
+    if (fs.existsSync(dbDir)) {
+      for (const file of fs.readdirSync(dbDir)) {
+        fs.unlinkSync(path.join(dbDir, file));
+      }
+    } else {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+
+    let copied = 0;
+    for (const file of fs.readdirSync(srcDir)) {
+      if (file.endsWith('.db') || file.endsWith('.meta.json')) {
+        fs.copyFileSync(path.join(srcDir, file), path.join(dbDir, file));
+        if (file.endsWith('.db')) copied++;
+      }
+    }
+
+    if (copied === 0) {
+      throw new Error('Nenhuma base de dados encontrada nesta cópia de segurança');
+    }
+  }
+
+  /**
+   * Elimina os ficheiros de base de dados actuais e extrai os do backup.
+   * Deve ser chamado com o DB já fechado (getDbManager().close()).
+   */
+  async performFileRestore(backupPath: string): Promise<void> {
+    const dbDir = path.join(this.userDataPath, 'databases');
+
+    if (fs.existsSync(dbDir)) {
+      for (const file of fs.readdirSync(dbDir)) {
+        fs.unlinkSync(path.join(dbDir, file));
+      }
+    } else {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+
+    const zip = new AdmZip(backupPath);
+    let restored = 0;
+    for (const entry of zip.getEntries()) {
+      if (entry.entryName.startsWith('databases/') && !entry.isDirectory) {
+        zip.extractEntryTo(entry, dbDir, false, true);
+        restored++;
+      }
+    }
+
+    if (restored === 0) {
+      throw new Error('Nenhuma base de dados encontrada no backup');
+    }
+  }
+
+  /**
    * VALIDAR BACKUP
    */
   async validateBackup(backupPath: string): Promise<RestoreValidation> {
@@ -740,6 +800,44 @@ export class BackupManager {
           isActive,
         };
       });
+  }
+
+  /**
+   * Lista as bases de dados contidas em cada cópia de segurança automática.
+   */
+  listBackupDatabases(): Array<{
+    backupName: string;
+    backupDate: Date;
+    sizeBytes: number;
+    databases: Array<{ filename: string; filepath: string; sizeBytes: number }>;
+  }> {
+    if (!fs.existsSync(this.autoBackupDir)) return [];
+
+    return fs.readdirSync(this.autoBackupDir)
+      .filter(f => f.startsWith('auto_'))
+      .map(name => {
+        const backupPath = path.join(this.autoBackupDir, name);
+        const dbsDir = path.join(backupPath, 'databases');
+        const stats = fs.statSync(backupPath);
+
+        const databases = fs.existsSync(dbsDir)
+          ? fs.readdirSync(dbsDir)
+              .filter(f => f.endsWith('.db'))
+              .map(fname => ({
+                filename: fname,
+                filepath: path.join(dbsDir, fname),
+                sizeBytes: fs.statSync(path.join(dbsDir, fname)).size,
+              }))
+          : [];
+
+        return {
+          backupName: name,
+          backupDate: new Date(stats.birthtimeMs),
+          sizeBytes: this.getDirectorySize(backupPath),
+          databases,
+        };
+      })
+      .sort((a, b) => b.backupDate.getTime() - a.backupDate.getTime());
   }
 
   /**

@@ -1,4 +1,4 @@
-// ========================================
+﻿// ========================================
 // FILE: src/components/refueling/FuelPageContent.tsx
 // ========================================
 import React, { useState, useEffect, useCallback } from 'react';
@@ -189,7 +189,7 @@ export default function FuelPageContent() {
         </div>
         <div className="divide-y">
           {refuelings.map((r) => (
-            <div key={r.id} className="px-6 py-3 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors">
+            <div key={r.id} className="px-6 py-3 grid grid-cols-12 gap-4 items-center hover:bg-muted/40 transition-colors">
               <div className="col-span-2 text-sm font-medium">
                 {new Date(r.refueling_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: '2-digit' })}
               </div>

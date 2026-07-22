@@ -70,15 +70,15 @@ function createDeviceIcon(
         left:50%;
         transform:translateX(-50%);
         white-space:nowrap;
-        background:rgba(10,17,32,0.88);
-        color:rgba(255,255,255,0.88);
+        background:var(--glass-bg);
+        color:var(--ui-t90);
         font-size:10px;
         font-weight:600;
         padding:2px 6px;
         border-radius:4px;
         font-family:system-ui,sans-serif;
         pointer-events:none;
-        border:1px solid rgba(255,255,255,0.1);
+        border:1px solid var(--ui-b10);
         max-width:120px;
         overflow:hidden;
         text-overflow:ellipsis;

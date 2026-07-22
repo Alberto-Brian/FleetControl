@@ -28,5 +28,9 @@ export default defineConfig((env) => {
             },
         },
         clearScreen: false,
+        server: {
+            strictPort: false,
+            host: '127.0.0.1',
+        },
     } as UserConfig;
 });

@@ -1,7 +1,7 @@
 // ========================================
 // FILE: src/components/SettingsDialog.tsx
 // ========================================
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -21,7 +21,7 @@ import {
   Building, Hash, AtSign, ImageIcon, FileText, Bell, Car,
   Fuel, Sliders, RotateCcw, Eye, EyeOff, Droplets,
   Key, ShieldCheck, RefreshCw, PanelLeft, Maximize2, Server, WifiOff, Wifi,
-  Database,
+  Database, Search,
 } from 'lucide-react';
 import { Button }   from '@/components/ui/button';
 import { Switch }   from '@/components/ui/switch';
@@ -30,8 +30,10 @@ import { Label }    from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { cn }       from '@/lib/utils';
 
-import { exportBackup, restoreBackup }           from '@/helpers/backup-helpers';
-import { getSystemVersion, listDatabases, getDatabaseStats } from '@/helpers/system-helpers';
+import { exportBackup, restoreBackup, restoreFromAutoBackup, getBackupConfig, updateBackupConfig, listBackups,
+         onBackupProgress, removeBackupProgressListener,
+         onRestoreProgress, removeRestoreProgressListener } from '@/helpers/backup-helpers';
+import { getSystemVersion, listDatabases, getDatabaseStats, deleteDatabase, listBackupDatabases } from '@/helpers/system-helpers';
 import { getCompanySettings, updateCompanySettings, uploadCompanyLogo, removeCompanyLogo } from '@/helpers/company-helpers';
 import { getSystemSettings, updateSystemSettings, resetSystemSettings }                    from '@/helpers/system-settings-helpers';
 import { removeLicense }                          from '@/helpers/license-helpers';
@@ -986,11 +988,26 @@ function DatabasesTab() {
   const [statsError, setStatsError]     = useState<string | null>(null);
   const [activating, setActivating]     = useState<string | null>(null);
 
+  // Delete state
+  const [deleteTarget, setDeleteTarget]   = useState<string | null>(null);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting]           = useState(false);
+  const [deleteError, setDeleteError]     = useState<string | null>(null);
+
+  // Backup databases state
+  const [backupDbs, setBackupDbs]             = useState<import('@/types/types').BackupDbEntry[]>([]);
+  const [backupDbsLoading, setBackupDbsLoading] = useState(true);
+  const [expandedBackup, setExpandedBackup]   = useState<string | null>(null);
+
   useEffect(() => {
     listDatabases()
       .then(setDbs)
       .catch(() => setDbs([]))
       .finally(() => setLoading(false));
+    listBackupDatabases()
+      .then(setBackupDbs)
+      .catch(() => setBackupDbs([]))
+      .finally(() => setBackupDbsLoading(false));
   }, []);
 
   async function handleSelect(filepath: string) {
@@ -1019,12 +1036,45 @@ function DatabasesTab() {
 
   async function handleActivate(filepath: string) {
     setActivating(filepath);
-    try { await activate(filepath); } finally { setActivating(null); }
+    try {
+      await activate(filepath);
+      window.location.reload();
+    } finally { setActivating(null); }
   }
 
   async function handleDeactivate() {
     setActivating('deactivate');
-    try { await deactivate(); } finally { setActivating(null); }
+    try {
+      await deactivate();
+      window.location.reload();
+    } finally { setActivating(null); }
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deleteTarget || !deletePassword) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await deleteDatabase(deleteTarget, deletePassword);
+      if (res.success) {
+        setDbs(prev => prev.filter(d => d.filepath !== deleteTarget));
+        setDeleteTarget(null);
+        setDeletePassword('');
+        if (selected === deleteTarget) { setSelected(null); setStats(null); }
+        toast.success(t('databases.deleteSuccess'));
+      } else {
+        const errKey =
+          res.error === 'invalid-password' ? 'databases.deleteErrorPassword' :
+          res.error === 'active-db'        ? 'databases.deleteErrorActive'   :
+          res.error === 'not-found'        ? 'databases.deleteErrorNotFound' :
+                                             'databases.deleteErrorGeneric';
+        setDeleteError(t(errKey));
+      }
+    } catch {
+      setDeleteError(t('databases.deleteErrorGeneric'));
+    } finally {
+      setDeleting(false);
+    }
   }
 
   function formatSize(bytes: number) {
@@ -1032,7 +1082,6 @@ function DatabasesTab() {
     return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
   }
 
-  const selectedDb = dbs.find(d => d.filepath === selected);
   const tableLabels: Record<string, string> = {
     vehicles:    t('databases.tables.vehicles'),
     drivers:     t('databases.tables.drivers'),
@@ -1046,119 +1095,276 @@ function DatabasesTab() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-base font-semibold mb-0.5">{t('databases.title')}</h3>
-        <p className="text-sm text-muted-foreground">{t('databases.subtitle')}</p>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          {t('databases.loading')}
+    <div className="space-y-8">
+      {/* ── Local databases ── */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-base font-semibold mb-0.5">{t('databases.title')}</h3>
+          <p className="text-sm text-muted-foreground">{t('databases.subtitle')}</p>
         </div>
-      ) : dbs.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-10 text-muted-foreground">
-          <Database className="w-10 h-10 opacity-30" />
-          <p className="text-sm">{t('databases.noData')}</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-2">
-          {dbs.map(db => {
-            const isHistorical = historicalDbPath === db.filepath;
-            const isExpanded   = selected === db.filepath;
-            return (
-              <div key={db.filepath} className={cn('rounded-lg border transition-colors', isExpanded ? 'border-primary' : 'border-border')}>
-                {/* Header row */}
-                <button
-                  onClick={() => handleSelect(db.filepath)}
-                  className={cn('w-full text-left p-3 rounded-lg', isExpanded ? 'bg-primary/5' : 'hover:bg-muted/50')}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Database className="w-4 h-4 shrink-0 text-muted-foreground" />
-                      <span className="text-sm font-medium truncate">{db.filename}</span>
-                      {db.isActive && !isHistorical && (
-                        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                          {t('databases.current')}
-                        </span>
-                      )}
-                      {isHistorical && (
-                        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400">
-                          {t('databases.activated')}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
-                      <span>{db.recordCount > 0 ? `${db.recordCount.toLocaleString()} ${t('databases.records')}` : formatSize(db.size)}</span>
-                      <span>{new Date(db.createdAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                </button>
 
-                {/* Expanded stats + actions */}
-                {isExpanded && (
-                  <div className="px-3 pb-3 space-y-3 border-t border-border/50">
-                    <div className="pt-3 flex items-center justify-between gap-2">
-                      <span className="text-xs text-muted-foreground truncate">{db.filepath}</span>
-                      <div className="shrink-0">
-                        {isHistorical ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={handleDeactivate}
-                            disabled={activating === 'deactivate'}
-                            className="h-7 text-xs gap-1 border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
-                          >
-                            {activating === 'deactivate' ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}
-                            {t('databases.deactivate')}
-                          </Button>
-                        ) : !db.isActive && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleActivate(db.filepath)}
-                            disabled={activating === db.filepath}
-                            className="h-7 text-xs gap-1"
-                          >
-                            {activating === db.filepath ? <Loader2 className="w-3 h-3 animate-spin" /> : <Database className="w-3 h-3" />}
-                            {t('databases.activate')}
-                          </Button>
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            {t('databases.loading')}
+          </div>
+        ) : dbs.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-10 text-muted-foreground">
+            <Database className="w-10 h-10 opacity-30" />
+            <p className="text-sm">{t('databases.noData')}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-2">
+            {dbs.map(db => {
+              const isHistorical = historicalDbPath === db.filepath;
+              const isExpanded   = selected === db.filepath;
+              const canDelete    = !db.isActive && !isHistorical;
+              return (
+                <div key={db.filepath} className={cn('rounded-lg border transition-colors', isExpanded ? 'border-primary' : 'border-border')}>
+                  {/* Header row */}
+                  <button
+                    onClick={() => handleSelect(db.filepath)}
+                    className={cn('w-full text-left p-3 rounded-lg', isExpanded ? 'bg-primary/5' : 'hover:bg-muted/50')}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Database className="w-4 h-4 shrink-0 text-muted-foreground" />
+                        <span className="text-sm font-medium truncate">{db.filename}</span>
+                        {db.isActive && !isHistorical && (
+                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                            {t('databases.current')}
+                          </span>
+                        )}
+                        {isHistorical && (
+                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                            {t('databases.activated')}
+                          </span>
                         )}
                       </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
+                        <span>{db.recordCount > 0 ? `${db.recordCount.toLocaleString()} ${t('databases.records')}` : formatSize(db.size)}</span>
+                        <span>{new Date(db.createdAt).toLocaleDateString()}</span>
+                      </div>
                     </div>
+                  </button>
 
-                    {statsLoading && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        {t('databases.readingStats')}
+                  {/* Expanded stats + actions */}
+                  {isExpanded && (
+                    <div className="px-3 pb-3 space-y-3 border-t border-border/50">
+                      <div className="pt-3 flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground truncate">{db.filepath}</span>
+                        <div className="shrink-0 flex items-center gap-2">
+                          {isHistorical ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleDeactivate}
+                              disabled={activating === 'deactivate'}
+                              className="h-7 text-xs gap-1 border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
+                            >
+                              {activating === 'deactivate' ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}
+                              {t('databases.deactivate')}
+                            </Button>
+                          ) : !db.isActive && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleActivate(db.filepath)}
+                              disabled={activating === db.filepath}
+                              className="h-7 text-xs gap-1"
+                            >
+                              {activating === db.filepath ? <Loader2 className="w-3 h-3 animate-spin" /> : <Database className="w-3 h-3" />}
+                              {t('databases.activate')}
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => { setDeleteTarget(db.filepath); setDeletePassword(''); setDeleteError(null); }}
+                              className="h-7 text-xs gap-1 border-destructive/40 text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              {t('databases.delete')}
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    )}
-                    {statsError && (
-                      <p className="text-xs text-destructive">{statsError}</p>
-                    )}
-                    {stats && !statsLoading && (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                        {Object.entries(stats)
-                          .filter(([k]) => k !== 'error' && (stats[k] as number) > 0)
-                          .map(([table, count]) => (
-                            <div key={table} className="p-2 rounded-md bg-muted/50 border border-border/50">
-                              <p className="text-[10px] text-muted-foreground mb-0.5 truncate">
-                                {tableLabels[table] ?? table}
-                              </p>
-                              <p className="text-base font-bold tabular-nums">
-                                {(count as number).toLocaleString()}
-                              </p>
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+
+                      {statsLoading && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          {t('databases.readingStats')}
+                        </div>
+                      )}
+                      {statsError && (
+                        <p className="text-xs text-destructive">{statsError}</p>
+                      )}
+                      {stats && !statsLoading && (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                          {Object.entries(stats)
+                            .filter(([k]) => k !== 'error' && (stats[k] as number) > 0)
+                            .map(([table, count]) => (
+                              <div key={table} className="p-2 rounded-md bg-muted/50 border border-border/50">
+                                <p className="text-[10px] text-muted-foreground mb-0.5 truncate">
+                                  {tableLabels[table] ?? table}
+                                </p>
+                                <p className="text-base font-bold tabular-nums">
+                                  {(count as number).toLocaleString()}
+                                </p>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Backup databases section ── */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-base font-semibold mb-0.5">{t('databases.backupsSection')}</h3>
+          <p className="text-sm text-muted-foreground">{t('databases.backupsSubtitle')}</p>
         </div>
-      )}
+
+        {backupDbsLoading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            {t('databases.backupsLoading')}
+          </div>
+        ) : backupDbs.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-8 text-muted-foreground">
+            <HardDrive className="w-10 h-10 opacity-30" />
+            <p className="text-sm">{t('databases.backupsNoData')}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-2">
+            {backupDbs.map((backup, idx) => {
+              const isExpanded = expandedBackup === backup.backupName;
+              const backupDate = new Date(backup.backupDate);
+              return (
+                <div key={backup.backupName} className={cn('rounded-lg border transition-colors', isExpanded ? 'border-primary' : 'border-border')}>
+                  <button
+                    onClick={() => setExpandedBackup(isExpanded ? null : backup.backupName)}
+                    className={cn('w-full text-left p-3 rounded-lg', isExpanded ? 'bg-primary/5' : 'hover:bg-muted/50')}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <HardDrive className="w-4 h-4 shrink-0 text-muted-foreground" />
+                        <span className="text-sm font-medium">
+                          {t('databases.backupFolderLabel')} {backupDate.toLocaleDateString()}
+                        </span>
+                        {idx === 0 && (
+                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-green-500/15 text-green-600 dark:text-green-400">
+                            {t('backups.latestBadge')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
+                        <span>{backup.databases.length} {t('databases.backupDatabaseCount')}</span>
+                        <span>{formatSize(backup.sizeBytes)}</span>
+                      </div>
+                    </div>
+                  </button>
+
+                  {isExpanded && backup.databases.length > 0 && (
+                    <div className="px-3 pb-3 border-t border-border/50 space-y-2 pt-3">
+                      {backup.databases.map(dbFile => {
+                        const isThisHistorical = historicalDbPath === dbFile.filepath;
+                        return (
+                          <div key={dbFile.filepath} className="flex items-center justify-between gap-2 p-2 rounded-md bg-muted/30 border border-border/40">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Database className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                              <span className="text-xs truncate">{dbFile.filename}</span>
+                              {isThisHistorical && (
+                                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                                  {t('databases.activated')}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-xs text-muted-foreground">{formatSize(dbFile.sizeBytes)}</span>
+                              {isThisHistorical ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={handleDeactivate}
+                                  disabled={activating === 'deactivate'}
+                                  className="h-6 text-[11px] px-2 gap-1 border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
+                                >
+                                  {activating === 'deactivate' ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}
+                                  {t('databases.deactivate')}
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleActivate(dbFile.filepath)}
+                                  disabled={activating === dbFile.filepath}
+                                  className="h-6 text-[11px] px-2 gap-1"
+                                >
+                                  {activating === dbFile.filepath ? <Loader2 className="w-3 h-3 animate-spin" /> : <Database className="w-3 h-3" />}
+                                  {t('databases.activateBackupDb')}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Delete confirmation dialog ── */}
+      <Dialog open={!!deleteTarget} onOpenChange={open => { if (!open) { setDeleteTarget(null); setDeletePassword(''); setDeleteError(null); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">{t('databases.deleteConfirmTitle')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">{t('databases.deleteConfirmText')}</p>
+            {deleteTarget && (
+              <p className="text-xs font-mono bg-muted px-2 py-1 rounded truncate">{deleteTarget.split(/[\\/]/).pop()}</p>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="delete-password" className="text-sm">{t('databases.deletePasswordLabel')}</Label>
+              <Input
+                id="delete-password"
+                type="password"
+                value={deletePassword}
+                onChange={e => { setDeletePassword(e.target.value); setDeleteError(null); }}
+                placeholder={t('databases.deletePasswordPlaceholder')}
+                onKeyDown={e => { if (e.key === 'Enter' && deletePassword) handleDeleteConfirm(); }}
+                autoFocus
+              />
+            </div>
+            {deleteError && (
+              <p className="text-xs text-destructive">{deleteError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeletePassword(''); setDeleteError(null); }}>
+              {t('databases.deleteCancelBtn')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={!deletePassword || deleting}
+            >
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Trash2 className="w-4 h-4 mr-1" />}
+              {t('databases.deleteConfirmBtn')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1166,12 +1372,7 @@ function DatabasesTab() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Componente Principal
 // ─────────────────────────────────────────────────────────────────────────────
-interface SettingsDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-export default function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
+export default function SettingsDialog() {
   const { t } = useTranslation('settings');
   const [activeTab, setActiveTab] = useState('appearance');
   const { fontId, setFont, options: fontOptions }                    = useFontFamily();
@@ -1183,6 +1384,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
   const { license }                                                   = useLicense();
   const isConnectedMode = license?.mode === 'connected' && license?.isValid;
   const [systemVersion, setSystemVersion] = useState('');
+  const [search, setSearch]               = useState('');
 
   // Backup states
   const [operation, setOperation]           = useState<'idle'|'exporting'|'restoring'>('idle');
@@ -1192,6 +1394,28 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
   const [progressData, setProgressData]     = useState({ type: 'backup' as 'backup'|'restore', progress: 0, phase: '', message: '', status: 'loading' as 'loading'|'success'|'error' });
   const [result, setResult]                 = useState({ type: 'success' as 'success'|'error', title: '', message: '' });
   const isBusy = operation !== 'idle';
+
+  // Backup config + lista
+  const [autoBackupEnabled, setAutoBackupEnabled] = useState(true);
+  const [backupConfig, setBackupConfig]           = useState<{ autoBackupFrequency: string; keepLastN: number; lastAutoBackup?: string } | null>(null);
+  const [autoBackupList, setAutoBackupList]       = useState<{ name: string; path: string; createdAt: Date; size: number }[]>([]);
+  const [loadingBackupData, setLoadingBackupData] = useState(false);
+  const [autoRestoreTarget, setAutoRestoreTarget] = useState<{ name: string; path: string; createdAt: Date } | null>(null);
+
+  useEffect(() => {
+    if (activeTab !== 'backups') return;
+    setLoadingBackupData(true);
+    Promise.all([getBackupConfig(), listBackups()])
+      .then(([cfg, list]) => {
+        if (cfg) {
+          setAutoBackupEnabled(cfg.autoBackupEnabled ?? true);
+          setBackupConfig(cfg);
+        }
+        if (Array.isArray(list)) setAutoBackupList(list);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingBackupData(false));
+  }, [activeTab]);
 
   useEffect(() => {
     if (open) getSystemVersion().then(setSystemVersion);
@@ -1214,31 +1438,75 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
     { id: 'about',      icon: Info,        label: t('nav.about')      },
   ];
 
+  const searchIndex = useMemo(() => [
+    { tabId: 'appearance',      text: [t('nav.appearance'), t('appearance.title'), t('appearance.typography'), t('appearance.fontSize'), t('appearance.sidebarTitle'), t('appearance.layoutTitle'), t('appearance.glassPanel'), 'tema', 'fonte', 'font', 'tamanho', 'sidebar', 'layout', 'transparência', 'blur', 'desfoque', 'theme'].join(' ') },
+    { tabId: 'language',        text: [t('nav.language'), 'idioma', 'language', 'língua', 'português', 'english'].join(' ') },
+    { tabId: 'company',         text: [t('nav.company'), 'empresa', 'company', 'logo', 'nome', 'nif', 'email', 'telefone', 'morada', 'endereço', 'address'].join(' ') },
+    { tabId: 'pdf',             text: [t('nav.pdf'), 'pdf', 'relatório', 'report', 'cabeçalho', 'header', 'rodapé', 'footer', 'margens', 'margins', 'impressão', 'print'].join(' ') },
+    { tabId: 'geofence-alerts', text: [t('nav.geofenceAlerts'), 'alerta', 'alert', 'geofence', 'cerca', 'ignição', 'ignition', 'movimento', 'moving', 'stopped', 'parado', 'cooldown', 'notificação', 'notification', 'velocidade', 'speed'].join(' ') },
+    { tabId: 'backups',         text: [t('nav.backups'), 'backup', 'cópia', 'restaurar', 'restore', 'exportar', 'import', 'export', 'automático', 'auto', 'agendamento', 'schedule'].join(' ') },
+    { tabId: 'databases',       text: [t('nav.databases'), 'base de dados', 'database', 'sqlite', 'histórico', 'historical', 'eliminar', 'delete', 'db'].join(' ') },
+    { tabId: 'server',          text: [t('nav.server'), 'servidor', 'server', 'api', 'conexão', 'connection', 'url', 'chave', 'key', 'traccar'].join(' ') },
+    { tabId: 'license',         text: [t('nav.license'), 'licença', 'license', 'activar', 'activate', 'revogar', 'revoke', 'chave', 'key', 'expiração', 'expiry', 'serial'].join(' ') },
+    { tabId: 'about',           text: [t('nav.about'), 'sobre', 'about', 'versão', 'version', 'copyright', 'fleetcontrol'].join(' ') },
+  ], [t]);
+
+  const filteredNavSections = search.trim()
+    ? navSections.filter(s => {
+        const q = search.toLowerCase();
+        if (s.label.toLowerCase().includes(q)) return true;
+        const entry = searchIndex.find(e => e.tabId === s.id);
+        return entry ? entry.text.toLowerCase().includes(q) : false;
+      })
+    : navSections;
+
+  useEffect(() => {
+    if (search.trim() && filteredNavSections.length > 0 && !filteredNavSections.find(s => s.id === activeTab)) {
+      setActiveTab(filteredNavSections[0].id);
+    }
+  }, [filteredNavSections, search]);
+
   // ── Backup handlers ─────────────────────────────────────────────────────────
   const handleExportBackup = async () => {
     setOperation('exporting');
+    let modalShown = false;
+
+    onBackupProgress((progress: any) => {
+      if (progress.step === 'cancel') return;
+      if (!modalShown) {
+        setProgressData({ type: 'backup', progress: 0, phase: progress.step, message: progress.message, status: 'loading' });
+        setShowProgress(true);
+        modalShown = true;
+      }
+      setProgressData(p => ({
+        ...p,
+        phase: progress.step,
+        message: progress.message,
+        progress: progress.current ?? p.progress,
+        status: progress.step === 'error' ? 'error' : 'loading',
+      }));
+    });
+
     try {
       const res = await exportBackup();
-      if (!res.success && res.error === 'Cancelado pelo usuário') { setOperation('idle'); return; }
-      setProgressData({ type: 'backup', progress: 0, phase: t('backups.progressInit'), message: t('backups.progressPrepare'), status: 'loading' });
-      setShowProgress(true);
-      for (const [phase, msg, pct] of [
-        [t('backups.progressDb'),     t('backups.progressDbMsg'),     30],
-        [t('backups.progressConfig'), t('backups.progressConfigMsg'), 60],
-        [t('backups.progressZip'),    t('backups.progressZipMsg'),    85],
-      ] as [string,string,number][]) {
-        await new Promise(r => setTimeout(r, 600));
-        setProgressData(p => ({ ...p, phase, message: msg, progress: pct }));
+      removeBackupProgressListener();
+
+      if (!res?.success) {
+        setShowProgress(false);
+        setOperation('idle');
+        return;
       }
+
       setProgressData(p => ({ ...p, progress: 100, phase: t('backups.progressDone'), message: t('backups.progressSuccess'), status: 'success' }));
       await new Promise(r => setTimeout(r, 1200));
       setShowProgress(false);
       const mb = res.size ? (res.size / 1024 / 1024).toFixed(2) : '?';
-      setResult({ type: res.success ? 'success' : 'error', title: res.success ? t('backups.exportSuccess') : t('backups.exportError'), message: res.success ? t('backups.exportSuccessMsg').replace('{{size}}', mb) : (res.error || '') });
+      setResult({ type: 'success', title: t('backups.exportSuccess'), message: t('backups.exportSuccessMsg').replace('{{size}}', mb) });
       setShowResult(true);
     } catch (err: any) {
-      setProgressData(p => ({ ...p, phase: t('error'), message: err.message, status: 'error' }));
-      await new Promise(r => setTimeout(r, 1800));
+      removeBackupProgressListener();
+      setProgressData(p => ({ ...p, status: 'error', message: err.message }));
+      await new Promise(r => setTimeout(r, 1500));
       setShowProgress(false);
       setResult({ type: 'error', title: t('backups.exportError'), message: err.message });
       setShowResult(true);
@@ -1248,27 +1516,89 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
   const handleDoRestore = async () => {
     setShowConfirmRestore(false);
     setOperation('restoring');
+    let modalShown = false;
+
+    onRestoreProgress((progress: any) => {
+      if (!modalShown) {
+        setProgressData({ type: 'restore', progress: 0, phase: progress.step, message: progress.message, status: 'loading' });
+        setShowProgress(true);
+        modalShown = true;
+      }
+      setProgressData(p => ({
+        ...p,
+        phase: progress.step,
+        message: progress.message,
+        progress: progress.current ?? p.progress,
+        status: progress.step === 'error' ? 'error' : 'loading',
+      }));
+    });
+
     try {
       const res = await restoreBackup();
-      if (!res?.success) { setOperation('idle'); return; }
-      setProgressData({ type: 'restore', progress: 0, phase: t('backups.progressInit'), message: t('backups.progressPrepare'), status: 'loading' });
-      setShowProgress(true);
-      for (const [phase, msg, pct] of [
-        [t('backups.progressValidate'),  t('backups.progressValidateMsg'),  20],
-        [t('backups.progressExtract'),   t('backups.progressExtractMsg'),   45],
-        [t('backups.progressRestoreDb'), t('backups.progressRestoreDbMsg'), 80],
-        [t('backups.progressFinalize'),  t('backups.progressFinalizeMsg'),  95],
-      ] as [string,string,number][]) {
-        await new Promise(r => setTimeout(r, 800));
-        setProgressData(p => ({ ...p, phase, message: msg, progress: pct }));
+      removeRestoreProgressListener();
+
+      if (!res?.success) {
+        setShowProgress(false);
+        setOperation('idle');
+        return;
       }
+
       setProgressData(p => ({ ...p, progress: 100, phase: t('backups.progressDone'), message: t('backups.progressRestoreDone'), status: 'success' }));
       await new Promise(r => setTimeout(r, 1400));
       setShowProgress(false);
-      setResult({ type: 'success', title: t('backups.restoreSuccess'), message: res.requiresRestart ? t('backups.restoreSuccessMsg') : t('backups.restoreSuccessMsgNoRestart') });
+      setResult({ type: 'success', title: t('backups.restoreSuccess'), message: t('backups.restoreSuccessMsgNoRestart') });
       setShowResult(true);
-      if (res.requiresRestart) setTimeout(() => window.location.reload(), 2200);
+      setTimeout(() => window.location.reload(), 2200);
     } catch (err: any) {
+      removeRestoreProgressListener();
+      setProgressData(p => ({ ...p, status: 'error', message: err.message }));
+      await new Promise(r => setTimeout(r, 1000));
+      setShowProgress(false);
+      setResult({ type: 'error', title: t('backups.restoreError'), message: err.message });
+      setShowResult(true);
+    } finally { setOperation('idle'); }
+  };
+
+  const handleDoAutoRestore = async (folderPath: string) => {
+    setAutoRestoreTarget(null);
+    setOperation('restoring');
+    let modalShown = false;
+
+    onRestoreProgress((progress: any) => {
+      if (!modalShown) {
+        setProgressData({ type: 'restore', progress: 0, phase: progress.step, message: progress.message, status: 'loading' });
+        setShowProgress(true);
+        modalShown = true;
+      }
+      setProgressData(p => ({
+        ...p,
+        phase: progress.step,
+        message: progress.message,
+        progress: progress.current ?? p.progress,
+        status: progress.step === 'error' ? 'error' : 'loading',
+      }));
+    });
+
+    try {
+      const res = await restoreFromAutoBackup(folderPath);
+      removeRestoreProgressListener();
+
+      if (!res?.success) {
+        setShowProgress(false);
+        setOperation('idle');
+        return;
+      }
+
+      setProgressData(p => ({ ...p, progress: 100, phase: t('backups.progressDone'), message: t('backups.progressRestoreDone'), status: 'success' }));
+      await new Promise(r => setTimeout(r, 1400));
+      setShowProgress(false);
+      setResult({ type: 'success', title: t('backups.restoreSuccess'), message: t('backups.restoreSuccessMsgNoRestart') });
+      setShowResult(true);
+      setTimeout(() => window.location.reload(), 2200);
+    } catch (err: any) {
+      removeRestoreProgressListener();
+      setProgressData(p => ({ ...p, status: 'error', message: err.message }));
+      await new Promise(r => setTimeout(r, 1000));
       setShowProgress(false);
       setResult({ type: 'error', title: t('backups.restoreError'), message: err.message });
       setShowResult(true);
@@ -1278,67 +1608,103 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[940px] h-[700px] max-h-[90vh] p-0 gap-0 flex flex-col">
-          <div className="flex flex-1 min-h-0">
+      <div className="flex h-full overflow-hidden">
 
-            {/* Sidebar */}
-            <aside className="w-56 border-r border-border bg-muted/20 flex flex-col shrink-0">
-              <DialogHeader className="px-4 pt-4 pb-3 shrink-0">
-                <DialogTitle className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Settings className="w-4 h-4 text-primary" />
+            {/* Sidebar — mesmo estilo do HelpPage */}
+            <div
+              className="w-52 flex-shrink-0 flex flex-col overflow-hidden"
+              style={{ borderRight: '1px solid var(--ui-b06)' }}
+            >
+              {/* Título + Pesquisa */}
+              <div className="p-2.5" style={{ borderBottom: '1px solid var(--ui-b06)' }}>
+                <div className="flex items-center gap-2 px-1 mb-2.5">
+                  <div
+                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: 'var(--ui-b07)' }}
+                  >
+                    <Settings className="w-3.5 h-3.5" style={{ color: 'var(--ui-t55)' }} />
                   </div>
-                  <span className="text-sm font-semibold">{t('title')}</span>
-                </DialogTitle>
-              </DialogHeader>
-              <div className="px-3 mb-1">
-                <div className="h-px bg-border/60" />
+                  <span className="text-xs font-semibold" style={{ color: 'var(--ui-t85)' }}>
+                    {t('title')}
+                  </span>
+                </div>
+                <div className="relative">
+                  <Search
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
+                    style={{ color: 'var(--ui-t28)' }}
+                  />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Filtrar..."
+                    className="w-full rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none"
+                    style={{
+                      background: 'var(--ui-b05)',
+                      border: '1px solid var(--ui-b07)',
+                      color: 'var(--ui-t85)',
+                    }}
+                  />
+                </div>
               </div>
-              <div className="flex-1 min-h-0 overflow-y-auto px-2 py-1">
-                <nav className="space-y-0.5">
-                  {navSections.map(({ id, icon: Icon, label }) => {
+
+              <nav className="flex-1 overflow-y-auto py-1.5 space-y-0.5 px-1.5">
+                {filteredNavSections.length === 0 ? (
+                  <p className="text-xs text-center py-4" style={{ color: 'var(--ui-t25)' }}>
+                    Sem resultados
+                  </p>
+                ) : (
+                  filteredNavSections.map(({ id, icon: Icon, label }) => {
                     const isActive = activeTab === id;
                     return (
                       <button
                         key={id}
                         onClick={() => setActiveTab(id)}
-                        className={cn(
-                          'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all',
-                          isActive
-                            ? 'bg-primary/10 text-primary font-semibold'
-                            : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground font-medium',
-                        )}
+                        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-left rounded-lg transition-colors"
+                        style={{
+                          background: isActive ? 'hsl(var(--accent))' : 'transparent',
+                          color:      isActive ? 'hsl(var(--accent-foreground))' : 'var(--ui-t45)',
+                          fontWeight: isActive ? 600 : 400,
+                        }}
+                        onMouseEnter={e => {
+                          if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'var(--ui-b04)';
+                        }}
+                        onMouseLeave={e => {
+                          if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                        }}
                       >
-                        <span className={cn(
-                          'w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-colors',
-                          isActive ? 'bg-primary/15' : 'bg-muted/80',
-                        )}>
-                          <Icon className="w-3.5 h-3.5" />
-                        </span>
-                        {label}
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate leading-snug">{label}</span>
                       </button>
                     );
-                  })}
-                </nav>
-              </div>
-              <div className="px-2 py-2 border-t border-border shrink-0">
+                  })
+                )}
+              </nav>
+
+              <div className="px-1.5 py-1.5" style={{ borderTop: '1px solid var(--ui-b06)' }}>
                 <button
                   onClick={() => window.location.reload()}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors"
+                  style={{ color: 'var(--ui-t28)', background: 'transparent' }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t65)';
+                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--ui-b04)';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t28)';
+                    (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                  }}
                 >
-                  <span className="w-6 h-6 rounded-md bg-muted/80 flex items-center justify-center shrink-0">
-                    <RefreshCw className="w-3 h-3" />
-                  </span>
-                  Recarregar aplicação
+                  <RefreshCw className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Recarregar aplicação</span>
                 </button>
               </div>
-            </aside>
+            </div>
 
             {/* Conteúdo */}
             <main className="flex-1 min-h-0 min-w-0 flex flex-col">
               <div className="flex-1 overflow-y-auto">
-                <div className="p-6 space-y-6">
+                <div className="px-8 py-6 space-y-6">
 
                   {/* ── Aparência ── */}
                   {activeTab === 'appearance' && (
@@ -1440,6 +1806,9 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                               min={40} max={100} step={1}
                               value={Math.round(glass.opacity * 100)}
                               onChange={e => updateGlass({ opacity: Number(e.target.value) / 100 })}
+                              onPointerDown={() => window.dispatchEvent(new CustomEvent('glassPreviewStart'))}
+                              onPointerUp={() => window.dispatchEvent(new CustomEvent('glassPreviewEnd'))}
+                              onPointerLeave={() => window.dispatchEvent(new CustomEvent('glassPreviewEnd'))}
                               className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
                               style={{ accentColor: 'hsl(var(--primary))' }}
                             />
@@ -1462,6 +1831,9 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                               min={0} max={40} step={1}
                               value={glass.blur}
                               onChange={e => updateGlass({ blur: Number(e.target.value) })}
+                              onPointerDown={() => window.dispatchEvent(new CustomEvent('glassPreviewStart'))}
+                              onPointerUp={() => window.dispatchEvent(new CustomEvent('glassPreviewEnd'))}
+                              onPointerLeave={() => window.dispatchEvent(new CustomEvent('glassPreviewEnd'))}
                               className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
                               style={{ accentColor: 'hsl(var(--primary))' }}
                             />
@@ -1763,6 +2135,8 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                         <h3 className="text-base font-semibold mb-1">{t('backups.title')}</h3>
                         <p className="text-sm text-muted-foreground">{t('backups.description')}</p>
                       </div>
+
+                      {/* Backup automático */}
                       <div className="p-4 rounded-lg border border-border bg-card/50 space-y-4">
                         <div className="flex items-start gap-3">
                           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><Clock className="w-5 h-5 text-primary" /></div>
@@ -1770,17 +2144,94 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                             <h4 className="text-sm font-semibold mb-1">{t('backups.auto')}</h4>
                             <p className="text-xs text-muted-foreground leading-relaxed">{t('backups.autoDesc')}</p>
                           </div>
-                          <Switch defaultChecked />
+                          <Switch
+                            checked={autoBackupEnabled}
+                            onCheckedChange={async (v) => {
+                              setAutoBackupEnabled(v);
+                              const cfg = backupConfig ?? { autoBackupFrequency: 'daily', keepLastN: 7 };
+                              await updateBackupConfig({ ...cfg, autoBackupEnabled: v });
+                            }}
+                          />
                         </div>
                         <div className="space-y-2 text-xs">
-                          {[['frequency','frequencyValue'],['kept','keptValue'],['lastBackup','lastBackupValue']].map(([lk, vk]) => (
-                            <div key={lk} className="flex items-center justify-between">
-                              <span className="text-muted-foreground">{t(`backups.${lk}`)}</span>
-                              <span className="font-medium">{t(`backups.${vk}`)}</span>
-                            </div>
-                          ))}
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">{t('backups.frequency')}</span>
+                            <span className="font-medium">
+                              {backupConfig?.autoBackupFrequency === 'weekly' ? t('backups.frequencyWeekly') : t('backups.frequencyValue')}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">{t('backups.kept')}</span>
+                            <span className="font-medium">{backupConfig?.keepLastN ?? 7} {t('backups.keptUnit')}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">{t('backups.lastBackup')}</span>
+                            <span className="font-medium">
+                              {loadingBackupData
+                                ? t('common:loading')
+                                : backupConfig?.lastAutoBackup
+                                  ? new Date(backupConfig.lastAutoBackup).toLocaleString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                                  : t('backups.noBackupYet')}
+                            </span>
+                          </div>
                         </div>
                       </div>
+
+                      {/* Lista de cópias de segurança automáticas */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-semibold">{t('backups.listTitle')}</h4>
+                          <span className="text-xs text-muted-foreground">{autoBackupList.length} {t('backups.listCount')}</span>
+                        </div>
+                        {loadingBackupData ? (
+                          <div className="flex items-center justify-center py-6 text-sm text-muted-foreground gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />{t('common:loading')}
+                          </div>
+                        ) : autoBackupList.length === 0 ? (
+                          <div className="p-4 rounded-lg border border-dashed border-border text-center">
+                            <p className="text-sm text-muted-foreground">{t('backups.noBackupsFound')}</p>
+                          </div>
+                        ) : (
+                          <div className="rounded-lg border border-border overflow-hidden">
+                            {autoBackupList.slice(0, 7).map((bk, i) => {
+                              const date = new Date(bk.createdAt);
+                              const sizeKb = Math.round(bk.size / 1024);
+                              const sizeTxt = sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`;
+                              return (
+                                <div key={bk.name} className={`flex items-center justify-between px-4 py-3 text-sm ${i > 0 ? 'border-t border-border' : ''}`}>
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${i === 0 ? 'bg-emerald-500' : 'bg-muted-foreground/30'}`} />
+                                    <div>
+                                      <p className="font-medium">
+                                        {date.toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                        {i === 0 && <span className="ml-2 text-xs text-emerald-600 font-normal">{t('backups.latestBadge')}</span>}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xs font-mono text-muted-foreground">{sizeTxt}</span>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      disabled={isBusy}
+                                      onClick={() => setAutoRestoreTarget({ name: bk.name, path: bk.path, createdAt: date })}
+                                      className="h-7 text-xs gap-1"
+                                    >
+                                      {operation === 'restoring' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                                      {t('backups.restoreFromBackup')}
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Backup manual */}
                       <div className="pt-4 border-t border-border space-y-4">
                         <div>
                           <h4 className="text-sm font-semibold mb-1">{t('backups.manual')}</h4>
@@ -1803,6 +2254,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                           </Button>
                         </div>
                       </div>
+
                       <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                         <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                         <p className="text-xs text-amber-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: t('backups.warning') }} />
@@ -1855,9 +2307,8 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                           <div className="pt-3 border-t border-border/50 space-y-2">
                             <p className="text-xs font-medium text-muted-foreground uppercase">{t('about.contacts')}</p>
                             <div className="space-y-1.5 text-sm">
-                              <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-muted-foreground" /><span>suporte.techsoft@gmail.com</span></div>
-                              <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-muted-foreground" /><span>+244 923 456 789</span></div>
-                              <div className="flex items-center gap-2"><Globe className="w-4 h-4 text-muted-foreground" /><span>www.techsoft.ao</span></div>
+                              <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-muted-foreground" /><span>albertobrian16@gmail.com</span></div>
+                              <div className="flex items-center gap-2"><Globe className="w-4 h-4 text-muted-foreground" /><span>akmsystems.ao</span></div>
                             </div>
                           </div>
                           <div className="pt-3 border-t border-border/50">
@@ -1879,13 +2330,44 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                 </div>
               </div>
             </main>
-          </div>
-        </DialogContent>
-      </Dialog>
+      </div>
 
       <ProgressModal open={showProgress} type={progressData.type} progress={progressData.progress} phase={progressData.phase} message={progressData.message} status={progressData.status} />
       <ConfirmRestoreModal open={showConfirmRestore} onOpenChange={setShowConfirmRestore} onConfirm={handleDoRestore} />
       <ResultModal open={showResult} onOpenChange={setShowResult} type={result.type} title={result.title} message={result.message} />
+
+      {/* Confirm auto-backup restore */}
+      <Dialog open={!!autoRestoreTarget} onOpenChange={open => { if (!open) setAutoRestoreTarget(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('backups.confirmAutoRestore')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">{t('backups.confirmAutoRestoreText')}</p>
+            {autoRestoreTarget && (
+              <p className="text-sm font-semibold">
+                {new Date(autoRestoreTarget.createdAt).toLocaleString()}
+              </p>
+            )}
+            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+              <li>{t('backups.confirmAutoRestoreBullet1')}</li>
+              <li>{t('backups.confirmAutoRestoreBullet2')}</li>
+              <li>{t('backups.confirmAutoRestoreBullet3')}</li>
+            </ul>
+            <p className="text-xs text-destructive font-medium">{t('backups.confirmIrreversible')}</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAutoRestoreTarget(null)}>
+              {t('backups.confirmCancel')}
+            </Button>
+            <Button
+              onClick={() => autoRestoreTarget && handleDoAutoRestore(autoRestoreTarget.path)}
+            >
+              {t('backups.confirmYes')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

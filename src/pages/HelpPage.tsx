@@ -50,7 +50,7 @@ function renderBlock(block: HelpBlock, idx: number) {
   switch (block.type) {
     case 'text':
       return (
-        <p key={idx} className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
+        <p key={idx} className="text-sm leading-relaxed" style={{ color: 'var(--ui-t72)' }}>
           {block.text}
         </p>
       );
@@ -58,8 +58,8 @@ function renderBlock(block: HelpBlock, idx: number) {
       return (
         <ul key={idx} className="space-y-1.5">
           {block.items.map((item, i) => (
-            <li key={i} className="flex items-start gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.68)' }}>
-              <ChevronRight className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'rgba(255,255,255,0.25)' }} />
+            <li key={i} className="flex items-start gap-2 text-sm" style={{ color: 'var(--ui-t68)' }}>
+              <ChevronRight className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'var(--ui-t25)' }} />
               <span>{item}</span>
             </li>
           ))}
@@ -69,10 +69,10 @@ function renderBlock(block: HelpBlock, idx: number) {
       return (
         <ol key={idx} className="space-y-2.5">
           {block.steps.map((step, i) => (
-            <li key={i} className="flex items-start gap-3 text-sm" style={{ color: 'rgba(255,255,255,0.68)' }}>
+            <li key={i} className="flex items-start gap-3 text-sm" style={{ color: 'var(--ui-t68)' }}>
               <span
                 className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mt-0.5"
-                style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.55)' }}
+                style={{ background: 'var(--ui-b10)', color: 'var(--ui-t55)' }}
               >
                 {i + 1}
               </span>
@@ -89,7 +89,7 @@ function renderBlock(block: HelpBlock, idx: number) {
           style={{ background: 'rgba(74,222,128,0.07)', border: '1px solid rgba(74,222,128,0.15)' }}
         >
           <Zap className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: '#4ade80' }} />
-          <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.68)' }}>{block.text}</p>
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--ui-t68)' }}>{block.text}</p>
         </div>
       );
     case 'warning':
@@ -100,7 +100,7 @@ function renderBlock(block: HelpBlock, idx: number) {
           style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.15)' }}
         >
           <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: '#fbbf24' }} />
-          <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.68)' }}>{block.text}</p>
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--ui-t68)' }}>{block.text}</p>
         </div>
       );
     case 'table':
@@ -108,13 +108,13 @@ function renderBlock(block: HelpBlock, idx: number) {
         <div
           key={idx}
           className="overflow-x-auto rounded-lg"
-          style={{ border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ border: '1px solid var(--ui-b07)' }}
         >
           <table className="w-full text-xs">
             <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <tr style={{ background: 'var(--ui-b04)', borderBottom: '1px solid var(--ui-b07)' }}>
                 {block.headers.map((h, i) => (
-                  <th key={i} className="text-left px-3 py-2 font-semibold" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                  <th key={i} className="text-left px-3 py-2 font-semibold" style={{ color: 'var(--ui-t45)' }}>
                     {h}
                   </th>
                 ))}
@@ -124,13 +124,13 @@ function renderBlock(block: HelpBlock, idx: number) {
               {block.rows.map((row, ri) => (
                 <tr
                   key={ri}
-                  style={{ borderBottom: ri < block.rows.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
+                  style={{ borderBottom: ri < block.rows.length - 1 ? '1px solid var(--ui-b04)' : 'none' }}
                 >
                   {row.map((cell, ci) => (
                     <td
                       key={ci}
                       className="px-3 py-2"
-                      style={{ color: ci === 0 ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.58)' }}
+                      style={{ color: ci === 0 ? 'var(--ui-t82)' : 'var(--ui-t58)' }}
                     >
                       {ci === 0 ? <strong>{cell}</strong> : cell}
                     </td>
@@ -154,12 +154,12 @@ function SectionCard({ section, connectedOnlyLabel }: { section: HelpSection; co
       <div className="flex items-start gap-3 mb-4">
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: 'rgba(255,255,255,0.07)' }}
+          style={{ background: 'var(--ui-b07)' }}
         >
-          <Icon className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.55)' }} />
+          <Icon className="w-4 h-4" style={{ color: 'var(--ui-t55)' }} />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-sm font-semibold leading-snug" style={{ color: 'rgba(255,255,255,0.9)' }}>
+          <h2 className="text-sm font-semibold leading-snug" style={{ color: 'var(--ui-t90)' }}>
             {section.title}
           </h2>
           {section.connectedOnly && (
@@ -257,13 +257,13 @@ export default function HelpPage() {
       {/* ── TOC Sidebar ── */}
       <div
         className="w-52 flex-shrink-0 flex flex-col overflow-hidden"
-        style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ borderRight: '1px solid var(--ui-b06)' }}
       >
-        <div className="p-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="p-2.5" style={{ borderBottom: '1px solid var(--ui-b06)' }}>
           <div className="relative">
             <Search
               className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
-              style={{ color: 'rgba(255,255,255,0.28)' }}
+              style={{ color: 'var(--ui-t28)' }}
             />
             <input
               type="text"
@@ -272,9 +272,9 @@ export default function HelpPage() {
               placeholder={searchPlaceholder}
               className="w-full rounded-lg pl-8 pr-3 py-1.5 text-xs outline-none"
               style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.07)',
-                color: 'rgba(255,255,255,0.85)',
+                background: 'var(--ui-b05)',
+                border: '1px solid var(--ui-b07)',
+                color: 'var(--ui-t85)',
               }}
             />
           </div>
@@ -291,12 +291,12 @@ export default function HelpPage() {
                 onClick={() => scrollTo(s.id)}
                 className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-left rounded-lg transition-colors"
                 style={{
-                  background:  isActive ? 'rgba(255,255,255,0.08)' : 'transparent',
-                  color:       isActive ? 'rgba(255,255,255,0.9)'  : 'rgba(255,255,255,0.45)',
+                  background:  isActive ? 'var(--ui-b08)' : 'transparent',
+                  color:       isActive ? 'var(--ui-t90)' : 'var(--ui-t45)',
                   fontWeight:  isActive ? 500 : 400,
                 }}
                 onMouseEnter={e => {
-                  if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)';
+                  if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'var(--ui-b04)';
                 }}
                 onMouseLeave={e => {
                   if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
@@ -315,8 +315,8 @@ export default function HelpPage() {
         <div className="max-w-2xl px-8 py-6 space-y-10">
           {visibleSections.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <HelpCircle className="w-9 h-9" style={{ color: 'rgba(255,255,255,0.15)' }} />
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <HelpCircle className="w-9 h-9" style={{ color: 'var(--ui-t15)' }} />
+              <p className="text-sm" style={{ color: 'var(--ui-t35)' }}>
                 {noResultsPrefix} <em>"{search}"</em>
               </p>
             </div>
@@ -325,13 +325,13 @@ export default function HelpPage() {
               <React.Fragment key={section.id}>
                 <SectionCard section={section} connectedOnlyLabel={connectedOnlyLabel} />
                 {i < visibleSections.length - 1 && (
-                  <hr style={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+                  <hr style={{ borderColor: 'var(--ui-b05)' }} />
                 )}
               </React.Fragment>
             ))
           )}
 
-          <div className="pt-2 pb-6 flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.2)' }}>
+          <div className="pt-2 pb-6 flex items-center gap-2" style={{ color: 'var(--ui-t20)' }}>
             <Info className="w-3.5 h-3.5 shrink-0" />
             <span className="text-xs">{footerText}</span>
           </div>

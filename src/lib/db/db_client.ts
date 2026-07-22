@@ -38,9 +38,10 @@ export function initializeDatabase(
     return dbManagerInstance.getCurrentDrizzleInstance();
   }
 
+  _dbParams = { maxSizeInMB, maxAgeInDays, transitionPeriodDays };
   dbManagerInstance = new DatabaseManager(
-    maxSizeInMB, 
-    maxAgeInDays, 
+    maxSizeInMB,
+    maxAgeInDays,
     transitionPeriodDays
   );
   
@@ -57,3 +58,19 @@ export function getDb(): BetterSQLite3Database<typeof schema> {
 
 // ✅ Exportar função de inicialização também
 export { DatabaseManager };
+
+let _dbParams = { maxSizeInMB: 256, maxAgeInDays: 365, transitionPeriodDays: 60 };
+
+/**
+ * Fecha o DB actual, descarta a instância e reinicializa com os mesmos parâmetros.
+ * Usado após restore para abrir a nova base de dados sem reiniciar o processo.
+ */
+export function reinitializeDatabase(): BetterSQLite3Database<typeof schema> {
+  if (dbManagerInstance) {
+    dbManagerInstance.close();
+    dbManagerInstance = null;
+  }
+  const { maxSizeInMB, maxAgeInDays, transitionPeriodDays } = _dbParams;
+  dbManagerInstance = new DatabaseManager(maxSizeInMB, maxAgeInDays, transitionPeriodDays);
+  return dbManagerInstance.initialize();
+}

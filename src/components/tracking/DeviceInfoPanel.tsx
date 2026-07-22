@@ -32,24 +32,23 @@ type CommandFeedback = { type: 'success' | 'error'; message: string } | null;
 const COMMAND_TYPES = ['engineStop', 'engineResume', 'positionSingle'] as const;
 type CommandType = typeof COMMAND_TYPES[number];
 
-// Dark glass design tokens — same palette as DeviceSidebar
 const G = {
-  bg:        'rgba(8,14,28,0.97)',
-  border:    'rgba(255,255,255,0.08)',
-  shadow:    '0 12px 48px rgba(0,0,0,0.6)',
-  blur:      'blur(12px)',
-  textPrimary:   'rgba(255,255,255,0.97)',
-  textSecondary: 'rgba(255,255,255,0.82)',
-  textMuted:     'rgba(255,255,255,0.4)',
-  divider:       'rgba(255,255,255,0.06)',
-  itemBg:        'rgba(255,255,255,0.05)',
-  itemHover:     'rgba(255,255,255,0.08)',
-  blue:      '#60a5fa',
-  green:     '#22c55e',
-  red:       '#ef4444',
-  orange:    '#f59e0b',
-  inputBg:   'rgba(255,255,255,0.07)',
-  inputBorder: 'rgba(255,255,255,0.12)',
+  bg:            'var(--ui-nav-bg)',
+  border:        'var(--ui-b08)',
+  shadow:        '0 12px 48px rgba(0,0,0,0.6)',
+  blur:          'blur(12px)',
+  textPrimary:   'var(--ui-t90)',
+  textSecondary: 'var(--ui-t82)',
+  textMuted:     'var(--ui-t40)',
+  divider:       'var(--ui-b06)',
+  itemBg:        'var(--ui-b05)',
+  itemHover:     'var(--ui-b08)',
+  blue:          '#60a5fa',
+  green:         '#22c55e',
+  red:           '#ef4444',
+  orange:        '#f59e0b',
+  inputBg:       'var(--ui-b07)',
+  inputBorder:   'var(--ui-b12)',
 } as const;
 
 export function DeviceInfoPanel({ device, position, onClose, onShowHistory }: Props) {

@@ -108,11 +108,9 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
     setSavingGps(true);
     try {
       await registerGpsOnVehicle(selectedVehicle.id, newImei.trim());
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const updated = { ...selectedVehicle, traccar_unique_id: newImei.trim(), tracking_enabled: true } as any;
+      const updated = { ...selectedVehicle, traccar_unique_id: newImei.trim() };
       dispatch({ type: 'UPDATE_VEHICLE', payload: updated });
       dispatch({ type: 'SELECT_VEHICLE', payload: updated });
-      reloadActiveImeis();
       setGpsDialogOpen(false);
       setNewImei('');
       toast.success(t('vehicles:toast.addGpsSuccess'));
@@ -281,12 +279,12 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
 
           {/* ── Tabs ── */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'details' | 'history')}>
-            <TabsList className="w-full grid grid-cols-2 mb-2 bg-muted/40 border-border h-9 p-1">
-              <TabsTrigger value="details" className="flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:border-border/50 dark:data-[state=active]:bg-white/12 dark:data-[state=active]:text-foreground dark:data-[state=active]:border-white/10">
+            <TabsList className="w-full grid grid-cols-2 mb-2">
+              <TabsTrigger value="details" className="flex items-center gap-1.5">
                 <Truck className="w-3.5 h-3.5" />
                 {t('vehicles:dialogs.view.tabDetails', 'Detalhes')}
               </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:border-border/50 dark:data-[state=active]:bg-white/12 dark:data-[state=active]:text-foreground dark:data-[state=active]:border-white/10">
+              <TabsTrigger value="history" className="flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5" />
                 {t('vehicles:dialogs.view.tabHistory', 'Histórico')}
               </TabsTrigger>

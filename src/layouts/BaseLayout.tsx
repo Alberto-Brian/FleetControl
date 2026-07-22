@@ -60,8 +60,7 @@ export default function BaseLayout({ children }: { children: React.ReactNode }) 
         <div className="flex flex-col h-screen overflow-hidden">
             <DragWindowRegion
                 title="FleetControl"
-                dark={isMapMode}
-                rightContent={isConnectedLicense ? <ConnectionStatusBadge dark={isMapMode} /> : undefined}
+                rightContent={isConnectedLicense ? <ConnectionStatusBadge dark={false} /> : undefined}
             />
             {historicalDbPath && (
                 <div className="flex items-center justify-between gap-3 px-4 py-1.5 bg-amber-500 text-amber-950 text-xs font-medium shrink-0 z-50">

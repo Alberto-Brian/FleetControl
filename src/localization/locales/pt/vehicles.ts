@@ -319,6 +319,9 @@ export const ptVehicles = {
     imeiAlreadyExists: "Já existe um dispositivo com este IMEI registado",
     traccarUnavailable: "Servidor de rastreamento inacessível. Verifique a ligação e tente novamente",
     traccarError: "Erro ao registar o dispositivo de rastreamento. Tente novamente",
+    gpsImeiNotFound: "IMEI não encontrado. Sincronize os dispositivos Traccar ou registe o dispositivo no servidor Traccar primeiro.",
+    gpsDeviceAlreadyLinked: "Este dispositivo GPS já está associado a outro veículo.",
+    gpsVehicleAlreadyHasDevice: "Este veículo já tem um dispositivo GPS registado. Remova o GPS primeiro.",
   },
 
   warnings: {

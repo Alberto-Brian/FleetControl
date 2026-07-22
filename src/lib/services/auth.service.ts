@@ -69,12 +69,14 @@ export class AuthService {
     const db = getDb();
     await db
       .update(users)
-      .set({ 
+      .set({
         last_access_at: null,
         updated_at: new Date().toISOString()
       })
       .where(isNull(users.deleted_at));
+    if (typeof window !== 'undefined') {
       localStorage.removeItem('fleet_user');
+    }
   }
 
   /**

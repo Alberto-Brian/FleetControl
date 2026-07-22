@@ -1,9 +1,14 @@
 import { BrowserWindow, ipcMain, Notification } from "electron";
+import * as fs from "fs";
 import { VersionManager } from "@/system/version_manager";
 import { DatabaseManager } from "@/system/db_manager";
-import { GET_SYSTEM_VERSION, GET_DB_VERSION, FORCE_DB_ROTATION, GET_SERVER_URL, SET_SERVER_URL, SHOW_NOTIFICATION, LIST_DATABASES, GET_DATABASE_STATS, SET_HISTORICAL_DB, GET_HISTORICAL_DB } from "./system-channels";
+import { BackupManager } from "@/system/backup_manager";
+import { GET_SYSTEM_VERSION, GET_DB_VERSION, FORCE_DB_ROTATION, GET_SERVER_URL, SET_SERVER_URL, SHOW_NOTIFICATION, LIST_DATABASES, GET_DATABASE_STATS, SET_HISTORICAL_DB, GET_HISTORICAL_DB, DELETE_DATABASE, LIST_BACKUP_DATABASES } from "./system-channels";
 import { getApiUrl, setApiUrl } from "@/helpers/server-config";
-import { getDbManager } from "@/lib/db/db_client";
+import { getDb, getDbManager } from "@/lib/db/db_client";
+import { AuthService } from "@/lib/services/auth.service";
+import { users } from "@/lib/db/schemas";
+import { isNull } from "drizzle-orm";
 import Database from "better-sqlite3";
 
 export function addSystemEventListeners() {
@@ -52,6 +57,60 @@ export function addSystemEventListeners() {
 
     ipcMain.handle(GET_HISTORICAL_DB, () => {
         return getDbManager().getHistoricalDbPath();
+    });
+
+    ipcMain.handle(DELETE_DATABASE, async (_event, { filepath, password }: { filepath: string; password: string }) => {
+        if (!fs.existsSync(filepath)) return { success: false, error: 'not-found' };
+
+        // Cannot delete the currently active DB
+        const metaPath = filepath.replace('.db', '.meta.json');
+        if (fs.existsSync(metaPath)) {
+            try {
+                const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+                if (meta.isActive) return { success: false, error: 'active-db' };
+            } catch {}
+        }
+
+        // Cannot delete the database currently open as historical
+        if (getDbManager().getHistoricalDbPath() === filepath) {
+            return { success: false, error: 'active-db' };
+        }
+
+        // Verify password against any non-deleted user in the active DB
+        try {
+            const db = getDb();
+            const allUsers = await db.select().from(users).where(isNull(users.deleted_at));
+            let authenticated = false;
+            for (const user of allUsers) {
+                if (await AuthService.verifyPassword(password, user.password_hash)) {
+                    authenticated = true;
+                    break;
+                }
+            }
+            if (!authenticated) return { success: false, error: 'invalid-password' };
+        } catch {
+            return { success: false, error: 'db-error' };
+        }
+
+        try {
+            fs.unlinkSync(filepath);
+            if (fs.existsSync(metaPath)) fs.unlinkSync(metaPath);
+            return { success: true };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    });
+
+    ipcMain.handle(LIST_BACKUP_DATABASES, () => {
+        try {
+            const backup_manager = new BackupManager();
+            return backup_manager.listBackupDatabases().map(b => ({
+                ...b,
+                backupDate: b.backupDate.toISOString(),
+            }));
+        } catch {
+            return [];
+        }
     });
 
     ipcMain.handle(GET_DATABASE_STATS, (_event, filepath: string) => {

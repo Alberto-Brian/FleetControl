@@ -25,3 +25,11 @@ export async function getHistoricalDb() {
     return await window.system.getHistoricalDb();
 }
 
+export async function deleteDatabase(filepath: string, password: string) {
+    return await window.system.deleteDatabase(filepath, password);
+}
+
+export async function listBackupDatabases() {
+    return await window.system.listBackupDatabases();
+}
+

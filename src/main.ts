@@ -12,7 +12,6 @@ import { initializeDatabase, getDbManager } from './lib/db/db_client';
 import { VersionManager } from '@/system/version_manager';
 import { APP_NAME } from "@/system/system.config";
 import { RestoreController } from '@/system/restore_manager';
-import { logoutAllUsers } from "./helpers/service-auth-helpers";
 import { startLeaveScheduler } from "./lib/db/schedulers/leave-scheduler";
 import { startTripScheduler } from "./lib/db/schedulers/trip-scheduler";
 declare const __API_URL__: string;
@@ -172,12 +171,10 @@ app.whenReady().then(async () => {
     console.log('== ETAPA 0: Restore Pendente ========================');
     const restoreCtrl = new RestoreController();
     const hadRestore = await restoreCtrl.checkAndExecuteRestore();
-    
     if (hadRestore) {
-      await logoutAllUsers();
-      console.log('✅ Restore executado - continuando inicialização...');
+      console.log('[Restore] Restore legado concluido - continuando inicializacao...');
     } else {
-      console.log('ℹ️  Nenhum restore pendente');
+      console.log('[Init] Nenhum restore pendente');
     }
     console.log('_____________________________________________________');
     console.log('');
@@ -288,9 +285,9 @@ app.whenReady().then(async () => {
     }
   } catch (error) {
     console.log('');
-    console.log('╔════════════════════════════════════════════════════════════╗');
-    console.log('║          ❌ ERRO FATAL NA INICIALIZAÇÃO                   ║');
-    console.log('╚════════════════════════════════════════════════════════════╝');
+    console.log('=============================================================');
+    console.log('   ERRO FATAL NA INICIALIZACAO');
+    console.log('=============================================================');
     console.error(error);
     
     dialog.showErrorBox(

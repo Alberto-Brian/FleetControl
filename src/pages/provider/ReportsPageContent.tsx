@@ -1,4 +1,4 @@
-// ========================================
+﻿// ========================================
 // FILE: src/pages/provider/ReportsPageContent.tsx
 // ========================================
 import React, { useState, useEffect, useCallback } from 'react';
@@ -328,7 +328,7 @@ function GpsReportsTab() {
             {summary.map((s, i) => {
               const dev = devices.find(d => d.traccar_id === s.deviceId);
               return (
-                <div key={i} className="px-6 py-4 grid grid-cols-6 gap-4 items-center hover:bg-muted/10 transition-colors">
+                <div key={i} className="px-6 py-4 grid grid-cols-6 gap-4 items-center hover:bg-muted/40 transition-colors">
                   <div className="col-span-2 flex items-center gap-2">
                     <Navigation className="w-4 h-4 text-primary flex-shrink-0" />
                     <span className="font-semibold text-sm truncate">{dev?.name ?? `Device #${s.deviceId}`}</span>
@@ -357,7 +357,7 @@ function GpsReportsTab() {
             {stops.map((s, i) => {
               const dev = devices.find(d => d.traccar_id === s.deviceId);
               return (
-                <div key={i} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors">
+                <div key={i} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/40 transition-colors">
                   <div className="col-span-2 flex items-center gap-2">
                     <ParkingCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />
                     <span className="font-semibold text-sm truncate">{dev?.name ?? `Device #${s.deviceId}`}</span>
@@ -387,7 +387,7 @@ function GpsReportsTab() {
             {events.map((e, i) => {
               const dev = devices.find(d => d.traccar_id === e.deviceId);
               return (
-                <div key={i} className="px-6 py-3 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors">
+                <div key={i} className="px-6 py-3 grid grid-cols-12 gap-4 items-center hover:bg-muted/40 transition-colors">
                   <div className="col-span-2 flex items-center gap-2">
                     <Zap className="w-4 h-4 text-violet-500 flex-shrink-0" />
                     <span className="font-semibold text-sm truncate">{dev?.name ?? `Device #${e.deviceId}`}</span>
@@ -851,7 +851,7 @@ export function ReportsPageContent() {
                       {filteredDefinitions.map(report => {
                         const isGen = generating === report.type;
                         return (
-                          <div key={report.type} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors">
+                          <div key={report.type} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/40 transition-colors">
                             <div className="col-span-4 flex items-center gap-3">
                               <div className={cn('p-2 rounded-lg', report.bgColor, report.color)}>
                                 <report.icon className="w-4 h-4" />
@@ -966,7 +966,7 @@ export function ReportsPageContent() {
                     {history.map(r => {
                       const def = getReportDef(r.type);
                       return (
-                        <div key={r.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors">
+                        <div key={r.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/40 transition-colors">
                           <div className="col-span-3 flex items-center gap-3">
                             <div className={cn('p-2 rounded-lg shrink-0', def.bgColor, def.color)}>
                               <def.icon className="w-4 h-4" />

@@ -81,8 +81,52 @@
     :root {
         --app-font:      "Geist", ui-sans-serif, system-ui, sans-serif;
         --app-font-size: 16px;
-        --glass-bg:      rgba(8,14,28,0.88);
-        --glass-filter:  blur(20px) saturate(1.4);
+
+        /* Glass panel system — base RGB changes per theme */
+        --glass-rgb:    228, 233, 242;
+        --glass-bg:     rgba(228, 233, 242, 0.90);
+        --glass-filter: blur(20px) saturate(1.2);
+
+        /* Nav / overlay surface */
+        --ui-nav-bg:    rgba(247, 249, 253, 0.97);
+
+        /* Nav rail active item — adapts to light/dark */
+        --nav-active-bg:     hsl(var(--primary) / 0.10);
+        --nav-active-color:  hsl(var(--primary));
+        --nav-active-border: hsl(var(--primary) / 0.18);
+        --nav-logo-bg:       hsl(var(--primary));
+
+        /* Text on glass/custom surfaces (light mode = dark text) */
+        --ui-t90: rgba(15,15,15,0.88);
+        --ui-t85: rgba(15,15,15,0.83);
+        --ui-t82: rgba(15,15,15,0.80);
+        --ui-t75: rgba(15,15,15,0.73);
+        --ui-t72: rgba(15,15,15,0.70);
+        --ui-t68: rgba(15,15,15,0.65);
+        --ui-t65: rgba(15,15,15,0.63);
+        --ui-t58: rgba(15,15,15,0.56);
+        --ui-t55: rgba(15,15,15,0.53);
+        --ui-t45: rgba(15,15,15,0.48);
+        --ui-t40: rgba(15,15,15,0.44);
+        --ui-t35: rgba(15,15,15,0.40);
+        --ui-t30: rgba(15,15,15,0.36);
+        --ui-t28: rgba(15,15,15,0.34);
+        --ui-t25: rgba(15,15,15,0.31);
+        --ui-t20: rgba(15,15,15,0.27);
+        --ui-t15: rgba(15,15,15,0.22);
+
+        /* Backgrounds / borders on glass surfaces (light mode)
+           NOTE: b06/b07 are used as separator/panel borders → need higher opacity
+                 b08/b10/b12 are hover backgrounds → kept subtle */
+        --ui-b12: rgba(15,15,15,0.11);
+        --ui-b10: rgba(15,15,15,0.08);
+        --ui-b08: rgba(15,15,15,0.07);
+        --ui-b07: rgba(15,15,15,0.13);
+        --ui-b06: rgba(15,15,15,0.15);
+        --ui-b05: rgba(15,15,15,0.06);
+        --ui-b04: rgba(15,15,15,0.05);
+        --ui-b03: rgba(15,15,15,0.04);
+
         --background: 0 0% 97.5%;
         --foreground: 222.2 84% 4.9%;
 
@@ -92,29 +136,71 @@
         --popover: 0 0% 100%;
         --popover-foreground: 222.2 84% 4.9%;
 
-        --primary: 222.2 47.4% 11.2%;
+        --primary: 222 55% 22%;
         --primary-foreground: 210 40% 98%;
 
-        --secondary: 210 40% 96.1%;
-        --secondary-foreground: 222.2 47.4% 11.2%;
+        --secondary: 214 32% 91%;
+        --secondary-foreground: 222.2 47.4% 18%;
 
-        --muted: 210 40% 96.1%;
-        --muted-foreground: 215.4 16.3% 46.9%;
+        --muted: 214 32% 91%;
+        --muted-foreground: 215 22% 36%;
 
-        --accent: 210 40% 96.1%;
-        --accent-foreground: 222.2 47.4% 11.2%;
+        --accent: 215 60% 88%;
+        --accent-foreground: 222.2 47.4% 15%;
 
-        --destructive: 0 84.2% 60.2%;
+        --destructive: 0 84.2% 58%;
         --destructive-foreground: 210 40% 98%;
 
-        --border: 214.3 31.8% 91.4%;
-        --input: 214.3 31.8% 91.4%;
-        --ring: 222.2 84% 4.9%;
+        --border: 214 28% 84%;
+        --input: 214 28% 84%;
+        --ring: 222.2 84% 35%;
 
         --radius: 0.5rem;
     }
 
     .dark {
+        /* Glass panel system */
+        --glass-rgb:    8, 14, 28;
+        --glass-bg:     rgba(8, 14, 28, 0.88);
+        --glass-filter: blur(20px) saturate(1.4);
+
+        --ui-nav-bg:    rgba(8, 14, 28, 0.97);
+
+        /* Nav rail active item — dark mode keeps the original blue */
+        --nav-active-bg:     rgba(59, 130, 246, 0.22);
+        --nav-active-color:  #60a5fa;
+        --nav-active-border: rgba(59, 130, 246, 0.30);
+        --nav-logo-bg:       rgba(59, 130, 246, 0.85);
+
+        /* Text on glass/custom surfaces (dark mode = white text) */
+        --ui-t90: rgba(255,255,255,0.90);
+        --ui-t85: rgba(255,255,255,0.85);
+        --ui-t82: rgba(255,255,255,0.82);
+        --ui-t75: rgba(255,255,255,0.75);
+        --ui-t72: rgba(255,255,255,0.72);
+        --ui-t68: rgba(255,255,255,0.68);
+        --ui-t65: rgba(255,255,255,0.65);
+        --ui-t58: rgba(255,255,255,0.58);
+        --ui-t55: rgba(255,255,255,0.55);
+        --ui-t45: rgba(255,255,255,0.45);
+        --ui-t40: rgba(255,255,255,0.40);
+        --ui-t35: rgba(255,255,255,0.35);
+        --ui-t30: rgba(255,255,255,0.30);
+        --ui-t28: rgba(255,255,255,0.28);
+        --ui-t25: rgba(255,255,255,0.25);
+        --ui-t20: rgba(255,255,255,0.20);
+        --ui-t15: rgba(255,255,255,0.15);
+
+        /* Backgrounds / borders on glass surfaces (dark mode) */
+        --ui-b12: rgba(255,255,255,0.12);
+        --ui-b10: rgba(255,255,255,0.10);
+        --ui-b08: rgba(255,255,255,0.08);
+        --ui-b07: rgba(255,255,255,0.07);
+        --ui-b06: rgba(255,255,255,0.06);
+        --ui-b05: rgba(255,255,255,0.05);
+        --ui-b04: rgba(255,255,255,0.04);
+        --ui-b03: rgba(255,255,255,0.03);
+
         --background: 222.2 84% 4.5%;
         --foreground: 210 40% 98%;
 

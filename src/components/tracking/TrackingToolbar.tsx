@@ -47,11 +47,11 @@ function MapBtn({ title, onClick, active = false, children }: {
       onClick={onClick}
       className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
       style={{
-        color:      active ? '#60a5fa' : 'rgba(255,255,255,0.55)',
+        color:      active ? '#60a5fa' : 'var(--ui-t55)',
         background: active ? 'rgba(59,130,246,0.18)' : 'transparent',
       }}
       onMouseEnter={e => {
-        if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.10)';
+        if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'var(--ui-b10)';
       }}
       onMouseLeave={e => {
         if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
@@ -201,8 +201,8 @@ export function TrackingToolbar({
         <div
           className="pointer-events-auto flex items-center rounded-xl overflow-hidden"
           style={{
-            background: 'rgba(10,17,32,0.92)',
-            border:     '1px solid rgba(255,255,255,0.07)',
+            background: 'var(--ui-nav-bg)',
+            border:     '1px solid var(--ui-b07)',
             boxShadow:  '0 4px 20px rgba(0,0,0,0.4)',
           }}
         >
@@ -216,8 +216,8 @@ export function TrackingToolbar({
       <div
         className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-xl"
         style={{
-          background: 'rgba(10,17,32,0.92)',
-          border:     '1px solid rgba(255,255,255,0.07)',
+          background: 'var(--ui-nav-bg)',
+          border:     '1px solid var(--ui-b07)',
           boxShadow:  '0 4px 20px rgba(0,0,0,0.4)',
         }}
       >
@@ -229,17 +229,17 @@ export function TrackingToolbar({
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
           ) : (
-            <WifiOff className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.35)' }} />
+            <WifiOff className="w-3 h-3" style={{ color: 'var(--ui-t35)' }} />
           )}
           <span
             className="text-xs font-semibold"
-            style={{ color: isConnected ? '#34d399' : 'rgba(255,255,255,0.35)' }}
+            style={{ color: isConnected ? '#34d399' : 'var(--ui-t35)' }}
           >
             {isConnected ? t('toolbar.realtime') : t('toolbar.offline')}
           </span>
         </div>
 
-        <div className="w-px h-3.5" style={{ background: 'rgba(255,255,255,0.08)' }} />
+        <div className="w-px h-3.5" style={{ background: 'var(--ui-b08)' }} />
 
         {/* Contadores */}
         <div className="flex items-center gap-2.5">
@@ -250,14 +250,14 @@ export function TrackingToolbar({
             </span>
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }} />
-            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--ui-t20)' }} />
+            <span className="text-xs" style={{ color: 'var(--ui-t35)' }}>
               {offlineDevices}
             </span>
           </span>
           <span
             className="text-xs pl-1.5"
-            style={{ color: 'rgba(255,255,255,0.25)', borderLeft: '1px solid rgba(255,255,255,0.08)' }}
+            style={{ color: 'var(--ui-t25)', borderLeft: '1px solid var(--ui-b08)' }}
           >
             {totalDevices} {t('toolbar.totalSuffix')}
           </span>
@@ -266,8 +266,8 @@ export function TrackingToolbar({
         {/* Última actualização */}
         {lastUpdate && (
           <>
-            <div className="w-px h-3.5" style={{ background: 'rgba(255,255,255,0.08)' }} />
-            <span className="flex items-center gap-1 text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            <div className="w-px h-3.5" style={{ background: 'var(--ui-b08)' }} />
+            <span className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--ui-t20)' }}>
               <Clock className="w-3 h-3" />
               {formatLastUpdate(lastUpdate)}
             </span>
@@ -277,7 +277,7 @@ export function TrackingToolbar({
         {/* Follow mode */}
         {followMode && (
           <>
-            <div className="w-px h-3.5" style={{ background: 'rgba(255,255,255,0.08)' }} />
+            <div className="w-px h-3.5" style={{ background: 'var(--ui-b08)' }} />
             <div className="flex items-center gap-1.5">
               <Radio className="w-3 h-3 animate-pulse" style={{ color: '#a78bfa' }} />
               <span className="text-xs font-medium" style={{ color: '#a78bfa' }}>
@@ -302,7 +302,7 @@ export function TrackingToolbar({
         {/* Sair do histórico */}
         {showingHistory && (
           <>
-            <div className="w-px h-3.5" style={{ background: 'rgba(255,255,255,0.08)' }} />
+            <div className="w-px h-3.5" style={{ background: 'var(--ui-b08)' }} />
             <button
               onClick={onExitHistory}
               className="flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-md transition-colors"
@@ -321,8 +321,8 @@ export function TrackingToolbar({
       <div
         className="pointer-events-auto flex items-center rounded-xl overflow-visible relative"
         style={{
-          background: 'rgba(10,17,32,0.92)',
-          border:     '1px solid rgba(255,255,255,0.07)',
+          background: 'var(--ui-nav-bg)',
+          border:     '1px solid var(--ui-b07)',
           boxShadow:  '0 4px 20px rgba(0,0,0,0.4)',
         }}
       >
@@ -357,12 +357,12 @@ export function TrackingToolbar({
             <div
               className="absolute top-full right-0 mt-2 rounded-xl p-1.5 min-w-[160px] z-50"
               style={{
-                background: 'rgba(10,17,32,0.98)',
-                border:     '1px solid rgba(255,255,255,0.1)',
+                background: 'var(--ui-nav-bg)',
+                border:     '1px solid var(--ui-b10)',
                 boxShadow:  '0 8px 32px rgba(0,0,0,0.6)',
               }}
             >
-              <p className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <p className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--ui-t30)' }}>
                 {t('toolbar.layersTitle')}
               </p>
               {LAYERS.map(layer => (
@@ -371,12 +371,12 @@ export function TrackingToolbar({
                   onClick={() => { onLayerChange?.(layer.id); setLayerOpen(false); }}
                   className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-xs transition-colors"
                   style={{
-                    color:      currentLayer === layer.id ? '#60a5fa' : 'rgba(255,255,255,0.65)',
+                    color:      currentLayer === layer.id ? '#60a5fa' : 'var(--ui-t65)',
                     background: currentLayer === layer.id ? 'rgba(59,130,246,0.15)' : 'transparent',
                   }}
                   onMouseEnter={e => {
                     if (currentLayer !== layer.id)
-                      (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.07)';
+                      (e.currentTarget as HTMLButtonElement).style.background = 'var(--ui-b07)';
                   }}
                   onMouseLeave={e => {
                     if (currentLayer !== layer.id)
@@ -399,8 +399,8 @@ export function TrackingToolbar({
       <div
         className="pointer-events-auto flex items-center gap-0.5 rounded-xl px-1"
         style={{
-          background: 'rgba(10,17,32,0.92)',
-          border:     '1px solid rgba(255,255,255,0.07)',
+          background: 'var(--ui-nav-bg)',
+          border:     '1px solid var(--ui-b07)',
           boxShadow:  '0 4px 20px rgba(0,0,0,0.4)',
         }}
       >
@@ -446,20 +446,20 @@ export function TrackingToolbar({
             <div
               className="absolute top-full right-0 mt-2 rounded-xl z-50 overflow-y-auto [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full"
               style={{
-                background: 'rgba(10,17,32,0.98)',
-                border:     '1px solid rgba(255,255,255,0.1)',
+                background: 'var(--ui-nav-bg)',
+                border:     '1px solid var(--ui-b10)',
                 boxShadow:  '0 8px 32px rgba(0,0,0,0.6)',
                 maxHeight:  'calc(100vh - 80px)',
                 padding:    12,
                 minWidth:   210,
               }}
             >
-              <p className="pb-2.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <p className="pb-2.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--ui-t30)' }}>
                 {t('toolbar.mapSettings')}
               </p>
 
               {/* Etiqueta dos marcadores */}
-              <p className="text-[10px] mb-1.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <p className="text-[10px] mb-1.5" style={{ color: 'var(--ui-t40)' }}>
                 {t('toolbar.markerLabel')}
               </p>
               <div className="flex gap-1 mb-3">
@@ -473,8 +473,8 @@ export function TrackingToolbar({
                     onClick={() => setLabelType(item.id)}
                     className="flex-1 py-1.5 px-1 rounded-lg text-[10px] font-medium transition-all"
                     style={{
-                      color:      labelType === item.id ? '#60a5fa' : 'rgba(255,255,255,0.55)',
-                      background: labelType === item.id ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.05)',
+                      color:      labelType === item.id ? '#60a5fa' : 'var(--ui-t55)',
+                      background: labelType === item.id ? 'rgba(59,130,246,0.2)' : 'var(--ui-b05)',
                       border:     labelType === item.id ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
                     }}
                   >
@@ -483,11 +483,11 @@ export function TrackingToolbar({
                 ))}
               </div>
 
-              <div className="h-px mb-3" style={{ background: 'rgba(255,255,255,0.08)' }} />
+              <div className="h-px mb-3" style={{ background: 'var(--ui-b08)' }} />
 
               {/* Animar marcadores */}
               <div className="flex items-center justify-between gap-3 mb-2.5">
-                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                <span className="text-xs" style={{ color: 'var(--ui-t65)' }}>
                   {t('toolbar.animateMarkers')}
                 </span>
                 <MapMiniToggle checked={animateMarkers} onChange={() => setAnimateMarkers(!animateMarkers)} />
@@ -495,20 +495,20 @@ export function TrackingToolbar({
 
               {/* Pulsação */}
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                <span className="text-xs" style={{ color: 'var(--ui-t65)' }}>
                   {t('toolbar.pulseMarkers')}
                 </span>
                 <MapMiniToggle checked={pulseMarkers} onChange={() => setPulseMarkers(!pulseMarkers)} />
               </div>
 
-              <div className="h-px mt-3 mb-2.5" style={{ background: 'rgba(255,255,255,0.08)' }} />
+              <div className="h-px mt-3 mb-2.5" style={{ background: 'var(--ui-b08)' }} />
 
-              <p className="pb-2 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <p className="pb-2 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--ui-t30)' }}>
                 {t('toolbar.alertNotifications')}
               </p>
 
               <div className="flex items-center justify-between gap-3 mb-2.5">
-                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                <span className="text-xs" style={{ color: 'var(--ui-t65)' }}>
                   {t('toolbar.notifyEnter')}
                 </span>
                 <MapMiniToggle
@@ -517,7 +517,7 @@ export function TrackingToolbar({
                 />
               </div>
               <div className="flex items-center justify-between gap-3 mb-2.5">
-                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                <span className="text-xs" style={{ color: 'var(--ui-t65)' }}>
                   {t('toolbar.notifyExit')}
                 </span>
                 <MapMiniToggle
@@ -526,7 +526,7 @@ export function TrackingToolbar({
                 />
               </div>
               <div className="flex items-center justify-between gap-3 mb-2.5">
-                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                <span className="text-xs" style={{ color: 'var(--ui-t65)' }}>
                   {t('toolbar.notifySpeed')}
                 </span>
                 <MapMiniToggle
@@ -535,7 +535,7 @@ export function TrackingToolbar({
                 />
               </div>
               <div className="flex items-center justify-between gap-3 mb-2.5">
-                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                <span className="text-xs" style={{ color: 'var(--ui-t65)' }}>
                   {t('toolbar.notifyIgnitionOn')}
                 </span>
                 <MapMiniToggle
@@ -544,7 +544,7 @@ export function TrackingToolbar({
                 />
               </div>
               <div className="flex items-center justify-between gap-3 mb-2.5">
-                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                <span className="text-xs" style={{ color: 'var(--ui-t65)' }}>
                   {t('toolbar.notifyIgnitionOff')}
                 </span>
                 <MapMiniToggle
@@ -553,7 +553,7 @@ export function TrackingToolbar({
                 />
               </div>
               <div className="flex items-center justify-between gap-3 mb-2.5">
-                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                <span className="text-xs" style={{ color: 'var(--ui-t65)' }}>
                   {t('toolbar.notifyDeviceMoving')}
                 </span>
                 <MapMiniToggle
@@ -562,7 +562,7 @@ export function TrackingToolbar({
                 />
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                <span className="text-xs" style={{ color: 'var(--ui-t65)' }}>
                   {t('toolbar.notifyDeviceStopped')}
                 </span>
                 <MapMiniToggle
@@ -596,7 +596,7 @@ export function TrackingToolbar({
                       const currentLabel = OPTS.find(o => o.ms === current)?.label ?? t('toolbar.noInterval');
                       return (
                         <div key={cd.field} className="flex items-center justify-between gap-3 mt-2.5">
-                          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                          <span className="text-xs" style={{ color: 'var(--ui-t65)' }}>
                             {cd.label}
                           </span>
                           <div className="relative">
@@ -606,8 +606,8 @@ export function TrackingToolbar({
                               className="flex items-center gap-1 text-xs rounded-md px-2"
                               style={{
                                 height:         22,
-                                background:     'rgba(255,255,255,0.12)',
-                                color:          'rgba(255,255,255,0.85)',
+                                background:     'var(--ui-b12)',
+                                color:          'var(--ui-t85)',
                                 minWidth:       80,
                                 justifyContent: 'space-between',
                               }}
@@ -621,8 +621,8 @@ export function TrackingToolbar({
                                 style={{
                                   bottom:     26,
                                   minWidth:   100,
-                                  background: 'rgba(18,26,46,0.97)',
-                                  border:     '1px solid rgba(255,255,255,0.12)',
+                                  background: 'var(--ui-nav-bg)',
+                                  border:     '1px solid var(--ui-b12)',
                                   boxShadow:  '0 4px 20px rgba(0,0,0,0.5)',
                                 }}
                               >
@@ -633,10 +633,10 @@ export function TrackingToolbar({
                                     onClick={() => { updateAlertSetting(cd.field, o.ms); cd.setOpen(false); }}
                                     className="w-full text-left text-xs px-3 py-1.5 transition-colors"
                                     style={{
-                                      color:      o.ms === current ? 'rgba(96,165,250,1)' : 'rgba(255,255,255,0.75)',
+                                      color:      o.ms === current ? 'rgba(96,165,250,1)' : 'var(--ui-t75)',
                                       background: o.ms === current ? 'rgba(59,130,246,0.12)' : 'transparent',
                                     }}
-                                    onMouseEnter={e => { if (o.ms !== current) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)'; }}
+                                    onMouseEnter={e => { if (o.ms !== current) (e.currentTarget as HTMLElement).style.background = 'var(--ui-b07)'; }}
                                     onMouseLeave={e => { if (o.ms !== current) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                                   >
                                     {o.label}
@@ -671,7 +671,7 @@ function MapMiniToggle({ checked, onChange }: { checked: boolean; onChange: () =
       style={{
         width:      36,
         height:     20,
-        background: checked ? 'rgba(59,130,246,0.9)' : 'rgba(255,255,255,0.18)',
+        background: checked ? 'rgba(59,130,246,0.9)' : 'var(--ui-b12)',
       }}
     >
       <span

@@ -10,7 +10,7 @@ const STORAGE_KEY = 'fleetcontrol-glass';
 
 function applyGlass(s: GlassSettings) {
   const el = document.documentElement;
-  el.style.setProperty('--glass-bg',     `rgba(8,14,28,${s.opacity})`);
+  el.style.setProperty('--glass-bg',     `rgba(var(--glass-rgb), ${s.opacity})`);
   el.style.setProperty('--glass-filter', `blur(${s.blur}px) saturate(1.4)`);
 }
 

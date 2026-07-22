@@ -19,7 +19,6 @@ import { GeofencePanel }            from '@/components/tracking/GeofencePanel';
 import { AlertPanel }               from '@/components/tracking/AlertPanel';
 import { GeofenceFormModal }        from '@/components/tracking/GeofenceFormModal';
 import { TraccarDevicesPanel }      from '@/components/tracking/TraccarDevicesPanel';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertTriangle, Loader2, X } from 'lucide-react';
 import { useMapSettings }           from '@/hooks/useMapSettings';
 
@@ -217,13 +216,13 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
           className="absolute top-0 bottom-0 right-0"
           style={{ left: leftOffset, pointerEvents: 'none' }}
         >
-          <div className="relative h-full" style={{ pointerEvents: 'none' }}>
+          <div className="relative h-full overflow-hidden" style={{ pointerEvents: 'none' }}>
             {/* Backdrop — fecha painéis ao clicar fora */}
-            {(geoPanelOpen || alertPanelOpen) && (
+            {(geoPanelOpen || alertPanelOpen || devicesPanelOpen) && (
               <div
                 className="absolute inset-0 z-20"
                 style={{ pointerEvents: 'auto' }}
-                onClick={() => { setGeoPanelOpen(false); setAlertPanelOpen(false); }}
+                onClick={() => { setGeoPanelOpen(false); setAlertPanelOpen(false); setDevicesPanelOpen(false); }}
               />
             )}
 
@@ -284,19 +283,26 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
               onUpdated={(g) => dispatch({ type: 'GEOFENCE_ADDED', payload: g })}
             />
 
-            {/* Painel de dispositivos Traccar */}
-            {isConnected && (
-              <Dialog open={devicesPanelOpen} onOpenChange={setDevicesPanelOpen}>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>{t('devicesPanel.title')}</DialogTitle>
-                  </DialogHeader>
-                  <div className="mt-2">
-                    {devicesPanelOpen && <TraccarDevicesPanel />}
-                  </div>
-                </DialogContent>
-              </Dialog>
-            )}
+            {/* Painel de dispositivos Traccar — lado esquerdo, deslizante */}
+            <div
+              className="absolute left-0 top-0 bottom-0 w-80 z-30 flex flex-col bg-background border-r"
+              style={{
+                transform:     devicesPanelOpen ? 'translateX(0)' : 'translateX(-100%)',
+                transition:    'transform 280ms cubic-bezier(0.4,0,0.2,1)',
+                pointerEvents: devicesPanelOpen ? 'auto' : 'none',
+              }}
+            >
+              <TraccarDevicesPanel
+                isOpen={devicesPanelOpen}
+                onClose={() => setDevicesPanelOpen(false)}
+                onCenterDevice={(device) => {
+                  setDevicesPanelOpen(false);
+                  dispatch({ type: 'SELECT_DEVICE', payload: device });
+                  const pos = state.positions.find(p => p.deviceId === device.traccar_id);
+                  if (pos) mapRef.current?.setView([pos.latitude, pos.longitude], 16, { animate: true });
+                }}
+              />
+            </div>
 
             {/* DeviceSidebar — sempre montado, animada */}
             <div

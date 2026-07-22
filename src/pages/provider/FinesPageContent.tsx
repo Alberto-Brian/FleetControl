@@ -1,4 +1,4 @@
-// ========================================
+﻿// ========================================
 // FILE: src/pages/provider/FinesPageContent.tsx
 // ========================================
 import React, { useState, useEffect, useCallback } from 'react';
@@ -148,7 +148,7 @@ export default function FinesPageContent() {
         </div>
         <div className="divide-y">
           {fines.map((fine) => (
-            <div key={fine.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors">
+            <div key={fine.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/40 transition-colors">
               <div className="col-span-2"><span className="font-mono font-bold text-sm">{fine.fine_number}</span></div>
               <div className="col-span-2"><span className="font-mono text-sm">{fine.vehicle_license}</span></div>
               <div className="col-span-3"><span className="text-sm truncate block">{fine.infraction_type}</span></div>

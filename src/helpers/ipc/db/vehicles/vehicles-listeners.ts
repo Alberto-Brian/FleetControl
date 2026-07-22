@@ -90,20 +90,22 @@ export function addVehiclesEventListeners() {
     const vehicle = await findVehicleById(vehicleId);
     const apiId = vehicle?.api_vehicle_id;
 
-    // Só chama a API se o veículo estiver sincronizado (tem api_vehicle_id)
-    if (apiId) {
-      try {
-        const headers = apiHeaders(); // throws if no token (standalone mode)
-        await axios.post(`${API_URL}/api/vehicles/${apiId}/unregister-gps`, {}, { headers });
-      } catch (apiErr: any) {
-        if (!apiErr.message?.includes('token')) throw apiErr;
-      }
-    }
-
+    // SQLite é autoritativo — actualizar imediatamente, sem esperar pela API.
     const { db } = useDb();
     await db.update(vehicles)
-      .set({ traccar_unique_id: null, updated_at: new Date().toISOString() })
+      .set({ traccar_unique_id: null, tracking_enabled: false, updated_at: new Date().toISOString() })
       .where(eq(vehicles.id, vehicleId));
+
+    // Sync API em fire-and-forget: não bloqueia o retorno ao renderer.
+    if (apiId) {
+      try {
+        const headers = apiHeaders();
+        axios.post(`${API_URL}/api/vehicles/${apiId}/unregister-gps`, {}, { headers, timeout: 10_000 })
+          .catch((err: Error) => console.warn('[vehicles] unregister-gps API sync failed:', err.message));
+      } catch {
+        // sem token (modo standalone) — ignorar
+      }
+    }
 
     return { success: true };
   });
@@ -112,21 +114,22 @@ export function addVehiclesEventListeners() {
     const vehicle = await findVehicleById(vehicleId);
     const apiId = vehicle?.api_vehicle_id;
 
-    // tracking_enabled é uma preferência local — SQLite é autoritativo.
-    // A chamada à API é best-effort: falha silenciosa para não bloquear o toggle local.
-    if (apiId) {
-      try {
-        const headers = apiHeaders();
-        await axios.patch(`${API_URL}/api/vehicles/${apiId}/tracking`, { tracking_enabled: enabled }, { headers });
-      } catch (apiErr: any) {
-        console.warn('[vehicles] toggle-tracking API sync failed (local update proceeds):', (apiErr as Error).message);
-      }
-    }
-
+    // SQLite é autoritativo — actualizar imediatamente, sem esperar pela API.
     const { db } = useDb();
     await db.update(vehicles)
       .set({ tracking_enabled: enabled, updated_at: new Date().toISOString() })
       .where(eq(vehicles.id, vehicleId));
+
+    // Sync API em fire-and-forget: não bloqueia o retorno ao renderer.
+    if (apiId) {
+      try {
+        const headers = apiHeaders();
+        axios.patch(`${API_URL}/api/vehicles/${apiId}/tracking`, { tracking_enabled: enabled }, { headers, timeout: 8_000 })
+          .catch((err: Error) => console.warn('[vehicles] toggle-tracking API sync failed:', err.message));
+      } catch {
+        // sem token (modo standalone) — ignorar
+      }
+    }
 
     return { success: true };
   });
@@ -392,16 +395,17 @@ async function registerGpsOnVehicleEvent(vehicleId: string, imei: string) {
     });
   } catch (err: any) {
     if (axios.isAxiosError(err)) {
-      // 404: IMEI não encontrado em traccar_devices — utilizador deve sincronizar dispositivos ou registar via web
-      // 409: device já ligado a outro veículo
-      throw new Error(err.response?.data?.message ?? 'Erro ao registar GPS');
+      const data = err.response?.data as { message?: string; code?: string } | undefined;
+      const error = new Error(data?.message ?? 'Erro ao registar GPS') as Error & { apiCode?: string };
+      if (data?.code) error.apiCode = data.code;
+      throw error;
     }
     throw err;
   }
 
   const { db } = useDb();
   await db.update(vehicles)
-    .set({ traccar_unique_id: imei.trim() })
+    .set({ traccar_unique_id: imei.trim(), tracking_enabled: true })
     .where(eq(vehicles.id, vehicleId));
 
   return await findVehicleById(vehicleId);

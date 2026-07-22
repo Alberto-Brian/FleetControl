@@ -111,16 +111,16 @@ export default function DragWindowRegion({
             {/* Área arrastável */}
             <div className="draglayer w-full" />
 
-            {/* Conteúdo esquerdo (dark) ou título (light) */}
-            {effectiveDark && leftContent ? (
-                <div className="flex items-center flex-shrink-0">{leftContent}</div>
-            ) : !effectiveDark && title ? (
+            {/* Conteúdo esquerdo: título sempre visível; leftContent usado quando não há título */}
+            {title ? (
                 <div
                     className="flex flex-1 items-center whitespace-nowrap px-3"
                     style={{ fontSize: 12, color, fontWeight: 500 }}
                 >
                     {String(title)}
                 </div>
+            ) : effectiveDark && leftContent ? (
+                <div className="flex items-center flex-shrink-0">{leftContent}</div>
             ) : null}
         </div>
     );

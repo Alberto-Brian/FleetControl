@@ -1,4 +1,4 @@
-// ========================================
+﻿// ========================================
 // FILE: src/pages/provider/VehiclesPageContent.tsx
 // ========================================
 import React, { useState, useEffect, useCallback } from 'react';
@@ -374,7 +374,7 @@ export default function VehiclesPageContent() {
         </div>
         <div className="divide-y">
           {vehicles.map((vehicle) => (
-            <div key={vehicle.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors duration-150">
+            <div key={vehicle.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/40 transition-colors duration-150">
               <div className="col-span-3">
                 <span className="font-mono font-bold text-sm bg-muted/50 px-2.5 py-1 rounded border border-muted-foreground/10">
                   {vehicle.license_plate}
@@ -751,16 +751,18 @@ export default function VehiclesPageContent() {
                 </div>
 
                 {/* View modes */}
-                <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50 self-center sm:self-auto shrink-0">
+                <div className="flex bg-muted/40 p-1 rounded-lg border border-border self-center sm:self-auto shrink-0">
                   {viewModes.map((item) => (
                     <Button
                       key={item.mode}
-                      variant={viewMode === item.mode ? 'secondary' : 'ghost'}
+                      variant="ghost"
                       size="sm"
                       onClick={() => setViewMode(item.mode as ViewMode)}
                       className={cn(
-                        "h-8 w-10 p-0 rounded-lg transition-all",
-                        viewMode === item.mode ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        "h-8 w-9 p-0 rounded-md transition-all",
+                        viewMode === item.mode
+                          ? "bg-white shadow-sm border border-border/50 text-foreground dark:bg-white/12 dark:border-white/10"
+                          : "text-muted-foreground hover:text-foreground/80 hover:bg-transparent"
                       )}
                     >
                       <item.icon className="w-4 h-4" />

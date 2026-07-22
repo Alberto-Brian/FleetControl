@@ -1,4 +1,4 @@
-// ========================================
+﻿// ========================================
 // FILE: src/pages/provider/TripsPageContent.tsx
 // ========================================
 import React, { useState, useEffect, useCallback } from 'react';
@@ -239,7 +239,7 @@ export default function TripsPageContent() {
           {trips.map((trip) => {
             const distance = trip.end_mileage ? trip.end_mileage - trip.start_mileage : null;
             return (
-              <div key={trip.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors duration-150">
+              <div key={trip.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/40 transition-colors duration-150">
                 <div className="col-span-2">
                   <span className="font-mono font-bold text-sm bg-muted/50 px-2.5 py-1 rounded border border-muted-foreground/10">{trip.trip_code}</span>
                   <div className="text-xs text-muted-foreground mt-1">

@@ -7,12 +7,20 @@ export async function restoreBackup() {
   return window.backup.restore();
 }
 
+export async function restoreFromAutoBackup(folderPath: string) {
+  return window.backup.restoreFromDir(folderPath);
+}
+
 export async function getBackupConfig() {
   return window.backup.getConfig();
 }
 
 export async function updateBackupConfig(config: any) {
-  return window.backup.updateConfig();
+  return window.backup.updateConfig(config);
+}
+
+export async function listBackups() {
+  return window.backup.listBackups();
 }
 
 export function onBackupProgress(callback: (progress: any) => void) {

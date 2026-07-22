@@ -65,13 +65,8 @@ export default function UserMenu({ compact = false }: { compact?: boolean }) {
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               ) : (
-                <span style={{
-                  width: '100%', height: '100%',
-                  background: 'rgba(59,130,246,0.28)',
-                  color: '#93c5fd', fontSize: 9, fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  letterSpacing: 0.5,
-                }}>
+                <span className="w-full h-full bg-primary/10 text-primary flex items-center justify-center"
+                  style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.5 }}>
                   {getInitials(user.name)}
                 </span>
               )}

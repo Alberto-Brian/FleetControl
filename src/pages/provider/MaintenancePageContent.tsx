@@ -1,4 +1,4 @@
-// ========================================
+﻿// ========================================
 // FILE: src/components/maintenance/MaintenancePageContent.tsx (ATUALIZADO)
 // ========================================
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -263,7 +263,7 @@ export function MaintenancePageContent() {
         </div>
         <div className="divide-y">
           {maintenances.map((m) => (
-            <div key={m.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/10 transition-colors duration-150">
+            <div key={m.id} className="px-6 py-4 grid grid-cols-12 gap-4 items-center hover:bg-muted/40 transition-colors duration-150">
               <div className="col-span-3">
                 <span className="font-mono font-bold text-sm">{m.vehicle_license}</span>
                 <p className="text-xs text-muted-foreground">{m.vehicle_brand} {m.vehicle_model}</p>

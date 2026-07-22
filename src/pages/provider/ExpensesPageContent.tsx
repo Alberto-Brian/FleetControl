@@ -1,4 +1,4 @@
-// ========================================
+﻿// ========================================
 // FILE: src/components/expense/ExpensesPageContent.tsx (ATUALIZADO COMPLETO)
 // ========================================
 import React, { useState, useEffect, useCallback } from 'react';
@@ -239,7 +239,7 @@ export default function ExpensesPageContent() {
         {expenses.map((expense) => (
           <div
             key={expense.id}
-            className="px-6 py-3 grid grid-cols-12 gap-2 items-center hover:bg-muted/10 transition-colors duration-150"
+            className="px-6 py-3 grid grid-cols-12 gap-2 items-center hover:bg-muted/40 transition-colors duration-150"
           >
             <div className="col-span-2">
               <span className="text-sm font-medium truncate block">{expense.description}</span>

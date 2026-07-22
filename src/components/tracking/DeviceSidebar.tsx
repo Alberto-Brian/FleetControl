@@ -5,7 +5,7 @@ import React, { useRef, useState } from 'react';
 import { ScrollArea }  from '@/components/ui/scroll-area';
 import {
   Search, Truck, Navigation2, RefreshCw,
-  PanelLeftClose, Radio, MapPin, Gauge, X, Wifi,
+  PanelLeftClose, Radio, MapPin, Gauge, X, Cpu,
 } from 'lucide-react';
 import type { Position }      from '@/hooks/useApiConnection';
 import type { TrackedDevice } from '@/helpers/tracking-helpers';
@@ -87,8 +87,8 @@ export function DeviceSidebar({
       <button
         type="button" title={title} onClick={onClick} disabled={disabled}
         className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-30"
-        style={{ color: active ? '#60a5fa' : 'rgba(255,255,255,0.4)', background: active ? 'rgba(59,130,246,0.15)' : 'transparent' }}
-        onMouseEnter={e => { if (!disabled && !active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'; }}
+        style={{ color: active ? '#60a5fa' : 'var(--ui-t40)', background: active ? 'rgba(59,130,246,0.15)' : 'transparent' }}
+        onMouseEnter={e => { if (!disabled && !active) (e.currentTarget as HTMLButtonElement).style.background = 'var(--ui-b08)'; }}
         onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
       >
         {children}
@@ -107,8 +107,8 @@ export function DeviceSidebar({
       className="absolute left-3 top-8 bottom-3 z-10 flex flex-col rounded-xl overflow-hidden pointer-events-auto"
       style={{
         width:          300,
-        background:     'rgba(8, 14, 28, 0.97)',
-        border:         '1px solid rgba(255,255,255,0.08)',
+        background:     'var(--ui-nav-bg)',
+        border:         '1px solid var(--ui-b08)',
         boxShadow:      '0 12px 48px rgba(0,0,0,0.6)',
         backdropFilter: 'blur(12px)',
       }}
@@ -124,14 +124,14 @@ export function DeviceSidebar({
             >
               <Truck className="w-3.5 h-3.5" style={{ color: '#60a5fa' }} />
             </div>
-            <span className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.9)' }}>
+            <span className="text-sm font-semibold" style={{ color: 'var(--ui-t90)' }}>
               Dispositivos
             </span>
             {/* Dot conexão */}
             <span
               className="w-1.5 h-1.5 rounded-full flex-shrink-0"
               style={{
-                background: isConnected ? '#4ade80' : 'rgba(255,255,255,0.2)',
+                background: isConnected ? '#4ade80' : 'var(--ui-t20)',
                 boxShadow:  isConnected ? '0 0 6px #4ade80' : 'none',
               }}
               title={isConnected ? 'Ligado em tempo real' : 'Desligado'}
@@ -142,7 +142,7 @@ export function DeviceSidebar({
           <div className="flex items-center gap-0.5">
             {isConnected && onOpenDevicesPanel && (
               <IconBtn title={t('devicesPanel.openPanel')} onClick={onOpenDevicesPanel}>
-                <Wifi className="w-3.5 h-3.5" />
+                <Cpu className="w-3.5 h-3.5" />
               </IconBtn>
             )}
             <IconBtn title="Actualizar" onClick={onRefresh} disabled={isLoading}>
@@ -160,7 +160,7 @@ export function DeviceSidebar({
         {onFilterStatus && (
           <div
             className="flex gap-1 p-1 rounded-lg mb-3"
-            style={{ background: 'rgba(255,255,255,0.05)' }}
+            style={{ background: 'var(--ui-b05)' }}
           >
             {FILTER_TABS.map(tab => (
               <button
@@ -168,16 +168,16 @@ export function DeviceSidebar({
                 onClick={() => onFilterStatus(tab.key)}
                 className="flex-1 flex items-center justify-center gap-1.5 py-1 px-2 rounded-md text-xs font-medium transition-all"
                 style={{
-                  color:      filteredStatus === tab.key ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)',
-                  background: filteredStatus === tab.key ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  color:      filteredStatus === tab.key ? 'var(--ui-t90)' : 'var(--ui-t35)',
+                  background: filteredStatus === tab.key ? 'var(--ui-b10)' : 'transparent',
                 }}
                 onMouseEnter={e => {
                   if (filteredStatus !== tab.key)
-                    (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.6)';
+                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t58)';
                 }}
                 onMouseLeave={e => {
                   if (filteredStatus !== tab.key)
-                    (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.35)';
+                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t35)';
                 }}
               >
                 <span
@@ -186,7 +186,7 @@ export function DeviceSidebar({
                     background: tab.key === 'online'
                       ? '#4ade80'
                       : tab.key === 'offline'
-                        ? 'rgba(255,255,255,0.2)'
+                        ? 'var(--ui-t20)'
                         : '#60a5fa',
                   }}
                 />
@@ -194,8 +194,8 @@ export function DeviceSidebar({
                 <span
                   className="px-1 py-0.5 rounded text-[10px] leading-none"
                   style={{
-                    background: filteredStatus === tab.key ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
-                    color:      filteredStatus === tab.key ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)',
+                    background: filteredStatus === tab.key ? 'var(--ui-b12)' : 'var(--ui-b06)',
+                    color:      filteredStatus === tab.key ? 'var(--ui-t72)' : 'var(--ui-t30)',
                   }}
                 >
                   {tab.count}
@@ -209,7 +209,7 @@ export function DeviceSidebar({
         <div className="relative mb-3">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
-            style={{ color: 'rgba(255,255,255,0.25)' }}
+            style={{ color: 'var(--ui-t25)' }}
           />
           <input
             placeholder="Procurar dispositivo..."
@@ -217,18 +217,18 @@ export function DeviceSidebar({
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-8 py-2 text-xs rounded-lg outline-none transition-all"
             style={{
-              background: 'rgba(255,255,255,0.06)',
-              color:      'rgba(255,255,255,0.85)',
-              border:     '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--ui-b06)',
+              color:      'var(--ui-t85)',
+              border:     '1px solid var(--ui-b08)',
             }}
-            onFocus={e  => { (e.target as HTMLInputElement).style.borderColor = 'rgba(96,165,250,0.4)'; (e.target as HTMLInputElement).style.background = 'rgba(255,255,255,0.09)'; }}
-            onBlur={e   => { (e.target as HTMLInputElement).style.borderColor = 'rgba(255,255,255,0.08)'; (e.target as HTMLInputElement).style.background = 'rgba(255,255,255,0.06)'; }}
+            onFocus={e  => { (e.target as HTMLInputElement).style.borderColor = 'rgba(96,165,250,0.4)'; (e.target as HTMLInputElement).style.background = 'var(--ui-b08)'; }}
+            onBlur={e   => { (e.target as HTMLInputElement).style.borderColor = 'var(--ui-b08)'; (e.target as HTMLInputElement).style.background = 'var(--ui-b06)'; }}
           />
           {search && (
             <button
               onClick={() => setSearch('')}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center rounded-full transition-colors"
-              style={{ color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)' }}
+              style={{ color: 'var(--ui-t30)', background: 'var(--ui-b08)' }}
             >
               <X className="w-2.5 h-2.5" />
             </button>
@@ -239,9 +239,9 @@ export function DeviceSidebar({
       {/* Divisor + contagem */}
       <div
         className="px-3 pb-1.5 flex items-center justify-between flex-shrink-0"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+        style={{ borderBottom: '1px solid var(--ui-b05)' }}
       >
-        <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.2)' }}>
+        <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--ui-t20)' }}>
           {filtered.length} de {devices.length} dispositivo{devices.length !== 1 ? 's' : ''}
         </span>
       </div>
@@ -272,14 +272,14 @@ export function DeviceSidebar({
                   background:   isSelected
                     ? isFollowing ? 'rgba(167,139,250,0.1)' : 'rgba(59,130,246,0.12)'
                     : 'transparent',
-                  borderBottom: '1px solid rgba(255,255,255,0.04)',
+                  borderBottom: '1px solid var(--ui-b04)',
                   borderLeft:   isFollowing
                     ? '3px solid #a78bfa'
                     : isSelected ? '3px solid #3b82f6' : '3px solid transparent',
                 }}
                 onMouseEnter={e => {
                   if (!isSelected)
-                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.035)';
+                    (e.currentTarget as HTMLButtonElement).style.background = 'var(--ui-b04)';
                 }}
                 onMouseLeave={e => {
                   if (!isSelected)
@@ -296,12 +296,12 @@ export function DeviceSidebar({
                         ? 'rgba(167,139,250,0.2)'
                         : isOnline
                           ? isMoving ? 'rgba(52,211,153,0.18)' : 'rgba(52,211,153,0.1)'
-                          : 'rgba(255,255,255,0.05)',
+                          : 'var(--ui-b05)',
                       border: isFollowing
                         ? '1px solid rgba(167,139,250,0.3)'
                         : isOnline
                           ? '1px solid rgba(52,211,153,0.2)'
-                          : '1px solid rgba(255,255,255,0.07)',
+                          : '1px solid var(--ui-b07)',
                     }}
                   >
                     {isFollowing
@@ -313,7 +313,7 @@ export function DeviceSidebar({
                           />
                         : <Truck
                             className="w-4 h-4"
-                            style={{ color: isOnline ? '#34d399' : 'rgba(255,255,255,0.2)' }}
+                            style={{ color: isOnline ? '#34d399' : 'var(--ui-t20)' }}
                           />
                     }
                   </div>
@@ -322,7 +322,7 @@ export function DeviceSidebar({
                     className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 flex-shrink-0"
                     style={{
                       background:  isOnline ? '#22c55e' : 'rgba(100,116,139,0.8)',
-                      borderColor: 'rgba(8,14,28,1)',
+                      borderColor: 'var(--ui-nav-bg)',
                       boxShadow:   isOnline ? '0 0 6px rgba(34,197,94,0.6)' : 'none',
                     }}
                   />
@@ -336,7 +336,7 @@ export function DeviceSidebar({
                       <p
                         className="text-xs font-semibold leading-tight"
                         style={{
-                          color: isSelected ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0.82)',
+                          color: isSelected ? 'var(--ui-t90)' : 'var(--ui-t82)',
                           display: '-webkit-box',
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: 'vertical',
@@ -348,7 +348,7 @@ export function DeviceSidebar({
                       {isTrackingPaused && activeImeis.size > 0 && (
                         <span
                           className="inline-block mt-0.5 text-[10px] px-1.5 py-0.5 rounded-sm leading-none"
-                          style={{ color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}
+                          style={{ color: 'var(--ui-t40)', background: 'var(--ui-b08)' }}
                         >
                           {t('sidebar.trackingPaused')}
                         </span>
@@ -379,24 +379,24 @@ export function DeviceSidebar({
                   <div className="flex items-center gap-1.5 mb-1">
                     <span
                       className="text-[11px] font-medium"
-                      style={{ color: isOnline ? '#4ade80' : 'rgba(255,255,255,0.28)' }}
+                      style={{ color: isOnline ? '#4ade80' : 'var(--ui-t28)' }}
                     >
                       {isOnline ? (isMoving ? 'Em movimento' : 'Online') : 'Offline'}
                     </span>
                     {device.lastUpdate && (
                       <>
-                        <span style={{ color: 'rgba(255,255,255,0.12)' }}>·</span>
-                        <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                        <span style={{ color: 'var(--ui-t15)' }}>·</span>
+                        <span className="text-[10px]" style={{ color: 'var(--ui-t20)' }}>
                           {formatRelativeTime(device.lastUpdate)}
                         </span>
                       </>
                     )}
                     {typeof battery === 'number' && (
                       <>
-                        <span style={{ color: 'rgba(255,255,255,0.12)' }}>·</span>
+                        <span style={{ color: 'var(--ui-t15)' }}>·</span>
                         <span
                           className="text-[10px]"
-                          style={{ color: battery > 20 ? 'rgba(255,255,255,0.3)' : '#f87171' }}
+                          style={{ color: battery > 20 ? 'var(--ui-t30)' : '#f87171' }}
                         >
                           🔋{Math.round(battery)}%
                         </span>
@@ -408,25 +408,25 @@ export function DeviceSidebar({
                   {pos ? (
                     pos.address ? (
                       <div className="flex items-start gap-1">
-                        <MapPin className="w-2.5 h-2.5 flex-shrink-0 mt-px" style={{ color: 'rgba(255,255,255,0.2)' }} />
-                        <p className="text-[10px] leading-tight truncate" style={{ color: 'rgba(255,255,255,0.28)' }}>
+                        <MapPin className="w-2.5 h-2.5 flex-shrink-0 mt-px" style={{ color: 'var(--ui-t20)' }} />
+                        <p className="text-[10px] leading-tight truncate" style={{ color: 'var(--ui-t28)' }}>
                           {pos.address}
                         </p>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono tabular-nums" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                        <span className="text-[10px] font-mono tabular-nums" style={{ color: 'var(--ui-t20)' }}>
                           {pos.latitude.toFixed(4)}, {pos.longitude.toFixed(4)}
                         </span>
                         {!isMoving && (
-                          <span className="flex items-center gap-0.5 text-[10px]" style={{ color: 'rgba(255,255,255,0.18)' }}>
+                          <span className="flex items-center gap-0.5 text-[10px]" style={{ color: 'var(--ui-t20)' }}>
                             <Gauge className="w-2.5 h-2.5" />{formatSpeed(speed)}
                           </span>
                         )}
                       </div>
                     )
                   ) : (
-                    <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.15)' }}>
+                    <p className="text-[10px]" style={{ color: 'var(--ui-t15)' }}>
                       {isOnline ? 'A aguardar posição...' : 'Sem posição disponível'}
                     </p>
                   )}
@@ -437,10 +437,10 @@ export function DeviceSidebar({
                   <button
                     onClick={e => { e.stopPropagation(); onCenterDevice(device); }}
                     className="absolute right-2.5 top-2.5 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded-lg flex items-center justify-center"
-                    style={{ color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}
+                    style={{ color: 'var(--ui-t40)', background: 'var(--ui-b08)' }}
                     title="Zoom de rua"
                     onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#60a5fa'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(59,130,246,0.15)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.4)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t40)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--ui-b08)'; }}
                   >
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
@@ -453,10 +453,10 @@ export function DeviceSidebar({
 
           {filtered.length === 0 && (
             <div className="py-16 flex flex-col items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                <Truck className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.15)' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--ui-b05)' }}>
+                <Truck className="w-5 h-5" style={{ color: 'var(--ui-t15)' }} />
               </div>
-              <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              <p className="text-xs text-center" style={{ color: 'var(--ui-t25)' }}>
                 {search ? `Sem resultados para "${search}"` : 'Sem dispositivos'}
               </p>
             </div>

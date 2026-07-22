@@ -25,14 +25,12 @@ export class RestoreController {
    * ✅ PASSO 1: Marcar restore como pendente e REINICIAR
    */
   async scheduleRestore(backupPath: string): Promise<void> {
-    console.log('📋 Agendando restore para próximo início...');
+    console.log('[Restore] A agendar restore para o proximo inicio...');
 
-    // Validar backup
     if (!fs.existsSync(backupPath)) {
-      throw new Error('Arquivo de backup não encontrado');
+      throw new Error('Arquivo de backup nao encontrado');
     }
 
-    // Salvar instrução de restore
     const pending: RestorePending = {
       backupPath,
       timestamp: new Date().toISOString()
@@ -40,36 +38,13 @@ export class RestoreController {
 
     try {
       fs.writeFileSync(this.restoreFile, JSON.stringify(pending, null, 2));
-      console.log('✅ Restore agendado. Reiniciando aplicação...');
-      // ✅ VERIFICAR AMBIENTE
-    const isDev = process.env.NODE_ENV === 'development';
-
-    if (isDev) {
-      // ═══ DESENVOLVIMENTO: Não reiniciar automaticamente ═══
-      console.log('');
-      console.log('⚠️  MODO DEV: Reinício automático desabilitado');
-      console.log('📋 Para executar o restore:');
-      console.log('   1. Feche a aplicação (Ctrl+C)');
-      console.log('   2. Execute: npm start');
-      console.log('   3. O restore será executado automaticamente');
-      console.log('');
-      
-      // Não faz nada - usuário reinicia manualmente
-      
-    } else {
-      // ═══ PRODUÇÃO: Reiniciar automaticamente ═══
-      console.log('🔄 Reiniciando aplicação...');
+      console.log('[Restore] Restore agendado. A relançar aplicacao...');
       app.relaunch();
       app.quit();
+    } catch (error: any) {
+      console.error('[Restore] Erro ao agendar restore:', error.message);
+      throw error;
     }
-  
-    } catch(error: any) {
-      console.log("Erro ao criar o arquivo .restore-pending.json:", error.message);
-    }
-
-    // REINICIAR APP
-    // app.relaunch();
-    app.quit();
   }
 
   /**
@@ -82,9 +57,9 @@ export class RestoreController {
     }
 
     console.log('');
-    console.log('╔════════════════════════════════════════════╗');
-    console.log('║   🔄 RESTORE PENDENTE DETECTADO            ║');
-    console.log('╚════════════════════════════════════════════╝');
+    console.log('==============================================');
+    console.log('   RESTORE PENDENTE DETECTADO');
+    console.log('==============================================');
     console.log('');
 
     try {

@@ -41,10 +41,10 @@ export default function HomePage() {
   const { t }    = useTranslation();
   const { user, logout } = useAuth();
   const { license } = useLicense();
-  const [activeSection,  setActiveSection]  = useState('dashboard');
-  const [isSidebarOpen,  setIsSidebarOpen]  = useState(true);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [windowWidth,    setWindowWidth]    = useState(window.innerWidth);
+  const [activeSection,      setActiveSection]      = useState('dashboard');
+  const [isSidebarOpen,      setIsSidebarOpen]      = useState(true);
+  const [windowWidth,        setWindowWidth]        = useState(window.innerWidth);
+  const [glassPreviewActive, setGlassPreviewActive] = useState(false);
 
   const isConnected     = license?.mode === 'connected';
   const isMobileOverlay = windowWidth < 640;
@@ -71,6 +71,17 @@ export default function HomePage() {
   }, [isConnected, activeSection]);
 
   useEffect(() => {
+    const start = () => setGlassPreviewActive(true);
+    const end   = () => setGlassPreviewActive(false);
+    window.addEventListener('glassPreviewStart', start);
+    window.addEventListener('glassPreviewEnd',   end);
+    return () => {
+      window.removeEventListener('glassPreviewStart', start);
+      window.removeEventListener('glassPreviewEnd',   end);
+    };
+  }, []);
+
+  useEffect(() => {
     const handle = () => {
       setWindowWidth(window.innerWidth);
       setIsSidebarOpen(window.innerWidth >= 640);
@@ -94,6 +105,7 @@ export default function HomePage() {
       case 'tracking':    return <TrackingPage />;
       case 'analytics':   return <AnalyticsPage />;
       case 'help':        return <HelpPage />;
+      case 'settings':    return <SettingsDialog />;
       default:            return <DashboardPage onNavigate={setActiveSection} />;
     }
   }
@@ -102,7 +114,9 @@ export default function HomePage() {
   // MODO MAPA (connected) — mapa é o fundo de todo o sistema
   // ─────────────────────────────────────────────────────────────────────────────
   if (isConnected) {
-    const activeItem  = menuItems.find(m => m.id === activeSection);
+    const activeItem  = menuItems.find(m => m.id === activeSection)
+      ?? (activeSection === 'settings' ? { id: 'settings', icon: Settings, label: t('navigation:header.settings') } : undefined)
+      ?? (activeSection === 'help'     ? { id: 'help',     icon: HelpCircle, label: t('navigation:menu.help') }     : undefined);
     // Espelha o standalone: expandido = ícones + texto, colapsado = ícones apenas
     const navRailW    = sidebarCollapsed ? NAV_RAIL_COLLAPSED_W : NAV_RAIL_EXPANDED_W;
 
@@ -114,7 +128,7 @@ export default function HomePage() {
           <TrackingPageContent
             showControls={activeSection === 'tracking'}
             leftOffset={navRailW}
-            onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenSettings={() => setActiveSection('settings')}
           />
         </div>
 
@@ -127,8 +141,8 @@ export default function HomePage() {
             style={{
               width:         navRailW,
               transition:    'width 200ms ease-in-out',
-              background:    'rgba(8,14,28,0.97)',
-              boxShadow:     '3px 0 24px rgba(0,0,0,0.5)',
+              background:    'var(--ui-nav-bg)',
+              boxShadow:     '3px 0 24px rgba(0,0,0,0.35)',
               zIndex:        1000,
               pointerEvents: 'auto',
             }}
@@ -139,7 +153,7 @@ export default function HomePage() {
             <div className="flex items-center flex-shrink-0 mb-3 px-3 gap-2.5">
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: 'rgba(59,130,246,0.85)' }}
+                style={{ background: 'var(--nav-logo-bg)' }}
               >
                 <Truck className="w-5 h-5 text-white" />
               </div>
@@ -153,7 +167,7 @@ export default function HomePage() {
                 }}
               >
                 <p className="text-sm font-bold text-white whitespace-nowrap">{t('navigation:app.name')}</p>
-                <p className="text-[10px] whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.4)' }}>{t('navigation:app.tagline')}</p>
+                <p className="text-[10px] whitespace-nowrap" style={{ color: 'var(--ui-t40)' }}>{t('navigation:app.tagline')}</p>
               </div>
             </div>
 
@@ -177,12 +191,12 @@ export default function HomePage() {
 
             {/* Definições + Toggle no fundo — mesmo padrão do standalone */}
             <button
-              onClick={() => setIsSettingsOpen(true)}
+              onClick={() => setActiveSection('settings')}
               title={sidebarCollapsed ? t('navigation:header.settings') : undefined}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.75)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.4)'; (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t75)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--ui-b08)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t40)'; (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
               className="flex items-center gap-2.5 rounded-lg flex-shrink-0 transition-colors mx-2 w-[calc(100%-1rem)] px-2.5 py-2.5"
-              style={{ color: 'rgba(255,255,255,0.4)', background: 'transparent' }}
+              style={{ color: 'var(--ui-t40)', background: 'transparent' }}
             >
               <Settings className="w-[16px] h-[16px] flex-shrink-0" />
               <span
@@ -216,11 +230,11 @@ export default function HomePage() {
                 bottom:        hasPadding ? 8 : 0,
                 left:          hasPadding ? navRailW + 6 : navRailW,
                 right:         hasPadding ? 8 : 0,
-                background:    'var(--glass-bg)',
-                backdropFilter: 'var(--glass-filter)',
-                WebkitBackdropFilter: 'var(--glass-filter)',
+                background:    ((activeSection === 'settings' || activeSection === 'help') && !glassPreviewActive) ? 'hsl(var(--card))' : 'var(--glass-bg)',
+                backdropFilter: ((activeSection === 'settings' || activeSection === 'help') && !glassPreviewActive) ? 'none' : 'var(--glass-filter)',
+                WebkitBackdropFilter: ((activeSection === 'settings' || activeSection === 'help') && !glassPreviewActive) ? 'none' : 'var(--glass-filter)',
                 borderRadius:  hasPadding ? 14 : 0,
-                border:        hasPadding ? '1px solid rgba(255,255,255,0.07)' : 'none',
+                border:        hasPadding ? '1px solid var(--ui-b07)' : 'none',
                 boxShadow:     hasPadding ? '0 8px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3)' : 'none',
                 pointerEvents: 'auto',
               } as React.CSSProperties}
@@ -228,14 +242,14 @@ export default function HomePage() {
               {/* Cabeçalho do painel */}
               <div
                 className="flex items-center gap-2.5 px-4 flex-shrink-0"
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', minHeight: 44 }}
+                style={{ borderBottom: '1px solid var(--ui-b06)', minHeight: 44 }}
               >
                 {/* Ícone + título da secção */}
                 {activeItem?.icon && React.createElement(activeItem.icon, {
                   className: 'w-4 h-4 flex-shrink-0',
-                  style: { color: 'rgba(255,255,255,0.4)' },
+                  style: { color: 'var(--ui-t40)' },
                 })}
-                <h2 className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                <h2 className="text-sm font-semibold" style={{ color: 'var(--ui-t85)' }}>
                   {activeItem?.label}
                 </h2>
 
@@ -245,19 +259,19 @@ export default function HomePage() {
                     title={t('navigation:menu.help')}
                     onClick={() => setActiveSection('help')}
                     className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
-                    style={{ color: 'rgba(255,255,255,0.4)', background: 'transparent' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.85)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.4)'; }}
+                    style={{ color: 'var(--ui-t40)', background: 'transparent' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--ui-b08)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t85)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t40)'; }}
                   >
                     <HelpCircle className="w-4 h-4" />
                   </button>
                   <button
                     title={t('navigation:header.settings')}
-                    onClick={() => setIsSettingsOpen(true)}
+                    onClick={() => setActiveSection('settings')}
                     className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
-                    style={{ color: 'rgba(255,255,255,0.4)', background: 'transparent' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.85)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.4)'; }}
+                    style={{ color: 'var(--ui-t40)', background: 'transparent' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--ui-b08)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t85)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t40)'; }}
                   >
                     <Settings className="w-4 h-4" />
                   </button>
@@ -265,8 +279,8 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Conteúdo com scroll (HelpPage tem layout próprio — sem wrapper scrollável) */}
-              {activeSection === 'help' ? (
+              {/* Conteúdo com scroll (HelpPage e SettingsDialog têm layout próprio — sem wrapper scrollável) */}
+              {(activeSection === 'help' || activeSection === 'settings') ? (
                 <div className="flex-1 overflow-hidden">{renderContent()}</div>
               ) : (
                 <div className="flex-1 overflow-y-auto overflow-x-hidden">
@@ -277,7 +291,6 @@ export default function HomePage() {
           )}
         </div>
 
-        <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
       </div>
     );
   }
@@ -375,7 +388,7 @@ export default function HomePage() {
 
         <div className="px-2 mt-auto pt-3 space-y-0.5">
           <button
-            onClick={() => setIsSettingsOpen(true)}
+            onClick={() => setActiveSection('settings')}
             className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-muted-foreground transition-colors"
             title={isCompact ? t('navigation:header.settings') : undefined}
           >
@@ -461,12 +474,11 @@ export default function HomePage() {
           </div>
         </header>
 
-        <div className={`flex-1 min-h-0 overflow-hidden ${(activeSection === 'tracking' || activeSection === 'help') ? '' : hasPadding ? 'overflow-y-auto p-4 md:p-6' : 'overflow-y-auto p-2'}`}>
+        <div className={`flex-1 min-h-0 overflow-hidden ${(activeSection === 'tracking' || activeSection === 'help' || activeSection === 'settings') ? '' : hasPadding ? 'overflow-y-auto p-4 md:p-6' : 'overflow-y-auto p-2'}`}>
           {renderContent()}
         </div>
       </main>
 
-      <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
     </div>
   );
 }
@@ -492,13 +504,13 @@ function NavRailButton({
       className="flex items-center gap-2.5 rounded-lg transition-colors flex-shrink-0 w-full px-2.5 py-2.5 min-h-[40px]"
       style={{
         background: active
-          ? 'rgba(59,130,246,0.25)'
-          : hovered ? 'rgba(255,255,255,0.08)' : 'transparent',
+          ? 'var(--nav-active-bg)'
+          : hovered ? 'var(--ui-b08)' : 'transparent',
         color: active
-          ? '#60a5fa'
-          : hovered ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.4)',
+          ? 'var(--nav-active-color)'
+          : hovered ? 'var(--ui-t75)' : 'var(--ui-t40)',
         border: active
-          ? '1px solid rgba(59,130,246,0.3)'
+          ? '1px solid var(--nav-active-border)'
           : '1px solid transparent',
       }}
     >
@@ -536,8 +548,8 @@ function NavRailToggle({
       onMouseLeave={() => setHovered(false)}
       className="flex items-center gap-2.5 rounded-lg flex-shrink-0 mt-1 transition-colors mx-2 w-[calc(100%-1rem)] px-2.5 py-2"
       style={{
-        color:      hovered ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.35)',
-        background: hovered ? 'rgba(255,255,255,0.08)' : 'transparent',
+        color:      hovered ? 'var(--ui-t75)' : 'var(--ui-t35)',
+        background: hovered ? 'var(--ui-b08)' : 'transparent',
       }}
     >
       {collapsed
