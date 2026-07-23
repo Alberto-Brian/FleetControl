@@ -36,7 +36,7 @@ import { exportBackup, restoreBackup, restoreFromAutoBackup, getBackupConfig, up
 import { getSystemVersion, listDatabases, getDatabaseStats, deleteDatabase, listBackupDatabases } from '@/helpers/system-helpers';
 import { getCompanySettings, updateCompanySettings, uploadCompanyLogo, removeCompanyLogo } from '@/helpers/company-helpers';
 import { getSystemSettings, updateSystemSettings, resetSystemSettings }                    from '@/helpers/system-settings-helpers';
-import { removeLicense }                          from '@/helpers/license-helpers';
+import { removeLicense, getActivations, revokeActivation, getMachineId, type DesktopActivation } from '@/helpers/license-helpers';
 import { requestNotificationPermission }          from '@/helpers/notifications';
 import { useLicense }                             from '@/hooks/useLicense';
 import { LicenseActivationDialog }                from '@/components/LicenseActivationDialog';
@@ -636,6 +636,17 @@ function LicenseTab() {
   const [showActivation, setShowActivation]  = useState(false);
   const [removing, setRemoving]              = useState(false);
 
+  // Activações de desktop
+  const [activations, setActivations]        = useState<DesktopActivation[]>([]);
+  const [activationsLoading, setActivationsLoading] = useState(false);
+  const thisMachineId                        = getMachineId();
+
+  // Modal de revogação por admin
+  const [revokeTarget, setRevokeTarget]      = useState<string | null>(null);
+  const [revokePassword, setRevokePassword]  = useState('');
+  const [revokeError, setRevokeError]        = useState('');
+  const [revoking, setRevoking]              = useState(false);
+
   const modeLabel: Record<string, string> = {
     standalone: t('license.modeStandalone'),
     connected:  t('license.modeConnected'),
@@ -647,6 +658,24 @@ function LicenseTab() {
     professional: t('license.typeProfessional'),
     enterprise:   t('license.typeEnterprise'),
   };
+
+  useEffect(() => {
+    if (license?.isValid && license.mode === 'connected') {
+      loadActivations();
+    }
+  }, [license?.isValid, license?.mode]);
+
+  async function loadActivations() {
+    setActivationsLoading(true);
+    try {
+      const list = await getActivations();
+      setActivations(list);
+    } catch {
+      // silencioso — pode estar offline
+    } finally {
+      setActivationsLoading(false);
+    }
+  }
 
   async function handleRemove() {
     if (!confirm(t('license.removeConfirm'))) return;
@@ -663,6 +692,28 @@ function LicenseTab() {
     setShowActivation(false);
     await refreshLicense();
     setTimeout(() => window.location.reload(), 800);
+  }
+
+  async function handleRevokeConfirm() {
+    if (!revokeTarget || !revokePassword) return;
+    setRevoking(true);
+    setRevokeError('');
+    try {
+      await revokeActivation(revokeTarget, revokePassword);
+      toast.success('Activação revogada', { description: 'O desktop foi desactivado e o seat foi libertado.' });
+      setRevokeTarget(null);
+      setRevokePassword('');
+      await loadActivations();
+    } catch (err: any) {
+      const code = err?.response?.data?.code;
+      if (code === 'WRONG_PASSWORD') {
+        setRevokeError('Palavra-passe incorreta.');
+      } else {
+        setRevokeError(err?.response?.data?.message || 'Erro ao revogar activação.');
+      }
+    } finally {
+      setRevoking(false);
+    }
   }
 
   if (loading) {
@@ -687,6 +738,7 @@ function LicenseTab() {
 
       {license?.isValid ? (
         <div className="space-y-4">
+          {/* Status */}
           <div className="flex items-center gap-3 p-4 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30">
             <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center shrink-0">
               <ShieldCheck className="w-5 h-5 text-green-600 dark:text-green-400" />
@@ -700,6 +752,7 @@ function LicenseTab() {
             </div>
           </div>
 
+          {/* Detalhes */}
           <div className="p-4 rounded-xl border border-border bg-card/50 space-y-3 text-sm">
             {[
               { label: t('license.client'),   value: license.clientName },
@@ -726,6 +779,70 @@ function LicenseTab() {
               ))}
           </div>
 
+          {/* Desktops activos — só para licenças connected */}
+          {license.mode === 'connected' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Desktops activos</p>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" onClick={loadActivations} disabled={activationsLoading}>
+                  {activationsLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                  Actualizar
+                </Button>
+              </div>
+
+              <div className="rounded-xl border border-border overflow-hidden">
+                {activationsLoading && activations.length === 0 ? (
+                  <div className="flex items-center justify-center py-6 text-muted-foreground text-sm gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> A carregar...
+                  </div>
+                ) : activations.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">Nenhum desktop activo encontrado</div>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {activations.map((a) => {
+                      const isSelf = a.machine_id === thisMachineId;
+                      const lastSeen = new Date(a.last_active_at).toLocaleDateString('pt', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                      });
+                      return (
+                        <div key={a.id} className={cn('flex items-center gap-3 px-4 py-3 text-sm', isSelf && 'bg-primary/5')}>
+                          <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <HardDrive className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-xs truncate">{a.machine_id.slice(0, 16)}…</span>
+                              {isSelf && (
+                                <span className="shrink-0 text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Esta máquina</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">Último acesso: {lastSeen}</p>
+                          </div>
+                          {!isSelf && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                              onClick={() => { setRevokeTarget(a.machine_id); setRevokeError(''); setRevokePassword(''); }}
+                            >
+                              Revogar
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                {activations.length}/{license.maxUsers ?? '?'} desktop(s) em uso.
+                Revoga um para libertar um seat.
+              </p>
+            </div>
+          )}
+
+          {/* Zona de Risco */}
           <div className="pt-4 border-t border-border space-y-3">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('license.dangerZone')}</p>
             <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5">
@@ -760,6 +877,49 @@ function LicenseTab() {
         onOpenChange={setShowActivation}
         onSuccess={handleActivationSuccess}
       />
+
+      {/* Modal: confirmação de credenciais para revogar outro desktop */}
+      {revokeTarget && (
+        <Dialog open onOpenChange={(o) => { if (!o) { setRevokeTarget(null); setRevokePassword(''); setRevokeError(''); } }}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <AlertCircle className="w-4 h-4 text-destructive" /> Revogar activação
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">
+                Esta acção desactiva o desktop <span className="font-mono text-foreground">{revokeTarget.slice(0, 16)}…</span> e liberta um seat da licença.
+              </p>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Palavra-passe do administrador</Label>
+                <Input
+                  type="password"
+                  placeholder="Confirma a tua palavra-passe"
+                  value={revokePassword}
+                  onChange={(e) => setRevokePassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleRevokeConfirm()}
+                  autoFocus
+                />
+                {revokeError && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> {revokeError}
+                  </p>
+                )}
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" size="sm" onClick={() => { setRevokeTarget(null); setRevokePassword(''); setRevokeError(''); }}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleRevokeConfirm} disabled={revoking || !revokePassword}>
+                {revoking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Revogar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
