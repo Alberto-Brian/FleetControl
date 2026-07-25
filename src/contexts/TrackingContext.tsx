@@ -43,7 +43,7 @@ interface TrackingState {
   historyPositions: Position[];
   connectionMode:   'realtime' | 'manual';
   trail:            Record<number, [number, number][]>;
-  filteredStatus:   'all' | 'online' | 'offline';
+  filteredStatus:   'all' | 'online' | 'offline' | 'inactive';
   lastUpdate:       Date | null;
   followMode:       boolean;
   followDeviceId:   number | null;
@@ -63,7 +63,7 @@ type Action =
   | { type: 'SET_HISTORY';      payload: Position[] }
   | { type: 'TOGGLE_HISTORY';   payload: boolean }
   | { type: 'SET_MODE';         payload: 'realtime' | 'manual' }
-  | { type: 'FILTER_STATUS';    payload: 'all' | 'online' | 'offline' }
+  | { type: 'FILTER_STATUS';    payload: 'all' | 'online' | 'offline' | 'inactive' }
   | { type: 'SET_FOLLOW';       payload: number | null }
   | { type: 'GEOFENCES_LOADED';   payload: LocalGeofence[] }
   | { type: 'GEOFENCE_ADDED';     payload: LocalGeofence }
@@ -167,6 +167,7 @@ interface TrackingContextValue {
   unreadAlerts:       number;
   activeImeis:                  Set<string>;
   linkedImeis:                  Set<string>;
+  linkedImeisLoaded:            boolean;
   reloadActiveImeis:            () => Promise<void>;
   reconciliationWarning:        ReconciliationResult['unmatched'];
   dismissReconciliationWarning: () => void;
@@ -185,6 +186,10 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
   const [activeImeis, setActiveImeis] = useState<Set<string>>(new Set());
   // IMEIs vinculados: veículos com qualquer traccar_unique_id (independentemente de tracking_enabled)
   const [linkedImeis, setLinkedImeis] = useState<Set<string>>(new Set());
+  // Indica se linkedImeis já foi carregado (para o sidebar não filtrar antes de ter dados)
+  const [linkedImeisLoaded, setLinkedImeisLoaded] = useState(false);
+  // Mapa uniqueId (IMEI) → dados do veículo — para etiquetas dos marcadores no mapa
+  const [vehicleByImei, setVehicleByImei] = useState<Map<string, { license_plate: string; brand: string; model: string }>>(new Map());
 
   // Reconciliation: veículos locais com IMEI que não existe no Traccar
   const [reconciliationWarning, setReconciliationWarning] = useState<ReconciliationResult['unmatched']>([]);
@@ -203,12 +208,20 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
     // A vehicle without api_vehicle_id is not registered in the cloud — it must not appear on the map.
     try {
       const { data: allVehicles } = await getAllVehicles({ limit: 9999 });
-      const linked = (allVehicles as Array<{ traccar_unique_id?: string | null; api_vehicle_id?: string | null }>)
-        .filter(v => v.traccar_unique_id && v.api_vehicle_id)
-        .map(v => v.traccar_unique_id as string);
+      const linked: string[] = [];
+      const vehicleMap = new Map<string, { license_plate: string; brand: string; model: string }>();
+      for (const v of allVehicles as Array<{ traccar_unique_id?: string | null; license_plate: string; brand: string; model: string }>) {
+        if (v.traccar_unique_id) {
+          linked.push(v.traccar_unique_id);
+          vehicleMap.set(v.traccar_unique_id, { license_plate: v.license_plate, brand: v.brand, model: v.model });
+        }
+      }
       setLinkedImeis(new Set(linked));
+      setVehicleByImei(vehicleMap);
     } catch (err) {
       console.error('[TrackingContext] Failed to reload linked IMEIs:', err);
+    } finally {
+      setLinkedImeisLoaded(true);
     }
   }, []);
 
@@ -245,9 +258,10 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
       status:     d.status,
       lastUpdate: d.lastUpdate,
       attributes: d.attributes,
+      vehicle:    vehicleByImei.get(d.uniqueId) ?? null,
     }));
     dispatch({ type: 'UPDATE_DEVICES', payload: mapped });
-  }, [devices]);
+  }, [devices, vehicleByImei]);
 
   // Reconciliation: corre uma vez após a primeira carga de devices em modo conectado.
   // Reseta o guard no disconnect para correr novamente na próxima ligação.
@@ -357,6 +371,14 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
     loadAlertSettings();
   }, [isConnected, loadAlertSettings]);
 
+  // Sempre que a ligação ao servidor é estabelecida (início ou reconexão),
+  // enviar operações pendentes da sessão actual ou de sessões anteriores.
+  // Reutiliza a monitorização de conectividade existente — sem scheduler adicional.
+  useEffect(() => {
+    if (!isConnected) return;
+    (window._vehicles as any)?.flushSyncQueue?.().catch(console.error);
+  }, [isConnected]);
+
   // Re-load alert settings whenever SettingsDialog persists a change
   useEffect(() => {
     function handleAlertSettingsChanged(e: Event) {
@@ -383,6 +405,7 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
       unreadAlerts:       state.unreadAlerts,
       activeImeis,
       linkedImeis,
+      linkedImeisLoaded,
       reloadActiveImeis,
       reconciliationWarning,
       dismissReconciliationWarning,

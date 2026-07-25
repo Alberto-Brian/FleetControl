@@ -17,6 +17,7 @@ import { getAllVehicleCategories } from '@/helpers/vehicle-category-helpers';
 import { IUpdateVehicle } from '@/lib/types/vehicle';
 import { useVehicles } from '@/contexts/VehiclesContext';
 import { useLicense } from '@/hooks/useLicense';
+import { ImeiSelector } from './ImeiSelector';
 
 interface EditVehicleDialogProps {
   open: boolean;
@@ -291,16 +292,14 @@ export default function EditVehicleDialog({
 
                 {isConnectedLicense && (
                   <div className="col-span-2 space-y-2">
-                    <Label htmlFor="traccar_unique_id">
+                    <Label>
                       {t('vehicles:fields.gpsImei')}
                       <span className="ml-1 text-xs font-normal text-muted-foreground">{t('vehicles:fields.gpsImeiOptional')}</span>
                     </Label>
-                    <Input
-                      id="traccar_unique_id"
-                      placeholder={t('vehicles:placeholders.gpsImei')}
-                      value={formData.traccar_unique_id || ''}
-                      onChange={(e) => setFormData({ ...formData, traccar_unique_id: e.target.value || null })}
-                      className="font-mono"
+                    <ImeiSelector
+                      value={formData.traccar_unique_id || null}
+                      onChange={(v) => setFormData({ ...formData, traccar_unique_id: v })}
+                      currentVehicleImei={selectedVehicle?.traccar_unique_id ?? undefined}
                     />
                     <p className="text-xs text-muted-foreground">
                       {t('vehicles:dialogs.sync.imeiEditHint')}

@@ -12,6 +12,7 @@ export interface TrackedDevice {
   status:      string;
   lastUpdate?: string;
   attributes?: Record<string, unknown>;
+  vehicle?: { license_plate: string; brand: string; model: string } | null;
 }
 
 export interface LinkSuggestionDevice {

@@ -109,7 +109,8 @@ export async function getAllVehicles(params: IPaginationParams = {}): Promise<IP
         conditions.push(or(
             like(vehicles.license_plate, s),
             like(vehicles.brand, s),
-            like(vehicles.model, s)
+            like(vehicles.model, s),
+            like(vehicles.traccar_unique_id, s)
         )!);
     }
     if (params.status && params.status !== 'all') {
@@ -181,7 +182,8 @@ export async function getAllVehicles(params: IPaginationParams = {}): Promise<IP
         baseConditions.push(or(
             like(vehicles.license_plate, s),
             like(vehicles.brand, s),
-            like(vehicles.model, s)
+            like(vehicles.model, s),
+            like(vehicles.traccar_unique_id, s)
         )!);
     }
     const baseWhere = baseConditions.length > 1 ? and(...baseConditions) : baseConditions[0];

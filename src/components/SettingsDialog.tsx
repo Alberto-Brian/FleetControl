@@ -1856,7 +1856,7 @@ export default function SettingsDialog() {
                   }}
                 >
                   <RefreshCw className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Recarregar aplicação</span>
+                  <span className="truncate">{t('reloadApp')}</span>
                 </button>
               </div>
             </div>

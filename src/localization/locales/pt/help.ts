@@ -56,14 +56,15 @@ export const ptHelp = {
         {
           type: 'list' as const,
           items: [
-            'Registar GPS: associa o IMEI do dispositivo físico ao veículo — cria automaticamente o registo no servidor Traccar',
-            'Remover GPS: desvincula o dispositivo do veículo na base de dados local e na API. O dispositivo permanece no Traccar',
+            'Registar GPS: associa o IMEI ao veículo — após o registo, o sistema sugere adicionar o veículo a uma zona virtual de geofencing',
+            'Remover GPS: desvincula o dispositivo; o nome do device no Traccar passa automaticamente a "FC-LIVRE-NNN", indicando que está disponível para reutilização',
             'Para mudar o IMEI: remova o GPS actual e registe o novo — não existe actualização directa de IMEI',
             'Pausar rastreamento: o veículo deixa de aparecer no mapa mas mantém o GPS associado — pode ser reactivado a qualquer momento',
             'Retomar rastreamento: o veículo volta a aparecer no mapa com actualizações em tempo real',
+            'Excluir veículo com GPS activo: o sistema avisa que o IMEI será desassociado antes da exclusão e pede confirmação',
           ],
         },
-        { type: 'tip', text: 'Para desactivar ou eliminar definitivamente um dispositivo no servidor Traccar, use o módulo web (disponível em breve).' },
+        { type: 'tip', text: 'O painel "Dispositivos GPS" (botão na barra do mapa) permite filtrar dispositivos com ou sem veículo associado, facilitando a gestão de IMEIs livres.' },
       ],
     },
     {
@@ -228,7 +229,7 @@ export const ptHelp = {
           items: [
             'O mapa mostra apenas veículos com GPS activo e rastreamento activado',
             'Veículos com rastreamento pausado aparecem na lista lateral com o badge "Rastreamento pausado" mas não têm marcador no mapa',
-            'O painel "Dispositivos GPS" (botão na barra de ferramentas, visível em modo conectado) lista todos os dispositivos Traccar da organização, mesmo os não associados a veículos',
+            'O painel "Dispositivos GPS" (botão na barra de ferramentas) lista todos os dispositivos Traccar da organização com pesquisa por nome, IMEI ou matrícula do veículo associado',
             'Após restauro de backup, a app verifica automaticamente os IMEIs e avisa quando algum não tem correspondência no Traccar',
           ],
         },
@@ -252,6 +253,14 @@ export const ptHelp = {
           ],
         },
         { type: 'tip', text: 'Podes activar/desactivar as notificações nativas em Definições › Alertas GPS. Cada tipo de evento pode ser configurado individualmente.' },
+        { type: 'text', text: 'Painel de Alertas — Clica em "Alertas" na barra de ferramentas do mapa para aceder ao historial de alertas gerados. O painel inclui:' },
+        { type: 'list', items: [
+          'Pesquisa por nome de dispositivo, tipo de evento ou nome de zona',
+          'Separadores de filtro: Todos / Não lidos / Lidos — com contagem em cada um',
+          'Barra de estatísticas: total de não lidos e lidos, com o período coberto pelos alertas carregados',
+          'Clicar num alerta abre o detalhe com coordenadas, data/hora e opção de centrar no mapa',
+          'Marcar alertas individualmente ou todos como lidos com um clique',
+        ]},
       ],
     },
     {

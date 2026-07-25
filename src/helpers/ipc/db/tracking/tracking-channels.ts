@@ -4,6 +4,9 @@
 // ========================================
 export const GET_TRACKED_DEVICES    = 'tracking:get-devices';
 export const CREATE_TRACKED_DEVICE  = 'tracking:create-device';
+export const UPDATE_TRACKED_DEVICE  = 'tracking:update-device';
+export const DELETE_TRACKED_DEVICE  = 'tracking:delete-device';
+export const CONFIGURE_DEVICE_SERVER = 'tracking:configure-device-server';
 export const GET_DEVICE_POSITIONS   = 'tracking:get-positions';
 export const GET_POSITION_HISTORY   = 'tracking:get-history';
 export const SYNC_DEVICES           = 'tracking:sync-devices';

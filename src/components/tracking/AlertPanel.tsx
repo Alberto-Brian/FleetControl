@@ -1,9 +1,9 @@
 // src/components/tracking/AlertPanel.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Bell, CheckCheck, X, ChevronLeft, LogIn, LogOut, Gauge,
-  MapPin, Clock, Navigation, Zap, ZapOff, Play, Square,
+  MapPin, Clock, Navigation, Zap, ZapOff, Play, Square, Search,
 } from 'lucide-react';
 import { Button }        from '@/components/ui/button';
 import { useTracking }   from '@/contexts/TrackingContext';
@@ -11,6 +11,7 @@ import type { GeofenceAlert } from '@/contexts/TrackingContext';
 import { AlertItem }     from './AlertItem';
 
 interface Props {
+  isOpen?:            boolean;
   onClose:            () => void;
   onFocusCoords?:     (lat: number, lon: number) => void;
 }
@@ -30,6 +31,16 @@ function formatFull(iso: string): string {
     day: '2-digit', month: 'long', year: 'numeric',
     hour: '2-digit', minute: '2-digit', second: '2-digit',
   });
+}
+
+function formatPeriodDate(iso: string): string {
+  const d   = new Date(iso);
+  const now = new Date();
+  const isToday    = d.toDateString() === now.toDateString();
+  const isThisYear = d.getFullYear() === now.getFullYear();
+  if (isToday)    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (isThisYear) return d.toLocaleDateString([], { day: '2-digit', month: 'short' });
+  return d.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 // ── Detalhe de alerta ────────────────────────────────────────────────────────
@@ -193,17 +204,75 @@ function AlertDetail({
 
 // ── AlertPanel ───────────────────────────────────────────────────────────────
 
-export function AlertPanel({ onClose, onFocusCoords }: Props) {
+type FilterTab = 'all' | 'unread' | 'read';
+
+export function AlertPanel({ isOpen, onClose, onFocusCoords }: Props) {
   const { t }               = useTranslation('tracking');
   const { state, dispatch } = useTracking();
-  const [selected, setSelected] = useState<GeofenceAlert | null>(null);
-  const [loading,  setLoading]  = useState(false);
+  const [selected,   setSelected]   = useState<GeofenceAlert | null>(null);
+  const [loading,    setLoading]    = useState(false);
+  const [search,     setSearch]     = useState('');
+  const [filterTab,  setFilterTab]  = useState<FilterTab>('all');
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSelected(null);
+      setSearch('');
+      setFilterTab('all');
+    }
+  }, [isOpen]);
+
+  const unreadCount = state.unreadAlerts;
+  const readCount   = state.alerts.length - unreadCount;
+
+  // Mapa traccar_id → device name para pesquisa
+  const deviceNameMap = useMemo<Record<number, string>>(() => {
+    const map: Record<number, string> = {};
+    state.devices.forEach(d => { map[d.traccar_id] = d.name; });
+    return map;
+  }, [state.devices]);
+
+  // Nomes localizados de tipos de evento para pesquisa
+  const eventNameMap = useMemo<Record<string, string>>(() => ({
+    geofenceEnter: t('alerts.enter'),
+    geofenceExit:  t('alerts.exit'),
+    speedLimit:    t('alerts.speed'),
+    ignitionOn:    t('alerts.ignitionOn'),
+    ignitionOff:   t('alerts.ignitionOff'),
+    deviceMoving:  t('alerts.moving'),
+    deviceStopped: t('alerts.stopped'),
+  }), [t]);
+
+  // Alertas filtrados por tab + pesquisa
+  const filteredAlerts = useMemo(() => {
+    let list = state.alerts;
+    if (filterTab === 'unread') list = list.filter(a => !a.acknowledged);
+    if (filterTab === 'read')   list = list.filter(a => a.acknowledged);
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter(a => {
+        const deviceName = (deviceNameMap[a.deviceId] ?? '').toLowerCase();
+        const eventName  = (eventNameMap[a.eventType] ?? a.eventType).toLowerCase();
+        const zoneName   = (a.geofenceName ?? '').toLowerCase();
+        return deviceName.includes(q) || eventName.includes(q) || zoneName.includes(q);
+      });
+    }
+    return list;
+  }, [state.alerts, filterTab, search, deviceNameMap, eventNameMap]);
+
+  // Data do alerta mais antigo (para mostrar o período coberto)
+  const oldestAlertDate = useMemo(() => {
+    if (state.alerts.length === 0) return null;
+    return state.alerts.reduce((oldest, a) =>
+      a.createdAt < oldest ? a.createdAt : oldest,
+      state.alerts[0].createdAt,
+    );
+  }, [state.alerts]);
 
   async function handleAcknowledge(id: string) {
     try {
       await (window as any)._tracking.acknowledgeAlert(id);
       dispatch({ type: 'ALERT_ACKNOWLEDGED', payload: id });
-      // update selected in-place so detail reflects new state
       if (selected?.id === id) setSelected(prev => prev ? { ...prev, acknowledged: true } : prev);
     } catch (e) {
       console.error(e);
@@ -235,13 +304,22 @@ export function AlertPanel({ onClose, onFocusCoords }: Props) {
     );
   }
 
+  const TABS: { key: FilterTab; label: string; count: number }[] = [
+    { key: 'all',    label: t('alerts.filterAll'),    count: state.alerts.length },
+    { key: 'unread', label: t('alerts.filterUnread'), count: unreadCount },
+    { key: 'read',   label: t('alerts.filterRead'),   count: readCount },
+  ];
+
+  const isFiltered = search.trim() !== '' || filterTab !== 'all';
+
   // Lista
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b flex-shrink-0">
         <Bell className="w-4 h-4 text-muted-foreground" />
         <span className="text-sm font-semibold flex-1">{t('alerts.panelTitle')}</span>
-        {state.unreadAlerts > 0 && (
+        {unreadCount > 0 && (
           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={handleAcknowledgeAll} disabled={loading}>
             <CheckCheck className="w-3.5 h-3.5" /> {t('alerts.readAll')}
           </Button>
@@ -251,14 +329,86 @@ export function AlertPanel({ onClose, onFocusCoords }: Props) {
         </button>
       </div>
 
+      {/* Barra de estatísticas: lidos/não lidos + período */}
+      {state.alerts.length > 0 && (
+        <div className="flex items-center gap-2 px-3 py-1.5 border-b bg-muted/20 flex-shrink-0">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            {unreadCount > 0 && (
+              <span className="flex items-center gap-1 text-[10px] text-orange-500 font-medium flex-shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />
+                {t('alerts.statsUnread', { count: unreadCount })}
+              </span>
+            )}
+            {readCount > 0 && (
+              <span className="flex items-center gap-1 text-[10px] text-muted-foreground flex-shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 flex-shrink-0" />
+                {t('alerts.statsRead', { count: readCount })}
+              </span>
+            )}
+          </div>
+          {oldestAlertDate && (
+            <span className="text-[10px] text-muted-foreground/60 flex-shrink-0 truncate">
+              {t('alerts.period', { from: formatPeriodDate(oldestAlertDate) })}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Pesquisa + tabs de filtro */}
+      {state.alerts.length > 0 && (
+        <div className="flex flex-col gap-1.5 px-2.5 py-2 border-b flex-shrink-0">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={t('alerts.search')}
+              className="w-full h-7 pl-7 pr-2.5 text-xs rounded-md border bg-background/60 focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
+          <div className="flex gap-1">
+            {TABS.map(tab => {
+              const isActive = filterTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setFilterTab(tab.key)}
+                  className={`flex-1 flex items-center justify-center gap-1 h-6 rounded text-[10px] font-medium transition-colors ${
+                    isActive
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  <span className="truncate">{tab.label}</span>
+                  <span className={`font-semibold flex-shrink-0 ${isActive ? 'opacity-80' : 'opacity-50'}`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Contador de resultados filtrados */}
+      {isFiltered && state.alerts.length > 0 && (
+        <div className="px-3 py-1 text-[10px] text-muted-foreground border-b bg-muted/10 flex-shrink-0">
+          {t('alerts.countOf', { filtered: filteredAlerts.length, total: state.alerts.length })}
+        </div>
+      )}
+
+      {/* Lista de alertas */}
       <div className="flex-1 overflow-y-auto">
-        {state.alerts.length === 0 ? (
+        {filteredAlerts.length === 0 ? (
           <div className="p-8 text-center">
             <Bell className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground">{t('alerts.empty')}</p>
+            <p className="text-xs text-muted-foreground">
+              {state.alerts.length === 0 ? t('alerts.empty') : t('alerts.noResults')}
+            </p>
           </div>
         ) : (
-          state.alerts.map(a => (
+          filteredAlerts.map(a => (
             <AlertItem
               key={a.id}
               alert={a}

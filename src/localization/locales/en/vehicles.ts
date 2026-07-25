@@ -85,6 +85,8 @@ export const enVehicles = {
     searchCategory: 'Search category...',
     tireSize: "Ex: 205/55 R16",
     gpsImei: "e.g. 353926070024734",
+    selectImei: "Select GPS device...",
+    searchImei: "Search device or IMEI...",
   },
 
   actions: {
@@ -149,7 +151,8 @@ export const enVehicles = {
     delete: {
       title: "Delete Vehicle",
       description: "Are you sure you want to delete the vehicle",
-      warning: "This action cannot be undone."
+      warning: "This action cannot be undone.",
+      warningWithGps: "This vehicle has an active GPS device (IMEI: {{imei}}). On confirmation, the IMEI will be automatically disassociated and the device will be available for reuse. This action cannot be undone.",
     },
     sync: {
       title: "Sync vehicle with API",
@@ -157,6 +160,9 @@ export const enVehicles = {
       imeiHint: "If left blank, the vehicle will be synced without GPS tracking.",
       imeiCreationHint: "If filled in, the GPS device is created automatically on the tracking server.",
       imeiEditHint: "IMEI of the GPS device installed in this vehicle. Used for real-time tracking.",
+      imeiLoading: "Loading devices...",
+      noImeiAvailable: "No devices available. Register a device first.",
+      clearImei: "No GPS (remove link)",
       syncWithGps: "Sync with GPS",
       syncWithoutGps: "Sync without GPS",
       badgeReadyWithGps: "Ready to sync (with GPS)",
@@ -219,6 +225,32 @@ export const enVehicles = {
     trackingPaused:       'Tracking paused',
     enableTracking:       'Enable tracking',
     disableTracking:      'Pause tracking',
+    registerDialog: {
+      title:            'Register GPS device',
+      imeiLabel:        'IMEI / Unique identifier',
+      imeiPlaceholder:  'e.g. 123456789012345',
+      imeiDesc:         'Unique identifier of the GPS device installed in the vehicle.',
+      stepSyncing:      'Registering vehicle on the platform...',
+      stepSyncingDesc:  'The vehicle was not yet synced with the platform. Creating record...',
+      stepRegistering:      'Verifying IMEI and linking GPS to vehicle...',
+      stepRegisteringDesc:  'Confirming that the device exists on the Traccar server and is not in use...',
+      tryAgain:         'Try again',
+      errorTitle: {
+        GPS_DEVICE_ALREADY_LINKED:      'Device already in use',
+        GPS_IMEI_NOT_FOUND:             'IMEI not found',
+        GPS_VEHICLE_ALREADY_HAS_DEVICE: 'Vehicle already has GPS',
+        SYNC_FAILED:                    'Sync error',
+        UNKNOWN:                        'Error registering GPS',
+      },
+      imeiNotFoundHint: 'Make sure the device is already registered on the Traccar server and that devices have been synced.',
+    },
+    removeDialog: {
+      title:       'Remove GPS device',
+      description: 'Are you sure you want to unlink the GPS from this vehicle?',
+      consequence: 'The vehicle will no longer appear on the map and real-time tracking will stop. The device remains registered on the Traccar server and can be linked to another vehicle.',
+      removing:    'Removing...',
+      confirm:     'Remove GPS',
+    },
   },
 
   tabs: {
@@ -288,6 +320,7 @@ export const enVehicles = {
     syncError: "Error syncing vehicle with the API",
     addGpsSuccess: "GPS registered successfully on vehicle",
     addGpsError: "Error registering GPS on vehicle",
+    gpsRegistered: "GPS registered. Device map updated.",
     categoryCreateSuccess: "Category created successfully",
     categoryCreateError: "Error creating category",
     categoryUpdateSuccess: "Category updated successfully",
@@ -297,6 +330,8 @@ export const enVehicles = {
     gpsRemoved: "GPS device removed from vehicle",
     gpsRemoveError: "Error removing GPS device",
     trackingEnabled: "Tracking enabled",
+    gpsGeofenceHint: "Tip: you can add this vehicle to a virtual zone to receive entry/exit alerts. Go to Map → Zones.",
+    gpsNoGeofenceHint: "Tip: you have no virtual zones defined yet. Go to Map → Zones to create geofencing areas and receive automatic alerts.",
     trackingDisabled: "Tracking paused",
     trackingError: "Error updating tracking"
   },

@@ -18,6 +18,7 @@ import {
     UNREGISTER_GPS_FROM_VEHICLE,
     TOGGLE_VEHICLE_TRACKING,
     GET_ACTIVE_IMEIS,
+    FLUSH_SYNC_QUEUE,
 } from "./vehicles-channels";
 
 import { IPaginationParams } from "@/lib/types/pagination";
@@ -41,6 +42,7 @@ export function exposeVehiclesContext() {
         registerGps:    (vehicleId: string, imei: string)  => ipcRenderer.invoke(REGISTER_GPS_ON_VEHICLE, vehicleId, imei),
         unregisterGps:  (vehicleId: string) => ipcRenderer.invoke(UNREGISTER_GPS_FROM_VEHICLE, vehicleId),
         toggleTracking: (vehicleId: string, enabled: boolean) => ipcRenderer.invoke(TOGGLE_VEHICLE_TRACKING, vehicleId, enabled),
-        getActiveImeis: () => ipcRenderer.invoke(GET_ACTIVE_IMEIS),
+        getActiveImeis:  () => ipcRenderer.invoke(GET_ACTIVE_IMEIS),
+        flushSyncQueue:  () => ipcRenderer.invoke(FLUSH_SYNC_QUEUE),
     });
 }

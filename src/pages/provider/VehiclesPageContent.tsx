@@ -18,7 +18,8 @@ import {
   Search, Truck, Edit, Trash2, Eye, Tag, LayoutGrid, List, Rows,
   Plus, Filter, MoreHorizontal, CheckCircle2, Clock, Settings2, Ban, Upload, Wifi,
 } from 'lucide-react';
-import { getAllVehicles, deleteVehicle, syncVehicleToApi, registerGpsOnVehicle } from '@/helpers/vehicle-helpers';
+import { getAllVehicles, deleteVehicle, syncVehicleToApi, registerGpsOnVehicle, unregisterVehicleGps } from '@/helpers/vehicle-helpers';
+import type { IVehicle } from '@/lib/types/vehicle';
 import { useLicense } from '@/hooks/useLicense';
 import { getAllVehicleCategories, deleteVehicleCategory } from '@/helpers/vehicle-category-helpers';
 import { cn } from '@/lib/utils';
@@ -28,6 +29,7 @@ import { useVehicles } from '@/contexts/VehiclesContext';
 import NewVehicleCategoryDialog from '@/components/vehicle/NewVehicleCategoryDialog';
 import NewVehicleDialog from '@/components/vehicle/NewVehicleDialog';
 import EditVehicleDialog from '@/components/vehicle/EditVehicleDialog';
+import { ImeiSelector } from '@/components/vehicle/ImeiSelector';
 import EditVehicleCategoryDialog from '@/components/vehicle/EditVehicleCategoryDialog';
 import ViewVehicleDialog from '@/components/vehicle/ViewVehicleDialog';
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
@@ -186,6 +188,9 @@ export default function VehiclesPageContent() {
     if (!selectedVehicle) return;
     setIsDeleting(true);
     try {
+      if ((selectedVehicle as any).traccar_unique_id) {
+        await unregisterVehicleGps(selectedVehicle.id);
+      }
       await deleteVehicle(selectedVehicle.id);
       removeVehicleFromContext(selectedVehicle.id);
       showSuccess('vehicles:toast.deleteSuccess');
@@ -337,6 +342,13 @@ export default function VehiclesPageContent() {
     return vehicles.filter(v => v.category_id === categoryId).length;
   }
 
+  function getNoGpsLabel(vehicle: IVehicle): string {
+    if (isConnected) {
+      return vehicle.api_vehicle_id ? 'Sem GPS configurado' : 'Não sincronizado';
+    }
+    return 'Sem GPS';
+  }
+
   // Stats — totais reais do back, não afectados pelos filtros
   function formatStatValue(n: number): string {
     if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
@@ -384,6 +396,10 @@ export default function VehiclesPageContent() {
                 <div className="flex flex-col">
                   <span className="text-sm font-bold">{vehicle.brand} {vehicle.model}</span>
                   <span className="text-xs text-muted-foreground">{vehicle.year}</span>
+                  {vehicle.traccar_unique_id
+                    ? <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1 mt-0.5"><Wifi className="w-3 h-3 text-emerald-500" />{vehicle.traccar_unique_id}</span>
+                    : <span className="text-[11px] text-muted-foreground/50 mt-0.5">— {getNoGpsLabel(vehicle)}</span>
+                  }
                 </div>
               </div>
               <div className="col-span-2 flex items-center gap-2">
@@ -454,6 +470,10 @@ export default function VehiclesPageContent() {
                       <Tag className="w-4 h-4" />
                       {vehicle.category_name}
                     </span>
+                    {vehicle.traccar_unique_id
+                      ? <span className="flex items-center gap-1.5 font-mono text-xs"><Wifi className="w-3.5 h-3.5 text-emerald-500" />{vehicle.traccar_unique_id}</span>
+                      : <span className="flex items-center gap-1.5 text-xs text-muted-foreground/50"><Wifi className="w-3.5 h-3.5" />{getNoGpsLabel(vehicle)}</span>
+                    }
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -553,18 +573,33 @@ export default function VehiclesPageContent() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col gap-4 p-5 pt-2">
-              <div className="flex items-center justify-between p-3.5 rounded-xl bg-muted/50 border border-muted/50">
-                <div className="space-y-0.5">
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('vehicles:fields.mileage')}</p>
-                  <p className="text-lg font-bold tracking-tight">
-                    {vehicle.current_mileage?.toLocaleString('pt-AO')}
-                    <span className="ml-1 text-xs font-normal text-muted-foreground">km</span>
-                  </p>
+              <div className="rounded-xl bg-muted/50 border border-muted/50 overflow-hidden">
+                <div className="flex items-center p-3.5">
+                  <div className="flex-1 space-y-0.5">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('vehicles:fields.mileage')}</p>
+                    <p className="text-lg font-bold tracking-tight">
+                      {vehicle.current_mileage?.toLocaleString('pt-AO')}
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">km</span>
+                    </p>
+                  </div>
+                  <div className="h-8 w-px bg-muted-foreground/10 mx-3" />
+                  <div className="flex-1 text-right space-y-0.5">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('vehicles:table.category')}</p>
+                    <p className="text-sm font-bold truncate max-w-[90px] ml-auto">{vehicle.category_name}</p>
+                  </div>
                 </div>
-                <div className="h-8 w-px bg-muted-foreground/10" />
-                <div className="text-right space-y-0.5">
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('vehicles:table.category')}</p>
-                  <p className="text-sm font-bold truncate max-w-[90px]">{vehicle.category_name}</p>
+                <div className="border-t border-muted/60 px-3.5 py-2 flex items-center gap-1.5">
+                  {vehicle.traccar_unique_id ? (
+                    <>
+                      <Wifi className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                      <span className="text-[11px] font-mono text-muted-foreground truncate">{vehicle.traccar_unique_id}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Wifi className="w-3 h-3 text-muted-foreground/40 flex-shrink-0" />
+                      <span className="text-[11px] text-muted-foreground/40">{getNoGpsLabel(vehicle)}</span>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="mt-auto pt-2 flex gap-2">
@@ -917,22 +952,12 @@ export default function VehiclesPageContent() {
                   {t('vehicles:fields.gpsImei')}
                   <span className="ml-1.5 text-xs text-muted-foreground font-normal">{t('vehicles:fields.gpsImeiOptional')}</span>
                 </Label>
-                <div className="relative">
-                  <Input
-                    id="sync-imei"
-                    placeholder={t('vehicles:placeholders.gpsImei')}
-                    value={imeiInput}
-                    onChange={(e) => setImeiInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (imeiInput.trim() ? syncWithImei() : syncWithoutImei())}
-                    className="font-mono pr-8"
-                    autoFocus
-                  />
-                  {imeiInput.trim() && (
-                    <Wifi className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500 pointer-events-none" />
-                  )}
-                </div>
+                <ImeiSelector
+                  value={imeiInput || null}
+                  onChange={(v) => setImeiInput(v ?? '')}
+                />
                 <p className="text-xs text-muted-foreground">
-                  {imeiInput.trim() ? t('vehicles:dialogs.sync.imeiCreationHint') : t('vehicles:dialogs.sync.imeiHint')}
+                  {imeiInput ? t('vehicles:dialogs.sync.imeiCreationHint') : t('vehicles:dialogs.sync.imeiHint')}
                 </p>
               </div>
             </div>
@@ -968,15 +993,10 @@ export default function VehiclesPageContent() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2 py-2">
-              <Label htmlFor="add-gps-imei">{t('vehicles:fields.gpsImei')}</Label>
-              <Input
-                id="add-gps-imei"
-                placeholder={t('vehicles:placeholders.gpsImei')}
-                value={addGpsImeiInput}
-                onChange={(e) => setAddGpsImeiInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && doAddGps()}
-                className="font-mono"
-                autoFocus
+              <Label>{t('vehicles:fields.gpsImei')}</Label>
+              <ImeiSelector
+                value={addGpsImeiInput || null}
+                onChange={(v) => setAddGpsImeiInput(v ?? '')}
               />
               <p className="text-xs text-muted-foreground">
                 {t('vehicles:dialogs.addGps.hint')}
@@ -1004,7 +1024,9 @@ export default function VehiclesPageContent() {
           onConfirm={handleDeleteVehicle}
           title={t('vehicles:dialogs.delete.title')}
           description={t('vehicles:dialogs.delete.description')}
-          warning={t('vehicles:dialogs.delete.warning')}
+          warning={(selectedVehicle as any)?.traccar_unique_id
+            ? t('vehicles:dialogs.delete.warningWithGps', { imei: (selectedVehicle as any).traccar_unique_id })
+            : t('vehicles:dialogs.delete.warning')}
           itemName={selectedVehicle?.license_plate}
           isLoading={isDeleting}
         />

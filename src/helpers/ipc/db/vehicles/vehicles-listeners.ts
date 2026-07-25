@@ -20,7 +20,9 @@ import {
   UNREGISTER_GPS_FROM_VEHICLE,
   TOGGLE_VEHICLE_TRACKING,
   GET_ACTIVE_IMEIS,
+  FLUSH_SYNC_QUEUE,
 } from "./vehicles-channels";
+import { enqueue, flushPendingOps } from './api-sync-queue';
 
 import {
   getAllVehicles,
@@ -97,13 +99,18 @@ export function addVehiclesEventListeners() {
       .where(eq(vehicles.id, vehicleId));
 
     // Sync API em fire-and-forget: não bloqueia o retorno ao renderer.
+    // Se offline (sem resposta do servidor), enfileira para retry automático
+    // quando o TrackingContext detectar reconexão.
     if (apiId) {
       try {
-        const headers = apiHeaders();
+        const headers = apiHeaders(); // lança se sem token (standalone) — não enfileirar
         axios.post(`${API_URL}/api/vehicles/${apiId}/unregister-gps`, {}, { headers, timeout: 10_000 })
-          .catch((err: Error) => console.warn('[vehicles] unregister-gps API sync failed:', err.message));
+          .catch((err: any) => {
+            if (!err.response) enqueue('post', `/api/vehicles/${apiId}/unregister-gps`, {});
+            else console.warn('[vehicles] unregister-gps falhou:', err.response.status);
+          });
       } catch {
-        // sem token (modo standalone) — ignorar
+        // sem token (modo standalone) — não enfileirar
       }
     }
 
@@ -120,14 +127,17 @@ export function addVehiclesEventListeners() {
       .set({ tracking_enabled: enabled, updated_at: new Date().toISOString() })
       .where(eq(vehicles.id, vehicleId));
 
-    // Sync API em fire-and-forget: não bloqueia o retorno ao renderer.
+    // Sync API em fire-and-forget com retry automático em caso de offline.
     if (apiId) {
       try {
         const headers = apiHeaders();
         axios.patch(`${API_URL}/api/vehicles/${apiId}/tracking`, { tracking_enabled: enabled }, { headers, timeout: 8_000 })
-          .catch((err: Error) => console.warn('[vehicles] toggle-tracking API sync failed:', err.message));
+          .catch((err: any) => {
+            if (!err.response) enqueue('patch', `/api/vehicles/${apiId}/tracking`, { tracking_enabled: enabled });
+            else console.warn('[vehicles] toggle-tracking falhou:', err.response.status);
+          });
       } catch {
-        // sem token (modo standalone) — ignorar
+        // sem token (modo standalone) — não enfileirar
       }
     }
 
@@ -141,11 +151,16 @@ export function addVehiclesEventListeners() {
       .from(vehicles)
       .where(and(
         isNotNull(vehicles.traccar_unique_id),
-        isNotNull(vehicles.api_vehicle_id),
         eq(vehicles.tracking_enabled, true),
         isNull(vehicles.deleted_at),
       ));
     return rows.map(r => r.imei as string);
+  });
+
+  // Chamado pelo TrackingContext quando detecta reconexão ao servidor (reconnectCount sobe).
+  // Reutiliza a monitorização de conectividade já existente — sem scheduler adicional.
+  ipcMain.handle(FLUSH_SYNC_QUEUE, async () => {
+    await flushPendingOps();
   });
 }
 

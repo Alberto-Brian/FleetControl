@@ -174,11 +174,17 @@ interface Props {
   onDrawCancel?:  () => void;
 }
 
-function getDeviceLabel(name: string, type: MapLabelType = 'both'): string {
-  if (type === 'both') return name;
-  const idx = name.indexOf(' - ');
-  if (idx === -1) return name;
-  return type === 'plate' ? name.slice(0, idx) : name.slice(idx + 3);
+function getDeviceLabel(
+  device: { name: string; vehicle?: { license_plate: string; brand: string; model: string } | null },
+  type: MapLabelType = 'both',
+): string {
+  const v = device.vehicle;
+  if (!v) return device.name;
+  const plate = v.license_plate;
+  const bm    = [v.brand, v.model].filter(Boolean).join(' ');
+  if (type === 'plate')       return plate || device.name;
+  if (type === 'brand_model') return bm    || device.name;
+  return [plate, bm].filter(Boolean).join(' · ') || device.name;
 }
 
 function createClusterIcon(cluster: any) {
@@ -293,7 +299,7 @@ export function TrackingMap({
             const isSelected = selectedDevice?.traccar_id === pos.deviceId;
             const isMoving   = (pos.speed ?? 0) > 0;
             const color      = getDeviceColor(device?.status ?? 'unknown', pos.speed ?? 0);
-            const mapLabel   = getDeviceLabel(deviceName, labelType);
+            const mapLabel   = getDeviceLabel(device ?? { name: deviceName }, labelType);
             const icon       = createDeviceIcon(color, pos.course ?? 0, isSelected, isMoving, mapLabel, pulseMarkers);
 
             return (

@@ -12,6 +12,7 @@ export const ptSettings = {
   resetToDefaults: 'Repor predefinições',
   resetConfirm: 'Tem a certeza que deseja repor todas as configurações para os valores padrão?',
   resetSuccess: 'Configurações repostas com sucesso.',
+  reloadApp: 'Recarregar aplicação',
 
   // ── Navegação ──────────────────────────────────────────────────────────────
   nav: {

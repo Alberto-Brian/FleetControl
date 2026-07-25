@@ -7,6 +7,9 @@ import axios        from 'axios';
 import {
   GET_TRACKED_DEVICES,
   CREATE_TRACKED_DEVICE,
+  UPDATE_TRACKED_DEVICE,
+  DELETE_TRACKED_DEVICE,
+  CONFIGURE_DEVICE_SERVER,
   GET_DEVICE_POSITIONS,
   GET_POSITION_HISTORY,
   SYNC_DEVICES,
@@ -35,6 +38,16 @@ function apiHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+// Serializa erros HTTP para sobreviver à barreira IPC do Electron.
+// AxiosError perde response.status ao ser serializado — codificamos em JSON no message.
+function rethrowHttpError(err: any): never {
+  if (err?.response) {
+    const payload = { status: err.response.status, message: err.response.data?.message ?? err.message };
+    throw new Error(`IPC_HTTP_ERROR:${JSON.stringify(payload)}`);
+  }
+  throw err;
+}
+
 export function addTrackingEventListeners() {
   ipcMain.handle(GET_TRACKED_DEVICES, async () => {
     const { data } = await axios.get(`${getApiUrl()}/api/traccar/devices`, {
@@ -44,10 +57,38 @@ export function addTrackingEventListeners() {
     return data.data;
   });
 
-  ipcMain.handle(CREATE_TRACKED_DEVICE, async (_event, payload: { name: string; uniqueId: string }) => {
-    const { data } = await axios.post(`${getApiUrl()}/api/traccar/devices`, payload, {
+  ipcMain.handle(CREATE_TRACKED_DEVICE, async (_event, payload: { name: string; uniqueId: string; phone?: string; operator?: string }) => {
+    try {
+      const { data } = await axios.post(`${getApiUrl()}/api/traccar/devices`, payload, {
+        headers: apiHeaders(),
+        timeout: 15_000,
+      });
+      return data.data;
+    } catch (err) { rethrowHttpError(err); }
+  });
+
+  ipcMain.handle(UPDATE_TRACKED_DEVICE, async (_event, traccarDeviceId: number, payload: { name: string; uniqueId: string; phone?: string; operator?: string }) => {
+    try {
+      const { data } = await axios.put(`${getApiUrl()}/api/traccar/devices/${traccarDeviceId}`, payload, {
+        headers: apiHeaders(),
+        timeout: 15_000,
+      });
+      return data.data;
+    } catch (err) { rethrowHttpError(err); }
+  });
+
+  ipcMain.handle(DELETE_TRACKED_DEVICE, async (_event, traccarDeviceId: number) => {
+    await axios.delete(`${getApiUrl()}/api/traccar/devices/${traccarDeviceId}`, {
       headers: apiHeaders(),
       timeout: 15_000,
+    });
+    return true;
+  });
+
+  ipcMain.handle(CONFIGURE_DEVICE_SERVER, async (_event, traccarDeviceId: number) => {
+    const { data } = await axios.post(`${getApiUrl()}/api/traccar/devices/${traccarDeviceId}/configure-server`, {}, {
+      headers: apiHeaders(),
+      timeout: 20_000,
     });
     return data.data;
   });

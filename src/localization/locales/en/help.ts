@@ -56,14 +56,15 @@ export const enHelp = {
         {
           type: 'list' as const,
           items: [
-            'Register GPS: links the physical device IMEI to the vehicle — automatically creates the device on the Traccar server',
-            'Remove GPS: unlinks the device from the vehicle in the local database and API. The device remains in Traccar',
+            'Register GPS: links the IMEI to the vehicle — after registration, the system suggests adding the vehicle to a virtual geofencing zone',
+            'Remove GPS: unlinks the device; the device name on the Traccar server automatically changes to "FC-LIVRE-NNN", indicating it is available for reuse',
             'To change the IMEI: remove the current GPS and register the new one — there is no direct IMEI update',
             'Pause tracking: the vehicle stops appearing on the map but keeps the GPS linked — can be re-enabled at any time',
             'Resume tracking: the vehicle reappears on the map with real-time updates',
+            'Delete vehicle with active GPS: the system warns that the IMEI will be disassociated before deletion and asks for confirmation',
           ],
         },
-        { type: 'tip', text: 'To permanently disable or delete a device on the Traccar server, use the web module (coming soon).' },
+        { type: 'tip', text: 'The "GPS Devices" panel (toolbar button on the map) lets you filter devices with or without a linked vehicle, making it easy to manage free IMEIs.' },
       ],
     },
     {
@@ -228,7 +229,7 @@ export const enHelp = {
           items: [
             'The map only shows vehicles with an active GPS and tracking enabled',
             'Vehicles with paused tracking appear in the sidebar list with a "Tracking paused" badge but have no marker on the map',
-            'The "GPS Devices" panel (toolbar button, visible in connected mode) lists all Traccar devices in the organization, even those not linked to vehicles',
+            'The "GPS Devices" panel (toolbar button) lists all Traccar devices in the organisation with search by name, IMEI or linked vehicle plate',
             'After a backup restore, the app automatically checks IMEIs and warns when any have no match in Traccar',
           ],
         },
@@ -252,6 +253,14 @@ export const enHelp = {
           ],
         },
         { type: 'tip', text: 'You can enable/disable native notifications in Settings › GPS Alerts. Each event type can be configured individually.' },
+        { type: 'text', text: 'Alert Panel — Click "Alerts" in the map toolbar to open the history of generated alerts. The panel includes:' },
+        { type: 'list', items: [
+          'Search by device name, event type or zone name',
+          'Filter tabs: All / Unread / Read — with a count on each tab',
+          'Stats bar: total unread and read counts, with the time period covered by loaded alerts',
+          'Clicking an alert opens the detail view with coordinates, date/time and an option to centre on the map',
+          'Mark alerts individually or all as read with one click',
+        ]},
       ],
     },
     {

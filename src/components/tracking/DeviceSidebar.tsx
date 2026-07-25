@@ -5,7 +5,7 @@ import React, { useRef, useState } from 'react';
 import { ScrollArea }  from '@/components/ui/scroll-area';
 import {
   Search, Truck, Navigation2, RefreshCw,
-  PanelLeftClose, Radio, MapPin, Gauge, X, Cpu,
+  PanelLeftClose, Radio, MapPin, Gauge, X, Cpu, PauseCircle,
 } from 'lucide-react';
 import type { Position }      from '@/hooks/useApiConnection';
 import type { TrackedDevice } from '@/helpers/tracking-helpers';
@@ -17,7 +17,7 @@ interface Props {
   devices:            TrackedDevice[];
   positions:          Position[];
   selectedDevice:     TrackedDevice | null;
-  filteredStatus:     'all' | 'online' | 'offline';
+  filteredStatus:     'all' | 'online' | 'offline' | 'inactive';
   followingDeviceId?: number | null;
   onSelect:           (device: TrackedDevice) => void;
   onFollowDevice?:    (device: TrackedDevice) => void;
@@ -25,19 +25,20 @@ interface Props {
   isConnected:        boolean;
   isLoading?:         boolean;
   onRefresh:            () => void;
-  onFilterStatus?:      (status: 'all' | 'online' | 'offline') => void;
+  onFilterStatus?:      (status: 'all' | 'online' | 'offline' | 'inactive') => void;
   onToggleSidebar?:     () => void;
   onOpenDevicesPanel?:  () => void;
 }
 
-function formatRelativeTime(dateStr?: string): string {
+function formatRelativeTime(dateStr: string | undefined, t: (k: string) => string): string {
   if (!dateStr) return '';
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (diff < 5)     return 'agora';
-  if (diff < 60)    return `${diff}s atrás`;
-  if (diff < 3600)  return `${Math.floor(diff / 60)}m atrás`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h atrás`;
-  return `${Math.floor(diff / 86400)}d atrás`;
+  const ago = t('sidebar.relativeAgo');
+  if (diff < 5)     return t('sidebar.relativeNow');
+  if (diff < 60)    return `${diff}s ${ago}`;
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m ${ago}`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ${ago}`;
+  return `${Math.floor(diff / 86400)}d ${ago}`;
 }
 
 export function DeviceSidebar({
@@ -46,8 +47,14 @@ export function DeviceSidebar({
   isConnected, isLoading = false, onRefresh, onFilterStatus, onToggleSidebar, onOpenDevicesPanel,
 }: Props) {
   const { t } = useTranslation('tracking');
-  const { activeImeis, linkedImeis } = useTracking();
+  const { activeImeis, linkedImeis, linkedImeisLoaded } = useTracking();
   const [search, setSearch] = useState('');
+
+  // Filtra para mostrar apenas devices cujo IMEI está registado na nossa BD
+  // Só aplica o filtro depois de linkedImeis ter sido carregado (para evitar sidebar vazio durante boot)
+  const sidebarDevices = linkedImeisLoaded
+    ? devices.filter(d => d.uniqueId ? linkedImeis.has(d.uniqueId) : false)
+    : devices;
 
   const clickTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastClickedRef = useRef<number | null>(null);
@@ -64,17 +71,21 @@ export function DeviceSidebar({
     }
   }
 
-  const filtered = devices.filter(d => {
+  const filtered = sidebarDevices.filter(d => {
     const matchSearch = d.name.toLowerCase().includes(search.toLowerCase()) ||
       d.uniqueId?.toLowerCase().includes(search.toLowerCase());
-    // 'offline' inclui qualquer estado que não seja 'online' (ex: 'unknown', null)
-    const matchStatus = filteredStatus === 'all' ||
-      (filteredStatus === 'online' ? d.status === 'online' : d.status !== 'online');
-    return matchSearch && matchStatus;
+    const isInactive  = d.uniqueId ? linkedImeis.has(d.uniqueId) && !activeImeis.has(d.uniqueId) : false;
+    if (filteredStatus === 'inactive') return matchSearch && isInactive;
+    if (filteredStatus === 'online')   return matchSearch && d.status === 'online'  && !isInactive;
+    if (filteredStatus === 'offline')  return matchSearch && d.status !== 'online'  && !isInactive;
+    return matchSearch; // 'all'
   });
 
-  const onlineCount  = devices.filter(d => d.status === 'online').length;
-  const offlineCount = devices.length - onlineCount;
+  const inactiveCount = sidebarDevices.filter(d =>
+    d.uniqueId ? linkedImeis.has(d.uniqueId) && !activeImeis.has(d.uniqueId) : false
+  ).length;
+  const onlineCount  = sidebarDevices.filter(d => d.status === 'online' && !( d.uniqueId ? linkedImeis.has(d.uniqueId) && !activeImeis.has(d.uniqueId) : false )).length;
+  const offlineCount = sidebarDevices.length - onlineCount - inactiveCount;
 
   function getPosition(device: TrackedDevice): Position | undefined {
     return positions.find(p => p.deviceId === device.traccar_id);
@@ -96,10 +107,11 @@ export function DeviceSidebar({
     );
   }
 
-  const FILTER_TABS: { key: 'all' | 'online' | 'offline'; label: string; count: number }[] = [
-    { key: 'all',     label: 'Todos',   count: devices.length },
-    { key: 'online',  label: 'Online',  count: onlineCount    },
-    { key: 'offline', label: 'Offline', count: offlineCount   },
+  const FILTER_TABS: { key: 'all' | 'online' | 'offline' | 'inactive'; label: string; count: number }[] = [
+    { key: 'all',      label: t('sidebar.allDevices'),     count: sidebarDevices.length },
+    { key: 'online',   label: t('sidebar.statusOnline'),   count: onlineCount           },
+    { key: 'offline',  label: t('sidebar.statusOffline'),  count: offlineCount          },
+    { key: 'inactive', label: t('sidebar.inactive'),       count: inactiveCount         },
   ];
 
   return (
@@ -125,7 +137,7 @@ export function DeviceSidebar({
               <Truck className="w-3.5 h-3.5" style={{ color: '#60a5fa' }} />
             </div>
             <span className="text-sm font-semibold" style={{ color: 'var(--ui-t90)' }}>
-              Dispositivos
+              {t('sidebar.title')}
             </span>
             {/* Dot conexão */}
             <span
@@ -134,7 +146,7 @@ export function DeviceSidebar({
                 background: isConnected ? '#4ade80' : 'var(--ui-t20)',
                 boxShadow:  isConnected ? '0 0 6px #4ade80' : 'none',
               }}
-              title={isConnected ? 'Ligado em tempo real' : 'Desligado'}
+              title={isConnected ? t('sidebar.connected') : t('sidebar.disconnected')}
             />
           </div>
 
@@ -145,11 +157,11 @@ export function DeviceSidebar({
                 <Cpu className="w-3.5 h-3.5" />
               </IconBtn>
             )}
-            <IconBtn title="Actualizar" onClick={onRefresh} disabled={isLoading}>
+            <IconBtn title={t('toolbar.refresh')} onClick={onRefresh} disabled={isLoading}>
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             </IconBtn>
             {onToggleSidebar && (
-              <IconBtn title="Fechar painel" onClick={onToggleSidebar}>
+              <IconBtn title={t('toolbar.closeSidebar')} onClick={onToggleSidebar}>
                 <PanelLeftClose className="w-3.5 h-3.5" />
               </IconBtn>
             )}
@@ -162,46 +174,53 @@ export function DeviceSidebar({
             className="flex gap-1 p-1 rounded-lg mb-3"
             style={{ background: 'var(--ui-b05)' }}
           >
-            {FILTER_TABS.map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => onFilterStatus(tab.key)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-1 px-2 rounded-md text-xs font-medium transition-all"
-                style={{
-                  color:      filteredStatus === tab.key ? 'var(--ui-t90)' : 'var(--ui-t35)',
-                  background: filteredStatus === tab.key ? 'var(--ui-b10)' : 'transparent',
-                }}
-                onMouseEnter={e => {
-                  if (filteredStatus !== tab.key)
-                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t58)';
-                }}
-                onMouseLeave={e => {
-                  if (filteredStatus !== tab.key)
-                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t35)';
-                }}
-              >
-                <span
-                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+            {FILTER_TABS.map(tab => {
+              const isActive = filteredStatus === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  title={tab.label}
+                  onClick={() => onFilterStatus(tab.key)}
+                  className={`${isActive ? 'flex-[1.8]' : 'flex-[0.8]'} flex items-center justify-center gap-1 py-1.5 px-1.5 rounded-md text-[10px] font-medium transition-all overflow-hidden`}
                   style={{
-                    background: tab.key === 'online'
-                      ? '#4ade80'
-                      : tab.key === 'offline'
-                        ? 'var(--ui-t20)'
-                        : '#60a5fa',
+                    color:      isActive ? 'var(--ui-t90)' : 'var(--ui-t35)',
+                    background: isActive ? 'var(--ui-b10)' : 'transparent',
                   }}
-                />
-                {tab.label}
-                <span
-                  className="px-1 py-0.5 rounded text-[10px] leading-none"
-                  style={{
-                    background: filteredStatus === tab.key ? 'var(--ui-b12)' : 'var(--ui-b06)',
-                    color:      filteredStatus === tab.key ? 'var(--ui-t72)' : 'var(--ui-t30)',
+                  onMouseEnter={e => {
+                    if (!isActive)
+                      (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t58)';
+                  }}
+                  onMouseLeave={e => {
+                    if (!isActive)
+                      (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t35)';
                   }}
                 >
-                  {tab.count}
-                </span>
-              </button>
-            ))}
+                  <span
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{
+                      background: tab.key === 'online'
+                        ? '#4ade80'
+                        : tab.key === 'offline'
+                          ? 'var(--ui-t20)'
+                          : tab.key === 'inactive'
+                            ? '#fbbf24'
+                            : '#60a5fa',
+                    }}
+                  />
+                  {isActive && (
+                    <span className="truncate" style={{ color: 'var(--ui-t80)' }}>
+                      {tab.label}
+                    </span>
+                  )}
+                  <span
+                    className="font-semibold flex-shrink-0"
+                    style={{ color: isActive ? 'var(--ui-t80)' : 'var(--ui-t40)' }}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -212,7 +231,7 @@ export function DeviceSidebar({
             style={{ color: 'var(--ui-t25)' }}
           />
           <input
-            placeholder="Procurar dispositivo..."
+            placeholder={t('sidebar.search')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-8 py-2 text-xs rounded-lg outline-none transition-all"
@@ -242,7 +261,7 @@ export function DeviceSidebar({
         style={{ borderBottom: '1px solid var(--ui-b05)' }}
       >
         <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--ui-t20)' }}>
-          {filtered.length} de {devices.length} dispositivo{devices.length !== 1 ? 's' : ''}
+          {t('sidebar.countOf', { filtered: filtered.length, total: sidebarDevices.length })}
         </span>
       </div>
 
@@ -285,7 +304,7 @@ export function DeviceSidebar({
                   if (!isSelected)
                     (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
                 }}
-                title="Clique para centrar · Duplo clique para seguir"
+                title={t('sidebar.clickHint')}
               >
                 {/* Avatar com indicador de estado */}
                 <div className="relative flex-shrink-0">
@@ -294,36 +313,42 @@ export function DeviceSidebar({
                     style={{
                       background: isFollowing
                         ? 'rgba(167,139,250,0.2)'
-                        : isOnline
-                          ? isMoving ? 'rgba(52,211,153,0.18)' : 'rgba(52,211,153,0.1)'
-                          : 'var(--ui-b05)',
+                        : isTrackingPaused
+                          ? 'rgba(251,191,36,0.12)'
+                          : isOnline
+                            ? isMoving ? 'rgba(52,211,153,0.18)' : 'rgba(52,211,153,0.1)'
+                            : 'var(--ui-b05)',
                       border: isFollowing
                         ? '1px solid rgba(167,139,250,0.3)'
-                        : isOnline
-                          ? '1px solid rgba(52,211,153,0.2)'
-                          : '1px solid var(--ui-b07)',
+                        : isTrackingPaused
+                          ? '1px solid rgba(251,191,36,0.22)'
+                          : isOnline
+                            ? '1px solid rgba(52,211,153,0.2)'
+                            : '1px solid var(--ui-b07)',
                     }}
                   >
                     {isFollowing
                       ? <Radio className="w-4.5 h-4.5 animate-pulse" style={{ color: '#a78bfa' }} />
-                      : isMoving
-                        ? <Navigation2
-                            className="w-4 h-4"
-                            style={{ color: '#34d399', transform: `rotate(${pos?.course ?? 0}deg)` }}
-                          />
-                        : <Truck
-                            className="w-4 h-4"
-                            style={{ color: isOnline ? '#34d399' : 'var(--ui-t20)' }}
-                          />
+                      : isTrackingPaused
+                        ? <PauseCircle className="w-4 h-4" style={{ color: '#fbbf24' }} />
+                        : isMoving
+                          ? <Navigation2
+                              className="w-4 h-4"
+                              style={{ color: '#34d399', transform: `rotate(${pos?.course ?? 0}deg)` }}
+                            />
+                          : <Truck
+                              className="w-4 h-4"
+                              style={{ color: isOnline ? '#34d399' : 'var(--ui-t20)' }}
+                            />
                     }
                   </div>
                   {/* Indicador de estado sobreposto */}
                   <span
                     className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 flex-shrink-0"
                     style={{
-                      background:  isOnline ? '#22c55e' : 'rgba(100,116,139,0.8)',
+                      background:  isTrackingPaused ? '#fbbf24' : isOnline ? '#22c55e' : 'rgba(100,116,139,0.8)',
                       borderColor: 'var(--ui-nav-bg)',
-                      boxShadow:   isOnline ? '0 0 6px rgba(34,197,94,0.6)' : 'none',
+                      boxShadow:   isTrackingPaused ? '0 0 5px rgba(251,191,36,0.5)' : isOnline ? '0 0 6px rgba(34,197,94,0.6)' : 'none',
                     }}
                   />
                 </div>
@@ -345,7 +370,7 @@ export function DeviceSidebar({
                       >
                         {device.name}
                       </p>
-                      {isTrackingPaused && activeImeis.size > 0 && (
+                      {isTrackingPaused && (
                         <span
                           className="inline-block mt-0.5 text-[10px] px-1.5 py-0.5 rounded-sm leading-none"
                           style={{ color: 'var(--ui-t40)', background: 'var(--ui-b08)' }}
@@ -379,15 +404,19 @@ export function DeviceSidebar({
                   <div className="flex items-center gap-1.5 mb-1">
                     <span
                       className="text-[11px] font-medium"
-                      style={{ color: isOnline ? '#4ade80' : 'var(--ui-t28)' }}
+                      style={{ color: isTrackingPaused ? '#fbbf24' : isOnline ? '#4ade80' : 'var(--ui-t28)' }}
                     >
-                      {isOnline ? (isMoving ? 'Em movimento' : 'Online') : 'Offline'}
+                      {isTrackingPaused
+                        ? t('sidebar.statusInactive')
+                        : isOnline
+                          ? (isMoving ? t('sidebar.statusMoving') : t('sidebar.statusOnline'))
+                          : t('sidebar.statusOffline')}
                     </span>
                     {device.lastUpdate && (
                       <>
                         <span style={{ color: 'var(--ui-t15)' }}>·</span>
                         <span className="text-[10px]" style={{ color: 'var(--ui-t20)' }}>
-                          {formatRelativeTime(device.lastUpdate)}
+                          {formatRelativeTime(device.lastUpdate, t)}
                         </span>
                       </>
                     )}
@@ -427,7 +456,7 @@ export function DeviceSidebar({
                     )
                   ) : (
                     <p className="text-[10px]" style={{ color: 'var(--ui-t15)' }}>
-                      {isOnline ? 'A aguardar posição...' : 'Sem posição disponível'}
+                      {isOnline ? t('sidebar.awaitingPosition') : t('device.noPosition')}
                     </p>
                   )}
                 </div>
@@ -438,7 +467,7 @@ export function DeviceSidebar({
                     onClick={e => { e.stopPropagation(); onCenterDevice(device); }}
                     className="absolute right-2.5 top-2.5 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded-lg flex items-center justify-center"
                     style={{ color: 'var(--ui-t40)', background: 'var(--ui-b08)' }}
-                    title="Zoom de rua"
+                    title={t('sidebar.zoomStreet')}
                     onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#60a5fa'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(59,130,246,0.15)'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t40)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--ui-b08)'; }}
                   >
@@ -457,7 +486,9 @@ export function DeviceSidebar({
                 <Truck className="w-5 h-5" style={{ color: 'var(--ui-t15)' }} />
               </div>
               <p className="text-xs text-center" style={{ color: 'var(--ui-t25)' }}>
-                {search ? `Sem resultados para "${search}"` : 'Sem dispositivos'}
+                {search
+                  ? t('sidebar.noResults', { query: search })
+                  : t('sidebar.noDevices')}
               </p>
             </div>
           )}

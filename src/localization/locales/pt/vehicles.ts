@@ -85,6 +85,8 @@ export const ptVehicles = {
     searchCategory: 'Pesquisar categoria...',
     tireSize: "Ex: 205/55 R16",
     gpsImei: "Ex: 353926070024734",
+    selectImei: "Seleccionar dispositivo GPS...",
+    searchImei: "Pesquisar dispositivo ou IMEI...",
   },
 
   actions: {
@@ -139,7 +141,8 @@ export const ptVehicles = {
     delete: {
       title: "Excluir Veículo",
       description: "Tem a certeza que deseja excluir o veículo",
-      warning: "Esta acção não pode ser desfeita."
+      warning: "Esta acção não pode ser desfeita.",
+      warningWithGps: "Este veículo tem um dispositivo GPS activo (IMEI: {{imei}}). Ao confirmar, o IMEI será desassociado automaticamente e o dispositivo ficará disponível para reutilização. Esta acção não pode ser desfeita.",
     },
     addGps: {
       title: "Adicionar GPS ao veículo",
@@ -157,6 +160,9 @@ export const ptVehicles = {
       imeiHint: "Se deixares em branco, o veículo é sincronizado sem rastreamento GPS.",
       imeiCreationHint: "Se preenchido, o dispositivo GPS é criado automaticamente no servidor de rastreamento.",
       imeiEditHint: "IMEI do dispositivo GPS instalado neste veículo. Utilizado para rastreamento em tempo real.",
+      imeiLoading: "A carregar dispositivos...",
+      noImeiAvailable: "Nenhum dispositivo disponível. Registe um dispositivo primeiro.",
+      clearImei: "Sem GPS (remover associação)",
       syncWithGps: "Sincronizar com GPS",
       syncWithoutGps: "Sincronizar sem GPS",
       badgeReadyWithGps: "Pronto para sincronizar (com GPS)",
@@ -219,6 +225,32 @@ export const ptVehicles = {
     trackingPaused:       'Rastreamento pausado',
     enableTracking:       'Activar rastreamento',
     disableTracking:      'Pausar rastreamento',
+    registerDialog: {
+      title:            'Registar dispositivo GPS',
+      imeiLabel:        'IMEI / Identificador único',
+      imeiPlaceholder:  'Ex: 123456789012345',
+      imeiDesc:         'Identificador único do dispositivo GPS instalado no veículo.',
+      stepSyncing:      'A registar veículo na plataforma...',
+      stepSyncingDesc:  'O veículo ainda não estava sincronizado com a plataforma. A criar registo...',
+      stepRegistering:      'A verificar IMEI e a ligar GPS ao veículo...',
+      stepRegisteringDesc:  'A confirmar que o dispositivo existe no servidor Traccar e não está em uso...',
+      tryAgain:         'Tentar novamente',
+      errorTitle: {
+        GPS_DEVICE_ALREADY_LINKED:      'Dispositivo já em uso',
+        GPS_IMEI_NOT_FOUND:             'IMEI não encontrado',
+        GPS_VEHICLE_ALREADY_HAS_DEVICE: 'Veículo já tem GPS',
+        SYNC_FAILED:                    'Erro de sincronização',
+        UNKNOWN:                        'Erro ao registar GPS',
+      },
+      imeiNotFoundHint: 'Certifique-se que o dispositivo já está registado no servidor Traccar e que os dispositivos foram sincronizados.',
+    },
+    removeDialog: {
+      title:       'Remover dispositivo GPS',
+      description: 'Tem a certeza que pretende desligar o GPS deste veículo?',
+      consequence: 'O veículo deixará de aparecer no mapa e o rastreamento em tempo real será interrompido. O dispositivo permanece registado no servidor Traccar e pode ser associado a outro veículo.',
+      removing:    'A remover...',
+      confirm:     'Remover GPS',
+    },
   },
 
   tabs: {
@@ -282,6 +314,7 @@ export const ptVehicles = {
     syncError: "Erro ao sincronizar veículo com a API",
     addGpsSuccess: "GPS registado com sucesso no veículo",
     addGpsError: "Erro ao registar o GPS no veículo",
+    gpsRegistered: "GPS registado. Mapa de dispositivos actualizado.",
     categoryRestored: "Categoria activada com sucesso!",
     deleteError: "Erro ao excluir veículo",
     mileageUpdateSuccess: "Quilometragem actualizada com sucesso",
@@ -298,7 +331,9 @@ export const ptVehicles = {
     gpsRemoveError: "Erro ao remover dispositivo GPS",
     trackingEnabled: "Rastreamento activado",
     trackingDisabled: "Rastreamento pausado",
-    trackingError: "Erro ao actualizar rastreamento"
+    trackingError: "Erro ao actualizar rastreamento",
+    gpsGeofenceHint: "Dica: pode adicionar este veículo a uma zona virtual para receber alertas de entrada/saída. Aceda ao mapa → Zonas.",
+    gpsNoGeofenceHint: "Dica: ainda não tem zonas virtuais definidas. Aceda ao mapa → Zonas para criar áreas de geofencing e receber alertas automáticos.",
   },
 
   errors: {

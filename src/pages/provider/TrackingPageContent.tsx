@@ -236,6 +236,7 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
               }}
             >
               <GeofencePanel
+                isOpen={geoPanelOpen}
                 onStartDraw={(mode) => { setGeoPanelOpen(false); setDrawMode(mode); }}
                 onClose={() => setGeoPanelOpen(false)}
                 onFocusGeofence={(g) => {
@@ -266,6 +267,7 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
               }}
             >
               <AlertPanel
+                isOpen={alertPanelOpen}
                 onClose={() => setAlertPanelOpen(false)}
                 onFocusCoords={(lat, lon) => {
                   mapRef.current?.setView([lat, lon], 17, { animate: true });

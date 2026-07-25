@@ -17,6 +17,7 @@ import { getAllVehicleCategories } from '@/helpers/vehicle-category-helpers';
 import { ICreateVehicle } from '@/lib/types/vehicle';
 import { useVehicles } from '@/contexts/VehiclesContext';
 import { useLicense } from '@/hooks/useLicense';
+import { ImeiSelector } from './ImeiSelector';
 
 export default function NewVehicleDialog() {
   const { showSuccess, handleError } = useErrorHandler();
@@ -316,16 +317,13 @@ const filteredCategories = categories.filter(cat =>
 
             {isConnectedLicense && (
               <div className="col-span-2 space-y-2">
-                <Label htmlFor="traccar_unique_id">
+                <Label>
                   {t('vehicles:fields.gpsImei')}
                   <span className="ml-1 text-xs font-normal text-muted-foreground">{t('vehicles:fields.gpsImeiOptional')}</span>
                 </Label>
-                <Input
-                  id="traccar_unique_id"
-                  placeholder={t('vehicles:placeholders.gpsImei')}
-                  value={formData.traccar_unique_id || ''}
-                  onChange={(e) => setFormData({ ...formData, traccar_unique_id: e.target.value })}
-                  className="font-mono"
+                <ImeiSelector
+                  value={formData.traccar_unique_id || null}
+                  onChange={(v) => setFormData({ ...formData, traccar_unique_id: v ?? '' })}
                 />
                 <p className="text-xs text-muted-foreground">
                   {t('vehicles:dialogs.sync.imeiCreationHint')}

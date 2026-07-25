@@ -3,13 +3,17 @@
 // ========================================
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Edit, Gauge, RefreshCw, CheckCircle2, Clock, Settings2, Ban,
   Truck, Tag, Calendar, DollarSign, FileText, RotateCcw, Hash, Wifi, Upload, WifiOff, MapPin,
-  Route, Fuel, Wrench, ChevronRight,
+  Route, Fuel, Wrench, ChevronRight, AlertTriangle, Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useVehicles } from '@/contexts/VehiclesContext';
@@ -18,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { useLicense } from '@/hooks/useLicense';
 import { registerGpsOnVehicle, updateVehicle, unregisterVehicleGps, toggleVehicleTracking } from '@/helpers/vehicle-helpers';
 import { Switch } from '@/components/ui/switch';
+import { ImeiSelector } from './ImeiSelector';
 import { toast } from 'sonner';
 import { getRefuelingsByVehicle } from '@/helpers/refueling-helpers';
 import { IRefueling } from '@/lib/types/refueling';
@@ -34,6 +39,20 @@ interface ViewVehicleDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+function parseGpsError(err: any): { code: string; message: string } {
+  const raw: string = err?.message || 'Erro desconhecido';
+  // Remover prefixo do IPC do Electron: "Error invoking remote method '...': Error: "
+  const cleaned = raw.replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
+
+  const code: string = err?.apiCode
+    || (cleaned.includes('já está associado a:')   ? 'GPS_DEVICE_ALREADY_LINKED'
+      : cleaned.includes('não encontrado')          ? 'GPS_IMEI_NOT_FOUND'
+      : cleaned.includes('já tem um dispositivo')   ? 'GPS_VEHICLE_ALREADY_HAS_DEVICE'
+      : 'UNKNOWN');
+
+  return { code, message: cleaned };
+}
+
 // ─── tipos locais para o histórico ───────────────────────────────────────────
 interface TripRow {
   id: string; trip_code: string; start_date: string; end_date: string | null;
@@ -48,7 +67,7 @@ interface MaintenanceRow {
 
 export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDialogProps) {
   const { state: { selectedVehicle }, dispatch } = useVehicles();
-  const { reloadActiveImeis } = useTracking();
+  const { state, reloadActiveImeis } = useTracking();
   const { t } = useTranslation();
   const { license } = useLicense();
   const isConnected = license?.mode === 'connected' && license?.isValid;
@@ -64,8 +83,10 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [gpsDialogOpen, setGpsDialogOpen] = useState(false);
+  const [confirmRemoveGps, setConfirmRemoveGps] = useState(false);
   const [newImei, setNewImei] = useState('');
-  const [savingGps, setSavingGps] = useState(false);
+  const [gpsStep, setGpsStep] = useState<'idle' | 'syncing' | 'registering'>('idle');
+  const [gpsError, setGpsError] = useState<{ code: string; message: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Reset ao fechar ou trocar de veículo
@@ -105,7 +126,23 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
 
   async function handleSaveImei() {
     if (!selectedVehicle || !newImei.trim()) return;
-    setSavingGps(true);
+    setGpsError(null);
+
+    // Passo 1 — sincronizar veículo com a API se ainda não estiver registado
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!(selectedVehicle as any).api_vehicle_id) {
+      setGpsStep('syncing');
+      try {
+        await window._vehicles.syncToApi(selectedVehicle.id);
+      } catch (err: any) {
+        setGpsError({ code: 'SYNC_FAILED', message: parseGpsError(err).message });
+        setGpsStep('idle');
+        return;
+      }
+    }
+
+    // Passo 2 — registar o IMEI/GPS
+    setGpsStep('registering');
     try {
       await registerGpsOnVehicle(selectedVehicle.id, newImei.trim());
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -115,19 +152,18 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
       reloadActiveImeis();
       setGpsDialogOpen(false);
       setNewImei('');
-      toast.success(t('vehicles:toast.addGpsSuccess'));
+      setGpsStep('idle');
+      toast.success(t('vehicles:toast.gpsRegistered'));
+      setTimeout(() => {
+        if (state.geofences.length > 0) {
+          toast.info(t('vehicles:toast.gpsGeofenceHint'), { duration: 7000 });
+        } else {
+          toast.info(t('vehicles:toast.gpsNoGeofenceHint'), { duration: 7000 });
+        }
+      }, 600);
     } catch (err: any) {
-      const GPS_ERROR_I18N: Record<string, string> = {
-        GPS_IMEI_NOT_FOUND:            t('vehicles:errors.gpsImeiNotFound'),
-        GPS_DEVICE_ALREADY_LINKED:     t('vehicles:errors.gpsDeviceAlreadyLinked'),
-        GPS_VEHICLE_ALREADY_HAS_DEVICE: t('vehicles:errors.gpsVehicleAlreadyHasDevice'),
-      };
-      const msg = (err?.apiCode && GPS_ERROR_I18N[err.apiCode])
-        ?? err?.message
-        ?? t('vehicles:toast.addGpsError');
-      toast.error(msg);
-    } finally {
-      setSavingGps(false);
+      setGpsError(parseGpsError(err));
+      setGpsStep('idle');
     }
   }
 
@@ -225,7 +261,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
   function tripStatusBadge(s: string) {
     const map: Record<string, { label: string; cls: string }> = {
       in_progress: { label: t('trips:status.in_progress'), cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400' },
-      completed:   { label: t('trips:status.completed'),   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400' },
+      completed:   { label: t('trips:status.completed.label'),   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400' },
       cancelled:   { label: t('trips:status.cancelled'),   cls: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400' },
     };
     const info = map[s] || map.completed;
@@ -501,7 +537,7 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
                           <div className="flex gap-2 w-full mt-1">
                             {/* Para mudar IMEI: remover GPS e registar novo — ver web module (futuro) */}
                             <button
-                              onClick={handleRemoveGps}
+                              onClick={() => setConfirmRemoveGps(true)}
                               disabled={isLoading}
                               className="text-[11px] text-destructive hover:text-destructive/80 underline disabled:opacity-50"
                             >
@@ -727,46 +763,132 @@ export default function ViewVehicleDialog({ open, onOpenChange }: ViewVehicleDia
       <ChangeStatusDialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen} />
       <EditVehicleDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} />
 
+      {/* Confirmação de remoção de GPS */}
+      <AlertDialog open={confirmRemoveGps} onOpenChange={setConfirmRemoveGps}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <WifiOff className="w-5 h-5 text-destructive" />
+              {t('vehicles:gps.removeDialog.title')}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                {t('vehicles:gps.removeDialog.description')}
+              </span>
+              <span className="block text-foreground/80 font-medium">
+                {t('vehicles:gps.removeDialog.consequence')}
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoading}>{t('common:actions.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemoveGps}
+              disabled={isLoading}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isLoading
+                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t('vehicles:gps.removeDialog.removing')}</>
+                : t('vehicles:gps.removeDialog.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Dialog IMEI GPS */}
-      <Dialog open={gpsDialogOpen} onOpenChange={open => { setGpsDialogOpen(open); if (!open) setNewImei(''); }}>
+      <Dialog
+        open={gpsDialogOpen}
+        onOpenChange={open => {
+          if (gpsStep !== 'idle') return; // bloquear fecho durante operação
+          setGpsDialogOpen(open);
+          if (!open) { setNewImei(''); setGpsError(null); setGpsStep('idle'); }
+        }}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>
-              Registar dispositivo GPS
-            </DialogTitle>
+            <DialogTitle>{t('vehicles:gps.registerDialog.title')}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-1">
-            <div className="space-y-1.5">
-              <p className="text-sm font-medium">IMEI / Identificador único</p>
-              <input
-                type="text"
-                value={newImei}
-                onChange={e => setNewImei(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleSaveImei(); }}
-                placeholder="Ex: 123456789012345"
-                autoFocus
-                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <p className="text-xs text-muted-foreground">
-                Identificador único do dispositivo GPS instalado no veículo.
-              </p>
+
+          {/* ── Estado: erro ── */}
+          {gpsError ? (
+            <div className="space-y-4 pt-1">
+              <div className="flex gap-3 rounded-lg border border-destructive/30 bg-destructive/8 p-4">
+                <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-destructive">
+                    {t(`vehicles:gps.registerDialog.errorTitle.${gpsError.code}`,
+                       t('vehicles:gps.registerDialog.errorTitle.UNKNOWN'))}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{gpsError.message}</p>
+                  {gpsError.code === 'GPS_IMEI_NOT_FOUND' && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t('vehicles:gps.registerDialog.imeiNotFoundHint')}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setGpsError(null)}
+                  className="h-9 px-4 rounded-md border text-sm font-medium hover:bg-muted transition-colors"
+                >
+                  {t('vehicles:gps.registerDialog.tryAgain')}
+                </button>
+                <button
+                  onClick={() => { setGpsDialogOpen(false); setNewImei(''); setGpsError(null); }}
+                  className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                >
+                  {t('common:actions.close', 'Fechar')}
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => { setGpsDialogOpen(false); setNewImei(''); }}
-                className="h-9 px-4 rounded-md border text-sm font-medium hover:bg-muted transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveImei}
-                disabled={!newImei.trim() || savingGps}
-                className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-              >
-                {savingGps ? 'A guardar...' : 'Guardar'}
-              </button>
+          ) : gpsStep !== 'idle' ? (
+            /* ── Estado: a processar ── */
+            <div className="py-6 flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium">
+                  {gpsStep === 'syncing'
+                    ? t('vehicles:gps.registerDialog.stepSyncing')
+                    : t('vehicles:gps.registerDialog.stepRegistering')}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {gpsStep === 'syncing'
+                    ? t('vehicles:gps.registerDialog.stepSyncingDesc')
+                    : t('vehicles:gps.registerDialog.stepRegisteringDesc')}
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* ── Estado: formulário ── */
+            <div className="space-y-4 pt-1">
+              <div className="space-y-1.5">
+                <p className="text-sm font-medium">{t('vehicles:gps.registerDialog.imeiLabel')}</p>
+                <ImeiSelector
+                  value={newImei || null}
+                  onChange={(v) => setNewImei(v ?? '')}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t('vehicles:gps.registerDialog.imeiDesc')}
+                </p>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => { setGpsDialogOpen(false); setNewImei(''); }}
+                  className="h-9 px-4 rounded-md border text-sm font-medium hover:bg-muted transition-colors"
+                >
+                  {t('common:actions.cancel')}
+                </button>
+                <button
+                  onClick={handleSaveImei}
+                  disabled={!newImei.trim()}
+                  className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {t('common:actions.save')}
+                </button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

@@ -16,7 +16,6 @@ import { useTracking, LocalGeofence } from '@/contexts/TrackingContext';
 import { GeofenceFormModal } from './GeofenceFormModal';
 
 interface Props {
-  isOpen?:           boolean;
   onStartDraw:       (mode: 'circle' | 'polygon') => void;
   onFocusGeofence?:  (g: LocalGeofence) => void;
   onClose?:          () => void;
@@ -394,7 +393,7 @@ function GeofenceDetail({
 
 // ── GeofencePanel ────────────────────────────────────────────────────────────
 
-export function GeofencePanel({ isOpen, onStartDraw, onFocusGeofence, onClose }: Props) {
+export function GeofencePanel({ onStartDraw, onFocusGeofence, onClose }: Props) {
   const { t }       = useTranslation('tracking');
   const { state, dispatch } = useTracking();
   const [selected,     setSelected]     = useState<LocalGeofence | null>(null);
@@ -402,10 +401,6 @@ export function GeofencePanel({ isOpen, onStartDraw, onFocusGeofence, onClose }:
   const [modalOpen,    setModalOpen]    = useState(false);
   const [deleting,     setDeleting]     = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<LocalGeofence | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) { setSelected(null); setEditing(null); setModalOpen(false); }
-  }, [isOpen]);
 
   async function confirmDelete(g: LocalGeofence) {
     setDeleteTarget(null);
