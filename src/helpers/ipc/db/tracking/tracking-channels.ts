@@ -2,6 +2,7 @@
 // PROJECT: fleetcontrol-desktop
 // FILE: src/helpers/ipc/db/tracking/tracking-channels.ts
 // ========================================
+export const GET_SERVER_CONFIG      = 'tracking:get-server-config';
 export const GET_TRACKED_DEVICES    = 'tracking:get-devices';
 export const CREATE_TRACKED_DEVICE  = 'tracking:create-device';
 export const UPDATE_TRACKED_DEVICE  = 'tracking:update-device';

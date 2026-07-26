@@ -100,8 +100,8 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
         timestamp:    p.fixTime || p.serverTime || p.deviceTime || new Date().toISOString(),
         attributes:   p.attributes,
       }));
-      dispatch({ type: 'SET_DEVICES',   payload: devs });
-      dispatch({ type: 'SET_POSITIONS', payload: pos  });
+      if (devs.length > 0) dispatch({ type: 'SET_DEVICES', payload: devs });
+      dispatch({ type: 'SET_POSITIONS', payload: pos });
     } catch (err) {
       console.error('[Tracking] Erro ao carregar:', err);
     } finally {

@@ -6,7 +6,7 @@ const EVENT_KEY   = 'fc-layout-padding-changed';
 export function useLayoutPadding() {
   const [hasPadding, setHasPaddingState] = useState<boolean>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved === null ? true : saved === 'true';
+    return saved === null ? false : saved === 'true';
   });
 
   // Sincroniza com outras instâncias do hook (ex: SettingsDialog → HomePage)

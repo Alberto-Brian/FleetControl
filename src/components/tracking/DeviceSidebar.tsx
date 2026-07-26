@@ -143,7 +143,7 @@ export function DeviceSidebar({
             <span
               className="w-1.5 h-1.5 rounded-full flex-shrink-0"
               style={{
-                background: isConnected ? '#4ade80' : 'var(--ui-t20)',
+                background: isConnected ? '#4ade80' : '#94a3b8',
                 boxShadow:  isConnected ? '0 0 6px #4ade80' : 'none',
               }}
               title={isConnected ? t('sidebar.connected') : t('sidebar.disconnected')}
@@ -355,21 +355,22 @@ export function DeviceSidebar({
 
                 {/* Conteúdo */}
                 <div className="flex-1 min-w-0">
-                  {/* Linha 1: Nome + velocidade/follow */}
+                  {/* Linha 1: Veículo (destaque) ou nome do device (sem veículo) + velocidade/follow */}
                   <div className="flex items-start justify-between gap-1 mb-0.5">
                     <div className="flex-1 min-w-0">
                       <p
-                        className="text-xs font-semibold leading-tight"
-                        style={{
-                          color: isSelected ? 'var(--ui-t90)' : 'var(--ui-t82)',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        }}
+                        className="text-xs font-semibold leading-tight truncate"
+                        style={{ color: isSelected ? 'var(--ui-t90)' : 'var(--ui-t82)' }}
                       >
-                        {device.name}
+                        {device.vehicle
+                          ? `${device.vehicle.license_plate} · ${device.vehicle.brand} ${device.vehicle.model}`
+                          : device.name}
                       </p>
+                      {device.vehicle && (
+                        <p className="truncate mt-0.5" style={{ color: 'var(--ui-t40)', fontSize: 10 }}>
+                          {device.name}
+                        </p>
+                      )}
                       {isTrackingPaused && (
                         <span
                           className="inline-block mt-0.5 text-[10px] px-1.5 py-0.5 rounded-sm leading-none"

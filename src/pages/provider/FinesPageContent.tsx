@@ -11,6 +11,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
 import {
   AlertCircle, Search, DollarSign, FileText, Calendar, Eye, Edit,
   Trash2, CheckCircle2, Scale, LayoutGrid, List, Rows, MapPin, Filter
@@ -38,9 +39,10 @@ export default function FinesPageContent() {
   } = useFines();
 
   const [searchTerm, setSearchTerm]     = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [viewMode, setViewMode]         = useState<ViewMode>(() => (localStorage.getItem('viewMode_fines') as ViewMode) || 'cards');
-  useEffect(() => { localStorage.setItem('viewMode_fines', viewMode); }, [viewMode]);
+  const [statusFilter, setStatusFilter] = useState<string>(() => readPersistedFilter('fines', 'status', 'all'));
+  const [viewMode, setViewMode]         = useState<ViewMode>(() => readPersistedViewMode<ViewMode>('fines', 'cards'));
+  useEffect(() => { writePersistedViewMode('fines', viewMode); }, [viewMode]);
+  useEffect(() => { writePersistedFilter('fines', 'status',   statusFilter); }, [statusFilter]);
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Paginação

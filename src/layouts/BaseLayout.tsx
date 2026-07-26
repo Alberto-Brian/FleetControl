@@ -6,7 +6,7 @@ import { useHistoricalDb }  from "@/contexts/HistoricalDbContext";
 import { Wifi, WifiOff, AlertCircle, Loader2, Archive, X } from "lucide-react";
 
 // ─── Badge de estado da ligação (lado direito da titlebar) ───────────────────
-function ConnectionStatusBadge({ dark = true }: { dark?: boolean }) {
+function ConnectionStatusBadge() {
     const { connState, traccarStatus } = useTracking();
 
     const isOnline        = connState === 'connected' && traccarStatus?.connected;
@@ -15,9 +15,6 @@ function ConnectionStatusBadge({ dark = true }: { dark?: boolean }) {
     const isReconnecting  = connState === 'reconnecting';
     const isError         = connState === 'error';
     const isOffline       = !isOnline && !isApiOnly && !isConnecting && !isReconnecting && !isError;
-
-    // Cor neutra que fica legível tanto no fundo escuro (mapa) como no claro (outras páginas)
-    const offlineColor = dark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.35)';
 
     return (
         <div className="flex items-center gap-1.5 select-none">
@@ -42,8 +39,8 @@ function ConnectionStatusBadge({ dark = true }: { dark?: boolean }) {
                   <span style={{ fontSize: 11, fontWeight: 600, color: '#f87171' }}>Servidor inacessível</span></>
             )}
             {isOffline && (
-                <><WifiOff style={{ width: 11, height: 11, color: offlineColor }} />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: offlineColor }}>Offline</span></>
+                <><WifiOff style={{ width: 11, height: 11, color: '#94a3b8' }} />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8' }}>Offline</span></>
             )}
         </div>
     );
@@ -60,7 +57,7 @@ export default function BaseLayout({ children }: { children: React.ReactNode }) 
         <div className="flex flex-col h-screen overflow-hidden">
             <DragWindowRegion
                 title="FleetControl"
-                rightContent={isConnectedLicense ? <ConnectionStatusBadge dark={false} /> : undefined}
+                rightContent={isConnectedLicense ? <ConnectionStatusBadge /> : undefined}
             />
             {historicalDbPath && (
                 <div className="flex items-center justify-between gap-3 px-4 py-1.5 bg-amber-500 text-amber-950 text-xs font-medium shrink-0 z-50">

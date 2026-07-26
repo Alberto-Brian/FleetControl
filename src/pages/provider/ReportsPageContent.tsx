@@ -22,6 +22,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
 import { format, parseISO } from 'date-fns';
 import { pt as ptLocale } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -444,10 +445,12 @@ export function ReportsPageContent() {
   // State
   const [activeTab,      setActiveTab]      = useState<ActiveTab>('reports');
   const [searchTerm,     setSearchTerm]     = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<ReportCategory>('all');
-  const [viewMode,       setViewMode]       = useState<ViewMode>(() => (localStorage.getItem('viewMode_reports') as ViewMode) || 'list');
-  useEffect(() => { localStorage.setItem('viewMode_reports', viewMode); }, [viewMode]);
-  const [datePreset,     setDatePreset]     = useState('thisMonth');
+  const [categoryFilter, setCategoryFilter] = useState<ReportCategory>(() => readPersistedFilter<ReportCategory>('reports', 'category', 'all'));
+  const [viewMode,       setViewMode]       = useState<ViewMode>(() => readPersistedViewMode<ViewMode>('reports', 'list'));
+  const [datePreset,     setDatePreset]     = useState(() => readPersistedFilter('reports', 'datePreset', 'thisMonth'));
+  useEffect(() => { writePersistedViewMode('reports', viewMode); }, [viewMode]);
+  useEffect(() => { writePersistedFilter('reports', 'category',    categoryFilter); }, [categoryFilter]);
+  useEffect(() => { writePersistedFilter('reports', 'datePreset',  datePreset);     }, [datePreset]);
   const [generating,     setGenerating]     = useState<ReportType | null>(null);
   const [historySearch,  setHistorySearch]  = useState('');
   const [historyFilter,  setHistoryFilter]  = useState<ReportType | 'all'>('all');

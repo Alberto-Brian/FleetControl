@@ -193,6 +193,14 @@ export const ptSettings = {
     mapAnimateMarkersDesc:'Animar os ícones ao adicioná-los ao mapa',
     mapPulseMarkers:      'Pulsação dos marcadores',
     mapPulseMarkersDesc:  'Animação suave de batimento nos ícones dos veículos no mapa',
+
+    // Filtros
+    filtersTitle:         'Preferências de listagens',
+    filtersDesc:          'Controla o comportamento dos filtros e do modo de visualização das listagens',
+    persistFilters:       'Guardar filtros entre sessões',
+    persistFiltersDesc:   'Mantém os filtros activos ao fechar e abrir a aplicação',
+    persistViewMode:      'Guardar modo de visualização',
+    persistViewModeDesc:  'Mantém a escolha entre cartões e lista ao fechar e abrir a aplicação',
   },
 
   // ── Idioma ────────────────────────────────────────────────────────────────

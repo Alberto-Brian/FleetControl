@@ -25,6 +25,10 @@ export interface Vehicle {
   acquisition_value: number | null;
   photo: string | null;
   is_active: boolean;
+  tracking_enabled: boolean;
+  traccar_unique_id: string | null;
+  api_vehicle_id: string | null;
+  api_synced_at: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

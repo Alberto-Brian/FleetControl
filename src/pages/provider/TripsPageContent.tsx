@@ -20,6 +20,7 @@ import {
 import { getAllTrips, cancelTrip as cancelTripHelper } from '@/helpers/trip-helpers';
 import { getAllRoutes, deleteRoute as deleteRouteHelper } from '@/helpers/route-helpers';
 import { cn } from '@/lib/utils';
+import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
 import { useTrips } from '@/contexts/TripsContext';
 
 // Dialogs — trips
@@ -56,9 +57,10 @@ export default function TripsPageContent() {
 
   const [activeTab, setActiveTab]       = useState('trips');
   const [searchTerm, setSearchTerm]     = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [viewMode, setViewMode]         = useState<ViewMode>(() => (localStorage.getItem('viewMode_trips') as ViewMode) || 'cards');
-  useEffect(() => { localStorage.setItem('viewMode_trips', viewMode); }, [viewMode]);
+  const [statusFilter, setStatusFilter] = useState<string>(() => readPersistedFilter('trips', 'status', 'all'));
+  const [viewMode, setViewMode]         = useState<ViewMode>(() => readPersistedViewMode<ViewMode>('trips', 'cards'));
+  useEffect(() => { writePersistedViewMode('trips', viewMode); }, [viewMode]);
+  useEffect(() => { writePersistedFilter('trips', 'status',   statusFilter);   }, [statusFilter]);
   const [routeSearch, setRouteSearch]   = useState('');
 
   // Paginação

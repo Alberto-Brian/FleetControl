@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { RESTORE_EXPENSE_CATEGORY } from '@/helpers/ipc/db/expense_categories/expense-categories-channels';
 import { cn } from '@/lib/utils';
+import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger, closeDropdownsAndOpenDialog,
@@ -54,10 +55,12 @@ export default function ExpensesPageContent() {
 
   const [activeTab, setActiveTab] = useState('expenses');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>(() => (localStorage.getItem('viewMode_expenses') as ViewMode) || 'cards');
-  useEffect(() => { localStorage.setItem('viewMode_expenses', viewMode); }, [viewMode]);
+  const [statusFilter,   setStatusFilter]   = useState<string>(() => readPersistedFilter('expenses', 'status',   'all'));
+  const [categoryFilter, setCategoryFilter] = useState<string>(() => readPersistedFilter('expenses', 'category', 'all'));
+  const [viewMode, setViewMode] = useState<ViewMode>(() => readPersistedViewMode<ViewMode>('expenses', 'cards'));
+  useEffect(() => { writePersistedViewMode('expenses', viewMode); }, [viewMode]);
+  useEffect(() => { writePersistedFilter('expenses', 'status',    statusFilter);   }, [statusFilter]);
+  useEffect(() => { writePersistedFilter('expenses', 'category',  categoryFilter); }, [categoryFilter]);
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Paginação

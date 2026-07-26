@@ -35,6 +35,7 @@ import AllActivitiesDialog from '@/components/dashboard/AllActivitiesDialog';
 // Context & Helpers
 import { useDashboard } from '@/contexts/DashboardContext';
 import { loadDashboardData } from '@/helpers/dashboard-helpers';
+import { onDataChanged } from '@/lib/utils/data-events';
 import { useTracking } from '@/contexts/TrackingContext';
 import { Zap, ZapOff, Play, Square, LogIn, LogOut, Gauge, MapPin as MapPinIcon } from 'lucide-react';
 
@@ -61,6 +62,7 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
   const [showAllActivities, setShowAllActivities] = useState(false);
   useEffect(() => {
     loadData();
+    return onDataChanged(loadData);
   }, []);
 
   async function loadData() {

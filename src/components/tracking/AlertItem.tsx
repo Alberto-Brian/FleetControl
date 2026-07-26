@@ -4,6 +4,7 @@ import { LogIn, LogOut, Gauge, CheckCheck, Zap, ZapOff, Play, Square } from 'luc
 import { useTranslation } from 'react-i18next';
 import type { GeofenceAlert } from '@/contexts/TrackingContext';
 import { useTracking } from '@/contexts/TrackingContext';
+import { getDeviceDisplayName } from '@/helpers/tracking-helpers';
 
 interface Props {
   alert:         GeofenceAlert;
@@ -44,7 +45,7 @@ export function AlertItem({ alert, onAcknowledge, onSelect }: Props) {
   const Icon = icons.icon;
 
   const device = state.devices.find(d => d.traccar_id === alert.deviceId);
-  const deviceLabel = device?.name ?? `#${alert.deviceId}`;
+  const deviceLabel = getDeviceDisplayName(device, alert.deviceId);
   const label = EVENT_LABELS[alert.eventType] ?? alert.eventType;
 
   return (
@@ -62,7 +63,7 @@ export function AlertItem({ alert, onAcknowledge, onSelect }: Props) {
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium leading-tight">
+        <p className="text-xs font-medium leading-tight truncate">
           <span style={{ color: icons.color }}>{label}</span>
           {' · '}
           <span className="text-foreground font-semibold">{deviceLabel}</span>

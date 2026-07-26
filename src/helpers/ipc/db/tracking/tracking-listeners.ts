@@ -5,6 +5,7 @@
 import { ipcMain } from 'electron';
 import axios        from 'axios';
 import {
+  GET_SERVER_CONFIG,
   GET_TRACKED_DEVICES,
   CREATE_TRACKED_DEVICE,
   UPDATE_TRACKED_DEVICE,
@@ -85,11 +86,23 @@ export function addTrackingEventListeners() {
     return true;
   });
 
-  ipcMain.handle(CONFIGURE_DEVICE_SERVER, async (_event, traccarDeviceId: number) => {
-    const { data } = await axios.post(`${getApiUrl()}/api/traccar/devices/${traccarDeviceId}/configure-server`, {}, {
+  ipcMain.handle(GET_SERVER_CONFIG, async () => {
+    const { data } = await axios.get(`${getApiUrl()}/api/traccar/server-config`, {
       headers: apiHeaders(),
-      timeout: 20_000,
+      timeout: 10_000,
     });
+    return data.data as { host: string; gpsPort: number };
+  });
+
+  ipcMain.handle(CONFIGURE_DEVICE_SERVER, async (_event, traccarDeviceId: number, frequency?: number, port?: number) => {
+    const body: Record<string, unknown> = {};
+    if (frequency) body.frequency = frequency;
+    if (port)      body.port      = port;
+    const { data } = await axios.post(
+      `${getApiUrl()}/api/traccar/devices/${traccarDeviceId}/configure-server`,
+      body,
+      { headers: apiHeaders(), timeout: 20_000 },
+    );
     return data.data;
   });
 

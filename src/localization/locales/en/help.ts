@@ -57,7 +57,7 @@ export const enHelp = {
           type: 'list' as const,
           items: [
             'Register GPS: links the IMEI to the vehicle — after registration, the system suggests adding the vehicle to a virtual geofencing zone',
-            'Remove GPS: unlinks the device; the device name on the Traccar server automatically changes to "FC-LIVRE-NNN", indicating it is available for reuse',
+            'Remove GPS: unlinks the device; the device name on the Traccar server automatically changes to "GPS-XXXXXX" (last 6 digits of the IMEI), indicating it is available for reuse',
             'To change the IMEI: remove the current GPS and register the new one — there is no direct IMEI update',
             'Pause tracking: the vehicle stops appearing on the map but keeps the GPS linked — can be re-enabled at any time',
             'Resume tracking: the vehicle reappears on the map with real-time updates',

@@ -13,6 +13,7 @@ import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { maintenanceStatus } from '@/lib/db/schemas/maintenances';
 import { cn } from '@/lib/utils';
+import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
 import {
   Wrench, Search, Tag, Edit, Trash2, LayoutGrid, List, Rows,
   Building2, AlertCircle, Clock, Flag, Settings, Phone, Mail, MapPin, Eye, Play, CheckCircle2, Filter, MoreHorizontal, Gauge, X
@@ -57,9 +58,10 @@ export function MaintenancePageContent() {
 
   const [activeTab, setActiveTab]     = useState('maintenances');
   const [searchTerm, setSearchTerm]   = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [viewMode, setViewMode]       = useState<ViewMode>(() => (localStorage.getItem('viewMode_maintenance') as ViewMode) || 'cards');
-  useEffect(() => { localStorage.setItem('viewMode_maintenance', viewMode); }, [viewMode]);
+  const [statusFilter, setStatusFilter] = useState<string>(() => readPersistedFilter('maintenance', 'status', 'all'));
+  const [viewMode, setViewMode]       = useState<ViewMode>(() => readPersistedViewMode<ViewMode>('maintenance', 'cards'));
+  useEffect(() => { writePersistedViewMode('maintenance', viewMode); }, [viewMode]);
+  useEffect(() => { writePersistedFilter('maintenance', 'status',   statusFilter);   }, [statusFilter]);
   const [categorySearch, setCategorySearch] = useState('');
   const [workshopSearch, setWorkshopSearch] = useState('');
 

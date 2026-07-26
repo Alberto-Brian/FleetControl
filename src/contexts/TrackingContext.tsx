@@ -7,6 +7,7 @@ import type { TrackedDevice } from '@/helpers/tracking-helpers';
 import { sendNativeNotification } from '@/helpers/notifications';
 import type { AlertSettings } from '@/helpers/notifications';
 import { getAllVehicles } from '@/helpers/vehicle-helpers';
+import { getTrackedDevices } from '@/helpers/tracking-helpers';
 import { reconcileVehicleImeis, type ReconciliationResult } from '@/lib/utils/imei-reconciliation';
 
 export interface LocalGeofence {
@@ -204,8 +205,6 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
       console.error('[TrackingContext] Failed to reload active IMEIs:', err);
       // Do NOT clear activeImeis on error — keep previous value to avoid blanking the map
     }
-    // Load linked IMEIs: only vehicles synced to the API (api_vehicle_id) with a GPS assigned.
-    // A vehicle without api_vehicle_id is not registered in the cloud — it must not appear on the map.
     try {
       const { data: allVehicles } = await getAllVehicles({ limit: 9999 });
       const linked: string[] = [];
@@ -218,6 +217,21 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
       }
       setLinkedImeis(new Set(linked));
       setVehicleByImei(vehicleMap);
+
+      // Recarrega a lista de devices da IPC para garantir que devices recém-criados
+      // (que ainda não chegaram via socket) aparecem no sidebar sem recarregar a app.
+      try {
+        const rawDevices = await getTrackedDevices();
+        if (rawDevices.length > 0) {
+          const enriched: TrackedDevice[] = rawDevices.map(d => ({
+            ...d,
+            vehicle: vehicleMap.get(d.uniqueId) ?? null,
+          }));
+          dispatch({ type: 'UPDATE_DEVICES', payload: enriched });
+        }
+      } catch (err) {
+        console.warn('[TrackingContext] getTrackedDevices failed (socket will sync):', err);
+      }
     } catch (err) {
       console.error('[TrackingContext] Failed to reload linked IMEIs:', err);
     } finally {

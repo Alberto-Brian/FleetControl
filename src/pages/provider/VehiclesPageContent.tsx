@@ -23,7 +23,9 @@ import type { IVehicle } from '@/lib/types/vehicle';
 import { useLicense } from '@/hooks/useLicense';
 import { getAllVehicleCategories, deleteVehicleCategory } from '@/helpers/vehicle-category-helpers';
 import { cn } from '@/lib/utils';
+import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
 import { useVehicles } from '@/contexts/VehiclesContext';
+import { useTracking } from '@/contexts/TrackingContext';
 
 // Dialogs
 import NewVehicleCategoryDialog from '@/components/vehicle/NewVehicleCategoryDialog';
@@ -43,6 +45,7 @@ import {
 
 type ViewMode = 'compact' | 'normal' | 'cards';
 
+
 export default function VehiclesPageContent() {
   const { t } = useTranslation();
   const { handleError, showSuccess } = useErrorHandler();
@@ -58,9 +61,12 @@ export default function VehiclesPageContent() {
   const [addGpsImeiInput, setAddGpsImeiInput] = useState('');
   const [isAddingGps, setIsAddingGps] = useState(false);
 
+  const { state: trackingState, reloadActiveImeis } = useTracking();
+
   const {
     state: { vehicles, selectedVehicle, isLoading, categories, selectedCategory, isCategoriesLoading },
     setVehicles,
+    updateVehicle: updateVehicleInContext,
     deleteVehicle: removeVehicleFromContext,
     selectVehicle,
     setLoading,
@@ -72,12 +78,17 @@ export default function VehiclesPageContent() {
 
   const [activeTab, setActiveTab] = useState('vehicles');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [syncFilter, setSyncFilter] = useState<'all' | 'synced' | 'not_synced'>('all');
-  const [imeiFilter, setImeiFilter] = useState<'all' | 'with_imei' | 'without_imei'>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>(() => (localStorage.getItem('viewMode_vehicles') as ViewMode) || 'cards');
-  useEffect(() => { localStorage.setItem('viewMode_vehicles', viewMode); }, [viewMode]);
+  const [statusFilter,   setStatusFilter]   = useState<string>(() => readPersistedFilter('vehicles', 'status',   'all'));
+  const [categoryFilter, setCategoryFilter] = useState<string>(() => readPersistedFilter('vehicles', 'category', 'all'));
+  const [syncFilter,     setSyncFilter]     = useState<'all' | 'synced' | 'not_synced'>(() => readPersistedFilter('vehicles', 'sync', 'all'));
+  const [imeiFilter,     setImeiFilter]     = useState<'all' | 'with_imei' | 'without_imei'>(() => readPersistedFilter('vehicles', 'imei', 'all'));
+  const [viewMode,       setViewMode]       = useState<ViewMode>(() => readPersistedViewMode<ViewMode>('vehicles', 'cards'));
+
+  useEffect(() => { writePersistedViewMode('vehicles', viewMode); }, [viewMode]);
+  useEffect(() => { writePersistedFilter('vehicles', 'status',     statusFilter);   }, [statusFilter]);
+  useEffect(() => { writePersistedFilter('vehicles', 'category',   categoryFilter); }, [categoryFilter]);
+  useEffect(() => { writePersistedFilter('vehicles', 'sync',       syncFilter);     }, [syncFilter]);
+  useEffect(() => { writePersistedFilter('vehicles', 'imei',       imeiFilter);     }, [imeiFilter]);
 
   // Paginação
   const [currentPage, setCurrentPage] = useState(1);
@@ -245,9 +256,14 @@ export default function VehiclesPageContent() {
   async function doSync(vehicleId: string, imei?: string) {
     setSyncingVehicleId(vehicleId);
     try {
-      await syncVehicleToApi(vehicleId, imei);
+      const updated = await syncVehicleToApi(vehicleId, imei);
       showSuccess('vehicles:toast.syncSuccess');
-      loadVehicles();
+      if (updated) {
+        const current = vehicles.find(v => v.id === vehicleId);
+        updateVehicleInContext({ ...updated, category_name: current?.category_name, category_color: current?.category_color });
+      } else {
+        loadVehicles();
+      }
     } catch (error: any) {
       const raw: string | undefined = error?.message;
       if (raw && !raw.startsWith('APP_ERROR||')) {
@@ -284,10 +300,20 @@ export default function VehiclesPageContent() {
     if (!addGpsVehicleId || !addGpsImeiInput.trim()) return;
     setIsAddingGps(true);
     try {
-      await registerGpsOnVehicle(addGpsVehicleId, addGpsImeiInput.trim());
+      const updated = await registerGpsOnVehicle(addGpsVehicleId, addGpsImeiInput.trim());
       showSuccess('vehicles:toast.addGpsSuccess');
       setAddGpsDialogOpen(false);
-      loadVehicles();
+      setAddGpsVehicleId(null);
+      if (updated) {
+        const current = vehicles.find(v => v.id === addGpsVehicleId);
+        updateVehicleInContext({ ...updated, category_name: current?.category_name, category_color: current?.category_color });
+      }
+      reloadActiveImeis();
+      if (trackingState.geofences.length === 0) {
+        setTimeout(() => {
+          toast.info(t('vehicles:toast.gpsNoGeofenceHint'), { duration: 7000 });
+        }, 3500);
+      }
     } catch (error: any) {
       const raw: string | undefined = error?.message;
       if (raw && !raw.startsWith('APP_ERROR||')) {
@@ -793,12 +819,7 @@ export default function VehiclesPageContent() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setViewMode(item.mode as ViewMode)}
-                      className={cn(
-                        "h-8 w-9 p-0 rounded-md transition-all",
-                        viewMode === item.mode
-                          ? "bg-white shadow-sm border border-border/50 text-foreground dark:bg-white/12 dark:border-white/10"
-                          : "text-muted-foreground hover:text-foreground/80 hover:bg-transparent"
-                      )}
+                      className={cn('h-8 px-3 rounded-lg transition-all flex items-center gap-2', viewMode === item.mode ? 'bg-background shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground')}
                     >
                       <item.icon className="w-4 h-4" />
                     </Button>
@@ -1016,7 +1037,7 @@ export default function VehiclesPageContent() {
         {/* Dialogs */}
         <EditVehicleDialog       open={editDialogOpen}         onOpenChange={setEditDialogOpen}         />
         <EditVehicleCategoryDialog open={editCategoryDialogOpen} onOpenChange={setEditCategoryDialogOpen} />
-        <ViewVehicleDialog       open={viewDialogOpen}         onOpenChange={setViewDialogOpen}         />
+        <ViewVehicleDialog       open={viewDialogOpen}         onOpenChange={setViewDialogOpen}         onRegisterGps={openAddGpsDialog} />
 
         <ConfirmDeleteDialog
           open={deleteDialogOpen}

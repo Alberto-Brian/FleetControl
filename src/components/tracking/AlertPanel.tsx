@@ -3,12 +3,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Bell, CheckCheck, X, ChevronLeft, LogIn, LogOut, Gauge,
-  MapPin, Clock, Navigation, Zap, ZapOff, Play, Square, Search,
+  MapPin, Clock, Navigation, Zap, ZapOff, Play, Square, Search, Filter,
 } from 'lucide-react';
 import { Button }        from '@/components/ui/button';
 import { useTracking }   from '@/contexts/TrackingContext';
 import type { GeofenceAlert } from '@/contexts/TrackingContext';
 import { AlertItem }     from './AlertItem';
+import { getDeviceDisplayName } from '@/helpers/tracking-helpers';
 
 interface Props {
   isOpen?:            boolean;
@@ -123,7 +124,7 @@ function AlertDetail({
             <Navigation className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-muted-foreground text-[10px] uppercase tracking-wide">{t('alertDetail.device')}</p>
-              <p className="font-medium mt-0.5">{device?.name ?? `#${alert.deviceId}`}</p>
+              <p className="font-medium mt-0.5">{getDeviceDisplayName(device, alert.deviceId)}</p>
               {device?.uniqueId && (
                 <p className="text-muted-foreground/70 font-mono text-[10px] mt-0.5">{device.uniqueId}</p>
               )}
@@ -209,16 +210,18 @@ type FilterTab = 'all' | 'unread' | 'read';
 export function AlertPanel({ isOpen, onClose, onFocusCoords }: Props) {
   const { t }               = useTranslation('tracking');
   const { state, dispatch } = useTracking();
-  const [selected,   setSelected]   = useState<GeofenceAlert | null>(null);
-  const [loading,    setLoading]    = useState(false);
-  const [search,     setSearch]     = useState('');
-  const [filterTab,  setFilterTab]  = useState<FilterTab>('all');
+  const [selected,    setSelected]    = useState<GeofenceAlert | null>(null);
+  const [loading,     setLoading]     = useState(false);
+  const [search,      setSearch]      = useState('');
+  const [filterTab,   setFilterTab]   = useState<FilterTab>('all');
+  const [filterZone,  setFilterZone]  = useState<number | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
       setSelected(null);
       setSearch('');
       setFilterTab('all');
+      setFilterZone(null);
     }
   }, [isOpen]);
 
@@ -228,7 +231,7 @@ export function AlertPanel({ isOpen, onClose, onFocusCoords }: Props) {
   // Mapa traccar_id → device name para pesquisa
   const deviceNameMap = useMemo<Record<number, string>>(() => {
     const map: Record<number, string> = {};
-    state.devices.forEach(d => { map[d.traccar_id] = d.name; });
+    state.devices.forEach(d => { map[d.traccar_id] = getDeviceDisplayName(d); });
     return map;
   }, [state.devices]);
 
@@ -243,11 +246,26 @@ export function AlertPanel({ isOpen, onClose, onFocusCoords }: Props) {
     deviceStopped: t('alerts.stopped'),
   }), [t]);
 
-  // Alertas filtrados por tab + pesquisa
+  // Zonas disponíveis para o selector — derivadas de state.geofences (reactivo a criação/remoção)
+  const alertZones = useMemo(() => {
+    return state.geofences
+      .map(g => [g.id, g.name] as [number, string])
+      .sort((a, b) => a[1].localeCompare(b[1]));
+  }, [state.geofences]);
+
+  // Limpa o filtro de zona se a zona seleccionada foi eliminada
+  useEffect(() => {
+    if (filterZone !== null && !state.geofences.some(g => g.id === filterZone)) {
+      setFilterZone(null);
+    }
+  }, [state.geofences, filterZone]);
+
+  // Alertas filtrados por tab + zona + pesquisa
   const filteredAlerts = useMemo(() => {
     let list = state.alerts;
     if (filterTab === 'unread') list = list.filter(a => !a.acknowledged);
     if (filterTab === 'read')   list = list.filter(a => a.acknowledged);
+    if (filterZone !== null)    list = list.filter(a => a.geofenceId === filterZone);
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter(a => {
@@ -258,7 +276,7 @@ export function AlertPanel({ isOpen, onClose, onFocusCoords }: Props) {
       });
     }
     return list;
-  }, [state.alerts, filterTab, search, deviceNameMap, eventNameMap]);
+  }, [state.alerts, filterTab, filterZone, search, deviceNameMap, eventNameMap]);
 
   // Data do alerta mais antigo (para mostrar o período coberto)
   const oldestAlertDate = useMemo(() => {
@@ -310,7 +328,7 @@ export function AlertPanel({ isOpen, onClose, onFocusCoords }: Props) {
     { key: 'read',   label: t('alerts.filterRead'),   count: readCount },
   ];
 
-  const isFiltered = search.trim() !== '' || filterTab !== 'all';
+  const isFiltered = search.trim() !== '' || filterTab !== 'all' || filterZone !== null;
 
   // Lista
   return (
@@ -354,7 +372,7 @@ export function AlertPanel({ isOpen, onClose, onFocusCoords }: Props) {
         </div>
       )}
 
-      {/* Pesquisa + tabs de filtro */}
+      {/* Pesquisa + filtro de zona + tabs */}
       {state.alerts.length > 0 && (
         <div className="flex flex-col gap-1.5 px-2.5 py-2 border-b flex-shrink-0">
           <div className="relative">
@@ -367,6 +385,23 @@ export function AlertPanel({ isOpen, onClose, onFocusCoords }: Props) {
               className="w-full h-7 pl-7 pr-2.5 text-xs rounded-md border bg-background/60 focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
+          {alertZones.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <Filter className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+              <select
+                value={filterZone ?? ''}
+                onChange={e => setFilterZone(e.target.value === '' ? null : Number(e.target.value))}
+                className={`flex-1 h-6 pl-1.5 pr-1 text-[10px] rounded border bg-background/60 focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer ${
+                  filterZone !== null ? 'text-primary border-primary/40' : 'text-muted-foreground'
+                }`}
+              >
+                <option value="">{t('alerts.filterZoneAll')}</option>
+                {alertZones.map(([id, name]) => (
+                  <option key={id} value={id}>{name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="flex gap-1">
             {TABS.map(tab => {
               const isActive = filterTab === tab.key;

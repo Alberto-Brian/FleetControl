@@ -49,15 +49,17 @@ function applyFont(stack: string) {
   document.documentElement.style.setProperty('--app-font', stack);
 }
 
+const DEFAULT_FONT: FontFamily = 'system';
+
 export function initFont() {
   const saved = localStorage.getItem(STORAGE_KEY) as FontFamily | null;
-  const option = FONT_OPTIONS.find(f => f.id === saved) ?? FONT_OPTIONS[0];
+  const option = FONT_OPTIONS.find(f => f.id === saved) ?? FONT_OPTIONS.find(f => f.id === DEFAULT_FONT)!;
   applyFont(option.stack);
 }
 
 export function useFontFamily() {
   const [fontId, setFontId] = useState<FontFamily>(() => {
-    return (localStorage.getItem(STORAGE_KEY) as FontFamily) ?? 'geist';
+    return (localStorage.getItem(STORAGE_KEY) as FontFamily) ?? DEFAULT_FONT;
   });
 
   useEffect(() => {

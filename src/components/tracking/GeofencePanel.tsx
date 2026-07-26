@@ -13,6 +13,7 @@ import {
   AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useTracking, LocalGeofence } from '@/contexts/TrackingContext';
+import { getDeviceDisplayName } from '@/helpers/tracking-helpers';
 import { GeofenceFormModal } from './GeofenceFormModal';
 
 interface Props {
@@ -90,7 +91,7 @@ function GeofenceDetail({
   // All known devices (from tracking state) — IDs normalised to number
   const allDevices: TraccarDeviceInfo[] = state.devices.map(d => ({
     id:       Number(d.traccar_id),
-    name:     d.name,
+    name:     getDeviceDisplayName(d),
     uniqueId: d.uniqueId,
   }));
 
@@ -373,7 +374,7 @@ function GeofenceDetail({
                       <Icon className="w-3 h-3 flex-shrink-0" style={{ color: meta.color }} />
                       <span className="text-xs flex-1 truncate"
                         style={{ opacity: a.acknowledged ? 0.5 : 1 }}>
-                        {device?.name ?? `#${a.deviceId}`}
+                        {getDeviceDisplayName(device, a.deviceId)}
                         {a.speed != null && ` · ${Math.round(a.speed)} km/h`}
                       </span>
                       <span className="text-[10px] text-muted-foreground/60 flex-shrink-0">

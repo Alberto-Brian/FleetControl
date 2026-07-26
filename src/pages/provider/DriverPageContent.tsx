@@ -32,6 +32,7 @@ import { getAllVehicles }  from '@/helpers/vehicle-helpers';
 import { getAllRoutes }    from '@/helpers/route-helpers';
 import { getShiftsForAllDrivers } from '@/helpers/driver-shift-helpers';
 import { cn }             from '@/lib/utils';
+import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
 import { useDrivers }     from '@/contexts/DriversContext';
 import { DriverLeavesProvider }   from '@/contexts/DriverLeavesContext';
 import { ScheduledTripsProvider } from '@/contexts/ScheduledTripsContext';
@@ -64,9 +65,10 @@ export default function DriversPageContent() {
 
   const [activeTab, setActiveTab]                   = useState('drivers');
   const [searchTerm, setSearchTerm]                 = useState('');
-  const [availabilityFilter, setAvailabilityFilter] = useState<string>('all');
-  const [viewMode, setViewMode]                     = useState<ViewMode>(() => (localStorage.getItem('viewMode_drivers') as ViewMode) || 'cards');
-  useEffect(() => { localStorage.setItem('viewMode_drivers', viewMode); }, [viewMode]);
+  const [availabilityFilter, setAvailabilityFilter] = useState<string>(() => readPersistedFilter('drivers', 'availability', 'all'));
+  const [viewMode, setViewMode]                     = useState<ViewMode>(() => readPersistedViewMode<ViewMode>('drivers', 'cards'));
+  useEffect(() => { writePersistedViewMode('drivers', viewMode); }, [viewMode]);
+  useEffect(() => { writePersistedFilter('drivers', 'availability',   availabilityFilter); }, [availabilityFilter]);
 
   // Mapa driverId → turnos activos em que está inserido
   const [driverShiftsMap, setDriverShiftsMap] = useState<Record<string, IDriverShiftBadge[]>>({});

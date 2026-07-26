@@ -57,7 +57,7 @@ export const ptHelp = {
           type: 'list' as const,
           items: [
             'Registar GPS: associa o IMEI ao veículo — após o registo, o sistema sugere adicionar o veículo a uma zona virtual de geofencing',
-            'Remover GPS: desvincula o dispositivo; o nome do device no Traccar passa automaticamente a "FC-LIVRE-NNN", indicando que está disponível para reutilização',
+            'Remover GPS: desvincula o dispositivo; o nome do device no Traccar passa automaticamente a "GPS-XXXXXX" (últimos 6 dígitos do IMEI), indicando que está disponível para reutilização',
             'Para mudar o IMEI: remova o GPS actual e registe o novo — não existe actualização directa de IMEI',
             'Pausar rastreamento: o veículo deixa de aparecer no mapa mas mantém o GPS associado — pode ser reactivado a qualquer momento',
             'Retomar rastreamento: o veículo volta a aparecer no mapa com actualizações em tempo real',

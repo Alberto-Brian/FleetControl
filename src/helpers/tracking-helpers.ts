@@ -60,9 +60,7 @@ const DEVICE_COLORS = [
 ];
 
 export async function getTrackedDevices(): Promise<TrackedDevice[]> {
-  try {
-    return await window._tracking.getDevices();
-  } catch { return []; }
+  return await window._tracking.getDevices();
 }
 
 export async function createTrackedDevice(data: { name: string; uniqueId: string }): Promise<TrackedDevice | null> {
@@ -105,7 +103,7 @@ export async function getGeofences() {
 
 export async function getLinkSuggestions(): Promise<LinkSuggestion[]> {
   try {
-    return await window._tracking.getLinkSuggestions();
+    return (await window._tracking.getLinkSuggestions()) as LinkSuggestion[];
   } catch { return []; }
 }
 
@@ -115,6 +113,19 @@ export async function linkVehicleDevice(vehicleId: string, traccarDeviceId: stri
 
 export async function unlinkVehicleDevice(vehicleId: string) {
   return window._tracking.unlinkVehicleDevice(vehicleId);
+}
+
+export function getDeviceDisplayName(
+  device: TrackedDevice | null | undefined,
+  fallbackId?: number | string,
+): string {
+  if (!device) return fallbackId != null ? `#${fallbackId}` : '—';
+  if (device.vehicle) {
+    const { license_plate, brand, model } = device.vehicle;
+    const bm = [brand, model].filter(Boolean).join(' ');
+    return bm ? `${license_plate} · ${bm}` : license_plate || device.name;
+  }
+  return device.name;
 }
 
 // Calcula bearing entre dois pontos (para rodar o ícone do veículo)

@@ -19,7 +19,7 @@ import {
   Mail, Phone, MapPin, Building2, HardDrive, Download, Upload,
   Clock, Loader2, CheckCircle, XCircle, Camera, Trash2, Save,
   Building, Hash, AtSign, ImageIcon, FileText, Bell, Car,
-  Fuel, Sliders, RotateCcw, Eye, EyeOff, Droplets,
+  Fuel, Sliders, RotateCcw, Eye, EyeOff, Droplets, Filter,
   Key, ShieldCheck, RefreshCw, PanelLeft, Maximize2, Server, WifiOff, Wifi,
   Database, Search,
 } from 'lucide-react';
@@ -1545,6 +1545,19 @@ export default function SettingsDialog() {
   const isConnectedMode = license?.mode === 'connected' && license?.isValid;
   const [systemVersion, setSystemVersion] = useState('');
   const [search, setSearch]               = useState('');
+  const [persistFilters, setPersistFiltersState] = useState(() => localStorage.getItem('app_persist_filters') === 'true');
+
+  function togglePersistFilters(value: boolean) {
+    localStorage.setItem('app_persist_filters', value ? 'true' : 'false');
+    setPersistFiltersState(value);
+  }
+
+  const [persistViewMode, setPersistViewModeState] = useState(() => localStorage.getItem('app_persist_viewmode') !== 'false');
+
+  function togglePersistViewMode(value: boolean) {
+    localStorage.setItem('app_persist_viewmode', value ? 'true' : 'false');
+    setPersistViewModeState(value);
+  }
 
   // Backup states
   const [operation, setOperation]           = useState<'idle'|'exporting'|'restoring'>('idle');
@@ -2127,6 +2140,38 @@ export default function SettingsDialog() {
                           </div>
                         </div>
                       </div>}
+
+                      {/* Filtros */}
+                      <div>
+                        <h3 className="text-base font-semibold mb-1">{t('appearance.filtersTitle')}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">{t('appearance.filtersDesc')}</p>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                                <Filter className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{t('appearance.persistFilters')}</p>
+                                <p className="text-xs text-muted-foreground">{t('appearance.persistFiltersDesc')}</p>
+                              </div>
+                            </div>
+                            <Switch checked={persistFilters} onCheckedChange={togglePersistFilters} />
+                          </div>
+                          <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                                <Sliders className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{t('appearance.persistViewMode')}</p>
+                                <p className="text-xs text-muted-foreground">{t('appearance.persistViewModeDesc')}</p>
+                              </div>
+                            </div>
+                            <Switch checked={persistViewMode} onCheckedChange={togglePersistViewMode} />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 

@@ -8,7 +8,13 @@ import { Label }  from '@/components/ui/label';
 
 import type { LocalGeofence } from '@/contexts/TrackingContext';
 
-interface TraccarDevice { id: string; traccarId: number; name: string; uniqueId: string; }
+interface TraccarDevice {
+  id: string;
+  traccarId: number;
+  name: string;
+  uniqueId: string;
+  vehicle?: { license_plate: string; brand: string; model: string } | null;
+}
 
 interface Props {
   open:         boolean;
@@ -162,7 +168,11 @@ export function GeofenceFormModal({ open, pendingWkt, editing, onClose, onCreate
                         onChange={() => toggleDevice(Number(d.traccarId))}
                         className="h-4 w-4 rounded border border-input accent-primary"
                       />
-                      <span className="text-sm leading-none">{d.name || d.uniqueId}</span>
+                      <span className="text-sm leading-none truncate min-w-0 flex-1">
+                        {d.vehicle
+                          ? `${d.vehicle.license_plate} · ${d.vehicle.brand} ${d.vehicle.model}`.trim()
+                          : d.name || d.uniqueId}
+                      </span>
                       <span className="text-xs text-muted-foreground ml-auto font-mono">{d.uniqueId}</span>
                     </label>
                   ))}

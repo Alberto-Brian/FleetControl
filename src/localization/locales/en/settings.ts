@@ -191,6 +191,14 @@ export const enSettings = {
     mapAnimateMarkersDesc:'Animate icons when adding them to the map',
     mapPulseMarkers:      'Marker pulse',
     mapPulseMarkersDesc:  'Slow heartbeat animation on vehicle icons on the map',
+
+    // Filters
+    filtersTitle:         'List preferences',
+    filtersDesc:          'Controls the behaviour of filters and view mode across listing pages',
+    persistFilters:       'Save filters between sessions',
+    persistFiltersDesc:   'Keeps active filters when closing and reopening the app',
+    persistViewMode:      'Save view mode',
+    persistViewModeDesc:  'Keeps the cards/list choice when closing and reopening the app',
   },
 
   language: {

@@ -3,6 +3,7 @@
 // FILE: src/helpers/ipc/db/tracking/tracking-context.ts
 // ========================================
 import {
+  GET_SERVER_CONFIG,
   GET_TRACKED_DEVICES,
   CREATE_TRACKED_DEVICE,
   UPDATE_TRACKED_DEVICE,
@@ -32,7 +33,8 @@ export function exposeTrackingContext() {
     createDevice:        (data: { name: string; uniqueId: string; phone?: string; operator?: string }) => ipcRenderer.invoke(CREATE_TRACKED_DEVICE, data),
     updateDevice:        (traccarDeviceId: number, data: { name: string; uniqueId: string; phone?: string; operator?: string }) => ipcRenderer.invoke(UPDATE_TRACKED_DEVICE, traccarDeviceId, data),
     deleteDevice:        (traccarDeviceId: number) => ipcRenderer.invoke(DELETE_TRACKED_DEVICE, traccarDeviceId),
-    configureServer:     (traccarDeviceId: number) => ipcRenderer.invoke(CONFIGURE_DEVICE_SERVER, traccarDeviceId),
+    getServerConfig:     () => ipcRenderer.invoke(GET_SERVER_CONFIG),
+    configureServer:     (traccarDeviceId: number, frequency?: number, port?: number) => ipcRenderer.invoke(CONFIGURE_DEVICE_SERVER, traccarDeviceId, frequency, port),
     getPositions:        (deviceId?: number)                             => ipcRenderer.invoke(GET_DEVICE_POSITIONS, deviceId),
     getHistory:          (deviceId: number, from: string, to: string)    => ipcRenderer.invoke(GET_POSITION_HISTORY, deviceId, from, to),
     syncDevices:         ()                                               => ipcRenderer.invoke(SYNC_DEVICES),

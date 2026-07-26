@@ -394,9 +394,9 @@ async function registerGpsOnVehicleEvent(vehicleId: string, imei: string) {
 
   if (!imei?.trim()) throw new Error('IMEI é obrigatório');
 
-  // Se o veículo não tem api_vehicle_id, sincronizar com a API antes de registar o GPS
+  // Se o veículo não tem api_vehicle_id, sincronizar com a API primeiro (sem IMEI — GPS registado separadamente)
   if (!vehicle.api_vehicle_id) {
-    vehicle = await syncVehicleToApiEvent(vehicleId);
+    vehicle = await syncVehicleToApiEvent(vehicleId, null);
   }
 
   const apiVehicleId = vehicle.api_vehicle_id!;
@@ -427,8 +427,8 @@ async function registerGpsOnVehicleEvent(vehicleId: string, imei: string) {
 }
 
 // Sincroniza um veículo local com a API (quando a licença conectada é activada)
-// imei: IMEI fornecido pelo utilizador no momento do sync (sobrepõe o valor guardado localmente)
-async function syncVehicleToApiEvent(vehicleId: string, imei?: string) {
+// imei: IMEI a incluir na criação. Passar null para omitir o IMEI local (GPS registado separadamente).
+async function syncVehicleToApiEvent(vehicleId: string, imei?: string | null) {
   const vehicle = await findVehicleById(vehicleId);
   if (!vehicle) {
     throw new Error(new NotFoundError(T_ERRORS.VEHICLE_NOT_FOUND).toIpcString());
@@ -438,9 +438,9 @@ async function syncVehicleToApiEvent(vehicleId: string, imei?: string) {
     return vehicle;
   }
 
-  // IMEI: usa o fornecido agora > o guardado localmente > null
-  const traccar_unique_id = imei?.trim() || vehicle.traccar_unique_id || null;
-
+  // null → sem IMEI (GPS registado separadamente); undefined → usa o local; string → usa este
+  const traccar_unique_id = imei === null ? null : (imei?.trim() || vehicle.traccar_unique_id || null);
+  console.log("aqiu", traccar_unique_id)
   let apiResponse: any;
   try {
     const { data } = await axios.post(`${API_URL}/api/vehicles`, {
