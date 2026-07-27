@@ -37,7 +37,9 @@ export async function getVehiclesReportData(startDate: string, endDate: string) 
     .leftJoin(vehicle_categories, eq(vehicles.category_id, vehicle_categories.id))
     .where(and(
         isNull(vehicles.deleted_at),
-        eq(vehicles.is_active, true)
+        eq(vehicles.is_active, true),
+        gte(vehicles.created_at, startDate),
+        lte(vehicles.created_at, endDate + ' 23:59:59'),
     ))
     .orderBy(vehicles.license_plate);
 

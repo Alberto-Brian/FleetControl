@@ -5,7 +5,7 @@ import React from 'react';
 import { Document, Page, Text, View } from '@react-pdf/renderer';
 import {
   Header, Footer, InfoSection, SectionTitle,
-  StatusBadge, SummaryBox, EmptyState, Watermark, TableHeader,
+  StatusBadge, EmptyState, Watermark, TableHeader,
 } from '@/components/PDFComponents';
 import {
   KPICards, DonutChart, BarChart, HBarChart, TwoColLayout,
@@ -16,7 +16,12 @@ import {
 } from '../pdf-config-react';
 import { pdfT } from '../pdf-translations';
 
-const cell = { ...commonStyles.tableCell, flex: 1 };
+const cellPlate    = { ...commonStyles.tableCell, flex: 1 };
+const cellVehicle  = { ...commonStyles.tableCell, flex: 1.5 };
+const cellCategory = { ...commonStyles.tableCell, flex: 1.3 };
+const cellYear     = { ...commonStyles.tableCell, flex: 0.6 };
+const cellMileage  = { ...commonStyles.tableCell, flex: 1.1 };
+const cellStatus   = { ...commonStyles.tableCell, flex: 1 };
 
 interface VehiclesReportProps {
   vehicles:  any[];
@@ -67,6 +72,7 @@ export const VehiclesReportPDF: React.FC<VehiclesReportProps> = ({
         <InfoSection items={[
           { label: t.period,              value: `${formatDate(dateRange.start)} — ${formatDate(dateRange.end)}` },
           { label: t.stats.totalVehicles, value: vehicles?.length ?? 0 },
+          { label: t.stats.totalMileage,  value: formatDistance(stats?.totalMileage ?? 0) },
           { label: t.generatedAt,         value: formatDate(new Date()) },
         ]} />
 
@@ -130,25 +136,6 @@ export const VehiclesReportPDF: React.FC<VehiclesReportProps> = ({
           </View>
         )}
 
-        {/* Resumo executivo */}
-        {s.showSummary && stats && (
-          <View style={commonStyles.section}>
-            <SectionTitle>{t.summary}</SectionTitle>
-            <SummaryBox items={[
-              { label: t.stats.totalVehicles, value: stats.total       ?? 0 },
-              { label: t.stats.available,     value: stats.available   ?? 0 },
-              { label: t.stats.inUse,         value: stats.inUse       ?? 0 },
-              { label: t.stats.maintenance,   value: stats.maintenance ?? 0 },
-              { label: t.stats.inactive,      value: stats.inactive    ?? 0 },
-              { 
-                label: t.stats.totalMileage,  
-                value: formatDistance(stats.totalMileage ?? 0), 
-                highlight: true 
-              },
-            ]} />
-          </View>
-        )}
-
         {/* Lista detalhada */}
         <View style={commonStyles.section}>
           <SectionTitle>{t.sections.vehicleList}</SectionTitle>
@@ -157,30 +144,24 @@ export const VehiclesReportPDF: React.FC<VehiclesReportProps> = ({
           ) : (
             <View style={commonStyles.table}>
               <TableHeader>
-                <Text style={[commonStyles.tableCellHeader, cell]}>{t.table.licensePlate}</Text>
-                <Text style={[commonStyles.tableCellHeader, { flex: 1.5 }]}>{t.table.vehicle}</Text>
-                <Text style={[commonStyles.tableCellHeader, cell]}>{t.table.category}</Text>
-                <Text style={[commonStyles.tableCellHeader, cell]}>{t.table.year}</Text>
-                <Text style={[commonStyles.tableCellHeader, cell]}>{t.table.mileage}</Text>
-                <Text style={[commonStyles.tableCellHeader, cell]}>{t.table.status}</Text>
+                <Text style={[commonStyles.tableCellHeader, cellPlate]}>{t.table.licensePlate}</Text>
+                <Text style={[commonStyles.tableCellHeader, cellVehicle]}>{t.table.vehicle}</Text>
+                <Text style={[commonStyles.tableCellHeader, cellCategory]}>{t.table.category}</Text>
+                <Text style={[commonStyles.tableCellHeader, cellYear]}>{t.table.year}</Text>
+                <Text style={[commonStyles.tableCellHeader, cellMileage]}>{t.table.mileage}</Text>
+                <Text style={[commonStyles.tableCellHeader, cellStatus]}>{t.table.status}</Text>
               </TableHeader>
               {vehicles.map((v, i) => (
-                <View 
-                  key={v.id} 
+                <View
+                  key={v.id}
                   style={i % 2 === 0 ? commonStyles.tableRow : commonStyles.tableRowAlt}
                 >
-                  <Text style={[commonStyles.tableCellBold, cell]}>{v.license_plate}</Text>
-                  <Text style={[commonStyles.tableCell, { flex: 1.5 }]}>
-                    {v.brand} {v.model}
-                  </Text>
-                  <Text style={[commonStyles.tableCell, cell]}>
-                    {v.category_name ?? '—'}
-                  </Text>
-                  <Text style={[commonStyles.tableCell, cell]}>{v.year ?? '—'}</Text>
-                  <Text style={[commonStyles.tableCell, cell]}>
-                    {formatDistance(v.current_mileage ?? 0)}
-                  </Text>
-                  <View style={cell}>
+                  <Text style={[commonStyles.tableCellBold, cellPlate]}>{v.license_plate}</Text>
+                  <Text style={[commonStyles.tableCell, cellVehicle]}>{v.brand} {v.model}</Text>
+                  <Text style={[commonStyles.tableCell, cellCategory]}>{v.category_name ?? '—'}</Text>
+                  <Text style={[commonStyles.tableCell, cellYear]}>{v.year ?? '—'}</Text>
+                  <Text style={[commonStyles.tableCell, cellMileage]}>{formatDistance(v.current_mileage ?? 0)}</Text>
+                  <View style={cellStatus}>
                     <StatusBadge status={v.status} />
                   </View>
                 </View>
