@@ -3,6 +3,7 @@
 // ========================================
 import { ExpenseCategoryType } from '@/lib/db/schemas/expense_categories';
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import { useDashboard } from '@/contexts/DashboardContext';
 
 // ==================== TYPES ====================
 export interface Expense {
@@ -164,35 +165,49 @@ export function ExpensesProvider({ children }: ExpensesProviderProps) {
     isCategoriesLoading: true,
   });
 
+  const { refreshData } = useDashboard();
+
   const helpers = {
     // Expenses
-    setExpenses: (expenses: Expense[]) => 
+    setExpenses: (expenses: Expense[]) =>
       dispatch({ type: 'SET_EXPENSES', payload: expenses }),
-    addExpense: (expense: Expense) => 
-      dispatch({ type: 'ADD_EXPENSE', payload: expense }),
-    updateExpense: (expense: Expense) => 
-      dispatch({ type: 'UPDATE_EXPENSE', payload: expense }),
-    deleteExpense: (id: string) => 
-      dispatch({ type: 'DELETE_EXPENSE', payload: id }),
-    selectExpense: (expense: Expense | null) => 
+    addExpense: (expense: Expense) => {
+      dispatch({ type: 'ADD_EXPENSE', payload: expense });
+      refreshData();
+    },
+    updateExpense: (expense: Expense) => {
+      dispatch({ type: 'UPDATE_EXPENSE', payload: expense });
+      refreshData();
+    },
+    deleteExpense: (id: string) => {
+      dispatch({ type: 'DELETE_EXPENSE', payload: id });
+      refreshData();
+    },
+    selectExpense: (expense: Expense | null) =>
       dispatch({ type: 'SELECT_EXPENSE', payload: expense }),
-    
+
     // Categories
-    setCategories: (categories: ExpenseCategory[]) => 
+    setCategories: (categories: ExpenseCategory[]) =>
       dispatch({ type: 'SET_CATEGORIES', payload: categories }),
-    addCategory: (category: ExpenseCategory) => 
-      dispatch({ type: 'ADD_CATEGORY', payload: category }),
-    updateCategory: (category: ExpenseCategory) => 
-      dispatch({ type: 'UPDATE_CATEGORY', payload: category }),
-    deleteCategory: (id: string) => 
-      dispatch({ type: 'DELETE_CATEGORY', payload: id }),
-    selectCategory: (category: ExpenseCategory | null) => 
+    addCategory: (category: ExpenseCategory) => {
+      dispatch({ type: 'ADD_CATEGORY', payload: category });
+      refreshData();
+    },
+    updateCategory: (category: ExpenseCategory) => {
+      dispatch({ type: 'UPDATE_CATEGORY', payload: category });
+      refreshData();
+    },
+    deleteCategory: (id: string) => {
+      dispatch({ type: 'DELETE_CATEGORY', payload: id });
+      refreshData();
+    },
+    selectCategory: (category: ExpenseCategory | null) =>
       dispatch({ type: 'SELECT_CATEGORY', payload: category }),
-    
+
     // Loading
-    setLoading: (loading: boolean) => 
+    setLoading: (loading: boolean) =>
       dispatch({ type: 'SET_LOADING', payload: loading }),
-    setCategoriesLoading: (loading: boolean) => 
+    setCategoriesLoading: (loading: boolean) =>
       dispatch({ type: 'SET_CATEGORIES_LOADING', payload: loading }),
   };
 

@@ -34,7 +34,8 @@ const COLOR_OPTIONS = [
   { value: '#f97316', label: 'Laranja' },
 ];
 
-export default function NewExpenseCategoryDialog() {
+interface NewExpenseCategoryDialogProps { onSuccess?: () => void; }
+export default function NewExpenseCategoryDialog({ onSuccess }: NewExpenseCategoryDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { addCategory, updateCategory } = useExpenses();
@@ -78,6 +79,7 @@ export default function NewExpenseCategoryDialog() {
       showSuccess('expenses:toast.categoryCreateSuccess');
       setOpen(false);
       resetForm();
+      onSuccess?.();
     } catch (error: any) {
       handleError(error, 'expenses:toast.categoryCreateError');
     } finally {

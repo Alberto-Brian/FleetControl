@@ -18,6 +18,7 @@ import { useLicense }          from '@/hooks/useLicense';
 import { useLayoutSettings }   from '@/hooks/useLayoutSettings';
 import { useLayoutPadding }    from '@/hooks/useLayoutPadding';
 import { TrackingPageContent } from '@/pages/provider/TrackingPageContent';
+import { DashboardProvider } from '@/contexts/DashboardContext';
 
 // Page imports
 import DashboardPage    from '@/pages/DashboardPage';
@@ -121,6 +122,7 @@ export default function HomePage() {
     const navRailW    = sidebarCollapsed ? NAV_RAIL_COLLAPSED_W : NAV_RAIL_EXPANDED_W;
 
     return (
+      <DashboardProvider>
       <div className="relative h-full overflow-hidden">
 
         {/* ── 1. Mapa como fundo absoluto ── */}
@@ -292,6 +294,7 @@ export default function HomePage() {
         </div>
 
       </div>
+      </DashboardProvider>
     );
   }
 
@@ -302,6 +305,7 @@ export default function HomePage() {
   const sidebarW = isCompact ? 56 : 220;
 
   return (
+    <DashboardProvider>
     <div className="flex h-full bg-background overflow-hidden">
       {/* Overlay mobile */}
       {isSidebarOpen && isMobileOverlay && (
@@ -480,6 +484,7 @@ export default function HomePage() {
       </main>
 
     </div>
+    </DashboardProvider>
   );
 }
 

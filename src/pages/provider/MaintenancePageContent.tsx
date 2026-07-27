@@ -483,7 +483,7 @@ export function MaintenancePageContent() {
                 <Building2 className="w-4 h-4" />{t('maintenances:tabs.workshops')}
               </TabsTrigger>
             </TabsList>
-            <NewMaintenanceDialog />
+            <NewMaintenanceDialog onSuccess={loadMaintenances} />
           </div>
 
           {/* ---- TAB: MANUTENÇÕES ---- */}
@@ -647,7 +647,7 @@ export function MaintenancePageContent() {
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input placeholder={t('common:search')} value={categorySearch} onChange={(e) => setCategorySearch(e.target.value)} className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
                 </div>
-                <div className="sm:ml-auto"><NewMaintenanceCategoryDialog /></div>
+                <div className="sm:ml-auto"><NewMaintenanceCategoryDialog onSuccess={loadCategories} /></div>
               </div>
             </div>
             {isCategoriesLoading ? (
@@ -704,7 +704,7 @@ export function MaintenancePageContent() {
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input placeholder={t('common:search')} value={workshopSearch} onChange={(e) => setWorkshopSearch(e.target.value)} className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
                 </div>
-                <div className="sm:ml-auto"><NewWorkshopDialog /></div>
+                <div className="sm:ml-auto"><NewWorkshopDialog onSuccess={loadWorkshops} /></div>
               </div>
             </div>
             {isWorkshopsLoading ? (

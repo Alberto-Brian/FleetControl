@@ -33,7 +33,8 @@ const PRIORITIES = [
   { value: 'urgent', label: 'maintenances:priority.urgent.label' },
 ];
 
-export default function NewMaintenanceDialog() {
+interface NewMaintenanceDialogProps { onSuccess?: () => void; }
+export default function NewMaintenanceDialog({ onSuccess }: NewMaintenanceDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { state: { categories }, addMaintenance } = useMaintenances();
@@ -104,6 +105,7 @@ export default function NewMaintenanceDialog() {
         showSuccess(startNow ? 'maintenances:toast.startSuccess' : 'maintenances:toast.createSuccess');
         setOpen(false);
         resetForm();
+        onSuccess?.();
       }
     } catch (error: any) {
       handleError(error, 'maintenances:toast.createError');

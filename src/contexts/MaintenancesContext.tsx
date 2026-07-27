@@ -2,6 +2,7 @@
 // FILE: src/contexts/MaintenancesContext.tsx (ATUALIZADO COM WORKSHOPS)
 // ========================================
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import { useDashboard } from '@/contexts/DashboardContext';
 import { MaintenanceStatus, MaintenancePriority } from '@/lib/db/schemas/maintenances';
 
 // ==================== TYPES ====================
@@ -235,49 +236,69 @@ export function MaintenancesProvider({ children }: MaintenancesProviderProps) {
     isWorkshopsLoading: true,
   });
 
+  const { refreshData } = useDashboard();
+
   const helpers = {
     // Maintenances
-    setMaintenances: (maintenances: Maintenance[]) => 
+    setMaintenances: (maintenances: Maintenance[]) =>
       dispatch({ type: 'SET_MAINTENANCES', payload: maintenances }),
-    addMaintenance: (maintenance: Maintenance) => 
-      dispatch({ type: 'ADD_MAINTENANCE', payload: maintenance }),
-    updateMaintenance: (maintenance: Maintenance) => 
-      dispatch({ type: 'UPDATE_MAINTENANCE', payload: maintenance }),
-    deleteMaintenance: (id: string) => 
-      dispatch({ type: 'DELETE_MAINTENANCE', payload: id }),
-    selectMaintenance: (maintenance: Maintenance | null) => 
+    addMaintenance: (maintenance: Maintenance) => {
+      dispatch({ type: 'ADD_MAINTENANCE', payload: maintenance });
+      refreshData();
+    },
+    updateMaintenance: (maintenance: Maintenance) => {
+      dispatch({ type: 'UPDATE_MAINTENANCE', payload: maintenance });
+      refreshData();
+    },
+    deleteMaintenance: (id: string) => {
+      dispatch({ type: 'DELETE_MAINTENANCE', payload: id });
+      refreshData();
+    },
+    selectMaintenance: (maintenance: Maintenance | null) =>
       dispatch({ type: 'SELECT_MAINTENANCE', payload: maintenance }),
-    
+
     // Categories
-    setCategories: (categories: MaintenanceCategory[]) => 
+    setCategories: (categories: MaintenanceCategory[]) =>
       dispatch({ type: 'SET_CATEGORIES', payload: categories }),
-    addCategory: (category: MaintenanceCategory) => 
-      dispatch({ type: 'ADD_CATEGORY', payload: category }),
-    updateCategory: (category: MaintenanceCategory) => 
-      dispatch({ type: 'UPDATE_CATEGORY', payload: category }),
-    deleteCategory: (id: string) => 
-      dispatch({ type: 'DELETE_CATEGORY', payload: id }),
-    selectCategory: (category: MaintenanceCategory | null) => 
+    addCategory: (category: MaintenanceCategory) => {
+      dispatch({ type: 'ADD_CATEGORY', payload: category });
+      refreshData();
+    },
+    updateCategory: (category: MaintenanceCategory) => {
+      dispatch({ type: 'UPDATE_CATEGORY', payload: category });
+      refreshData();
+    },
+    deleteCategory: (id: string) => {
+      dispatch({ type: 'DELETE_CATEGORY', payload: id });
+      refreshData();
+    },
+    selectCategory: (category: MaintenanceCategory | null) =>
       dispatch({ type: 'SELECT_CATEGORY', payload: category }),
-    
-    // ✨ Workshops
-    setWorkshops: (workshops: Workshop[]) => 
+
+    // Workshops
+    setWorkshops: (workshops: Workshop[]) =>
       dispatch({ type: 'SET_WORKSHOPS', payload: workshops }),
-    addWorkshop: (workshop: Workshop) => 
-      dispatch({ type: 'ADD_WORKSHOP', payload: workshop }),
-    updateWorkshop: (workshop: Workshop) => 
-      dispatch({ type: 'UPDATE_WORKSHOP', payload: workshop }),
-    deleteWorkshop: (id: string) => 
-      dispatch({ type: 'DELETE_WORKSHOP', payload: id }),
-    selectWorkshop: (workshop: Workshop | null) => 
+    addWorkshop: (workshop: Workshop) => {
+      dispatch({ type: 'ADD_WORKSHOP', payload: workshop });
+      refreshData();
+    },
+    updateWorkshop: (workshop: Workshop) => {
+      dispatch({ type: 'UPDATE_WORKSHOP', payload: workshop });
+      refreshData();
+    },
+    deleteWorkshop: (id: string) => {
+      dispatch({ type: 'DELETE_WORKSHOP', payload: id });
+      refreshData();
+    },
+    selectWorkshop: (workshop: Workshop | null) =>
       dispatch({ type: 'SELECT_WORKSHOP', payload: workshop }),
-    
+
     // Loading
-    setLoading: (loading: boolean) => 
+    setLoading: (loading: boolean) =>
       dispatch({ type: 'SET_LOADING', payload: loading }),
-    setCategoriesLoading: (loading: boolean) => 
+    setCategoriesLoading: (loading: boolean) =>
       dispatch({ type: 'SET_CATEGORIES_LOADING', payload: loading }),
-    setWorkshopsLoading: (loading: boolean) => 
+    setWorkshopsLoading: (loading: boolean) =>
       dispatch({ type: 'SET_WORKSHOPS_LOADING', payload: loading }),
   };
 

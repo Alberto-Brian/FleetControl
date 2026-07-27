@@ -3,6 +3,7 @@
 // ========================================
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { DriverStatus, DriverAvailability } from "@/lib/db/schemas/drivers";
+import { useDashboard } from '@/contexts/DashboardContext';
 
 // ==================== TYPES ====================
 export interface Driver {
@@ -129,23 +130,31 @@ export function DriversProvider({ children }: DriversProviderProps) {
     isLoading: true,
   });
 
+  const { refreshData } = useDashboard();
+
   const helpers = {
-    setDrivers: (drivers: Driver[]) => 
+    setDrivers: (drivers: Driver[]) =>
       dispatch({ type: 'SET_DRIVERS', payload: drivers }),
-    
-    addDriver: (driver: Driver) => 
-      dispatch({ type: 'ADD_DRIVER', payload: driver }),
-    
-    updateDriver: (driver: Driver) => 
-      dispatch({ type: 'UPDATE_DRIVER', payload: driver }),
-    
-    deleteDriver: (id: string) => 
-      dispatch({ type: 'DELETE_DRIVER', payload: id }),
-    
-    selectDriver: (driver: Driver | null) => 
+
+    addDriver: (driver: Driver) => {
+      dispatch({ type: 'ADD_DRIVER', payload: driver });
+      refreshData();
+    },
+
+    updateDriver: (driver: Driver) => {
+      dispatch({ type: 'UPDATE_DRIVER', payload: driver });
+      refreshData();
+    },
+
+    deleteDriver: (id: string) => {
+      dispatch({ type: 'DELETE_DRIVER', payload: id });
+      refreshData();
+    },
+
+    selectDriver: (driver: Driver | null) =>
       dispatch({ type: 'SELECT_DRIVER', payload: driver }),
-    
-    setLoading: (loading: boolean) => 
+
+    setLoading: (loading: boolean) =>
       dispatch({ type: 'SET_LOADING', payload: loading }),
   };
 

@@ -435,7 +435,7 @@ export default function FuelPageContent() {
               </TabsTrigger>
             </TabsList>
 
-            <div className="ml-auto"><NewRefuelingDialog /></div>
+            <div className="ml-auto"><NewRefuelingDialog onSuccess={loadRefuelings} /></div>
           </div>
 
           {/* ── TAB: ABASTECIMENTOS ─────────────────────────────────────── */}
@@ -552,7 +552,7 @@ export default function FuelPageContent() {
                     className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
                   />
                 </div>
-                <div className="sm:ml-auto"><NewFuelStationDialog /></div>
+                <div className="sm:ml-auto"><NewFuelStationDialog onSuccess={loadStations} /></div>
               </div>
             </div>
 

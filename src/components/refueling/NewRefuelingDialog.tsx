@@ -34,7 +34,8 @@ const FUEL_TYPES = [
   { value: 'cng', label: 'refuelings:fuelTypes.cng', icon: '🔥' },
 ];
 
-export default function NewRefuelingDialog() {
+interface NewRefuelingDialogProps { onSuccess?: () => void; }
+export default function NewRefuelingDialog({ onSuccess }: NewRefuelingDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { state: { fuelStations }, addRefueling } = useRefuelings();
@@ -88,6 +89,7 @@ export default function NewRefuelingDialog() {
         showSuccess('refuelings:toast.createSuccess');
         setOpen(false);
         resetForm();
+        onSuccess?.();
       }
     } catch (error: any) {
       handleError(error, 'refuelings:toast.createError');

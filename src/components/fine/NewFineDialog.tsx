@@ -29,7 +29,8 @@ const INFRACTION_TYPES = [
   { value: 'other', label: 'fines:infractionTypes.other' },
 ];
 
-export default function NewFineDialog() {
+interface NewFineDialogProps { onSuccess?: () => void; }
+export default function NewFineDialog({ onSuccess }: NewFineDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { addFine } = useFines();
@@ -78,6 +79,7 @@ export default function NewFineDialog() {
         showSuccess('fines:toast.createSuccess');
         setOpen(false);
         resetForm();
+        onSuccess?.();
       }
     } catch (error: any) {
       handleError(error, 'fines:toast.createError');

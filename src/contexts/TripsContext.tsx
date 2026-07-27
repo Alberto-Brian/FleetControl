@@ -3,6 +3,7 @@
 // ========================================
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { TripStatus } from '@/lib/db/schemas/trips';
+import { useDashboard } from '@/contexts/DashboardContext';
 
 // ==================== TYPES ====================
 export interface Trip {
@@ -130,23 +131,31 @@ export function TripsProvider({ children }: TripsProviderProps) {
     isLoading: true,
   });
 
+  const { refreshData } = useDashboard();
+
   const helpers = {
-    setTrips: (trips: Trip[]) => 
+    setTrips: (trips: Trip[]) =>
       dispatch({ type: 'SET_TRIPS', payload: trips }),
-    
-    addTrip: (trip: Trip) => 
-      dispatch({ type: 'ADD_TRIP', payload: trip }),
-    
-    updateTrip: (trip: Trip) => 
-      dispatch({ type: 'UPDATE_TRIP', payload: trip }),
-    
-    deleteTrip: (id: string) => 
-      dispatch({ type: 'DELETE_TRIP', payload: id }),
-    
-    selectTrip: (trip: Trip | null) => 
+
+    addTrip: (trip: Trip) => {
+      dispatch({ type: 'ADD_TRIP', payload: trip });
+      refreshData();
+    },
+
+    updateTrip: (trip: Trip) => {
+      dispatch({ type: 'UPDATE_TRIP', payload: trip });
+      refreshData();
+    },
+
+    deleteTrip: (id: string) => {
+      dispatch({ type: 'DELETE_TRIP', payload: id });
+      refreshData();
+    },
+
+    selectTrip: (trip: Trip | null) =>
       dispatch({ type: 'SELECT_TRIP', payload: trip }),
-    
-    setLoading: (loading: boolean) => 
+
+    setLoading: (loading: boolean) =>
       dispatch({ type: 'SET_LOADING', payload: loading }),
   };
 

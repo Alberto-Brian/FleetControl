@@ -2,6 +2,7 @@
 // FILE: src/contexts/FinesContext.tsx (ATUALIZADO COM TIPOS EXPANDIDOS)
 // ========================================
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import { useDashboard } from '@/contexts/DashboardContext';
 
 // ==================== TYPES ====================
 export interface Fine {
@@ -116,18 +117,26 @@ export function FinesProvider({ children }: FinesProviderProps) {
     isLoading: true,
   });
 
+  const { refreshData } = useDashboard();
+
   const helpers = {
-    setFines: (fines: Fine[]) => 
+    setFines: (fines: Fine[]) =>
       dispatch({ type: 'SET_FINES', payload: fines }),
-    addFine: (fine: Fine) => 
-      dispatch({ type: 'ADD_FINE', payload: fine }),
-    updateFine: (fine: Fine) => 
-      dispatch({ type: 'UPDATE_FINE', payload: fine }),
-    deleteFine: (id: string) => 
-      dispatch({ type: 'DELETE_FINE', payload: id }),
-    selectFine: (fine: Fine | null) => 
+    addFine: (fine: Fine) => {
+      dispatch({ type: 'ADD_FINE', payload: fine });
+      refreshData();
+    },
+    updateFine: (fine: Fine) => {
+      dispatch({ type: 'UPDATE_FINE', payload: fine });
+      refreshData();
+    },
+    deleteFine: (id: string) => {
+      dispatch({ type: 'DELETE_FINE', payload: id });
+      refreshData();
+    },
+    selectFine: (fine: Fine | null) =>
       dispatch({ type: 'SELECT_FINE', payload: fine }),
-    setLoading: (loading: boolean) => 
+    setLoading: (loading: boolean) =>
       dispatch({ type: 'SET_LOADING', payload: loading }),
   };
 

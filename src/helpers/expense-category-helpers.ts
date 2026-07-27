@@ -8,7 +8,7 @@ export async function getAllExpenseCategories(): Promise<IExpenseCategory[]> {
         const result = await window._expense_categories.getAll();
         return result;
     } catch (error) {
-        throw error; // ✨ Propaga
+        throw error;
     }
 }
 

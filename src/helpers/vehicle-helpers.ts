@@ -13,7 +13,6 @@ export async function getAllVehicles(params?: IPaginationParams): Promise<IPagin
         return result;
     } catch (error) {
         console.error(error);
-        // throw error;
         return {
             data: [],
             pagination: { total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false }
@@ -103,7 +102,8 @@ export async function syncVehicleToApi(vehicleId: string, imei?: string): Promis
 
 export async function registerGpsOnVehicle(vehicleId: string, imei: string): Promise<IVehicle | null> {
     try {
-        return await window._vehicles.registerGps(vehicleId, imei);
+        const result = await window._vehicles.registerGps(vehicleId, imei);
+        return result;
     } catch (error) {
         console.error(error);
         throw error;
@@ -111,7 +111,8 @@ export async function registerGpsOnVehicle(vehicleId: string, imei: string): Pro
 }
 
 export async function unregisterVehicleGps(vehicleId: string): Promise<{ success: boolean }> {
-    return window._vehicles.unregisterGps(vehicleId);
+    const result = await window._vehicles.unregisterGps(vehicleId);
+    return result;
 }
 
 export async function toggleVehicleTracking(vehicleId: string, enabled: boolean): Promise<{ success: boolean }> {

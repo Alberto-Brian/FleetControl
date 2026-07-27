@@ -2,6 +2,7 @@
 // FILE: src/contexts/RefuelingsContext.tsx (ATUALIZADO)
 // ========================================
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import { useDashboard } from '@/contexts/DashboardContext';
 
 // ==================== TYPES ====================
 
@@ -192,35 +193,49 @@ export function RefuelingsProvider({ children }: RefuelingsProviderProps) {
     isFuelStationsLoading: true,
   });
 
+  const { refreshData } = useDashboard();
+
   const helpers = {
     // Refuelings
-    setRefuelings: (refuelings: Refueling[]) => 
+    setRefuelings: (refuelings: Refueling[]) =>
       dispatch({ type: 'SET_REFUELINGS', payload: refuelings }),
-    addRefueling: (refueling: Refueling) => 
-      dispatch({ type: 'ADD_REFUELING', payload: refueling }),
-    updateRefueling: (refueling: Refueling) => 
-      dispatch({ type: 'UPDATE_REFUELING', payload: refueling }),
-    deleteRefueling: (id: string) => 
-      dispatch({ type: 'DELETE_REFUELING', payload: id }),
-    selectRefueling: (refueling: Refueling | null) => 
+    addRefueling: (refueling: Refueling) => {
+      dispatch({ type: 'ADD_REFUELING', payload: refueling });
+      refreshData();
+    },
+    updateRefueling: (refueling: Refueling) => {
+      dispatch({ type: 'UPDATE_REFUELING', payload: refueling });
+      refreshData();
+    },
+    deleteRefueling: (id: string) => {
+      dispatch({ type: 'DELETE_REFUELING', payload: id });
+      refreshData();
+    },
+    selectRefueling: (refueling: Refueling | null) =>
       dispatch({ type: 'SELECT_REFUELING', payload: refueling }),
-    
+
     // Fuel Stations
-    setFuelStations: (stations: FuelStation[]) => 
+    setFuelStations: (stations: FuelStation[]) =>
       dispatch({ type: 'SET_FUEL_STATIONS', payload: stations }),
-    addFuelStation: (station: FuelStation) => 
-      dispatch({ type: 'ADD_FUEL_STATION', payload: station }),
-    updateFuelStation: (station: FuelStation) => 
-      dispatch({ type: 'UPDATE_FUEL_STATION', payload: station }),
-    deleteFuelStation: (id: string) => 
-      dispatch({ type: 'DELETE_FUEL_STATION', payload: id }),
-    selectFuelStation: (station: FuelStation | null) => 
+    addFuelStation: (station: FuelStation) => {
+      dispatch({ type: 'ADD_FUEL_STATION', payload: station });
+      refreshData();
+    },
+    updateFuelStation: (station: FuelStation) => {
+      dispatch({ type: 'UPDATE_FUEL_STATION', payload: station });
+      refreshData();
+    },
+    deleteFuelStation: (id: string) => {
+      dispatch({ type: 'DELETE_FUEL_STATION', payload: id });
+      refreshData();
+    },
+    selectFuelStation: (station: FuelStation | null) =>
       dispatch({ type: 'SELECT_FUEL_STATION', payload: station }),
-    
+
     // Loading
-    setLoading: (loading: boolean) => 
+    setLoading: (loading: boolean) =>
       dispatch({ type: 'SET_LOADING', payload: loading }),
-    setFuelStationsLoading: (loading: boolean) => 
+    setFuelStationsLoading: (loading: boolean) =>
       dispatch({ type: 'SET_FUEL_STATIONS_LOADING', payload: loading }),
   };
 

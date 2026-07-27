@@ -16,7 +16,8 @@ import { ICreateFuelStation } from '@/lib/types/fuel-station';
 import { useRefuelings } from '@/contexts/RefuelingsContext';
 import { RESTORE_FUEL_STATION } from '@/helpers/ipc/db/fuel_stations/fuel-stations-channels';
 
-export default function NewFuelStationDialog() {
+interface NewFuelStationDialogProps { onSuccess?: () => void; }
+export default function NewFuelStationDialog({ onSuccess }: NewFuelStationDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { addFuelStation, updateFuelStation } = useRefuelings();
@@ -61,10 +62,11 @@ export default function NewFuelStationDialog() {
     try {
       const newStation = await createFuelStation(formData);
       
-      addFuelStation(newStation); // ✨ Adiciona ao contexto
+      addFuelStation(newStation);
       showSuccess('refuelings:toast.stationCreateSuccess');
       setOpen(false);
       resetForm();
+      onSuccess?.();
     } catch (error: any) {
       // ✨ SIMPLES - useErrorHandler trata tudo (incluindo toast de restaurar)
       handleError(error, 'refuelings:toast.stationCreateError');

@@ -15,7 +15,8 @@ import { ICreateWorkshop } from '@/lib/types/workshop';
 import { useMaintenances } from '@/contexts/MaintenancesContext';
 import { RESTORE_WORKSHOP } from '@/helpers/ipc/db/workshops/workshops-channels';
 
-export default function NewWorkshopDialog() {
+interface NewWorkshopDialogProps { onSuccess?: () => void; }
+export default function NewWorkshopDialog({ onSuccess }: NewWorkshopDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { addWorkshop, updateWorkshop } = useMaintenances();
@@ -59,10 +60,11 @@ export default function NewWorkshopDialog() {
     try {
       const newWorkshop = await createWorkshop(formData);
       
-      addWorkshop(newWorkshop); // ✨ Adiciona ao contexto
+      addWorkshop(newWorkshop);
       showSuccess('maintenances:workshops.toast.createSuccess');
       setOpen(false);
       resetForm();
+      onSuccess?.();
     } catch (error: any) {
       // ✨ SIMPLES - useErrorHandler trata tudo (incluindo toast de restaurar)
       handleError(error, 'maintenances:workshops.toast.createError');

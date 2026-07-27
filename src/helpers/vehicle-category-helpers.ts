@@ -32,9 +32,6 @@ export async function updateVehicleCategory(id: string, data: IUpdateVehicleCate
     }
 }
 
-/**
- * ✨ NOVO: Restaura (activa) uma categoria inactiva
- */
 export async function restoreVehicleCategory(id: string): Promise<IVehicleCategory | null> {
     try {
         const result = await window._vehicle_categories.update(id, {

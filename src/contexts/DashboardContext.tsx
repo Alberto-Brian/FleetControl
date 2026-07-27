@@ -1,7 +1,8 @@
 // ========================================
-// FILE: src/contexts/DashboardContext.tsx (ATUALIZADO)
+// FILE: src/contexts/DashboardContext.tsx
 // ========================================
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, ReactNode } from 'react';
+import { loadDashboardData } from '@/helpers/dashboard-helpers';
 
 // ==================== TYPES ====================
 export interface DashboardStats {
@@ -11,40 +12,40 @@ export interface DashboardStats {
   inUseVehicles: number;
   inactiveVehicles: number;
   maintenanceVehicles: number;
-  
+
   // Motoristas (4 estados)
   totalDrivers: number;
   availableDrivers: number;
   onTripDrivers: number;
   offlineDrivers: number;
-  
+
   // Viagens (5 status)
   totalTrips: number;
   activeTrips: number;
   completedTrips: number;
   cancelledTrips: number;
   totalDistance: number;
-  
+
   // Abastecimentos
   totalRefuelings: number;
   totalFuelCost: number;
   totalFuelLiters: number;
   avgFuelPrice: number;
-  
+
   // Manutenções (4 status)
   totalMaintenances: number;
   scheduledMaintenances: number;
   inProgressMaintenances: number;
   completedMaintenances: number;
   totalMaintenanceCost: number;
-  
+
   // Despesas (4 status)
   totalExpenses: number;
   paidExpenses: number;
   pendingExpenses: number;
   overdueExpenses: number;
   totalExpenseAmount: number;
-  
+
   // Multas (5 status)
   totalFines: number;
   pendingFines: number;
@@ -120,7 +121,7 @@ interface DashboardContextType {
   setActivities: (activities: RecentActivity[]) => void;
   setChartData: (data: ChartData) => void;
   setLoading: (loading: boolean) => void;
-  refreshData: () => void;
+  refreshData: () => Promise<void>;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -139,19 +140,37 @@ export function DashboardProvider({ children }: DashboardProviderProps) {
     lastUpdated: null,
   });
 
+  const loadData = useCallback(async () => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const data = await loadDashboardData();
+      dispatch({ type: 'SET_STATS', payload: data.stats });
+      dispatch({ type: 'SET_ACTIVITIES', payload: data.activities });
+      dispatch({ type: 'SET_CHART_DATA', payload: data.chartData });
+      dispatch({ type: 'UPDATE_TIMESTAMP' });
+    } catch (error) {
+      console.error('Dashboard load error:', error);
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   const helpers = {
     setStats: (stats: DashboardStats) => {
       dispatch({ type: 'SET_STATS', payload: stats });
       dispatch({ type: 'UPDATE_TIMESTAMP' });
     },
-    setActivities: (activities: RecentActivity[]) => 
+    setActivities: (activities: RecentActivity[]) =>
       dispatch({ type: 'SET_ACTIVITIES', payload: activities }),
-    setChartData: (data: ChartData) => 
+    setChartData: (data: ChartData) =>
       dispatch({ type: 'SET_CHART_DATA', payload: data }),
-    setLoading: (loading: boolean) => 
+    setLoading: (loading: boolean) =>
       dispatch({ type: 'SET_LOADING', payload: loading }),
-    refreshData: () => 
-      dispatch({ type: 'UPDATE_TIMESTAMP' }),
+    refreshData: loadData,
   };
 
   return (

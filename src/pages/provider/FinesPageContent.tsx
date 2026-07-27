@@ -315,7 +315,7 @@ export default function FinesPageContent() {
               {stats.pending} {t('fines:stats.pending').toLowerCase()} • {paginationInfo.total} {t('fines:stats.total').toLowerCase()}
             </p>
           </div>
-          <NewFineDialog />
+          <NewFineDialog onSuccess={loadFines} />
         </div>
 
         {/* Stats — vindas do back */}

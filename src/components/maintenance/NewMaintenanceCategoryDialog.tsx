@@ -31,7 +31,8 @@ const COLORS = [
   { value: '#6B7280', label: 'maintenances:categories.colors.gray' },
 ];
 
-export default function NewMaintenanceCategoryDialog() {
+interface NewMaintenanceCategoryDialogProps { onSuccess?: () => void; }
+export default function NewMaintenanceCategoryDialog({ onSuccess }: NewMaintenanceCategoryDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { addCategory, updateCategory } = useMaintenances();
@@ -71,10 +72,11 @@ export default function NewMaintenanceCategoryDialog() {
     try {
       const newCategory = await createMaintenanceCategory(formData);
       
-      addCategory(newCategory); // ✨ Adiciona ao contexto
+      addCategory(newCategory);
       showSuccess('maintenances:toast.categoryCreateSuccess');
       setOpen(false);
       resetForm();
+      onSuccess?.();
     } catch (error: any) {
       // ✨ SIMPLES - useErrorHandler trata tudo
       handleError(error, 'maintenances:toast.categoryCreateError');

@@ -2,19 +2,14 @@
 // FILE: src/pages/DashboardPage.tsx
 // ========================================
 import React from 'react';
-import { DashboardProvider } from '@/contexts/DashboardContext';
-import { DashboardPageContent } from '@/pages/provider/DashboardPageContent'
+import { DashboardPageContent } from '@/pages/provider/DashboardPageContent';
 
 interface DashboardPageProps {
   onNavigate?: (section: string) => void;
 }
 
 export default function DashboardPage({ onNavigate }: DashboardPageProps) {
-  return (
-    <DashboardProvider>
-      <DashboardPageContent onNavigate={onNavigate} />
-    </DashboardProvider>
-  );
+  return <DashboardPageContent onNavigate={onNavigate} />;
 }
 
 

@@ -18,7 +18,8 @@ import { getAllDrivers } from '@/helpers/driver-helpers';
 import { ICreateExpense } from '@/lib/types/expense';
 import { useExpenses } from '@/contexts/ExpensesContext';
 
-export default function NewExpenseDialog() {
+interface NewExpenseDialogProps { onSuccess?: () => void; }
+export default function NewExpenseDialog({ onSuccess }: NewExpenseDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { state: { categories }, addExpense } = useExpenses();
@@ -64,6 +65,7 @@ export default function NewExpenseDialog() {
         showSuccess('expenses:toast.createSuccess');
         setOpen(false);
         resetForm();
+        onSuccess?.();
       }
     } catch (error: any) {
       handleError(error, 'expenses:toast.createError');

@@ -25,21 +25,27 @@ export async function getDriverLeaveById(leaveId: string): Promise<IDriverLeave 
 }
 
 export async function createDriverLeave(data: ICreateDriverLeave): Promise<IDriverLeave> {
-  return window._driverLeaves.create(data);
+  const result = await window._driverLeaves.create(data);
+
+  return result;
 }
 
 export async function updateDriverLeave(
   leaveId: string,
   data: IUpdateDriverLeave
 ): Promise<IDriverLeave | null> {
-  return window._driverLeaves.update(leaveId, data);
+  const result = await window._driverLeaves.update(leaveId, data);
+
+  return result;
 }
 
 export async function cancelDriverLeave(
   leaveId: string,
   data?: ICancelDriverLeave
 ): Promise<IDriverLeave | null> {
-  return window._driverLeaves.cancel(leaveId, data);
+  const result = await window._driverLeaves.cancel(leaveId, data);
+
+  return result;
 }
 
 export async function forceLeaveSchedulerCycle(): Promise<void> {

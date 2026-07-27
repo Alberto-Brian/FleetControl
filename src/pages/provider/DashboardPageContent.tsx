@@ -1,7 +1,7 @@
 // ========================================
 // FILE: src/pages/provider/DashboardPageContent.tsx (ATUALIZADO - SEM TEXTO ESTÁTICO)
 // ========================================
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Truck, Fuel, Wrench, Users, MapPin, DollarSign, 
   AlertTriangle, Calendar, TrendingUp, Activity, Bell,
@@ -34,8 +34,6 @@ import AllActivitiesDialog from '@/components/dashboard/AllActivitiesDialog';
 
 // Context & Helpers
 import { useDashboard } from '@/contexts/DashboardContext';
-import { loadDashboardData } from '@/helpers/dashboard-helpers';
-import { onDataChanged } from '@/lib/utils/data-events';
 import { useTracking } from '@/contexts/TrackingContext';
 import { Zap, ZapOff, Play, Square, LogIn, LogOut, Gauge, MapPin as MapPinIcon } from 'lucide-react';
 
@@ -56,28 +54,12 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
     deviceStopped: { icon: Square,  color: '#8b5cf6', label: t('tracking:alertDetail.events.deviceStopped') },
   };
   const { handleError } = useErrorHandler();
-  const { state, setStats, setActivities, setChartData, setLoading } = useDashboard();
+  const { state, refreshData } = useDashboard();
   const { state: trackingState, isConnected: trackingConnected } = useTracking();
+
+  useEffect(() => { refreshData(); }, []);
   const recentAlerts = trackingState.alerts.slice(0, 6);
   const [showAllActivities, setShowAllActivities] = useState(false);
-  useEffect(() => {
-    loadData();
-    return onDataChanged(loadData);
-  }, []);
-
-  async function loadData() {
-    setLoading(true);
-    try {
-      const data = await loadDashboardData();
-      setStats(data.stats);
-      setActivities(data.activities);
-      setChartData(data.chartData);
-    } catch (error) {
-      handleError(error, 'dashboard:errors.loading');
-    } finally {
-      setLoading(false);
-    }
-  }
 
   if (state.isLoading || !state.stats) {
     return (
@@ -126,7 +108,7 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
           <Button variant="outline" size="sm" className="hidden sm:flex">
             <Download className="w-4 h-4 mr-2" /> {t('common:export')}
           </Button>
-          <Button size="sm" onClick={loadData}>
+          <Button size="sm" onClick={refreshData}>
             <Filter className="w-4 h-4 mr-2" /> {t('dashboard:refresh')}
           </Button>
         </div>

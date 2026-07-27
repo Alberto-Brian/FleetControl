@@ -15,7 +15,8 @@ import { createVehicleCategory, restoreVehicleCategory } from '@/helpers/vehicle
 import { ICreateVehicleCategory } from '@/lib/types/vehicle-category';
 import { useVehicles } from '@/contexts/VehiclesContext';
 
-export default function NewVehicleCategoryDialog() { 
+interface NewVehicleCategoryDialogProps { onSuccess?: () => void; }
+export default function NewVehicleCategoryDialog({ onSuccess }: NewVehicleCategoryDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { addCategory, updateCategory } = useVehicles();
@@ -51,6 +52,7 @@ export default function NewVehicleCategoryDialog() {
         showSuccess(t('vehicles:toast.categoryCreateSuccess'));
         setOpen(false);
         resetForm();
+        onSuccess?.();
       }
     } catch (error: any) {
       handleError(

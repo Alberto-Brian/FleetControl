@@ -19,7 +19,8 @@ import { useVehicles } from '@/contexts/VehiclesContext';
 import { useLicense } from '@/hooks/useLicense';
 import { ImeiSelector } from './ImeiSelector';
 
-export default function NewVehicleDialog() {
+interface NewVehicleDialogProps { onSuccess?: () => void; }
+export default function NewVehicleDialog({ onSuccess }: NewVehicleDialogProps) {
   const { showSuccess, handleError } = useErrorHandler();
   const { t } = useTranslation();
   const { license } = useLicense();
@@ -90,6 +91,7 @@ const filteredCategories = categories.filter(cat =>
         showSuccess(t('vehicles:toast.createSuccess'));
         setOpen(false);
         resetForm();
+        onSuccess?.();
       }
     } catch (error: any) {
       handleError(error, t('vehicles:toast.createError'));

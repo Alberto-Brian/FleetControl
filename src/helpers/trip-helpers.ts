@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/helpers/trip-helpers.ts (ATUALIZADO)
+// FILE: src/helpers/trip-helpers.ts
 // ========================================
 import { ICreateTrip, ICompleteTrip, ITrip } from '@/lib/types/trip';
 import { IPaginationParams, IPaginatedResult } from '@/lib/types/pagination';
@@ -9,7 +9,7 @@ export async function getAllTrips(params?: IPaginationParams): Promise<IPaginate
         const result = await window._trips.getAll(params);
         return result;
     } catch (error) {
-        throw error; // ✅ Propaga para useErrorHandler
+        throw error;
     }
 }
 

@@ -580,7 +580,7 @@ function renderCardsView() {
                 <Tag className="w-4 h-4" />{t('expenses:tabs.categories')}
               </TabsTrigger>
             </TabsList>
-            <NewExpenseDialog />
+            <NewExpenseDialog onSuccess={loadExpenses} />
           </div>
 
           {/* ---- TAB: DESPESAS ---- */}
@@ -711,7 +711,7 @@ function renderCardsView() {
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input placeholder={t('common:search')} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
                 </div>
-                <div className="sm:ml-auto"><NewExpenseCategoryDialog /></div>
+                <div className="sm:ml-auto"><NewExpenseCategoryDialog onSuccess={loadCategories} /></div>
               </div>
             </div>
             {isCategoriesLoading ? (

@@ -1,5 +1,5 @@
 // ========================================
-// FILE: src/helpers/maintenance-category-helpers.ts (ATUALIZADO)
+// FILE: src/helpers/maintenance-category-helpers.ts
 // ========================================
 import { ICreateMaintenanceCategory, IUpdateMaintenanceCategory, IMaintenanceCategory } from "@/lib/types/maintenance_category";
 

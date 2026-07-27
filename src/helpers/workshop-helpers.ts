@@ -1,4 +1,4 @@
-// src/helpers/workshop-helpers.ts (ATUALIZAR)
+// src/helpers/workshop-helpers.ts
 import { ICreateWorkshop, IUpdateWorkshop, IWorkshop } from "@/lib/types/workshop";
 
 export async function createWorkshop(data: ICreateWorkshop): Promise<IWorkshop> {
@@ -6,7 +6,7 @@ export async function createWorkshop(data: ICreateWorkshop): Promise<IWorkshop> 
         const result = await window._workshops.create(data);
         return result;
     } catch (error) {
-        throw error; // ✨ Propaga para useErrorHandler
+        throw error;
     }
 }
 

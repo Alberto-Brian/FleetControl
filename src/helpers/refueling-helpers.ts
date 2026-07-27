@@ -9,7 +9,6 @@ import {
   IRefuelingStats,
 } from '@/lib/types/refueling';
 import { IPaginatedResult } from '@/lib/types/pagination';
-
 // ── READ ──────────────────────────────────────────────────────────────────────
 
 export async function getAllRefuelings(
@@ -49,16 +48,19 @@ export async function getRefuelingStats(params?: {
 // ── WRITE ─────────────────────────────────────────────────────────────────────
 
 export async function createRefueling(data: ICreateRefueling): Promise<IRefueling> {
-  return window._refuelings.create(data);
+  const result = await window._refuelings.create(data);
+  return result;
 }
 
 export async function updateRefueling(
   id: string,
   data: IUpdateRefueling
 ): Promise<IRefueling | null> {
-  return window._refuelings.update(id, data);
+  const result = await window._refuelings.update(id, data);
+  return result;
 }
 
 export async function deleteRefueling(id: string): Promise<boolean> {
-  return window._refuelings.remove(id);
+  const result = await window._refuelings.remove(id);
+  return result;
 }

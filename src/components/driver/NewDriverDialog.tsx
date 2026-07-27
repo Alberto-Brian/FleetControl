@@ -13,7 +13,11 @@ import { Plus, User, CreditCard, Phone, Mail } from 'lucide-react';
 import { createDriver as createDriverHelper } from '@/helpers/driver-helpers';
 import { useDrivers } from '@/contexts/DriversContext';
 
-export default function NewDriverDialog() {
+interface NewDriverDialogProps {
+  onSuccess?: () => void;
+}
+
+export default function NewDriverDialog({ onSuccess }: NewDriverDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { addDriver } = useDrivers();
@@ -40,6 +44,7 @@ export default function NewDriverDialog() {
         showSuccess(t('drivers:toast.createSuccess'));
         setOpen(false);
         resetForm();
+        onSuccess?.();
       }
     } catch (error: any) {
       handleError(error, t('drivers:toast.createError'));

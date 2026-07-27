@@ -430,7 +430,7 @@ export default function DriversPageContent() {
                       {t('drivers:tabs.shifts', 'Turnos')}
                     </TabsTrigger>
                   </TabsList>
-                  <NewDriverDialog />
+                  <NewDriverDialog onSuccess={loadDrivers} />
                 </div>
 
                 {/* ── TAB: MOTORISTAS ────────────────────────────────────── */}

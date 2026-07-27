@@ -697,7 +697,7 @@ export default function VehiclesPageContent() {
             </TabsList>
 
             <div className="flex items-center gap-3 ml-auto">
-              <NewVehicleDialog />
+              <NewVehicleDialog onSuccess={loadVehicles} />
             </div>
           </div>
 
@@ -872,7 +872,7 @@ export default function VehiclesPageContent() {
                   className="pl-10 h-10 text-sm bg-card border-muted/50"
                 />
               </div>
-              <NewVehicleCategoryDialog />
+              <NewVehicleCategoryDialog onSuccess={loadCategories} />
             </div>
 
             {isCategoriesLoading ? (

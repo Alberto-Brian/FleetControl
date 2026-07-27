@@ -25,21 +25,24 @@ export async function getScheduledTripsByDriver(driverId: string): Promise<ISche
 }
 
 export async function createScheduledTrip(data: ICreateScheduledTrip): Promise<IScheduledTrip> {
-  return window._scheduled_trips.create(data);
+  const result = await window._scheduled_trips.create(data);
+  return result;
 }
 
 export async function updateScheduledTrip(
   id:   string,
   data: IUpdateScheduledTrip
 ): Promise<IScheduledTrip | null> {
-  return window._scheduled_trips.update(id, data);
+  const result = await window._scheduled_trips.update(id, data);
+  return result;
 }
 
 export async function cancelScheduledTrip(
   id:   string,
   data?: ICancelScheduledTrip
 ): Promise<IScheduledTrip | null> {
-  return window._scheduled_trips.cancel(id, data);
+  const result = await window._scheduled_trips.cancel(id, data);
+  return result;
 }
 
 export async function forceScheduledTripCycle(): Promise<void> {

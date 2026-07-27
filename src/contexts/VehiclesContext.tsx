@@ -2,6 +2,7 @@
 // FILE: src/contexts/VehiclesContext.tsx (EXPANDIDO)
 // ========================================
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import { useDashboard } from '@/contexts/DashboardContext';
 
 // ==================== TYPES ====================
 export interface Vehicle {
@@ -212,49 +213,62 @@ export function VehiclesProvider({ children }: VehiclesProviderProps) {
     vehicles: [],
     selectedVehicle: null,
     isLoading: true,
-    // ✨ NOVO: Estado inicial das categorias
     categories: [],
     selectedCategory: null,
     isCategoriesLoading: true,
   });
 
+  const { refreshData } = useDashboard();
+
   const helpers = {
     // Veículos
-    setVehicles: (vehicles: Vehicle[]) => 
+    setVehicles: (vehicles: Vehicle[]) =>
       dispatch({ type: 'SET_VEHICLES', payload: vehicles }),
-    
-    addVehicle: (vehicle: Vehicle) => 
-      dispatch({ type: 'ADD_VEHICLE', payload: vehicle }),
-    
-    updateVehicle: (vehicle: Vehicle) => 
-      dispatch({ type: 'UPDATE_VEHICLE', payload: vehicle }),
-    
-    deleteVehicle: (id: string) => 
-      dispatch({ type: 'DELETE_VEHICLE', payload: id }),
-    
-    selectVehicle: (vehicle: Vehicle | null) => 
+
+    addVehicle: (vehicle: Vehicle) => {
+      dispatch({ type: 'ADD_VEHICLE', payload: vehicle });
+      refreshData();
+    },
+
+    updateVehicle: (vehicle: Vehicle) => {
+      dispatch({ type: 'UPDATE_VEHICLE', payload: vehicle });
+      refreshData();
+    },
+
+    deleteVehicle: (id: string) => {
+      dispatch({ type: 'DELETE_VEHICLE', payload: id });
+      refreshData();
+    },
+
+    selectVehicle: (vehicle: Vehicle | null) =>
       dispatch({ type: 'SELECT_VEHICLE', payload: vehicle }),
-    
-    setLoading: (loading: boolean) => 
+
+    setLoading: (loading: boolean) =>
       dispatch({ type: 'SET_LOADING', payload: loading }),
 
-    // ✨ NOVO: Categorias
-    setCategories: (categories: VehicleCategory[]) => 
+    // Categorias
+    setCategories: (categories: VehicleCategory[]) =>
       dispatch({ type: 'SET_CATEGORIES', payload: categories }),
-    
-    addCategory: (category: VehicleCategory) => 
-      dispatch({ type: 'ADD_CATEGORY', payload: category }),
-    
-    updateCategory: (category: VehicleCategory) => 
-      dispatch({ type: 'UPDATE_CATEGORY', payload: category }),
-    
-    deleteCategory: (id: string) => 
-      dispatch({ type: 'DELETE_CATEGORY', payload: id }),
-    
-    selectCategory: (category: VehicleCategory | null) => 
+
+    addCategory: (category: VehicleCategory) => {
+      dispatch({ type: 'ADD_CATEGORY', payload: category });
+      refreshData();
+    },
+
+    updateCategory: (category: VehicleCategory) => {
+      dispatch({ type: 'UPDATE_CATEGORY', payload: category });
+      refreshData();
+    },
+
+    deleteCategory: (id: string) => {
+      dispatch({ type: 'DELETE_CATEGORY', payload: id });
+      refreshData();
+    },
+
+    selectCategory: (category: VehicleCategory | null) =>
       dispatch({ type: 'SELECT_CATEGORY', payload: category }),
-    
-    setCategoriesLoading: (loading: boolean) => 
+
+    setCategoriesLoading: (loading: boolean) =>
       dispatch({ type: 'SET_CATEGORIES_LOADING', payload: loading }),
   };
 
