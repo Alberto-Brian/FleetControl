@@ -691,7 +691,7 @@ export function TraccarDevicesPanel({ isOpen, onClose, onViewVehicle, onCenterDe
             variant={isOnline ? 'default' : 'secondary'}
             className="text-[10px] h-4 px-1.5 flex-shrink-0"
           >
-            {device.status ?? 'unknown'}
+            {isOnline ? t('sidebar.statusOnline') : t('sidebar.statusOffline')}
           </Badge>
           <button
             className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted"

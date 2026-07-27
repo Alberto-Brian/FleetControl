@@ -27,6 +27,7 @@ import { format, parseISO } from 'date-fns';
 import { pt as ptLocale } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { generateReport, generateExpensesReport } from '@/helpers/report-helpers';
+import { getDeviceDisplayName } from '@/helpers/tracking-helpers';
 import { GenerateReportDialog } from '@/components/reports/GenerateReportDialog';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 
@@ -62,7 +63,7 @@ interface GeneratedReport {
 
 // ==================== GPS REPORT TYPES ====================
 
-interface GpsDevice { id: string; traccar_id: number; name: string; uniqueId: string; status: string; }
+interface GpsDevice { id: string; traccar_id: number; name: string; uniqueId: string; status: string; vehicle?: { license_plate: string; brand: string; model: string } | null; }
 
 interface GpsSummary {
   deviceId:     number;
@@ -237,23 +238,26 @@ function GpsReportsTab() {
                 emptyMessage="Nenhum dispositivo encontrado."
                 value={selectedId}
                 onValueChange={setSelectedId}
-                options={devices.map(d => ({
-                  value:         String(d.traccar_id),
-                  searchText:    `${d.name} ${d.uniqueId}`,
-                  label: (
-                    <span className="flex items-center gap-2 w-full">
-                      <span className={cn('w-2 h-2 rounded-full flex-shrink-0', d.status === 'online' ? 'bg-green-500' : 'bg-slate-400')} />
-                      <span className="font-medium truncate">{d.name}</span>
-                      <span className="text-xs text-muted-foreground ml-auto font-mono">{d.uniqueId}</span>
-                    </span>
-                  ),
-                  selectedLabel: (
-                    <span className="flex items-center gap-2">
-                      <span className={cn('w-2 h-2 rounded-full flex-shrink-0', d.status === 'online' ? 'bg-green-500' : 'bg-slate-400')} />
-                      {d.name}
-                    </span>
-                  ),
-                }))}
+                options={devices.map(d => {
+                  const displayName = getDeviceDisplayName(d as any);
+                  return {
+                    value:         String(d.traccar_id),
+                    searchText:    `${displayName} ${d.name} ${d.uniqueId}${d.vehicle ? ` ${d.vehicle.license_plate} ${d.vehicle.brand} ${d.vehicle.model}` : ''}`,
+                    label: (
+                      <span className="flex items-center gap-2 w-full">
+                        <span className={cn('w-2 h-2 rounded-full flex-shrink-0', d.status === 'online' ? 'bg-green-500' : 'bg-slate-400')} />
+                        <span className="font-medium truncate">{displayName}</span>
+                        <span className="text-xs text-muted-foreground ml-auto font-mono">{d.uniqueId}</span>
+                      </span>
+                    ),
+                    selectedLabel: (
+                      <span className="flex items-center gap-2">
+                        <span className={cn('w-2 h-2 rounded-full flex-shrink-0', d.status === 'online' ? 'bg-green-500' : 'bg-slate-400')} />
+                        <span className="truncate">{displayName}</span>
+                      </span>
+                    ),
+                  };
+                })}
               />
             </div>
 
