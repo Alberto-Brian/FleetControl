@@ -8,7 +8,7 @@
 //  4. Tab "shifts" adicionada (3 tabs total)
 //  5. Badge de turno nos cards e na list view
 // ========================================
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button }   from '@/components/ui/button';
 import { Input }    from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,9 +24,12 @@ import { useErrorHandler }  from '@/hooks/useErrorHandler';
 import { useTranslation }   from 'react-i18next';
 import {
   Search, Users, Edit, Trash2, Eye, Phone, Mail, Calendar, AlertTriangle, Truck,
-  LayoutGrid, List, Filter, MoreHorizontal, CheckCircle2, Clock, UserX, Ban,
+  LayoutGrid, List, Rows, Filter, MoreHorizontal, CheckCircle2, Clock, UserX, Ban,
   CalendarDays, Plus, AlarmClock, Crown,
 } from 'lucide-react';
+import { usePageViewSettings } from '@/hooks/usePageViewSettings';
+import { usePagePagination } from '@/hooks/usePagePagination';
+import { DriverAnalyticsPanel } from '@/components/analytics/DriverAnalyticsPanel';
 import { getAllDrivers, deleteDriver as deleteDriverHelper } from '@/helpers/driver-helpers';
 import { getAllVehicles }  from '@/helpers/vehicle-helpers';
 import { getAllRoutes }    from '@/helpers/route-helpers';
@@ -51,8 +54,15 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger, closeDropdownsAndOpenDialog,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-type ViewMode = 'list' | 'cards';
+function fmt(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (n >= 1_000)     return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
+  return String(n);
+}
+
+type ViewMode = 'list' | 'cards' | 'compact';
 
 export default function DriversPageContent() {
   const { t }                        = useTranslation();
@@ -74,8 +84,7 @@ export default function DriversPageContent() {
   const [driverShiftsMap, setDriverShiftsMap] = useState<Record<string, IDriverShiftBadge[]>>({});
 
   // Paginação
-  const [currentPage, setCurrentPage]       = useState(1);
-  const [itemsPerPage, setItemsPerPage]     = useState(20);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage } = usePagePagination('drivers');
   const [paginationInfo, setPaginationInfo] = useState({
     total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false,
   });
@@ -92,7 +101,12 @@ export default function DriversPageContent() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting,       setIsDeleting]       = useState(false);
 
+  const isInitialSearchRef = useRef(true);
   useEffect(() => {
+    if (isInitialSearchRef.current) {
+      isInitialSearchRef.current = false;
+      return;
+    }
     const timer = setTimeout(() => { setDebouncedSearch(searchTerm); setCurrentPage(1); }, 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
@@ -215,9 +229,12 @@ export default function DriversPageContent() {
   ];
 
   const viewModes = [
-    { mode: 'list',  icon: List,       label: t('common:viewModes.normal') },
-    { mode: 'cards', icon: LayoutGrid, label: t('common:viewModes.cards')  },
+    { mode: 'list',    icon: List,       label: t('common:viewModes.normal') },
+    { mode: 'compact', icon: Rows,       label: t('common:viewModes.compact', 'Compacto') },
+    { mode: 'cards',   icon: LayoutGrid, label: t('common:viewModes.cards')  },
   ] as const;
+
+  const { settings: viewSettings } = usePageViewSettings();
 
   // ── Views ────────────────────────────────────────────────────────────────
 
@@ -301,6 +318,68 @@ export default function DriversPageContent() {
             </CardContent>
           </Card>
         ))}
+      </div>
+    );
+  }
+
+  function renderCompactView() {
+    return (
+      <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-muted/50 px-5 py-3 grid grid-cols-12 gap-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground border-b">
+          <div className="col-span-4">{t('drivers:fields.name', 'Motorista')}</div>
+          <div className="col-span-2">{t('drivers:fields.category', 'Categoria')}</div>
+          <div className="col-span-3">{t('drivers:fields.status', 'Estado')}</div>
+          <div className="col-span-2">{t('drivers:fields.licenseExpiry', 'Validade')}</div>
+          <div className="col-span-1" />
+        </div>
+        <div className="divide-y">
+          {drivers.map(driver => (
+            <div key={driver.id} className="px-5 py-3 grid grid-cols-12 gap-4 items-center hover:bg-muted/40 transition-colors duration-150">
+              <div className="col-span-4 flex items-center gap-3 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-[10px] font-bold text-primary">
+                    {driver.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold truncate">{driver.name}</p>
+                  <p className="text-[11px] text-muted-foreground font-mono truncate">{driver.license_number}</p>
+                </div>
+              </div>
+              <div className="col-span-2">
+                <span className="text-xs font-bold bg-muted/60 px-2 py-0.5 rounded border border-muted-foreground/10">
+                  {driver.license_category}
+                </span>
+              </div>
+              <div className="col-span-3">{getStatusBadge(driver.status)}</div>
+              <div className="col-span-2">
+                <span className={cn('text-sm font-medium', isLicenseExpired(driver.license_expiry_date) ? 'text-destructive' : isLicenseExpiring(driver.license_expiry_date) ? 'text-amber-600 dark:text-amber-400' : '')}>
+                  {new Date(driver.license_expiry_date).toLocaleDateString('pt-PT')}
+                </span>
+              </div>
+              <div className="col-span-1 flex justify-end">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectDriver(driver); setViewDialogOpen(true); })}>
+                      <Eye className="w-4 h-4 mr-2" />{t('drivers:actions.view')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectDriver(driver); setEditDialogOpen(true); })}>
+                      <Edit className="w-4 h-4 mr-2" />{t('drivers:actions.edit')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => openDeleteDialog(driver)}>
+                      <Trash2 className="w-4 h-4 mr-2" />{t('drivers:actions.delete')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -436,22 +515,49 @@ export default function DriversPageContent() {
                 {/* ── TAB: MOTORISTAS ────────────────────────────────────── */}
                 <TabsContent value="drivers" className="space-y-6 mt-0 outline-none">
                   {/* Stats */}
+                  <TooltipProvider delayDuration={300}>
                   <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
                     {stats.map((stat, i) => (
-                      <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
-                        <CardContent className="p-4 flex items-center gap-3">
-                          <div className={cn("p-2.5 rounded-xl shrink-0", stat.bg, stat.color)}>
-                            <stat.icon className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">{stat.label}</p>
-                            <p className="text-2xl font-black tracking-tight leading-tight">{stat.value}</p>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <UITooltip key={i}>
+                        <TooltipTrigger asChild>
+                          <Card className="border-none shadow-sm bg-card overflow-hidden cursor-default">
+                            <CardContent className="p-4 flex items-center gap-3">
+                              <div className={cn("p-2.5 rounded-xl shrink-0", stat.bg, stat.color)}>
+                                <stat.icon className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">{stat.label}</p>
+                                <p className={cn("font-black tracking-tight leading-tight", stat.value >= 10_000 ? "text-lg" : "text-2xl")}>
+                                  {fmt(stat.value)}
+                                </p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </TooltipTrigger>
+                        {stat.value >= 1_000 && (
+                          <TooltipContent side="top" className="px-3 py-2.5 min-w-[120px]">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5 leading-tight">{stat.label}</p>
+                            <p className="text-sm font-black tabular-nums leading-tight">{stat.value.toLocaleString('pt-PT')}</p>
+                          </TooltipContent>
+                        )}
+                      </UITooltip>
                     ))}
                   </div>
+                  </TooltipProvider>
 
+                  {/* Análises horizontal (acima da lista) */}
+                  {viewSettings.analyticsLayout !== 'vertical' && viewSettings.driversAnalytics && (
+                    <DriverAnalyticsPanel
+                      layout="horizontal"
+                      drivers={drivers}
+                      statusCounts={statusCounts}
+                      totalCount={paginationInfo.total}
+                    />
+                  )}
+
+                  {/* Área principal: layout vertical = flex row (sidebar direita) */}
+                  <div className={viewSettings.analyticsLayout === 'vertical' ? 'flex gap-4 items-start' : undefined}>
+                  <div className={cn('space-y-6', viewSettings.analyticsLayout === 'vertical' ? 'flex-1 min-w-0' : undefined)}>
                   {/* Toolbar */}
                   <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
                     <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
@@ -485,7 +591,7 @@ export default function DriversPageContent() {
                         ))}
                       </div>
                     </div>
-                    {paginationInfo.totalPages > 1 && (
+                    {paginationInfo.total > 0 && (
                       <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
                         <Pagination pagination={paginationInfo} onPageChange={p => setCurrentPage(p)} onLimitChange={l => { setItemsPerPage(l); setCurrentPage(1); }} />
                       </div>
@@ -505,10 +611,23 @@ export default function DriversPageContent() {
                     </div>
                   ) : (
                     <div className="animate-in fade-in duration-300">
-                      {viewMode === 'list'  && renderListView()}
-                      {viewMode === 'cards' && renderCardsView()}
+                      {viewMode === 'compact' && renderCompactView()}
+                      {viewMode === 'list'    && renderListView()}
+                      {viewMode === 'cards'   && renderCardsView()}
                     </div>
                   )}
+                  </div>
+                  {viewSettings.analyticsLayout === 'vertical' && viewSettings.driversAnalytics && (
+                    <div className="w-[300px] shrink-0 sticky top-4">
+                      <DriverAnalyticsPanel
+                        layout="vertical"
+                        drivers={drivers}
+                        statusCounts={statusCounts}
+                        totalCount={paginationInfo.total}
+                      />
+                    </div>
+                  )}
+                  </div>
                 </TabsContent>
 
                 {/* ── TAB: FÉRIAS ──────────────────────────────────────── */}

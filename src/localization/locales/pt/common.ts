@@ -58,6 +58,7 @@ export const ptCommon = {
       default: "Esta acção não pode ser desfeita. Este registo será marcado como excluído.",
       defaultWithItem: 'Esta acção não pode ser desfeita. O registo "{{itemName}}" será marcado como excluído.'
   },
+  noData: 'Sem dados',
   actions: {
       actions: "Acções",
       close: "Fechar",
@@ -74,6 +75,7 @@ export const ptCommon = {
       saving: 'A guardar...',
       save: 'Guardar',
       dismiss: 'Dispensar',
+      clearFilters: 'Limpar filtros',
   },
   warnigns: {
       licensePlateRequired: "Por favor, insira uma placa de veículo",

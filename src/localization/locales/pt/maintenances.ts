@@ -397,6 +397,20 @@ export const ptMaintenances = {
       activeCount: '{{count}} oficina{{plural}} activa{{plural}}',
     },
   },
+
+  analytics: {
+    total:             'Total',
+    scheduled:         'Agendadas',
+    inProgress:        'Em Andamento',
+    totalCost:         'Custo Total',
+    statusScheduled:   'Agendada',
+    statusInProgress:  'Em Andamento',
+    statusCompleted:   'Concluída',
+    statusCancelled:   'Cancelada',
+    maintenanceStatus: 'Estado das Manutenções',
+    costByVehicle:     'Custo por Viatura',
+    cost:              'Custo',
+  },
 } as const;
 
 export default ptMaintenances;

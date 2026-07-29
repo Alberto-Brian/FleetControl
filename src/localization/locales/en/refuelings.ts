@@ -247,7 +247,16 @@ export const enRefuelings = {
     quantities: "Quantities",
     details: "Details",
     basicInfo: "Basic Information",
-  }
+  },
+
+  analytics: {
+    totalCost:     'Total Cost',
+    totalLiters:   'Total Litres',
+    avgPrice:      'Avg. Price/L',
+    refuelings:    'Refuelings',
+    costByVehicle: 'Cost by Vehicle (current page)',
+    cost:          'Cost',
+  },
 } as const;
 
 export default enRefuelings;

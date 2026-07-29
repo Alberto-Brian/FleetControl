@@ -8,80 +8,114 @@ export const enHelp = {
   footer: 'FleetControl · AKM Systems',
 
   sections: [
+    // ─── INTRODUCTION ─────────────────────────────────────────────────────────
     {
       id: 'intro',
       title: 'Introduction to FleetControl',
       content: [
-        { type: 'text', text: 'FleetControl is a fleet management system that lets you monitor vehicles, drivers, trips, fuel, maintenance, expenses and fines.' },
-        { type: 'text', text: 'There are two operating modes:' },
+        { type: 'text', text: 'FleetControl is a fleet management system for monitoring vehicles, drivers, trips, fuel, maintenance, expenses, and fines. It includes real-time GPS tracking via Traccar in connected mode.' },
+        { type: 'text', text: 'Two operating modes:' },
         { type: 'list', items: [
-          'Standalone mode — works completely offline. All data is stored locally on the computer.',
-          'Connected mode — connects to the FleetControl server and the real-time GPS tracking module via Traccar.',
+          'Standalone Mode — works completely offline. All data is stored locally on your computer. License key starts with ST-.',
+          'Connected Mode — connects to the FleetControl server and the real-time GPS tracking module via Traccar. License key starts with LK-.',
         ]},
-        { type: 'tip', text: 'The operating mode is determined by the type of license activated. You can see your current mode in Settings › License.' },
+        { type: 'tip', text: 'Your operating mode is determined by your license type. You can check your current mode under Settings › License.' },
       ],
     },
+
+    // ─── DASHBOARD ────────────────────────────────────────────────────────────
     {
       id: 'dashboard',
       title: 'Dashboard',
       content: [
         { type: 'text', text: 'The Dashboard shows a summary of the current fleet status with key metrics and quick access to the main sections.' },
         { type: 'list', items: [
-          'Summary of active vehicles, under maintenance and out of service',
+          'Summary of active vehicles, vehicles in maintenance, and out-of-service vehicles',
           'Recent trips and fuel statistics',
-          'Pending maintenance alerts',
-          'Shortcuts to the most used sections',
+          'Alerts for pending maintenance and expiring driver licenses',
+          'Shortcuts to the most-used sections',
         ]},
         { type: 'tip', text: 'Click on summary cards to navigate directly to the corresponding section.' },
       ],
     },
+
+    // ─── ANALYTICS PANELS ─────────────────────────────────────────────────────
+    {
+      id: 'analytics',
+      title: 'Analytics Panels',
+      content: [
+        { type: 'text', text: 'Each main section (Vehicles, Drivers, Trips, Fuel, Maintenance, Expenses) has an analytics panel showing KPIs and charts based on the current listing data.' },
+        { type: 'text', text: 'Panel position — configurable under Settings › Views:' },
+        { type: 'list', items: [
+          'Vertical (default) — fixed panel to the right of the listing, follows scroll. In this layout, the view mode buttons (compact/list/cards) move to the pagination line.',
+          'Horizontal — panel appears above the listing, spans full width.',
+        ]},
+        { type: 'text', text: 'KPIs and charts per module:' },
+        { type: 'table',
+          headers: ['Module', 'KPIs', 'Charts'],
+          rows: [
+            ['Vehicles', 'Utilisation rate, availability, average mileage, vehicles with GPS', 'Fleet status donut, top mileage bar chart, by category bar chart'],
+            ['Drivers', 'Availability rate, on trip, on leave, licenses expiring (30 days)', 'Availability donut, by license category bar chart'],
+            ['Trips', 'Completion rate, in progress, cancelled, total distance', 'Trip status donut'],
+            ['Fuel', 'Total cost, total litres, average price/L, number of fill-ups', 'Cost per vehicle bar chart'],
+            ['Maintenance', 'Total, scheduled, in progress, total cost', 'Status donut, cost per vehicle bar chart'],
+            ['Expenses', 'Total expenses, total value, paid, payment rate', 'Status donut, value by category bar chart'],
+          ],
+        },
+        { type: 'tip', text: 'Large values are automatically abbreviated (e.g. 85,300 km → "85.3K km"). Hover over a KPI tile to see the full value in a tooltip showing the metric name and exact number.' },
+        { type: 'tip', text: 'Enable or disable analytics panels per module individually under Settings › Views.' },
+      ],
+    },
+
+    // ─── VEHICLES ─────────────────────────────────────────────────────────────
     {
       id: 'vehicles',
       title: 'Vehicles',
       content: [
-        { type: 'text', text: 'Manage your entire fleet: register, edit and view the full history of each vehicle.' },
+        { type: 'text', text: 'Manage your entire fleet: register, edit and view the history of each vehicle.' },
         { type: 'list', items: [
-          'Full registration: plate, make, model, year, colour, category',
-          'Chassis number and current status (active, under maintenance, inactive)',
+          'Full record: licence plate, make, model, year, colour, category',
+          'Chassis number and current status (active, in maintenance, inactive)',
+          'Current mileage and update history',
           'Trip, fuel and maintenance history per vehicle',
-          'GPS tracking device assignment (connected mode)',
+          'Association with GPS tracking device by IMEI (connected mode)',
         ]},
         { type: 'steps', steps: [
-          'Click "+ New Vehicle" in the upper right corner',
-          'Fill in required fields: plate, make, model',
-          'Select category and initial status',
+          'Click "+ New Vehicle" in the top-right corner',
+          'Fill in required fields: licence plate, make, model',
+          'Select the category and initial status',
           'Save the record',
         ]},
-        { type: 'tip', text: 'You can filter and sort the list by status, category or plate. Click any column header to sort.' },
-        {
-          type: 'list' as const,
-          items: [
-            'Register GPS: links the IMEI to the vehicle — after registration, the system suggests adding the vehicle to a virtual geofencing zone',
-            'Remove GPS: unlinks the device; the device name on the Traccar server automatically changes to "GPS-XXXXXX" (last 6 digits of the IMEI), indicating it is available for reuse',
-            'To change the IMEI: remove the current GPS and register the new one — there is no direct IMEI update',
-            'Pause tracking: the vehicle stops appearing on the map but keeps the GPS linked — can be re-enabled at any time',
-            'Resume tracking: the vehicle reappears on the map with real-time updates',
-            'Delete vehicle with active GPS: the system warns that the IMEI will be disassociated before deletion and asks for confirmation',
-          ],
-        },
-        { type: 'tip', text: 'The "GPS Devices" panel (toolbar button on the map) lets you filter devices with or without a linked vehicle, making it easy to manage free IMEIs.' },
+        { type: 'text', text: 'GPS actions available per vehicle (connected mode):' },
+        { type: 'list', items: [
+          'Register GPS: links the IMEI to the vehicle — after registration, the system suggests adding the vehicle to a geofencing zone',
+          'Remove GPS: unlinks the device; the device name in Traccar automatically changes to "GPS-XXXXXX" (last 6 IMEI digits), indicating it is available for reuse',
+          'To change IMEI: remove the current GPS and register the new one — there is no direct IMEI update',
+          'Pause tracking: the vehicle stops appearing on the map but keeps its GPS association — can be resumed at any time',
+          'Resume tracking: the vehicle reappears on the map with real-time updates',
+          'Delete a vehicle with active GPS: the system warns that the IMEI will be unlinked before deletion and asks for confirmation',
+        ]},
+        { type: 'tip', text: 'The "GPS Devices" panel (button in the map toolbar) lets you filter devices with or without an associated vehicle, making it easy to manage free IMEIs.' },
+        { type: 'tip', text: 'When filters are active, a "Clear filters" button appears to reset them all at once (shown in the toolbar or pagination row depending on the layout).' },
       ],
     },
+
+    // ─── DRIVERS ──────────────────────────────────────────────────────────────
     {
       id: 'drivers',
       title: 'Drivers',
       content: [
-        { type: 'text', text: 'Each driver has two independent states: a contractual status and an operational availability. It is important to understand which you can change manually and which the system manages automatically.' },
-        { type: 'text', text: 'Contractual Status — defines the employment relationship between the driver and the company:' },
+        { type: 'text', text: 'Each driver has two independent states: the contractual status and the operational availability. It is important to understand which you can change manually and which is managed automatically by the system.' },
+        { type: 'text', text: 'Contractual Status — defines the driver\'s employment relationship with the company:' },
         { type: 'table',
           headers: ['Status', 'Meaning', 'Set by'],
           rows: [
-            ['Active', 'Driver currently employed by the company', 'User'],
-            ['On Leave', 'Temporary absence: holiday, sick leave, etc.', 'Automatic (Leaves module) or user'],
-            ['Terminated', 'Employment ended — driver permanently inactive', 'User'],
+            ['Active', 'Driver currently employed at the company', 'User'],
+            ['On Leave', 'Temporary absence: vacation, sick leave, etc.', 'Automatic (Leaves module) or user'],
+            ['Terminated', 'Employment contract ended — driver permanently inactive', 'User'],
           ],
         },
-        { type: 'warning', text: 'The contractual status cannot be changed while the driver has an active trip. Complete the trip first.' },
+        { type: 'warning', text: 'You cannot change the contractual status while the driver has an active trip. Complete the trip first.' },
         { type: 'text', text: 'Operational Availability — indicates whether the driver is ready to be assigned to a trip:' },
         { type: 'table',
           headers: ['Availability', 'Meaning', 'Set by'],
@@ -94,51 +128,57 @@ export const enHelp = {
         { type: 'tip', text: 'When creating a trip, only drivers with "Available" operational availability and "Active" contractual status appear for selection.' },
         { type: 'text', text: 'Automation rules:' },
         { type: 'list', items: [
-          'When a trip starts → availability changes to "On Trip" automatically',
-          'When the trip ends → availability returns to "Available" automatically',
-          'When a leave is activated → availability changes to "Offline" automatically',
-          'When the leave ends → availability returns to "Available" automatically',
+          'When a trip starts → availability automatically changes to "On Trip"',
+          'When the trip ends → availability automatically returns to "Available"',
+          'When a leave is activated → availability automatically changes to "Offline"',
+          'When the leave ends → availability automatically returns to "Available"',
           'Availability cannot be changed manually while the driver is On Trip',
         ]},
       ],
     },
+
+    // ─── TRIPS ────────────────────────────────────────────────────────────────
     {
       id: 'trips',
       title: 'Trips',
       content: [
-        { type: 'text', text: 'Register and track all fleet trips: origin, destination, vehicle, driver, kilometres and costs.' },
+        { type: 'text', text: 'Record and track all fleet trips: origin, destination, vehicle, driver, kilometres and costs.' },
         { type: 'list', items: [
           'Assigned vehicle and driver',
           'Origin, destination and trip purpose',
           'Departure and arrival date/time',
-          'Kilometres travelled (start and end odometer)',
-          'Additional notes',
+          'Kilometres travelled (initial and final odometer)',
+          'Trip cost and additional notes',
         ]},
         { type: 'steps', steps: [
           'Click "+ New Trip"',
           'Select the vehicle and available driver',
           'Set origin, destination and departure date',
-          'Enter the starting odometer reading',
+          'Record the initial odometer',
           'On completion, update with arrival date and final odometer',
         ]},
         { type: 'tip', text: 'In connected mode, trips can be correlated with GPS routes recorded automatically by Traccar.' },
       ],
     },
+
+    // ─── FUEL ─────────────────────────────────────────────────────────────────
     {
       id: 'fuel',
       title: 'Fuel',
       content: [
-        { type: 'text', text: 'Record all fleet fuel fill-ups to track consumption and costs.' },
+        { type: 'text', text: 'Record all fleet fuel fill-ups to control consumption and costs.' },
         { type: 'list', items: [
           'Vehicle, date and location of fill-up',
           'Litres filled, price per litre and total cost',
           'Odometer reading at the time of fill-up',
-          'Fuel type (diesel, petrol, LPG, etc.)',
+          'Fuel type (diesel, petrol, LPG, electric, etc.)',
           'Automatic average consumption calculation (km/L)',
         ]},
-        { type: 'tip', text: 'Always record the odometer at each fill-up so the system can accurately calculate average consumption.' },
+        { type: 'tip', text: 'Always record the odometer at each fill-up so the system can calculate average consumption accurately.' },
       ],
     },
+
+    // ─── MAINTENANCE ──────────────────────────────────────────────────────────
     {
       id: 'maintenance',
       title: 'Maintenance',
@@ -146,73 +186,125 @@ export const enHelp = {
         { type: 'text', text: 'Manage preventive and corrective maintenance for all fleet vehicles.' },
         { type: 'list', items: [
           'Type: preventive, corrective',
-          'Description of work carried out, diagnosis and solution',
-          'Supplier/workshop, entry date and exit date',
-          'Vehicle kilometres at the time of entry into maintenance and next scheduled maintenance (km)',
-          'Parts cost, labour cost and total',
+          'Description of work performed, diagnosis and solution',
+          'Service provider/garage, entry date and exit date',
+          'Vehicle mileage at entry and next scheduled maintenance mileage',
+          'Parts, labour and total costs',
           'Priority: low, normal, high, urgent',
           'Work order number (optional)',
         ]},
-        { type: 'warning', text: 'When a vehicle enters maintenance, its status changes automatically. Mark the maintenance as completed when work finishes to return the vehicle to service.' },
-        { type: 'tip', text: 'Set the next maintenance kilometre when creating or completing a record. The system automatically alerts you at the top of this page when the vehicle approaches that value. Configure the alert threshold in Settings › Operations.' },
+        { type: 'warning', text: 'When a vehicle enters maintenance, its status changes automatically. Mark maintenance as completed when work is finished to return the vehicle to service.' },
+        { type: 'tip', text: 'Set the next maintenance mileage when creating or completing a record. The system will automatically alert you at the top of the page when the vehicle approaches that value. Configure the warning threshold under Settings › Operations.' },
       ],
     },
+
+    // ─── EXPENSES ─────────────────────────────────────────────────────────────
     {
       id: 'expenses',
       title: 'Expenses',
       content: [
-        { type: 'text', text: 'Record all fleet operating expenses, per vehicle or in general.' },
+        { type: 'text', text: 'Record all operational fleet expenses, per vehicle or in general.' },
         { type: 'list', items: [
-          'Expense category (tolls, wash, insurance, inspection, etc.)',
+          'Expense category (toll, wash, insurance, inspection, etc.)',
           'Associated vehicle — optional for general fleet expenses',
-          'Date, description and amount',
+          'Date, description, amount and status (pending, paid, cancelled)',
           'Expense reports by period, vehicle or category',
         ]},
-        { type: 'tip', text: 'Create custom categories to better organise expenses specific to your operation.' },
+        { type: 'tip', text: 'Create custom categories under Categories to better organise expenses specific to your operation.' },
+        { type: 'tip', text: 'The Expenses analytics panel shows total, accumulated value, payment rate and distribution by category (data from the current page). Enable it under Settings › Views.' },
       ],
     },
+
+    // ─── FINES ────────────────────────────────────────────────────────────────
     {
       id: 'fines',
       title: 'Fines',
       content: [
-        { type: 'text', text: 'Register and track traffic fines associated with fleet vehicles.' },
+        { type: 'text', text: 'Record and track traffic fines associated with fleet vehicles.' },
         { type: 'list', items: [
           'Vehicle and driver associated with the infraction',
           'Date, location and type of infraction',
           'Fine amount and payment deadline',
           'Payment status: pending, paid, contested',
+          'Responsible party: company or driver',
         ]},
-        { type: 'tip', text: 'Set who is responsible for payment (company or driver) when registering or editing a fine. This field appears in the record details to simplify cost allocation.' },
+        { type: 'tip', text: 'Set who is responsible for payment (company or driver) when registering or editing the fine. That field appears in the record detail to facilitate cost allocation.' },
       ],
     },
+
+    // ─── LISTINGS AND FILTERS ─────────────────────────────────────────────────
+    {
+      id: 'listing-preferences',
+      title: 'Listings, Filters and Views',
+      content: [
+        { type: 'text', text: 'All main sections share the same listing system with filters, view modes and pagination.' },
+        { type: 'text', text: 'View modes — available in the toolbar of each section:' },
+        { type: 'list', items: [
+          'Compact — dense rows, more records visible per screen',
+          'List — standard rows with more detail per item',
+          'Cards — card grid with visually highlighted information',
+        ]},
+        { type: 'tip', text: 'In vertical analytics layout, the view mode buttons move to the pagination line (left of the page controls) to avoid duplicating the main toolbar.' },
+        { type: 'text', text: 'Filters and search:' },
+        { type: 'list', items: [
+          'Real-time free-text search bar',
+          'Filters by status, category, and other fields depending on the section',
+          '"Clear filters" button — appears whenever filters are active, in the toolbar (vertical mode) or in the pagination row; resets all filters at once',
+          'Column sorting by clicking the table header',
+        ]},
+        { type: 'text', text: 'Listing preferences (Settings › Appearance › Listing Preferences):' },
+        { type: 'table',
+          headers: ['Preference', 'Default', 'What it does'],
+          rows: [
+            ['Save filters across sessions', 'Off', 'Keeps active filters when closing and reopening the app'],
+            ['Save view mode', 'On', 'Remembers the compact/list/cards choice between sessions'],
+            ['Save items per page', 'Off', 'Remembers how many items to show per page in each listing'],
+            ['Save current page', 'Off', 'Resumes the last visited page when reopening a listing'],
+          ],
+        },
+        { type: 'tip', text: 'Enabling "Save filters" is useful when you frequently work with the same filters (e.g. only active vehicles or a specific category).' },
+      ],
+    },
+
+    // ─── REPORTS ──────────────────────────────────────────────────────────────
     {
       id: 'reports',
       title: 'Reports',
       content: [
-        { type: 'text', text: 'Generate detailed reports for all system modules, exportable as PDF.' },
+        { type: 'text', text: 'Generate detailed reports from all system modules, exportable as PDF.' },
         { type: 'list', items: [
           'Trip report by period, vehicle or driver',
           'Fuel consumption and costs per vehicle',
           'Maintenance history and associated costs',
           'Expense report by category or period',
-          'Fleet general summary',
+          'General fleet summary',
         ]},
-        { type: 'text', text: 'Customise the PDF header (company logo, name and contacts) in Settings › PDF Reports.' },
+        { type: 'text', text: 'PDF headers use the information configured under Settings › Company (logo, name, contacts). Under Settings › PDF Reports you can customise:' },
+        { type: 'list', items: [
+          'Watermark (company text or logo, with adjustable opacity)',
+          'Header and badge colours (primary and secondary colour)',
+          'Inclusion of charts, footer and executive summary',
+          'Paper size and orientation',
+          'Value format: compact (K/M) or full numbers',
+          'Show or hide currency symbol (Kz)',
+        ]},
         { type: 'tip', text: 'In historical mode you can generate reports from old databases without affecting current data. See the "Databases" section to learn how to activate this mode.' },
       ],
     },
+
+    // ─── GPS TRACKING ─────────────────────────────────────────────────────────
     {
       id: 'tracking',
       title: 'GPS Tracking',
       connectedOnly: true,
       content: [
-        { type: 'text', text: 'The GPS tracking module (available only in connected mode) allows real-time monitoring of all GPS-equipped vehicles via the Traccar server.' },
+        { type: 'text', text: 'The GPS tracking module (available only in connected mode) allows real-time monitoring of the position of all GPS-equipped vehicles via the Traccar server.' },
         { type: 'list', items: [
-          'Real-time map with all device positions',
+          'Real-time map with position of all devices',
           'Speed, heading and last update for each vehicle',
-          'Route history by device and period',
+          'Route history per device and period',
           'Geofencing zones with entry/exit alerts',
-          'Speeding and ignition status alerts',
+          'Excessive speed and ignition status alerts',
           'Map layers: streets, satellite, hybrid, terrain',
         ]},
         { type: 'text', text: 'Geofencing Zones — Define geographic areas on the map to receive alerts when a vehicle enters or exits those zones:' },
@@ -220,21 +312,20 @@ export const enHelp = {
           'Go to the "Zones" tab in the map sidebar',
           'Click "Circle" or "Polygon" and draw the zone directly on the map',
           'Give the zone a name and set a speed limit (optional)',
-          'Save — the zone is synced with the Traccar server',
-          'Enable entry/exit notifications in Map Settings',
+          'Save — the zone is synchronised with the Traccar server',
+          'Enable entry/exit notifications under Settings › GPS Alerts',
         ]},
-        { type: 'tip', text: 'Use the "Fit all devices" button in the toolbar to centre the map on the entire fleet at once.' },
-        {
-          type: 'list' as const,
-          items: [
-            'The map only shows vehicles with an active GPS and tracking enabled',
-            'Vehicles with paused tracking appear in the sidebar list with a "Tracking paused" badge but have no marker on the map',
-            'The "GPS Devices" panel (toolbar button) lists all Traccar devices in the organisation with search by name, IMEI or linked vehicle plate',
-            'After a backup restore, the app automatically checks IMEIs and warns when any have no match in Traccar',
-          ],
-        },
+        { type: 'tip', text: 'Use the "View all devices" button in the toolbar to centre the map on the entire fleet at once.' },
+        { type: 'list', items: [
+          'The map shows only vehicles with active GPS and tracking enabled',
+          'Vehicles with paused tracking appear in the sidebar list with the "Tracking paused" badge but have no marker on the map',
+          'The "GPS Devices" panel (toolbar button) lists all Traccar devices with search by name, IMEI or licence plate',
+          'After a backup restore, the app automatically checks IMEIs and warns when any has no match in Traccar',
+        ]},
       ],
     },
+
+    // ─── GPS NOTIFICATIONS ────────────────────────────────────────────────────
     {
       id: 'notifications',
       title: 'GPS Notifications',
@@ -242,27 +333,37 @@ export const enHelp = {
       content: [
         { type: 'text', text: 'FleetControl uses two types of notification for GPS alerts:' },
         { type: 'list', items: [
-          'Internal notifications (toast) — appear inside the app when it is in focus',
-          'Native OS notifications — appear in the operating system when the app is minimised or in the background',
+          'Internal (toast) notifications — appear inside the application when it is in focus',
+          'Native OS notifications — appear in the operating system when the application is minimised or in the background',
         ]},
         { type: 'table',
-          headers: ['App state', 'Notification type'],
+          headers: ['Application state', 'Notification type'],
           rows: [
             ['In focus (active window)', 'Internal toast notification in the corner of the screen'],
             ['Minimised or in background', 'Native operating system notification'],
           ],
         },
-        { type: 'tip', text: 'You can enable/disable native notifications in Settings › GPS Alerts. Each event type can be configured individually.' },
-        { type: 'text', text: 'Alert Panel — Click "Alerts" in the map toolbar to open the history of generated alerts. The panel includes:' },
+        { type: 'tip', text: 'Enable/disable native notifications under Settings › GPS Alerts. Each event type can be configured individually, including a minimum interval (cooldown) between notifications of the same type.' },
+        { type: 'text', text: 'Alerts Panel — Click "Alerts" in the map toolbar to access the history. The panel includes:' },
         { type: 'list', items: [
           'Search by device name, event type or zone name',
-          'Filter tabs: All / Unread / Read — with a count on each tab',
-          'Stats bar: total unread and read counts, with the time period covered by loaded alerts',
-          'Clicking an alert opens the detail view with coordinates, date/time and an option to centre on the map',
+          'Tabs: All / Unread / Read — with count on each tab',
+          'Stats bar: total unread, read and period covered',
+          'Clicking an alert opens the detail with coordinates, date/time and option to centre on the map',
           'Mark alerts individually or all as read with one click',
+        ]},
+        { type: 'text', text: 'Configurable event types under Settings › GPS Alerts:' },
+        { type: 'list', items: [
+          'Zone entry — vehicle enters a geofencing zone',
+          'Zone exit — vehicle exits a geofencing zone',
+          'Excessive speed — vehicle exceeds the set limit',
+          'Ignition on — engine starts',
+          'Ignition off — engine stops',
         ]},
       ],
     },
+
+    // ─── DATABASES ────────────────────────────────────────────────────────────
     {
       id: 'databases',
       title: 'Databases (Historical Mode)',
@@ -270,36 +371,38 @@ export const enHelp = {
         { type: 'text', text: 'The system automatically saves database backups. The "Databases" tab in Settings lets you temporarily activate an old database to browse historical records and generate reports.' },
         { type: 'text', text: 'When you activate a historical database:' },
         { type: 'list', items: [
-          'An amber banner appears at the top of every page indicating historical mode is active',
+          'An orange banner appears at the top of all pages indicating you are in historical mode',
           'All listings (vehicles, trips, drivers, etc.) show data from that database',
-          'You can generate reports from the historical data normally',
+          'You can generate reports from historical data normally',
           'Adding, editing or deleting data is not possible — read-only mode',
         ]},
         { type: 'steps', steps: [
           'Go to Settings › Databases',
           'Click a database in the list to expand its details',
           'Click "Activate" to enter historical mode',
-          'Navigate to any section or Reports to browse the historical data',
-          'Click "Deactivate" on the amber banner at the top to return to the current database',
+          'Navigate to any section or Reports to browse historical data',
+          'Click "Deactivate" in the orange banner at the top of the screen to return to the current database',
         ]},
-        { type: 'warning', text: 'In historical mode, data cannot be modified. Deactivate historical mode to resume normal operation.' },
+        { type: 'warning', text: 'In historical mode no data changes are possible. Deactivate historical mode to resume normal work.' },
       ],
     },
+
+    // ─── LICENSE ──────────────────────────────────────────────────────────────
     {
       id: 'license',
       title: 'License & Activation',
       content: [
-        { type: 'text', text: 'FleetControl is activated with a license key provided by AKM Systems. There are two types:' },
+        { type: 'text', text: 'FleetControl is activated with a license key provided by AKM Systems. Two license types exist:' },
         { type: 'table',
-          headers: ['Type', 'Features'],
+          headers: ['Type', 'Key starts with', 'Features'],
           rows: [
-            ['Standalone', 'Offline mode, local data, no server required'],
-            ['Connected', 'Server, real-time GPS tracking, multi-user'],
+            ['Standalone', 'ST-', 'Offline mode, local data, no server required'],
+            ['Connected', 'LK-', 'Server, real-time GPS tracking, multi-user'],
           ],
         },
         { type: 'steps', steps: [
           'Go to Settings › License',
-          'Enter the license key provided',
+          'Enter the provided license key',
           'Click "Activate"',
           'The system becomes operational in the mode corresponding to the license type',
         ]},
@@ -307,25 +410,96 @@ export const enHelp = {
         { type: 'tip', text: 'The connected key (LK-) is linked to your organisation on the server. You can use the same key to activate FleetControl on another computer.' },
       ],
     },
+
+    // ─── SETTINGS OVERVIEW ────────────────────────────────────────────────────
     {
       id: 'settings',
       title: 'Settings — Overview',
       content: [
-        { type: 'text', text: 'Access Settings via the gear button in the lower left corner (standalone mode) or upper right of the panel (connected mode).' },
+        { type: 'text', text: 'Access Settings via the gear icon in the bottom-left corner (standalone mode) or the top-right of the panel (connected mode). There is a search bar at the top of the Settings dialog to quickly find any option.' },
         { type: 'table',
           headers: ['Tab', 'What you configure'],
           rows: [
-            ['Appearance', 'Theme (light/dark), text size, layout spacing'],
+            ['Appearance', 'Theme (light/dark), font family, text size, layout padding, sidebar collapse, glass panel (connected mode), listing preferences'],
+            ['Views', 'Analytics panels per section (on/off) and layout position (vertical/horizontal)'],
             ['Language', 'Interface language (Portuguese / English)'],
-            ['Company', 'Company name, logo and details for reports'],
-            ['PDF Reports', 'Header, footer and PDF export format'],
-            ['GPS Alerts', 'Which GPS events generate alerts and minimum intervals between notifications'],
+            ['Company', 'Company name, logo, NIF, phone, email, address and currency'],
+            ['PDF Reports', 'Header, colours, watermark, charts, format and orientation of exported PDFs'],
+            ['GPS Alerts', 'Which GPS events generate alerts and cooldown between notifications of the same type'],
+            ['Alerts', 'Mileage and day thresholds for maintenance, license and insurance alerts'],
             ['Backups', 'Location and frequency of automatic database backups'],
-            ['Databases', 'List and activate historical databases for read-only browsing'],
-            ['Server', 'FleetControl server connection settings (connected mode)'],
-            ['License', 'Active license info, operating mode and expiry'],
+            ['Databases', 'List and activate historical databases for browsing'],
+            ['Server', 'Connection settings to the FleetControl server (connected mode)'],
+            ['License', 'Information about the active license, operating mode and expiry'],
+            ['About', 'Application version and technical information'],
           ],
         },
+      ],
+    },
+
+    // ─── SETTINGS — APPEARANCE ────────────────────────────────────────────────
+    {
+      id: 'settings-appearance',
+      title: 'Settings — Appearance',
+      content: [
+        { type: 'text', text: 'The Appearance tab groups all visual interface options.' },
+        { type: 'text', text: 'Theme:' },
+        { type: 'list', items: [
+          'Toggle between Light Mode and Dark Mode with the moon/sun button',
+          'The theme is applied immediately across the entire interface',
+        ]},
+        { type: 'text', text: 'Typography:' },
+        { type: 'list', items: [
+          'Font family — choose from available fonts (e.g. Geist, Inter, etc.)',
+          'Text size — adjust the interface base size (affects all text proportionally)',
+        ]},
+        { type: 'text', text: 'Layout:' },
+        { type: 'list', items: [
+          'Padding — adds inner padding to pages for a more spacious reading experience',
+          'Compact sidebar — reduces the width of the side menu to free up content space',
+          'Auto-collapse sidebar — collapses the sidebar automatically when navigating to a section',
+        ]},
+        { type: 'text', text: 'Glass Panel (connected mode) — controls the translucent glass panel of the interface:' },
+        { type: 'list', items: [
+          'Opacity — from 40% (transparent) to 100% (solid)',
+          'Blur — from 0px (no blur) to 40px (maximum blur)',
+          'The "Reset" button adapts to the active theme: shows only "Dark mode" (default: 95% / 15px) or "Light mode" (default: 48% / 13px)',
+          '"Save as default" — the button appears automatically when you move a control in this session; saving stores the values as the default for the active theme',
+          'The save button animates with a green checkmark on confirm, then fades out smoothly',
+          '"Reset on theme change" — toggle that automatically applies the new theme\'s defaults whenever you switch between light and dark',
+        ]},
+        { type: 'tip', text: 'To set different values for each theme: switch to dark mode, adjust the controls, click "Save (dark)"; then switch to light mode, adjust, click "Save (light)". Enable "Reset on theme change" for automatic application.' },
+        { type: 'text', text: 'Listing Preferences:' },
+        { type: 'list', items: [
+          'Save filters across sessions (off by default) — keeps active filters when closing and reopening the app',
+          'Save view mode (on by default) — remembers compact/list/cards choice',
+          'Save items per page (off by default) — remembers how many items to show per page',
+          'Save current page (off by default) — resumes the last visited page when reopening a listing',
+        ]},
+      ],
+    },
+
+    // ─── SETTINGS — VIEWS ─────────────────────────────────────────────────────
+    {
+      id: 'settings-views',
+      title: 'Settings — Views',
+      content: [
+        { type: 'text', text: 'The Views tab controls analytics panels for each section and their layout position.' },
+        { type: 'text', text: 'Analytics Panels — enable or disable the analytics panel for each module:' },
+        { type: 'list', items: [
+          'Vehicles — fleet status chart, top mileage and distribution by category',
+          'Drivers — availability, active shifts and license categories',
+          'Trips — completion rate, total distance and trip status',
+          'Fuel — consumption per vehicle and cost trends',
+          'Maintenance — costs and intervention status',
+          'Expenses — total, payment rate and distribution by category',
+        ]},
+        { type: 'text', text: 'Panel Layout:' },
+        { type: 'list', items: [
+          'Vertical — fixed panel to the right of the listing (recommended for wide screens). View mode buttons move to the pagination line in this layout.',
+          'Horizontal — panel appears above the listing, useful on narrower screens.',
+        ]},
+        { type: 'tip', text: 'You can use the search bar in Settings to quickly find "Views" without having to navigate between tabs.' },
       ],
     },
   ],

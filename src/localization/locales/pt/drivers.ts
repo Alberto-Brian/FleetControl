@@ -443,6 +443,19 @@ export const ptDrivers = {
     driverActivity: 'No modo conectado, a disponibilidade do motorista sincroniza automaticamente com a plataforma central e fica visível em todos os dispositivos.',
   },
 
+  analytics: {
+    availability:      'Disponibilidade',
+    onTrip:            'Em Viagem',
+    onLeave:           'De Férias',
+    licenseExpiring:   'Carta a Expirar',
+    availabilityChart: 'Disponibilidade',
+    byLicenseCategory: 'Por Categoria de Carta',
+    statusAvailable:   'Disponível',
+    statusOnTrip:      'Em Viagem',
+    statusOnLeave:     'De Férias',
+    statusOffline:     'Inactivo',
+    statusTerminated:  'Terminado',
+  },
 } as const;
 
 export default ptDrivers;

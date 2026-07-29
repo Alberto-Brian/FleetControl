@@ -397,6 +397,20 @@ export const enMaintenances = {
       activeCount: '{{count}} active workshop{{plural}}',
     },
   },
+
+  analytics: {
+    total:             'Total',
+    scheduled:         'Scheduled',
+    inProgress:        'In Progress',
+    totalCost:         'Total Cost',
+    statusScheduled:   'Scheduled',
+    statusInProgress:  'In Progress',
+    statusCompleted:   'Completed',
+    statusCancelled:   'Cancelled',
+    maintenanceStatus: 'Maintenance Status',
+    costByVehicle:     'Cost by Vehicle',
+    cost:              'Cost',
+  },
 } as const;
 
 export default enMaintenances;

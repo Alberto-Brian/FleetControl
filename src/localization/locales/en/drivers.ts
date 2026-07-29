@@ -444,6 +444,20 @@ export const enDrivers = {
     driverLocation: 'In connected mode, you can view the driver\'s real-time location on the live map and consult their full route history.',
     driverActivity: 'In connected mode, driver availability syncs automatically with the central platform and is visible across all devices.',
   },
+
+  analytics: {
+    availability:      'Availability',
+    onTrip:            'On Trip',
+    onLeave:           'On Leave',
+    licenseExpiring:   'License Expiring',
+    availabilityChart: 'Availability',
+    byLicenseCategory: 'By License Category',
+    statusAvailable:   'Available',
+    statusOnTrip:      'On Trip',
+    statusOnLeave:     'On Leave',
+    statusOffline:     'Inactive',
+    statusTerminated:  'Terminated',
+  },
 } as const;
 
 export default enDrivers;

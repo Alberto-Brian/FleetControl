@@ -572,6 +572,7 @@ export function TraccarDevicesPanel({ isOpen, onClose, onViewVehicle, onCenterDe
               disabled={submitting}
               autoFocus
             />
+            <p className="text-xs text-muted-foreground">{t('devicesPanel.nameHelp')}</p>
           </div>
 
           {/* Campo IMEI */}

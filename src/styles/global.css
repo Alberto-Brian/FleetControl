@@ -3,6 +3,42 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Range slider ─────────────────────────────────────────────────────────── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  width: 100%;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: hsl(var(--foreground) / 0.14);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  border: 2px solid hsl(var(--background));
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  margin-top: -5px;
+  transition: box-shadow 120ms ease;
+}
+
+input[type="range"]:hover::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px hsl(var(--primary) / 0.15), 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"]:focus-visible::-webkit-slider-thumb {
+  outline: none;
+  box-shadow: 0 0 0 4px hsl(var(--ring) / 0.35), 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
 /* ── Sonner toast — botão de fechar ───────────────────────────────────────── */
 [data-sonner-toast] [data-close-button] {
   position: absolute !important;

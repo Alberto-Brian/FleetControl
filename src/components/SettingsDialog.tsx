@@ -21,8 +21,9 @@ import {
   Building, Hash, AtSign, ImageIcon, FileText, Bell, Car,
   Fuel, Sliders, RotateCcw, Eye, EyeOff, Droplets, Filter,
   Key, ShieldCheck, RefreshCw, PanelLeft, Maximize2, Server, WifiOff, Wifi,
-  Database, Search,
+  Database, Search, BarChart, Moon, Sun, LayoutList, Bookmark,
 } from 'lucide-react';
+import { usePageViewSettings } from '@/hooks/usePageViewSettings';
 import { Button }   from '@/components/ui/button';
 import { Switch }   from '@/components/ui/switch';
 import { Input }    from '@/components/ui/input';
@@ -1537,7 +1538,29 @@ export default function SettingsDialog() {
   const [activeTab, setActiveTab] = useState('appearance');
   const { fontId, setFont, options: fontOptions }                    = useFontFamily();
   const { sizeId, setFontSize, sizeOptions }                         = useFontSize();
-  const { settings: glass, update: updateGlass, reset: resetGlass }  = useGlassSettings();
+  const {
+    settings: glass, update: updateGlass,
+    resetToDark, resetToLight, saveAsDefault: saveGlassAsDefault,
+    resetOnThemeChange, setResetOnThemeChange,
+    isDark: glassIsDark,
+  } = useGlassSettings();
+
+  const [glassTouched, setGlassTouched] = useState(false);
+  const [glassSaved,   setGlassSaved]   = useState(false);
+  const [glassHiding,  setGlassHiding]  = useState(false);
+
+  function markGlassDirty() {
+    if (!glassHiding) { setGlassTouched(true); setGlassSaved(false); }
+  }
+  function hideGlassButton() {
+    setGlassHiding(true);
+    setTimeout(() => { setGlassTouched(false); setGlassHiding(false); }, 200);
+  }
+  function onGlassSaveClick() {
+    saveGlassAsDefault(glassIsDark);
+    setGlassSaved(true);
+    setTimeout(() => hideGlassButton(), 1100);
+  }
   const { sidebarCollapsed, setSidebarCollapsed, navAutoCollapse, setNavAutoCollapse } = useLayoutSettings();
   const { hasPadding, setHasPadding }                                = useLayoutPadding();
   const { labelType, animateMarkers, pulseMarkers, setLabelType, setAnimateMarkers, setPulseMarkers } = useMapSettings();
@@ -1546,6 +1569,7 @@ export default function SettingsDialog() {
   const [systemVersion, setSystemVersion] = useState('');
   const [search, setSearch]               = useState('');
   const [persistFilters, setPersistFiltersState] = useState(() => localStorage.getItem('app_persist_filters') === 'true');
+  const { settings: viewSettings, set: setViewSetting } = usePageViewSettings();
 
   function togglePersistFilters(value: boolean) {
     localStorage.setItem('app_persist_filters', value ? 'true' : 'false');
@@ -1557,6 +1581,20 @@ export default function SettingsDialog() {
   function togglePersistViewMode(value: boolean) {
     localStorage.setItem('app_persist_viewmode', value ? 'true' : 'false');
     setPersistViewModeState(value);
+  }
+
+  const [persistPageSize, setPersistPageSizeState] = useState(() => localStorage.getItem('app_persist_pagesize') === 'true');
+
+  function togglePersistPageSize(value: boolean) {
+    localStorage.setItem('app_persist_pagesize', value ? 'true' : 'false');
+    setPersistPageSizeState(value);
+  }
+
+  const [persistCurrentPage, setPersistCurrentPageState] = useState(() => localStorage.getItem('app_persist_currentpage') === 'true');
+
+  function togglePersistCurrentPage(value: boolean) {
+    localStorage.setItem('app_persist_currentpage', value ? 'true' : 'false');
+    setPersistCurrentPageState(value);
   }
 
   // Backup states
@@ -1595,26 +1633,24 @@ export default function SettingsDialog() {
   }, [open]);
 
   const navSections = [
-    { id: 'appearance', icon: Palette,     label: t('nav.appearance') },
-    { id: 'language',   icon: Globe,       label: t('nav.language')   },
-    { id: 'company',    icon: Building2,   label: t('nav.company')    },
-    { id: 'pdf',            icon: FileText,    label: t('nav.pdf')                        },
-    { id: 'geofence-alerts', icon: Bell,       label: t('nav.geofenceAlerts') },
-    // { id: 'alerts',     icon: Bell,      label: t('nav.alerts')     },
-    // { id: 'trips',      icon: Car,       label: t('nav.trips')      },
-    // { id: 'fuel',       icon: Fuel,      label: t('nav.fuel')       },
-    // { id: 'system',     icon: Sliders,   label: t('nav.system')     },
-    { id: 'backups',    icon: HardDrive,   label: t('nav.backups')    },
-    { id: 'databases',  icon: Database,    label: t('nav.databases')  },
-    { id: 'server',     icon: Server,      label: t('nav.server')     },
-    { id: 'license',    icon: Key,         label: t('nav.license')    },
-    { id: 'about',      icon: Info,        label: t('nav.about')      },
+    { id: 'appearance',      icon: Palette,     label: t('nav.appearance')    },
+    { id: 'language',        icon: Globe,       label: t('nav.language')      },
+    { id: 'views',           icon: BarChart,    label: 'Vistas'               },
+    { id: 'company',         icon: Building2,   label: t('nav.company')       },
+    { id: 'pdf',             icon: FileText,    label: t('nav.pdf')           },
+    { id: 'geofence-alerts', icon: Bell,        label: t('nav.geofenceAlerts')},
+    { id: 'backups',         icon: HardDrive,   label: t('nav.backups')       },
+    { id: 'databases',       icon: Database,    label: t('nav.databases')     },
+    { id: 'server',          icon: Server,      label: t('nav.server')        },
+    { id: 'license',         icon: Key,         label: t('nav.license')       },
+    { id: 'about',           icon: Info,        label: t('nav.about')         },
   ];
 
   const searchIndex = useMemo(() => [
     { tabId: 'appearance',      text: [t('nav.appearance'), t('appearance.title'), t('appearance.typography'), t('appearance.fontSize'), t('appearance.sidebarTitle'), t('appearance.layoutTitle'), t('appearance.glassPanel'), 'tema', 'fonte', 'font', 'tamanho', 'sidebar', 'layout', 'transparência', 'blur', 'desfoque', 'theme'].join(' ') },
     { tabId: 'language',        text: [t('nav.language'), 'idioma', 'language', 'língua', 'português', 'english'].join(' ') },
     { tabId: 'company',         text: [t('nav.company'), 'empresa', 'company', 'logo', 'nome', 'nif', 'email', 'telefone', 'morada', 'endereço', 'address'].join(' ') },
+    { tabId: 'views',           text: [t('nav.views'), t('views.title'), t('views.analyticsPanels'), 'vistas', 'views', 'painéis', 'panels', 'gráficos', 'charts', 'analytics', 'veículos', 'motoristas', 'viagens', 'combustível', 'manutenção', 'análise', 'métricas'].join(' ') },
     { tabId: 'pdf',             text: [t('nav.pdf'), 'pdf', 'relatório', 'report', 'cabeçalho', 'header', 'rodapé', 'footer', 'margens', 'margins', 'impressão', 'print'].join(' ') },
     { tabId: 'geofence-alerts', text: [t('nav.geofenceAlerts'), 'alerta', 'alert', 'geofence', 'cerca', 'ignição', 'ignition', 'movimento', 'moving', 'stopped', 'parado', 'cooldown', 'notificação', 'notification', 'velocidade', 'speed'].join(' ') },
     { tabId: 'backups',         text: [t('nav.backups'), 'backup', 'cópia', 'restaurar', 'restore', 'exportar', 'import', 'export', 'automático', 'auto', 'agendamento', 'schedule'].join(' ') },
@@ -1978,12 +2014,11 @@ export default function SettingsDialog() {
                               type="range"
                               min={40} max={100} step={1}
                               value={Math.round(glass.opacity * 100)}
-                              onChange={e => updateGlass({ opacity: Number(e.target.value) / 100 })}
+                              onChange={e => { updateGlass({ opacity: Number(e.target.value) / 100 }); markGlassDirty(); }}
                               onPointerDown={() => window.dispatchEvent(new CustomEvent('glassPreviewStart'))}
                               onPointerUp={() => window.dispatchEvent(new CustomEvent('glassPreviewEnd'))}
                               onPointerLeave={() => window.dispatchEvent(new CustomEvent('glassPreviewEnd'))}
-                              className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-                              style={{ accentColor: 'hsl(var(--primary))' }}
+                              className="w-full"
                             />
                             <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
                               <span>{t('appearance.glassTransparent')}</span>
@@ -2003,12 +2038,11 @@ export default function SettingsDialog() {
                               type="range"
                               min={0} max={40} step={1}
                               value={glass.blur}
-                              onChange={e => updateGlass({ blur: Number(e.target.value) })}
+                              onChange={e => { updateGlass({ blur: Number(e.target.value) }); markGlassDirty(); }}
                               onPointerDown={() => window.dispatchEvent(new CustomEvent('glassPreviewStart'))}
                               onPointerUp={() => window.dispatchEvent(new CustomEvent('glassPreviewEnd'))}
                               onPointerLeave={() => window.dispatchEvent(new CustomEvent('glassPreviewEnd'))}
-                              className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-                              style={{ accentColor: 'hsl(var(--primary))' }}
+                              className="w-full"
                             />
                             <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
                               <span>{t('appearance.glassNoBlur')}</span>
@@ -2016,14 +2050,75 @@ export default function SettingsDialog() {
                             </div>
                           </div>
 
-                          {/* Reset */}
-                          <div className="flex justify-end pt-1">
-                            <button
-                              onClick={resetGlass}
-                              className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
-                            >
-                              {t('appearance.glassReset')}
-                            </button>
+                          {/* Acções: guardar predefinição + repor + toggle */}
+                          <div className="space-y-3 pt-2 border-t border-border/60">
+                            {/* Guardar como predefinição — aparece ao mexer, anima ao entrar/sair */}
+                            {(glassTouched || glassHiding) && (
+                              <div
+                                className={cn(
+                                  'flex items-center justify-between gap-3',
+                                  glassHiding
+                                    ? 'animate-out fade-out-0 zoom-out-95 duration-200'
+                                    : 'animate-in fade-in-0 zoom-in-95 duration-150'
+                                )}
+                              >
+                                <span className="text-xs text-muted-foreground">{t('appearance.glassSaveAsDefault')}</span>
+                                <Button
+                                  variant={glassSaved ? 'default' : 'outline'}
+                                  size="sm"
+                                  onClick={onGlassSaveClick}
+                                  disabled={glassSaved}
+                                  className={cn(
+                                    'h-7 px-2.5 text-xs gap-1.5 shrink-0 transition-all duration-300',
+                                    glassSaved && 'bg-green-500 border-green-500 text-white pointer-events-none scale-95'
+                                  )}
+                                >
+                                  {glassSaved ? (
+                                    <><CheckCircle className="w-3 h-3 animate-in zoom-in-50 duration-200" /> Guardado</>
+                                  ) : (
+                                    <><Save className="w-3 h-3" /> {glassIsDark ? t('appearance.glassSaveDark') : t('appearance.glassSaveLight')}</>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+
+                            {/* Repor predefinições do tema activo */}
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="text-xs text-muted-foreground">{t('appearance.glassReset')}</span>
+                              {glassIsDark ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => { resetToDark(); hideGlassButton(); }}
+                                  className="h-7 px-2.5 text-xs gap-1 text-muted-foreground hover:text-foreground shrink-0"
+                                >
+                                  <Moon className="w-3 h-3" />
+                                  {t('appearance.glassResetDark')}
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => { resetToLight(); hideGlassButton(); }}
+                                  className="h-7 px-2.5 text-xs gap-1 text-muted-foreground hover:text-foreground shrink-0"
+                                >
+                                  <Sun className="w-3 h-3" />
+                                  {t('appearance.glassResetLight')}
+                                </Button>
+                              )}
+                            </div>
+
+                            {/* Toggle: repor ao mudar tema */}
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium">{t('appearance.glassResetOnThemeChange')}</p>
+                                <p className="text-[10px] text-muted-foreground leading-snug">{t('appearance.glassResetOnThemeChangeDesc')}</p>
+                              </div>
+                              <Switch
+                                checked={resetOnThemeChange}
+                                onCheckedChange={setResetOnThemeChange}
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>}
@@ -2170,6 +2265,30 @@ export default function SettingsDialog() {
                             </div>
                             <Switch checked={persistViewMode} onCheckedChange={togglePersistViewMode} />
                           </div>
+                          <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                                <LayoutList className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{t('appearance.persistPageSize')}</p>
+                                <p className="text-xs text-muted-foreground">{t('appearance.persistPageSizeDesc')}</p>
+                              </div>
+                            </div>
+                            <Switch checked={persistPageSize} onCheckedChange={togglePersistPageSize} />
+                          </div>
+                          <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                                <Bookmark className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{t('appearance.persistCurrentPage')}</p>
+                                <p className="text-xs text-muted-foreground">{t('appearance.persistCurrentPageDesc')}</p>
+                              </div>
+                            </div>
+                            <Switch checked={persistCurrentPage} onCheckedChange={togglePersistCurrentPage} />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2194,6 +2313,109 @@ export default function SettingsDialog() {
 
                   {/* ── Empresa ── */}
                   {activeTab === 'company' && <CompanyTab />}
+
+                  {/* ── Vistas ── */}
+                  {activeTab === 'views' && (
+                    <div className="space-y-8">
+                      <div>
+                        <h2 className="text-lg font-bold mb-1">{t('views.title')}</h2>
+                        <p className="text-sm text-muted-foreground">{t('views.description')}</p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <SettingSection
+                          title={t('views.analyticsPanels')}
+                          description={t('views.analyticsPanelsDesc')}
+                        >
+                          <SettingRow
+                            label={t('views.vehicles')}
+                            description={t('views.vehiclesDesc')}
+                          >
+                            <Switch
+                              checked={viewSettings.vehiclesAnalytics}
+                              onCheckedChange={(v) => setViewSetting('vehiclesAnalytics', v)}
+                            />
+                          </SettingRow>
+                          <SettingRow
+                            label={t('views.drivers')}
+                            description={t('views.driversDesc')}
+                          >
+                            <Switch
+                              checked={viewSettings.driversAnalytics}
+                              onCheckedChange={(v) => setViewSetting('driversAnalytics', v)}
+                            />
+                          </SettingRow>
+                          <SettingRow
+                            label={t('views.trips')}
+                            description={t('views.tripsDesc')}
+                          >
+                            <Switch
+                              checked={viewSettings.tripsAnalytics}
+                              onCheckedChange={(v) => setViewSetting('tripsAnalytics', v)}
+                            />
+                          </SettingRow>
+                          <SettingRow
+                            label={t('views.fuel')}
+                            description={t('views.fuelDesc')}
+                          >
+                            <Switch
+                              checked={viewSettings.fuelAnalytics}
+                              onCheckedChange={(v) => setViewSetting('fuelAnalytics', v)}
+                            />
+                          </SettingRow>
+                          <SettingRow
+                            label={t('views.maintenance')}
+                            description={t('views.maintenanceDesc')}
+                          >
+                            <Switch
+                              checked={viewSettings.maintenanceAnalytics}
+                              onCheckedChange={(v) => setViewSetting('maintenanceAnalytics', v)}
+                            />
+                          </SettingRow>
+                          <SettingRow
+                            label={t('views.expenses')}
+                            description={t('views.expensesDesc')}
+                          >
+                            <Switch
+                              checked={viewSettings.expensesAnalytics}
+                              onCheckedChange={(v) => setViewSetting('expensesAnalytics', v)}
+                            />
+                          </SettingRow>
+                        </SettingSection>
+                      </div>
+
+                      <div className="space-y-1">
+                        <SettingSection
+                          title={t('views.layoutTitle')}
+                          description={t('views.layoutDesc')}
+                        >
+                          <SettingRow
+                            label={t('views.layoutPosition')}
+                            description={t('views.layoutPositionDesc')}
+                          >
+                            <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50 shrink-0">
+                              <Button
+                                variant={viewSettings.analyticsLayout === 'vertical' ? 'secondary' : 'ghost'}
+                                size="sm"
+                                onClick={() => setViewSetting('analyticsLayout', 'vertical')}
+                                className="h-8 px-3 rounded-lg text-xs"
+                              >
+                                {t('views.layoutVertical')}
+                              </Button>
+                              <Button
+                                variant={viewSettings.analyticsLayout === 'horizontal' ? 'secondary' : 'ghost'}
+                                size="sm"
+                                onClick={() => setViewSetting('analyticsLayout', 'horizontal')}
+                                className="h-8 px-3 rounded-lg text-xs"
+                              >
+                                {t('views.layoutHorizontal')}
+                              </Button>
+                            </div>
+                          </SettingRow>
+                        </SettingSection>
+                      </div>
+                    </div>
+                  )}
 
                   {/* ── PDF ── */}
                   {activeTab === 'pdf' && <PdfTab />}

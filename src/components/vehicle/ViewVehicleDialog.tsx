@@ -13,7 +13,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Edit, Gauge, RefreshCw, CheckCircle2, Clock, Settings2, Ban,
   Truck, Tag, Calendar, DollarSign, FileText, RotateCcw, Hash, Wifi, Upload, WifiOff, MapPin,
-  Route, Fuel, Wrench, ChevronRight, Loader2
+  Route, Fuel, Wrench, ChevronRight, Loader2, Activity, Navigation, Zap, ZapOff,
+  LogIn, LogOut, AlertTriangle, Radio,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useVehicles } from '@/contexts/VehiclesContext';
@@ -53,12 +54,12 @@ interface MaintenanceRow {
 
 export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }: ViewVehicleDialogProps) {
   const { state: { selectedVehicle }, dispatch } = useVehicles();
-  const { reloadActiveImeis } = useTracking();
+  const { reloadActiveImeis, state: trackingState, isConnected: trackingConnected } = useTracking();
   const { t } = useTranslation();
   const { license } = useLicense();
   const isConnected = license?.mode === 'connected' && license?.isValid;
 
-  const [activeTab, setActiveTab] = useState<'details' | 'history'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'history' | 'telemetry'>('details');
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [trips, setTrips] = useState<TripRow[]>([]);
@@ -255,8 +256,8 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
           </DialogHeader>
 
           {/* ── Tabs ── */}
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'details' | 'history')}>
-            <TabsList className="w-full grid grid-cols-2 mb-2 bg-muted/40 border-border h-9 p-1">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'details' | 'history' | 'telemetry')}>
+            <TabsList className={`w-full grid mb-2 bg-muted/40 border-border h-9 p-1 ${selectedVehicle.traccar_unique_id ? 'grid-cols-3' : 'grid-cols-2'}`}>
               <TabsTrigger value="details" className="flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:border-border/50 dark:data-[state=active]:bg-white/12 dark:data-[state=active]:text-foreground dark:data-[state=active]:border-white/10">
                 <Truck className="w-3.5 h-3.5" />
                 {t('vehicles:dialogs.view.tabDetails', 'Detalhes')}
@@ -265,6 +266,12 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
                 <FileText className="w-3.5 h-3.5" />
                 {t('vehicles:dialogs.view.tabHistory', 'Histórico')}
               </TabsTrigger>
+              {selectedVehicle.traccar_unique_id && (
+                <TabsTrigger value="telemetry" className="flex items-center gap-1.5 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:border-border/50 dark:data-[state=active]:bg-white/12 dark:data-[state=active]:text-foreground dark:data-[state=active]:border-white/10">
+                  <Radio className="w-3.5 h-3.5" />
+                  Telemetria
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {/* ── TAB: DETALHES ── */}
@@ -693,6 +700,141 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
                 </>
               )}
             </TabsContent>
+
+            {/* ── TAB: TELEMETRIA ── */}
+            {selectedVehicle.traccar_unique_id && (() => {
+              const trackedDevice = trackingState.devices.find(
+                d => d.uniqueId === selectedVehicle.traccar_unique_id
+              );
+              const livePosition = trackedDevice
+                ? trackingState.positions.find(p => p.deviceId === trackedDevice.traccar_id)
+                : null;
+              const isOnline = trackedDevice?.status === 'online';
+              const recentAlerts = trackingState.alerts
+                .filter(a => a.vehicleId === selectedVehicle.id || (trackedDevice && a.deviceId === trackedDevice.traccar_id))
+                .slice(0, 8);
+
+              const alertMeta: Record<string, { icon: React.ElementType; color: string; label: string }> = {
+                geofenceEnter:  { icon: LogIn,        color: 'text-green-500',  label: 'Entrou em geocerca' },
+                geofenceExit:   { icon: LogOut,       color: 'text-amber-500',  label: 'Saiu de geocerca' },
+                speedLimit:     { icon: AlertTriangle, color: 'text-red-500',   label: 'Excesso de velocidade' },
+                ignitionOn:     { icon: Zap,          color: 'text-emerald-500', label: 'Ignição ligada' },
+                ignitionOff:    { icon: ZapOff,       color: 'text-slate-500',  label: 'Ignição desligada' },
+                deviceMoving:   { icon: Activity,     color: 'text-blue-500',   label: 'Em movimento' },
+                deviceStopped:  { icon: MapPin,       color: 'text-purple-500', label: 'Parado' },
+              };
+
+              const courseToDir = (course?: number) => {
+                if (course == null) return '—';
+                const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+                return dirs[Math.round(course / 45) % 8];
+              };
+
+              return (
+                <TabsContent value="telemetry" className="mt-0 space-y-4">
+                  {/* Cabeçalho de estado */}
+                  <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`} />
+                      <div>
+                        <p className="text-sm font-semibold">
+                          {isOnline ? 'Online — Em tempo real' : 'Offline'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          IMEI: {selectedVehicle.traccar_unique_id}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant={isOnline ? 'default' : 'secondary'} className={isOnline ? 'bg-green-500 text-white' : ''}>
+                      {isOnline ? 'Online' : 'Offline'}
+                    </Badge>
+                  </div>
+
+                  {livePosition ? (
+                    <>
+                      {/* Métricas em tempo real */}
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-muted/30 border text-center">
+                          <Gauge className="w-5 h-5 text-blue-500 mb-1" />
+                          <p className="text-2xl font-black">
+                            {Math.round(livePosition.speed ?? 0)}
+                          </p>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">km/h</p>
+                        </div>
+                        <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-muted/30 border text-center">
+                          <Navigation className="w-5 h-5 text-purple-500 mb-1" />
+                          <p className="text-2xl font-black">
+                            {courseToDir(livePosition.course)}
+                          </p>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Direcção</p>
+                        </div>
+                        <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-muted/30 border text-center">
+                          <MapPin className="w-5 h-5 text-green-500 mb-1" />
+                          <p className="text-sm font-black leading-tight">
+                            {livePosition.latitude.toFixed(4)}<br />
+                            {livePosition.longitude.toFixed(4)}
+                          </p>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1">Coordenadas</p>
+                        </div>
+                      </div>
+
+                      {/* Última actualização */}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        Última posição: {new Date(livePosition.timestamp).toLocaleString('pt-PT')}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground gap-2">
+                      <Wifi className="w-8 h-8 opacity-30" />
+                      <p className="text-sm">Sem posição disponível</p>
+                      <p className="text-xs opacity-70">
+                        {trackingConnected
+                          ? 'Aguardando dados do dispositivo...'
+                          : 'Rastreamento não está conectado'}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Alertas recentes */}
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      Alertas Recentes
+                    </p>
+                    {recentAlerts.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic text-center py-4">
+                        Sem alertas registados para este veículo
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {recentAlerts.map(alert => {
+                          const meta = alertMeta[alert.eventType] ?? { icon: Activity, color: 'text-slate-500', label: alert.eventType };
+                          const Icon = meta.icon;
+                          return (
+                            <div key={alert.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-muted/30 border border-muted/50">
+                              <Icon className={`w-4 h-4 shrink-0 ${meta.color}`} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold leading-tight truncate">{meta.label}</p>
+                                {alert.geofenceName && (
+                                  <p className="text-[10px] text-muted-foreground truncate">{alert.geofenceName}</p>
+                                )}
+                                {alert.speed != null && (
+                                  <p className="text-[10px] text-muted-foreground">{Math.round(alert.speed)} km/h</p>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-muted-foreground shrink-0">
+                                {new Date(alert.createdAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              );
+            })()}
           </Tabs>
         </DialogContent>
       </Dialog>

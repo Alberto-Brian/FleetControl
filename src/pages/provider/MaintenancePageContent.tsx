@@ -1,7 +1,7 @@
 ﻿// ========================================
 // FILE: src/components/maintenance/MaintenancePageContent.tsx (ATUALIZADO)
 // ========================================
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,9 @@ import { Pagination } from '@/components/ui/pagination';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { maintenanceStatus } from '@/lib/db/schemas/maintenances';
+import { usePageViewSettings } from '@/hooks/usePageViewSettings';
+import { usePagePagination } from '@/hooks/usePagePagination';
+import { MaintenanceAnalyticsPanel } from '@/components/analytics/MaintenanceAnalyticsPanel';
 import { cn } from '@/lib/utils';
 import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
 import {
@@ -40,6 +43,13 @@ import { RESTORE_MAINTENANCE_CATEGORY } from '@/helpers/ipc/db/maintenance_categ
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+function fmt(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (n >= 1_000)     return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
+  return String(n);
+}
 
 type ViewMode = 'compact' | 'normal' | 'cards';
 
@@ -66,14 +76,14 @@ export function MaintenancePageContent() {
   const [workshopSearch, setWorkshopSearch] = useState('');
 
   // Paginação
-  const [currentPage, setCurrentPage]   = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage } = usePagePagination('maintenances');
   const [paginationInfo, setPaginationInfo] = useState({
     total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false,
   });
   const [statusCounts, setStatusCounts] = useState({
     scheduled: 0, in_progress: 0, completed: 0, cancelled: 0,
   });
+  const { settings: viewSettings } = usePageViewSettings();
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Dialogs
@@ -92,7 +102,12 @@ export function MaintenancePageContent() {
   const [alertEnabled, setAlertEnabled]                 = useState(true);
   const [alertBannerDismissed, setAlertBannerDismissed] = useState(false);
 
+  const isInitialSearchRef = useRef(true);
   useEffect(() => {
+    if (isInitialSearchRef.current) {
+      isInitialSearchRef.current = false;
+      return;
+    }
     const timer = setTimeout(() => { setDebouncedSearch(searchTerm); setCurrentPage(1); }, 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
@@ -490,26 +505,40 @@ export function MaintenancePageContent() {
           <TabsContent value="maintenances" className="space-y-6 mt-0 outline-none">
 
             {/* Stats vindas do back */}
+            <TooltipProvider delayDuration={300}>
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { label: t('maintenances:stats.total'),      value: paginationInfo.total,         icon: Wrench,   color: 'text-slate-600',   bg: 'bg-slate-100/60'  },
-                { label: t('maintenances:stats.scheduled'),  value: statusCounts.scheduled,       icon: Clock,    color: 'text-blue-600',    bg: 'bg-blue-50/60'    },
-                { label: t('maintenances:stats.inProgress'), value: statusCounts.in_progress,     icon: Settings, color: 'text-orange-600',  bg: 'bg-orange-50/60'  },
-                { label: t('maintenances:stats.completed'),  value: statusCounts.completed,       icon: Flag,     color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
+                { label: t('maintenances:stats.total'),      value: paginationInfo.total,     icon: Wrench,   color: 'text-slate-600',   bg: 'bg-slate-100/60'  },
+                { label: t('maintenances:stats.scheduled'),  value: statusCounts.scheduled,   icon: Clock,    color: 'text-blue-600',    bg: 'bg-blue-50/60'    },
+                { label: t('maintenances:stats.inProgress'), value: statusCounts.in_progress, icon: Settings, color: 'text-orange-600',  bg: 'bg-orange-50/60'  },
+                { label: t('maintenances:stats.completed'),  value: statusCounts.completed,   icon: Flag,     color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
               ].map((stat, i) => (
-                <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className={cn('p-2.5 rounded-xl shrink-0', stat.bg, stat.color)}>
-                      <stat.icon className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">{stat.label}</p>
-                      <p className="text-2xl font-black tracking-tight leading-tight">{stat.value}</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <UITooltip key={i}>
+                  <TooltipTrigger asChild>
+                    <Card className="border-none shadow-sm bg-card overflow-hidden cursor-default">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className={cn('p-2.5 rounded-xl shrink-0', stat.bg, stat.color)}>
+                          <stat.icon className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">{stat.label}</p>
+                          <p className={cn("font-black tracking-tight leading-tight", stat.value >= 10_000 ? "text-lg" : "text-2xl")}>
+                            {fmt(stat.value)}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TooltipTrigger>
+                  {stat.value >= 1_000 && (
+                    <TooltipContent side="top" className="px-3 py-2.5 min-w-[120px]">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5 leading-tight">{stat.label}</p>
+                      <p className="text-sm font-black tabular-nums leading-tight">{stat.value.toLocaleString('pt-PT')}</p>
+                    </TooltipContent>
+                  )}
+                </UITooltip>
               ))}
             </div>
+            </TooltipProvider>
 
             {/* ---- Banner de alertas preventivos ---- */}
             {upcomingAlerts.length > 0 && !alertBannerDismissed && (
@@ -557,6 +586,19 @@ export function MaintenancePageContent() {
               </div>
             )}
 
+            {/* Análises horizontal (acima da lista) */}
+            {viewSettings.analyticsLayout !== 'vertical' && viewSettings.maintenanceAnalytics && (
+              <MaintenanceAnalyticsPanel
+                layout="horizontal"
+                statusCounts={statusCounts}
+                maintenances={maintenances}
+                totalCount={paginationInfo.total}
+              />
+            )}
+
+            {/* Área principal: layout vertical = flex row (sidebar direita) */}
+            <div className={viewSettings.analyticsLayout === 'vertical' ? 'flex gap-4 items-start' : undefined}>
+            <div className={cn('space-y-6', viewSettings.analyticsLayout === 'vertical' ? 'flex-1 min-w-0' : undefined)}>
             {/* Toolbar */}
             <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
@@ -593,7 +635,7 @@ export function MaintenancePageContent() {
                   ))}
                 </div>
               </div>
-              {paginationInfo.totalPages > 1 && (
+              {paginationInfo.total > 0 && (
                 <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
                   <Pagination pagination={paginationInfo}
                     onPageChange={(p) => setCurrentPage(p)}
@@ -620,6 +662,18 @@ export function MaintenancePageContent() {
                 {viewMode === 'cards'   && renderCardsView()}
               </div>
             )}
+            </div>
+            {viewSettings.analyticsLayout === 'vertical' && viewSettings.maintenanceAnalytics && (
+              <div className="w-[300px] shrink-0 sticky top-4">
+                <MaintenanceAnalyticsPanel
+                  layout="vertical"
+                  statusCounts={statusCounts}
+                  maintenances={maintenances}
+                  totalCount={paginationInfo.total}
+                />
+              </div>
+            )}
+            </div>
           </TabsContent>
 
           {/* ---- TAB: CATEGORIAS ---- */}

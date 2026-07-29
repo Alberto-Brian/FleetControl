@@ -1,7 +1,7 @@
 ﻿// ========================================
 // FILE: src/components/expense/ExpensesPageContent.tsx (ATUALIZADO COMPLETO)
 // ========================================
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useExpenses } from '@/contexts/ExpensesContext';
 import { getAllExpenses, deleteExpense as deleteExpenseHelper } from '@/helpers/expense-helpers';
 import { getAllExpenseCategories, deleteExpenseCategory } from '@/helpers/expense-category-helpers';
@@ -22,6 +22,9 @@ import {
 import { RESTORE_EXPENSE_CATEGORY } from '@/helpers/ipc/db/expense_categories/expense-categories-channels';
 import { cn } from '@/lib/utils';
 import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
+import { usePageViewSettings } from '@/hooks/usePageViewSettings';
+import { usePagePagination } from '@/hooks/usePagePagination';
+import { ExpensesAnalyticsPanel } from '@/components/analytics/ExpensesAnalyticsPanel';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger, closeDropdownsAndOpenDialog,
@@ -38,6 +41,15 @@ import ViewExpenseDialog from '@/components/expense/ViewExpenseDialog';
 import MarkAsPaidDialog from '@/components/expense/MarkAsPaidDialog';
 import NewExpenseCategoryDialog from '@/components/expense/NewExpenseCategoryDialog';
 import EditExpenseCategoryDialog from '@/components/expense/EditExpenseCategoryDialog';
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+function fmt(n: number, suffix = '') {
+  const abs = Math.abs(n);
+  const sfx = suffix ? ' ' + suffix : '';
+  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M${sfx}`;
+  if (abs >= 1_000)     return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K${sfx}`;
+  return `${n.toLocaleString('pt-PT')}${sfx}`;
+}
 
 type ViewMode = 'compact' | 'normal' | 'cards';
 
@@ -61,11 +73,12 @@ export default function ExpensesPageContent() {
   useEffect(() => { writePersistedViewMode('expenses', viewMode); }, [viewMode]);
   useEffect(() => { writePersistedFilter('expenses', 'status',    statusFilter);   }, [statusFilter]);
   useEffect(() => { writePersistedFilter('expenses', 'category',  categoryFilter); }, [categoryFilter]);
+
+  const { settings: viewSettings } = usePageViewSettings();
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Paginação
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage } = usePagePagination('expenses');
   const [paginationInfo, setPaginationInfo] = useState({
     total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false,
   });
@@ -88,7 +101,12 @@ export default function ExpensesPageContent() {
   const [isDeletingExpense, setIsDeletingExpense] = useState(false);
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
 
+  const isInitialSearchRef = useRef(true);
   useEffect(() => {
+    if (isInitialSearchRef.current) {
+      isInitialSearchRef.current = false;
+      return;
+    }
     const timer = setTimeout(() => { setDebouncedSearch(searchTerm); setCurrentPage(1); }, 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
@@ -587,27 +605,56 @@ function renderCardsView() {
           <TabsContent value="expenses" className="space-y-6 mt-0 outline-none">
 
             {/* Stats */}
+            <TooltipProvider delayDuration={300}>
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { label: t('expenses:stats.total'), value: `${Number(stats.totalAmount).toLocaleString('pt-PT')} Kz`, icon: DollarSign, color: 'text-blue-600', bg: 'bg-blue-50/60' },
-                { label: t('expenses:stats.paid'), value: `${Number(stats.paidAmount).toLocaleString('pt-PT')} Kz`, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50/60' },
-                { label: t('expenses:stats.pending'), value: `${Number(stats.pendingAmount).toLocaleString('pt-PT')} Kz`, icon: Calendar, color: 'text-yellow-600', bg: 'bg-yellow-50/60' },
-                { label: t('expenses:stats.count'), value: paginationInfo.total, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50/60' },
-              ].map((stat, i) => (
-                <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className={cn('p-2.5 rounded-xl shrink-0', stat.bg, stat.color)}>
-                      <stat.icon className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">{stat.label}</p>
-                      <p className="text-2xl font-black tracking-tight leading-tight">{stat.value}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                { label: t('expenses:stats.total'),   value: fmt(Number(stats.totalAmount),   'Kz'), rawValue: Number(stats.totalAmount),   suffix: 'Kz', icon: DollarSign,  color: 'text-blue-600',   bg: 'bg-blue-50/60'   },
+                { label: t('expenses:stats.paid'),    value: fmt(Number(stats.paidAmount),    'Kz'), rawValue: Number(stats.paidAmount),    suffix: 'Kz', icon: CheckCircle2, color: 'text-green-600',  bg: 'bg-green-50/60'  },
+                { label: t('expenses:stats.pending'), value: fmt(Number(stats.pendingAmount), 'Kz'), rawValue: Number(stats.pendingAmount), suffix: 'Kz', icon: Calendar,    color: 'text-yellow-600', bg: 'bg-yellow-50/60' },
+                { label: t('expenses:stats.count'),   value: String(paginationInfo.total),            rawValue: paginationInfo.total,                      icon: TrendingUp,  color: 'text-purple-600', bg: 'bg-purple-50/60' },
+              ].map((stat, i) => {
+                const showTooltip = stat.rawValue >= 1_000;
+                const fullValue   = showTooltip ? `${stat.rawValue.toLocaleString('pt-PT')}${'suffix' in stat && stat.suffix ? ' ' + stat.suffix : ''}` : undefined;
+                return (
+                  <UITooltip key={i}>
+                    <TooltipTrigger asChild>
+                      <Card className="border-none shadow-sm bg-card overflow-hidden cursor-default">
+                        <CardContent className="p-4 flex items-center gap-3">
+                          <div className={cn('p-2.5 rounded-xl shrink-0', stat.bg, stat.color)}>
+                            <stat.icon className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">{stat.label}</p>
+                            <p className="text-2xl font-black tracking-tight leading-tight">{stat.value}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TooltipTrigger>
+                    {showTooltip && (
+                      <TooltipContent side="top" className="px-3 py-2.5 min-w-[120px]">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5 leading-tight">{stat.label}</p>
+                        <p className="text-sm font-black tabular-nums leading-tight">{fullValue}</p>
+                      </TooltipContent>
+                    )}
+                  </UITooltip>
+                );
+              })}
             </div>
+            </TooltipProvider>
 
+            {/* Análises horizontal */}
+            {viewSettings.analyticsLayout !== 'vertical' && viewSettings.expensesAnalytics && (
+              <ExpensesAnalyticsPanel
+                layout="horizontal"
+                stats={stats}
+                expenses={expenses}
+                totalCount={paginationInfo.total}
+              />
+            )}
+
+            {/* Layout wrapper: vertical = flex row com sidebar */}
+            <div className={viewSettings.analyticsLayout === 'vertical' ? 'flex gap-4 items-start' : undefined}>
+            <div className={cn('space-y-6', viewSettings.analyticsLayout === 'vertical' ? 'flex-1 min-w-0' : undefined)}>
             {/* Toolbar */}
             <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3 flex-wrap">
@@ -656,7 +703,7 @@ function renderCardsView() {
                   ))}
                 </div>
               </div>
-              {paginationInfo.totalPages > 1 && (
+              {paginationInfo.total > 0 && (
                 <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
                   <Pagination pagination={paginationInfo}
                     onPageChange={(p) => setCurrentPage(p)}
@@ -683,6 +730,18 @@ function renderCardsView() {
                 {viewMode === 'cards' && renderCardsView()}
               </div>
             )}
+            </div>
+            {viewSettings.analyticsLayout === 'vertical' && viewSettings.expensesAnalytics && (
+              <div className="w-[300px] shrink-0 sticky top-4">
+                <ExpensesAnalyticsPanel
+                  layout="vertical"
+                  stats={stats}
+                  expenses={expenses}
+                  totalCount={paginationInfo.total}
+                />
+              </div>
+            )}
+            </div>
           </TabsContent>
 
           {/* ---- TAB: CATEGORIAS ---- */}

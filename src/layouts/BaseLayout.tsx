@@ -56,7 +56,7 @@ export default function BaseLayout({ children }: { children: React.ReactNode }) 
     return (
         <div className="flex flex-col h-screen overflow-hidden">
             <DragWindowRegion
-                title="FleetControl"
+                title=""
                 rightContent={isConnectedLicense ? <ConnectionStatusBadge /> : undefined}
             />
             {historicalDbPath && (

@@ -367,5 +367,16 @@ export const ptVehicles = {
   connectedHint: {
     viewGps:    'No modo conectado, este veículo aparece no mapa em tempo real com posição, velocidade e histórico de percursos.',
     statusSync: 'No modo conectado, as alterações de status sincronizam automaticamente com a plataforma central e ficam visíveis em todos os dispositivos.',
-  }
+  },
+
+  analytics: {
+    utilizationRate: 'Taxa de Utilização',
+    availability:    'Disponibilidade',
+    avgMileage:      'Média Quilometragem',
+    withGps:         'Com GPS',
+    fleetStatus:     'Estado da Frota',
+    topMileage:      'Top Quilometragem',
+    byCategory:      'Por Categoria',
+    mileage:         'Quilometragem',
+  },
 } as const;

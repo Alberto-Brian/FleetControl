@@ -1,7 +1,7 @@
 ﻿// ========================================
 // FILE: src/pages/provider/TripsPageContent.tsx
 // ========================================
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,6 +22,9 @@ import { getAllRoutes, deleteRoute as deleteRouteHelper } from '@/helpers/route-
 import { cn } from '@/lib/utils';
 import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
 import { useTrips } from '@/contexts/TripsContext';
+import { usePageViewSettings } from '@/hooks/usePageViewSettings';
+import { usePagePagination } from '@/hooks/usePagePagination';
+import { TripsAnalyticsPanel } from '@/components/analytics/TripsAnalyticsPanel';
 
 // Dialogs — trips
 import StartTripDialog from '@/components/trip/StartTripDialog';
@@ -40,6 +43,15 @@ import {
   DropdownMenuTrigger,
   closeDropdownsAndOpenDialog
 } from '@/components/ui/dropdown-menu';
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+function fmt(n: number, suffix = '') {
+  const abs = Math.abs(n);
+  const sfx = suffix ? ' ' + suffix : '';
+  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M${sfx}`;
+  if (abs >= 1_000)     return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K${sfx}`;
+  return `${n.toLocaleString('pt-PT')}${sfx}`;
+}
 
 type ViewMode = 'list' | 'cards';
 
@@ -64,8 +76,7 @@ export default function TripsPageContent() {
   const [routeSearch, setRouteSearch]   = useState('');
 
   // Paginação
-  const [currentPage, setCurrentPage]     = useState(1);
-  const [itemsPerPage, setItemsPerPage]   = useState(20);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage } = usePagePagination('trips');
   const [paginationInfo, setPaginationInfo] = useState({
     total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false,
   });
@@ -77,6 +88,8 @@ export default function TripsPageContent() {
     cancelled:     0,
     totalDistance: 0,
   });
+
+  const { settings: viewSettings } = usePageViewSettings();
 
   // Debounce search
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -94,7 +107,12 @@ export default function TripsPageContent() {
   const [deleteRouteDialogOpen, setDeleteRouteDialogOpen] = useState(false);
   const [isDeletingRoute, setIsDeletingRoute]             = useState(false);
 
+  const isInitialSearchRef = useRef(true);
   useEffect(() => {
+    if (isInitialSearchRef.current) {
+      isInitialSearchRef.current = false;
+      return;
+    }
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
       setCurrentPage(1);
@@ -210,11 +228,11 @@ export default function TripsPageContent() {
   const activeRoutes = routes.filter((r) => r.status === 'active' || !r.status).length;
 
   const tripStats = [
-    { label: t('trips:stats.total'),         value: paginationInfo.total,                                          icon: RouteIcon,  color: 'text-slate-600',   bg: 'bg-slate-100/60'  },
-    { label: t('trips:stats.inProgress'),    value: statusCounts.in_progress,                                      icon: Clock,      color: 'text-blue-600',    bg: 'bg-blue-50/60'    },
-    { label: t('trips:stats.completed'),     value: statusCounts.completed,                                        icon: Flag,       color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
-    { label: t('trips:stats.cancelled'),     value: statusCounts.cancelled,                                        icon: XCircle,    color: 'text-slate-500',   bg: 'bg-slate-50/60'   },
-    { label: t('trips:stats.totalDistance'), value: `${Number(statusCounts.totalDistance).toLocaleString('pt-PT')} km`, icon: TrendingUp, color: 'text-purple-600',  bg: 'bg-purple-50/60'  },
+    { label: t('trips:stats.total'),         value: String(paginationInfo.total),                          rawValue: paginationInfo.total,                          icon: RouteIcon,  color: 'text-slate-600',   bg: 'bg-slate-100/60'  },
+    { label: t('trips:stats.inProgress'),    value: String(statusCounts.in_progress),                      rawValue: statusCounts.in_progress,                      icon: Clock,      color: 'text-blue-600',    bg: 'bg-blue-50/60'    },
+    { label: t('trips:stats.completed'),     value: String(statusCounts.completed),                        rawValue: statusCounts.completed,                        icon: Flag,       color: 'text-emerald-600', bg: 'bg-emerald-50/60' },
+    { label: t('trips:stats.cancelled'),     value: String(statusCounts.cancelled),                        rawValue: statusCounts.cancelled,                        icon: XCircle,    color: 'text-slate-500',   bg: 'bg-slate-50/60'   },
+    { label: t('trips:stats.totalDistance'), value: fmt(Number(statusCounts.totalDistance), 'km'),         rawValue: Number(statusCounts.totalDistance), suffix: 'km', icon: TrendingUp, color: 'text-purple-600',  bg: 'bg-purple-50/60'  },
   ];
 
   const viewModes = [
@@ -526,24 +544,52 @@ export default function TripsPageContent() {
           <TabsContent value="trips" className="space-y-6 mt-0 outline-none">
 
             {/* Stats — 5 cards vindos do back */}
+            <TooltipProvider delayDuration={300}>
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-              {tripStats.map((stat, i) => (
-                <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className={cn('p-2.5 rounded-xl shrink-0', stat.bg, stat.color)}>
-                      <stat.icon className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">
-                        {stat.label}
-                      </p>
-                      <p className="text-2xl font-black tracking-tight leading-tight">{stat.value}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {tripStats.map((stat, i) => {
+                const showTooltip = stat.rawValue !== undefined && stat.rawValue >= 1_000;
+                const fullValue   = showTooltip ? `${stat.rawValue!.toLocaleString('pt-PT')}${stat.suffix ? ' ' + stat.suffix : ''}` : undefined;
+                return (
+                  <UITooltip key={i}>
+                    <TooltipTrigger asChild>
+                      <Card className="border-none shadow-sm bg-card overflow-hidden cursor-default">
+                        <CardContent className="p-4 flex items-center gap-3">
+                          <div className={cn('p-2.5 rounded-xl shrink-0', stat.bg, stat.color)}>
+                            <stat.icon className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">
+                              {stat.label}
+                            </p>
+                            <p className="text-2xl font-black tracking-tight leading-tight">{stat.value}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TooltipTrigger>
+                    {showTooltip && (
+                      <TooltipContent side="top" className="px-3 py-2.5 min-w-[120px]">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5 leading-tight">{stat.label}</p>
+                        <p className="text-sm font-black tabular-nums leading-tight">{fullValue}</p>
+                      </TooltipContent>
+                    )}
+                  </UITooltip>
+                );
+              })}
             </div>
+            </TooltipProvider>
 
+            {/* Análises horizontal (acima da lista) */}
+            {viewSettings.analyticsLayout !== 'vertical' && viewSettings.tripsAnalytics && (
+              <TripsAnalyticsPanel
+                layout="horizontal"
+                statusCounts={statusCounts}
+                totalCount={paginationInfo.total}
+              />
+            )}
+
+            {/* Área principal: layout vertical = flex row (sidebar direita) */}
+            <div className={viewSettings.analyticsLayout === 'vertical' ? 'flex gap-4 items-start' : undefined}>
+            <div className={cn('space-y-6', viewSettings.analyticsLayout === 'vertical' ? 'flex-1 min-w-0' : undefined)}>
             {/* Toolbar */}
             <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
               {/* Linha 1: filtros + view modes */}
@@ -582,7 +628,7 @@ export default function TripsPageContent() {
               </div>
 
               {/* Linha 2: paginação */}
-              {paginationInfo.totalPages > 1 && (
+              {paginationInfo.total > 0 && (
                 <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
                   <Pagination
                     pagination={paginationInfo}
@@ -610,6 +656,17 @@ export default function TripsPageContent() {
                 {viewMode === 'list' ? renderListView() : renderCardsView()}
               </div>
             )}
+            </div>
+            {viewSettings.analyticsLayout === 'vertical' && viewSettings.tripsAnalytics && (
+              <div className="w-[300px] shrink-0 sticky top-4">
+                <TripsAnalyticsPanel
+                  layout="vertical"
+                  statusCounts={statusCounts}
+                  totalCount={paginationInfo.total}
+                />
+              </div>
+            )}
+            </div>
           </TabsContent>
 
           {/* ---- TAB: ROTAS ---- */}

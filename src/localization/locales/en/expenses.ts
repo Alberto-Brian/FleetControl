@@ -253,6 +253,19 @@ export const enExpenses = {
       extraordinary: 'Extraordinary',
     },
   },
+
+  analytics: {
+    totalExpenses:   'Total Expenses',
+    totalAmount:     'Total Amount',
+    paid:            'Paid',
+    paymentRate:     'Payment Rate',
+    statusPending:   'Pending',
+    statusPaid:      'Paid',
+    statusCancelled: 'Cancelled',
+    expensesStatus:  'Expense Status',
+    byCategory:      'Amount by Category',
+    value:           'Amount',
+  },
 } as const;
 
 export default enExpenses;

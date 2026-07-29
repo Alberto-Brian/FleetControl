@@ -29,6 +29,7 @@ export const enSettings = {
     license:        'License',
     geofenceAlerts: 'GPS Alerts',
     server:         'Server',
+    views:          'Views',
   },
 
   // ── Databases ─────────────────────────────────────────────────────────────
@@ -164,7 +165,14 @@ export const enSettings = {
     glassSolid:           'Solid',
     glassNoBlur:          'No blur',
     glassMaxBlur:         'Maximum',
-    glassReset:           'Reset to defaults',
+    glassReset:                  'Reset to defaults',
+    glassResetDark:              'Dark mode',
+    glassResetLight:             'Light mode',
+    glassSaveAsDefault:          'Save as default',
+    glassSaveDark:               'Save (dark)',
+    glassSaveLight:              'Save (light)',
+    glassResetOnThemeChange:     'Reset when switching theme',
+    glassResetOnThemeChangeDesc: 'Automatically applies the new theme\'s defaults when switching between light and dark',
 
     // Sidebar menu
     sidebarTitle:         'Side menu',
@@ -197,8 +205,12 @@ export const enSettings = {
     filtersDesc:          'Controls the behaviour of filters and view mode across listing pages',
     persistFilters:       'Save filters between sessions',
     persistFiltersDesc:   'Keeps active filters when closing and reopening the app',
-    persistViewMode:      'Save view mode',
-    persistViewModeDesc:  'Keeps the cards/list choice when closing and reopening the app',
+    persistViewMode:          'Save view mode',
+    persistViewModeDesc:      'Keeps the cards/list choice when closing and reopening the app',
+    persistPageSize:          'Save items per page',
+    persistPageSizeDesc:      'Remembers how many items to show per page in each listing',
+    persistCurrentPage:       'Save current page',
+    persistCurrentPageDesc:   'Resumes the last visited page when reopening a listing',
   },
 
   language: {
@@ -250,6 +262,34 @@ export const enSettings = {
       logoSize:     'Logo cannot exceed 2 MB.',
       logoFormat:   'Unsupported format. Use PNG, JPG, WEBP or SVG.',
     },
+  },
+
+  views: {
+    title:                  'Views',
+    description:            'Configure what is shown in each section of the app.',
+
+    analyticsPanels:        'Analytics Panels',
+    analyticsPanelsDesc:    'Show charts and metrics in each view. Position is configurable below.',
+
+    vehicles:               'Vehicles',
+    vehiclesDesc:           'Fleet status chart, top mileage and category distribution.',
+    drivers:                'Drivers',
+    driversDesc:            'Driver availability, active shifts and performance metrics.',
+    trips:                  'Trips',
+    tripsDesc:              'Completion rate, total distance and status distribution.',
+    fuel:                   'Fuel',
+    fuelDesc:               'Consumption per vehicle and cost evolution.',
+    maintenance:            'Maintenance',
+    maintenanceDesc:        'Maintenance costs and intervention status.',
+    expenses:               'Expenses',
+    expensesDesc:           'Total expenses, payment rate and category distribution.',
+
+    layoutTitle:            'Panel Layout',
+    layoutDesc:             'Positioning of analytics panels relative to the list.',
+    layoutPosition:         'Position',
+    layoutPositionDesc:     'Vertical places the panel to the right of the list; horizontal places it above.',
+    layoutVertical:         'Vertical',
+    layoutHorizontal:       'Horizontal',
   },
 
   pdf: {

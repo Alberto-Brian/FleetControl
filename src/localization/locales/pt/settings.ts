@@ -30,6 +30,7 @@ export const ptSettings = {
     license:        'Licença',
     geofenceAlerts: 'Alertas GPS',
     server:         'Servidor',
+    views:          'Vistas',
   },
 
   // ── Bases de Dados ────────────────────────────────────────────────────────
@@ -166,7 +167,14 @@ export const ptSettings = {
     glassSolid:           'Sólido',
     glassNoBlur:          'Sem desfoque',
     glassMaxBlur:         'Máximo',
-    glassReset:           'Repor predefinições',
+    glassReset:                  'Repor predefinições',
+    glassResetDark:              'Modo escuro',
+    glassResetLight:             'Modo claro',
+    glassSaveAsDefault:          'Guardar como predefinição',
+    glassSaveDark:               'Guardar (escuro)',
+    glassSaveLight:              'Guardar (claro)',
+    glassResetOnThemeChange:     'Repor ao mudar tema',
+    glassResetOnThemeChangeDesc: 'Aplica automaticamente a predefinição do novo tema ao trocar entre claro e escuro',
 
     // Menu lateral
     sidebarTitle:         'Menu lateral',
@@ -199,8 +207,12 @@ export const ptSettings = {
     filtersDesc:          'Controla o comportamento dos filtros e do modo de visualização das listagens',
     persistFilters:       'Guardar filtros entre sessões',
     persistFiltersDesc:   'Mantém os filtros activos ao fechar e abrir a aplicação',
-    persistViewMode:      'Guardar modo de visualização',
-    persistViewModeDesc:  'Mantém a escolha entre cartões e lista ao fechar e abrir a aplicação',
+    persistViewMode:          'Guardar modo de visualização',
+    persistViewModeDesc:      'Mantém a escolha entre cartões e lista ao fechar e abrir a aplicação',
+    persistPageSize:          'Guardar quantidade por página',
+    persistPageSizeDesc:      'Mantém o número de elementos a apresentar por página em cada listagem',
+    persistCurrentPage:       'Guardar página actual',
+    persistCurrentPageDesc:   'Retoma a última página visitada ao reabrir uma listagem',
   },
 
   // ── Idioma ────────────────────────────────────────────────────────────────
@@ -254,6 +266,35 @@ export const ptSettings = {
       logoSize:     'O logo não pode exceder 2 MB.',
       logoFormat:   'Formato não suportado. Use PNG, JPG, WEBP ou SVG.',
     },
+  },
+
+  // ── Vistas ────────────────────────────────────────────────────────────────
+  views: {
+    title:                  'Vistas',
+    description:            'Configura o que é mostrado em cada secção da aplicação.',
+
+    analyticsPanels:        'Painéis de Análise',
+    analyticsPanelsDesc:    'Mostra gráficos e métricas em cada vista. A posição é configurável abaixo.',
+
+    vehicles:               'Veículos',
+    vehiclesDesc:           'Gráfico de estado da frota, top quilometragem e distribuição por categoria.',
+    drivers:                'Motoristas',
+    driversDesc:            'Disponibilidade de motoristas, turnos activos e métricas de desempenho.',
+    trips:                  'Viagens',
+    tripsDesc:              'Taxa de conclusão, distância total e distribuição por estado.',
+    fuel:                   'Combustível',
+    fuelDesc:               'Consumo por veículo e evolução de custos.',
+    maintenance:            'Manutenção',
+    maintenanceDesc:        'Custos de manutenção e estado das intervenções.',
+    expenses:               'Despesas',
+    expensesDesc:           'Total de despesas, taxa de pagamento e distribuição por categoria.',
+
+    layoutTitle:            'Layout dos Painéis',
+    layoutDesc:             'Posicionamento dos painéis de análise em relação à listagem.',
+    layoutPosition:         'Posição',
+    layoutPositionDesc:     'Vertical coloca o painel à direita da lista; horizontal coloca-o acima.',
+    layoutVertical:         'Vertical',
+    layoutHorizontal:       'Horizontal',
   },
 
   // ── Relatórios PDF ────────────────────────────────────────────────────────

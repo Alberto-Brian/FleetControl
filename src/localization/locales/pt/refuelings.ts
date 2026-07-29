@@ -246,7 +246,16 @@ export const ptRefuelings = {
     quantities: "Quantidades",
     details: "Detalhes",
     basicInfo: "Informações Básicas",
-  }
+  },
+
+  analytics: {
+    totalCost:    'Custo Total',
+    totalLiters:  'Total Litros',
+    avgPrice:     'Preço Médio/L',
+    refuelings:   'Abastecimentos',
+    costByVehicle:'Custo por Viatura (página actual)',
+    cost:         'Custo',
+  },
 } as const;
 
 export default ptRefuelings;

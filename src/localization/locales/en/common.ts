@@ -60,7 +60,8 @@ export const enCommon = {
         default: "This action cannot be undone. This record will be marked as deleted.",
         defaultWithItem: 'This action cannot be undone. The record "{{itemName}}" will be marked as deleted.'
     },
-    actions: {
+  noData: 'No data',
+  actions: {
         actions: "Actions",
         close: "Close",
         cancel: "Cancel",
@@ -76,6 +77,7 @@ export const enCommon = {
         saving: 'Saving ...',
         save: 'Save',
         dismiss: 'Dismiss',
+        clearFilters: 'Clear filters',
     },
     warnigns: {
         categoryRequired: "Please select a category",

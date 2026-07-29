@@ -1,7 +1,7 @@
 ﻿// ========================================
 // FILE: src/pages/provider/VehiclesPageContent.tsx
 // ========================================
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,11 +12,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import {
   Search, Truck, Edit, Trash2, Eye, Tag, LayoutGrid, List, Rows,
-  Plus, Filter, MoreHorizontal, CheckCircle2, Clock, Settings2, Ban, Upload, Wifi,
+  Plus, Filter, MoreHorizontal, CheckCircle2, Clock, Settings2, Ban, Upload, Wifi, RotateCcw,
 } from 'lucide-react';
 import { getAllVehicles, deleteVehicle, syncVehicleToApi, registerGpsOnVehicle, unregisterVehicleGps } from '@/helpers/vehicle-helpers';
 import type { IVehicle } from '@/lib/types/vehicle';
@@ -26,6 +27,10 @@ import { cn } from '@/lib/utils';
 import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
 import { useVehicles } from '@/contexts/VehiclesContext';
 import { useTracking } from '@/contexts/TrackingContext';
+import { VehicleAnalyticsPanel } from '@/components/analytics/VehicleAnalyticsPanel';
+import { usePageViewSettings } from '@/hooks/usePageViewSettings';
+import { usePagePagination } from '@/hooks/usePagePagination';
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Dialogs
 import NewVehicleCategoryDialog from '@/components/vehicle/NewVehicleCategoryDialog';
@@ -76,6 +81,9 @@ export default function VehiclesPageContent() {
     setCategoriesLoading,
   } = useVehicles();
 
+  const { settings: viewSettings } = usePageViewSettings();
+  const [analyticsVehicles, setAnalyticsVehicles] = useState<typeof vehicles>([]);
+
   const [activeTab, setActiveTab] = useState('vehicles');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter,   setStatusFilter]   = useState<string>(() => readPersistedFilter('vehicles', 'status',   'all'));
@@ -90,9 +98,19 @@ export default function VehiclesPageContent() {
   useEffect(() => { writePersistedFilter('vehicles', 'sync',       syncFilter);     }, [syncFilter]);
   useEffect(() => { writePersistedFilter('vehicles', 'imei',       imeiFilter);     }, [imeiFilter]);
 
+  const hasActiveFilters = searchTerm !== '' || statusFilter !== 'all' || categoryFilter !== 'all' || syncFilter !== 'all' || imeiFilter !== 'all';
+
+  function resetFilters() {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setCategoryFilter('all');
+    setSyncFilter('all');
+    setImeiFilter('all');
+    setCurrentPage(1);
+  }
+
   // Paginação
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage } = usePagePagination('vehicles');
   const [paginationInfo, setPaginationInfo] = useState({
     total: 0,
     page: 1,
@@ -116,6 +134,8 @@ export default function VehiclesPageContent() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [searchCollapsed, setSearchCollapsed] = useState(false);
+  const [searchPopoverOpen, setSearchPopoverOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [categorySearch, setCategorySearch] = useState('');
@@ -123,8 +143,25 @@ export default function VehiclesPageContent() {
   const [categoryDeleteDialogOpen, setCategoryDeleteDialogOpen] = useState(false);
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
 
-  // Debounce — reset para página 1 quando o search mudar
+  // Collapse automático do campo de pesquisa quando a toolbar fica estreita
+  const toolbarCardRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    const el = toolbarCardRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setSearchCollapsed(entry.contentRect.width < 500);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Debounce — reset para página 1 quando o search mudar
+  const isInitialSearchRef = useRef(true);
+  useEffect(() => {
+    if (isInitialSearchRef.current) {
+      isInitialSearchRef.current = false;
+      return;
+    }
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
       setCurrentPage(1);
@@ -139,6 +176,18 @@ export default function VehiclesPageContent() {
   useEffect(() => {
     loadVehicles();
   }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter, syncFilter, imeiFilter]);
+
+  // Carrega todos os veículos sem paginação para o painel de análise
+  const loadAnalyticsVehicles = useCallback(async () => {
+    try {
+      const r = await getAllVehicles({ limit: 9999 });
+      setAnalyticsVehicles(r.data);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    loadAnalyticsVehicles();
+  }, []);
 
   const loadVehicles = useCallback(async () => {
     setLoading(true);
@@ -160,12 +209,15 @@ export default function VehiclesPageContent() {
       if (result.statusCounts) {
         setStatusCounts(result.statusCounts as typeof statusCounts);
       }
+
+      // Sync analytics data so the panel always reflects current fleet state
+      loadAnalyticsVehicles();
     } catch (error) {
       handleError(error, 'vehicles:errors.errorLoading');
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter, syncFilter, imeiFilter]);
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter, syncFilter, imeiFilter, loadAnalyticsVehicles]);
 
   async function loadCategories() {
     setCategoriesLoading(true);
@@ -546,7 +598,7 @@ export default function VehiclesPageContent() {
 
   function renderCardsView() {
     return (
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className={cn('grid gap-5 md:grid-cols-2 lg:grid-cols-3', viewSettings.analyticsLayout !== 'vertical' && 'xl:grid-cols-4')}>
         {vehicles.map((vehicle) => (
           <Card 
             key={vehicle.id} 
@@ -704,45 +756,99 @@ export default function VehiclesPageContent() {
           {/* ---- TAB: VEÍCULOS ---- */}
           <TabsContent value="vehicles" className="space-y-6 mt-0 outline-none">
 
-            {/* Stats — overflow-hidden evita corte do primeiro card */}
+            {/* Stats */}
+            <TooltipProvider delayDuration={300}>
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
               {stats.map((stat, i) => (
-                <Card key={i} className="border-none shadow-sm bg-card overflow-hidden">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className={cn("p-2.5 rounded-xl shrink-0", stat.bg, stat.color)}>
-                      <stat.icon className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">
-                        {stat.label}
-                      </p>
-                      <p
-                        className={cn("font-black tracking-tight leading-tight", stat.value >= 10_000 ? "text-lg" : "text-2xl")}
-                        title={stat.value.toLocaleString('pt-PT')}
-                      >
-                        {formatStatValue(stat.value)}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <UITooltip key={i}>
+                  <TooltipTrigger asChild>
+                    <Card className="border-none shadow-sm bg-card overflow-hidden cursor-default">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className={cn("p-2.5 rounded-xl shrink-0", stat.bg, stat.color)}>
+                          <stat.icon className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground truncate leading-tight">
+                            {stat.label}
+                          </p>
+                          <p className={cn("font-black tracking-tight leading-tight", stat.value >= 10_000 ? "text-lg" : "text-2xl")}>
+                            {formatStatValue(stat.value)}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TooltipTrigger>
+                  {stat.value >= 1_000 && (
+                    <TooltipContent side="top" className="px-3 py-2.5 min-w-[120px]">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5 leading-tight">{stat.label}</p>
+                      <p className="text-sm font-black tabular-nums leading-tight">{stat.value.toLocaleString('pt-PT')}</p>
+                    </TooltipContent>
+                  )}
+                </UITooltip>
               ))}
             </div>
+            </TooltipProvider>
 
+            {/* Análises horizontal (acima da lista) */}
+            {viewSettings.analyticsLayout !== 'vertical' && viewSettings.vehiclesAnalytics && analyticsVehicles.length > 0 && (
+              <VehicleAnalyticsPanel
+                layout="horizontal"
+                vehicles={analyticsVehicles}
+                statusCounts={statusCounts}
+                totalCount={paginationInfo.total || analyticsVehicles.length}
+              />
+            )}
+
+            {/* Área principal: layout vertical = flex row (sidebar direita) */}
+            <div className={viewSettings.analyticsLayout === 'vertical' ? 'flex gap-4 items-start' : undefined}>
+            <div className={cn('space-y-6', viewSettings.analyticsLayout === 'vertical' ? 'flex-1 min-w-0' : undefined)}>
             {/* Toolbar — filtros + view modes numa linha, paginação na linha abaixo */}
-            <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
+            <div ref={toolbarCardRef} className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
               {/* Linha 1: filtros + view modes */}
               <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
                 {/* Filtros */}
-                <div className="flex flex-col sm:flex-row gap-3 flex-1">
-                  <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder={t('vehicles:placeholders.search')}
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
-                    />
-                  </div>
+                <div className="flex flex-wrap gap-3 flex-1 min-w-0">
+                  {/* Pesquisa — ícone+popover quando sem espaço, campo completo quando há espaço */}
+                  {searchCollapsed ? (
+                    <Popover open={searchPopoverOpen} onOpenChange={setSearchPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn('h-10 w-10 shrink-0 bg-muted/20 rounded-lg relative', searchTerm && 'text-primary bg-primary/10')}
+                          title={t('vehicles:placeholders.search')}
+                        >
+                          <Search className="w-4 h-4" />
+                          {searchTerm && (
+                            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" />
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent side="bottom" align="start" className="w-64 p-2">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            autoFocus
+                            placeholder={t('vehicles:placeholders.search')}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-9 h-9 text-sm bg-muted/20 border-none focus-visible:ring-1"
+                            onKeyDown={(e) => { if (e.key === 'Escape') setSearchPopoverOpen(false); }}
+                          />
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <div className="relative flex-1 min-w-[100px] max-w-sm">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder={t('vehicles:placeholders.search')}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
+                      />
+                    </div>
+                  )}
 
                   <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
                     <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
@@ -811,30 +917,61 @@ export default function VehiclesPageContent() {
                   )}
                 </div>
 
-                {/* View modes */}
-                <div className="flex bg-muted/40 p-1 rounded-lg border border-border self-center sm:self-auto shrink-0">
-                  {viewModes.map((item) => (
-                    <Button
-                      key={item.mode}
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setViewMode(item.mode as ViewMode)}
-                      className={cn('h-8 px-3 rounded-lg transition-all flex items-center gap-2', viewMode === item.mode ? 'bg-background shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground')}
-                    >
-                      <item.icon className="w-4 h-4" />
-                    </Button>
-                  ))}
-                </div>
+                {/* View modes — só visível na linha 1 quando layout horizontal */}
+                {viewSettings.analyticsLayout !== 'vertical' && (
+                  <div className="flex bg-muted/40 p-1 rounded-lg border border-border self-center sm:self-auto shrink-0">
+                    {viewModes.map((item) => (
+                      <Button
+                        key={item.mode}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setViewMode(item.mode as ViewMode)}
+                        className={cn('h-8 px-3 rounded-lg transition-all flex items-center gap-2', viewMode === item.mode ? 'bg-background shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground')}
+                      >
+                        <item.icon className="w-4 h-4" />
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Linha 2: paginação — só aparece quando há mais de 1 página */}
-              {paginationInfo.totalPages > 1 && (
-                <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
-                  <Pagination
-                    pagination={paginationInfo}
-                    onPageChange={handlePageChange}
-                    onLimitChange={handleLimitChange}
-                  />
+              {/* Linha 2: reset + view modes (vertical) + paginação */}
+              {(paginationInfo.total > 0 || viewSettings.analyticsLayout === 'vertical') && (
+                <div className="border-t border-muted/40 px-3 py-2 flex items-center gap-2">
+                  {hasActiveFilters && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={resetFilters}
+                      className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground gap-1.5 shrink-0"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      {t('common:actions.clearFilters')}
+                    </Button>
+                  )}
+                  {viewSettings.analyticsLayout === 'vertical' && (
+                    <div className="flex bg-muted/40 p-1 rounded-lg border border-border shrink-0">
+                      {viewModes.map((item) => (
+                        <Button
+                          key={item.mode}
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setViewMode(item.mode as ViewMode)}
+                          className={cn('h-8 px-3 rounded-lg transition-all', viewMode === item.mode ? 'bg-background shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground')}
+                        >
+                          <item.icon className="w-4 h-4" />
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex-1" />
+                  {paginationInfo.total > 0 && (
+                    <Pagination
+                      pagination={paginationInfo}
+                      onPageChange={handlePageChange}
+                      onLimitChange={handleLimitChange}
+                    />
+                  )}
                 </div>
               )}
             </div>
@@ -858,6 +995,18 @@ export default function VehiclesPageContent() {
                 {viewMode === 'cards'   && renderCardsView()}
               </div>
             )}
+            </div>
+            {viewSettings.analyticsLayout === 'vertical' && viewSettings.vehiclesAnalytics && analyticsVehicles.length > 0 && (
+              <div className="w-[300px] shrink-0 sticky top-4">
+                <VehicleAnalyticsPanel
+                  layout="vertical"
+                  vehicles={analyticsVehicles}
+                  statusCounts={statusCounts}
+                  totalCount={paginationInfo.total || analyticsVehicles.length}
+                />
+              </div>
+            )}
+            </div>
           </TabsContent>
 
           {/* ---- TAB: CATEGORIAS ---- */}

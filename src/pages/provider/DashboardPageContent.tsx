@@ -389,7 +389,10 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
                       const meta = GPS_ALERT_META[alert.eventType] ?? GPS_ALERT_META.geofenceEnter;
                       const Icon = meta.icon;
                       const device = trackingState.devices.find(d => d.traccar_id === alert.deviceId);
-                      const deviceLabel = device?.name ?? `#${alert.deviceId}`;
+                      const v = device?.vehicle;
+                      const deviceLabel = v
+                        ? [v.license_plate, `${v.brand} ${v.model}`.trim()].filter(Boolean).join(' · ')
+                        : (device?.name ?? `#${alert.deviceId}`);
                       return (
                         <div
                           key={alert.id}

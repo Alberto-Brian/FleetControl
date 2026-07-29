@@ -186,6 +186,17 @@ export const enTrips = {
   connectedHint: {
     liveTracking: 'In connected mode, each trip is tracked in real-time via GPS — view the exact route, speed and stops directly on the map.',
   },
+
+  analytics: {
+    completionRate:   'Completion Rate',
+    inProgress:       'In Progress',
+    cancelled:        'Cancelled',
+    totalDistance:    'Total Distance',
+    tripsStatus:      'Trip Status',
+    statusInProgress: 'In Progress',
+    statusCompleted:  'Completed',
+    statusCancelled:  'Cancelled',
+  },
 } as const;
 
 export default enTrips;

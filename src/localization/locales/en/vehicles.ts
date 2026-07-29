@@ -367,5 +367,16 @@ export const enVehicles = {
   connectedHint: {
     viewGps:    'In connected mode, this vehicle appears on the live map with real-time position, speed and route history.',
     statusSync: 'In connected mode, status changes sync automatically with the central platform and are visible across all devices.',
-  }
+  },
+
+  analytics: {
+    utilizationRate: 'Utilization Rate',
+    availability:    'Availability',
+    avgMileage:      'Avg. Mileage',
+    withGps:         'With GPS',
+    fleetStatus:     'Fleet Status',
+    topMileage:      'Top Mileage',
+    byCategory:      'By Category',
+    mileage:         'Mileage',
+  },
 } as const;

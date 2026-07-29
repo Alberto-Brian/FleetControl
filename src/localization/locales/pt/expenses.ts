@@ -253,6 +253,19 @@ export const ptExpenses = {
       extraordinary: 'Extraordinárias',
     },
   },
+
+  analytics: {
+    totalExpenses:   'Total Despesas',
+    totalAmount:     'Valor Total',
+    paid:            'Pagas',
+    paymentRate:     'Taxa Pagamento',
+    statusPending:   'Pendentes',
+    statusPaid:      'Pagas',
+    statusCancelled: 'Canceladas',
+    expensesStatus:  'Estado das Despesas',
+    byCategory:      'Valor por Categoria',
+    value:           'Valor',
+  },
 } as const;
 
 export default ptExpenses;
