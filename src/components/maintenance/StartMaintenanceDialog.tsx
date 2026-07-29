@@ -18,9 +18,10 @@ import { cn } from '@/lib/utils';
 interface StartMaintenanceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export default function StartMaintenanceDialog({ open, onOpenChange }: StartMaintenanceDialogProps) {
+export default function StartMaintenanceDialog({ open, onOpenChange, onSuccess }: StartMaintenanceDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { state: { selectedMaintenance }, updateMaintenance: updateMaintenanceContext } = useMaintenances();
@@ -59,6 +60,7 @@ export default function StartMaintenanceDialog({ open, onOpenChange }: StartMain
       if (updated) {
         updateMaintenanceContext(updated);
         showSuccess('maintenances:toast.startSuccess');
+        onSuccess?.();
         onOpenChange(false);
       }
     } catch (error) {

@@ -253,6 +253,20 @@ export const enVehicles = {
     },
   },
 
+  telemetry: {
+    online:          'Online',
+    onlineRealtime:  'Online — Real-time',
+    offline:         'Offline',
+    awaitingData:    'Awaiting device data...',
+    notConnected:    'Tracking not connected',
+    noPosition:      'No position available',
+    recentAlerts:    'Recent Alerts',
+    noAlerts:        'No alerts recorded for this vehicle',
+    lastPosition:    'Last position',
+    direction:       'Direction',
+    coordinates:     'Coordinates',
+  },
+
   tabs: {
     vehicles: "Vehicles",
     categories: "Categories",

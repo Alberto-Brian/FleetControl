@@ -31,9 +31,10 @@ const INFRACTION_TYPES = [
 interface EditFineDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export default function EditFineDialog({ open, onOpenChange }: EditFineDialogProps) {
+export default function EditFineDialog({ open, onOpenChange, onSuccess }: EditFineDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { state: { selectedFine }, updateFine: updateFineContext } = useFines();
@@ -111,6 +112,7 @@ export default function EditFineDialog({ open, onOpenChange }: EditFineDialogPro
       if (updated) {
         updateFineContext(updated);
         showSuccess('fines:toast.updateSuccess');
+        onSuccess?.();
         onOpenChange(false);
       }
     } catch (error: any) {

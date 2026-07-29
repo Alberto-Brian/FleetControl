@@ -84,7 +84,7 @@ i18n.use(initReactI18next).init({
                 clientRegisteredDescription: "The client {{name}} was successfully registered."
             }
         },
-        "pt-BR": {
+        "pt-PT": {
             vehicles: ptVehicles,
             drivers: ptDrivers,
             trips: ptTrips,

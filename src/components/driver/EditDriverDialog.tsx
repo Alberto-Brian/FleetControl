@@ -19,9 +19,10 @@ import { User, Contact, CreditCard, FileText, MapPin } from 'lucide-react';
 interface EditDriverDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export default function EditDriverDialog({ open, onOpenChange }: EditDriverDialogProps) {
+export default function EditDriverDialog({ open, onOpenChange, onSuccess }: EditDriverDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { state: { selectedDriver }, updateDriver } = useDrivers();
@@ -65,6 +66,7 @@ export default function EditDriverDialog({ open, onOpenChange }: EditDriverDialo
       if (updated) {
         updateDriver(updated);
         showSuccess('drivers:toast.updateSuccess');
+        onSuccess?.();
         onOpenChange(false);
       }
     } catch (error: any) {

@@ -593,16 +593,16 @@ export default function TripsPageContent() {
             {/* Toolbar */}
             <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
               {/* Linha 1: filtros + view modes */}
-              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
-                <div className="flex flex-col sm:flex-row gap-3 flex-1">
-                  <div className="relative flex-1 max-w-sm">
+              <div className="flex flex-wrap gap-3 items-center p-3">
+                <div className="flex flex-wrap gap-3 flex-1 min-w-0">
+                  <div className="relative flex-1 min-w-[200px] max-w-sm">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input placeholder={t('trips:searchPlaceholder')} value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
                   </div>
                   <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
-                    <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
+                    <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
                       <Filter className="w-4 h-4 text-muted-foreground" />
                       <SelectValue placeholder={t('trips:filters.all')} />
                     </SelectTrigger>
@@ -724,7 +724,7 @@ export default function TripsPageContent() {
         </Tabs>
 
         {/* Dialogs */}
-        <CompleteTripDialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen} />
+        <CompleteTripDialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen} onSuccess={loadTrips} />
         <ViewTripDialog     open={viewDialogOpen}     onOpenChange={setViewDialogOpen}     />
         <ConfirmDeleteDialog
           open={cancelDialogOpen}

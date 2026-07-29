@@ -44,10 +44,11 @@ interface EditRefuelingDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Callback opcional após eliminar — ex: fechar ViewRefuelingDialog pai */
   onDeleted?: () => void;
+  onSuccess?: () => void;
 }
 
 export default function EditRefuelingDialog({
-  open, onOpenChange, onDeleted,
+  open, onOpenChange, onDeleted, onSuccess,
 }: EditRefuelingDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
@@ -139,6 +140,7 @@ export default function EditRefuelingDialog({
       if (updated) {
         updateInContext(updated);
         showSuccess('refuelings:toast.updateSuccess');
+        onSuccess?.();
         onOpenChange(false);
       }
     } catch (error) {

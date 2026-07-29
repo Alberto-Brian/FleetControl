@@ -18,9 +18,10 @@ import { useTrips } from '@/contexts/TripsContext';
 interface CompleteTripDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export default function CompleteTripDialog({ open, onOpenChange }: CompleteTripDialogProps) {
+export default function CompleteTripDialog({ open, onOpenChange, onSuccess }: CompleteTripDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { state: { selectedTrip }, updateTrip } = useTrips();
@@ -61,6 +62,7 @@ export default function CompleteTripDialog({ open, onOpenChange }: CompleteTripD
       if (completed) {
         updateTrip(completed); // ✨ Atualiza contexto
         showSuccess('trips:toast.completeSuccess');
+        onSuccess?.();
         onOpenChange(false);
       }
     } catch (error: any) {

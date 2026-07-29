@@ -715,13 +715,13 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
                 .slice(0, 8);
 
               const alertMeta: Record<string, { icon: React.ElementType; color: string; label: string }> = {
-                geofenceEnter:  { icon: LogIn,        color: 'text-green-500',  label: 'Entrou em geocerca' },
-                geofenceExit:   { icon: LogOut,       color: 'text-amber-500',  label: 'Saiu de geocerca' },
-                speedLimit:     { icon: AlertTriangle, color: 'text-red-500',   label: 'Excesso de velocidade' },
-                ignitionOn:     { icon: Zap,          color: 'text-emerald-500', label: 'Ignição ligada' },
-                ignitionOff:    { icon: ZapOff,       color: 'text-slate-500',  label: 'Ignição desligada' },
-                deviceMoving:   { icon: Activity,     color: 'text-blue-500',   label: 'Em movimento' },
-                deviceStopped:  { icon: MapPin,       color: 'text-purple-500', label: 'Parado' },
+                geofenceEnter:  { icon: LogIn,         color: 'text-green-500',   label: t('tracking:alertDetail.events.geofenceEnter') },
+                geofenceExit:   { icon: LogOut,        color: 'text-amber-500',   label: t('tracking:alertDetail.events.geofenceExit')  },
+                speedLimit:     { icon: AlertTriangle, color: 'text-red-500',     label: t('tracking:alertDetail.events.speedLimit')    },
+                ignitionOn:     { icon: Zap,           color: 'text-emerald-500', label: t('tracking:alertDetail.events.ignitionOn')    },
+                ignitionOff:    { icon: ZapOff,        color: 'text-slate-500',   label: t('tracking:alertDetail.events.ignitionOff')   },
+                deviceMoving:   { icon: Activity,      color: 'text-blue-500',    label: t('tracking:alertDetail.events.deviceMoving')  },
+                deviceStopped:  { icon: MapPin,        color: 'text-purple-500',  label: t('tracking:alertDetail.events.deviceStopped') },
               };
 
               const courseToDir = (course?: number) => {
@@ -738,7 +738,7 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
                       <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`} />
                       <div>
                         <p className="text-sm font-semibold">
-                          {isOnline ? 'Online — Em tempo real' : 'Offline'}
+                          {isOnline ? t('vehicles:telemetry.onlineRealtime') : t('vehicles:telemetry.offline')}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           IMEI: {selectedVehicle.traccar_unique_id}
@@ -746,7 +746,7 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
                       </div>
                     </div>
                     <Badge variant={isOnline ? 'default' : 'secondary'} className={isOnline ? 'bg-green-500 text-white' : ''}>
-                      {isOnline ? 'Online' : 'Offline'}
+                      {isOnline ? t('vehicles:telemetry.online') : t('vehicles:telemetry.offline')}
                     </Badge>
                   </div>
 
@@ -766,7 +766,7 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
                           <p className="text-2xl font-black">
                             {courseToDir(livePosition.course)}
                           </p>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Direcção</p>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{t('vehicles:telemetry.direction')}</p>
                         </div>
                         <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-muted/30 border text-center">
                           <MapPin className="w-5 h-5 text-green-500 mb-1" />
@@ -774,24 +774,24 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
                             {livePosition.latitude.toFixed(4)}<br />
                             {livePosition.longitude.toFixed(4)}
                           </p>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1">Coordenadas</p>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1">{t('vehicles:telemetry.coordinates')}</p>
                         </div>
                       </div>
 
                       {/* Última actualização */}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
                         <Clock className="w-3.5 h-3.5" />
-                        Última posição: {new Date(livePosition.timestamp).toLocaleString('pt-PT')}
+                        {t('vehicles:telemetry.lastPosition')}: {new Date(livePosition.timestamp).toLocaleString('pt-PT')}
                       </div>
                     </>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground gap-2">
                       <Wifi className="w-8 h-8 opacity-30" />
-                      <p className="text-sm">Sem posição disponível</p>
+                      <p className="text-sm">{t('vehicles:telemetry.noPosition')}</p>
                       <p className="text-xs opacity-70">
                         {trackingConnected
-                          ? 'Aguardando dados do dispositivo...'
-                          : 'Rastreamento não está conectado'}
+                          ? t('vehicles:telemetry.awaitingData')
+                          : t('vehicles:telemetry.notConnected')}
                       </p>
                     </div>
                   )}
@@ -800,11 +800,11 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5" />
-                      Alertas Recentes
+                      {t('vehicles:telemetry.recentAlerts')}
                     </p>
                     {recentAlerts.length === 0 ? (
                       <p className="text-xs text-muted-foreground italic text-center py-4">
-                        Sem alertas registados para este veículo
+                        {t('vehicles:telemetry.noAlerts')}
                       </p>
                     ) : (
                       <div className="space-y-1.5">

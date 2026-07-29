@@ -19,9 +19,10 @@ import { cn } from '@/lib/utils';
 interface CompleteMaintenanceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export default function CompleteMaintenanceDialog({ open, onOpenChange }: CompleteMaintenanceDialogProps) {
+export default function CompleteMaintenanceDialog({ open, onOpenChange, onSuccess }: CompleteMaintenanceDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { state: { selectedMaintenance }, updateMaintenance: updateMaintenanceContext } = useMaintenances();
@@ -77,6 +78,7 @@ export default function CompleteMaintenanceDialog({ open, onOpenChange }: Comple
       if (completed) {
         updateMaintenanceContext(completed);
         showSuccess('maintenances:toast.completeSuccess');
+        onSuccess?.();
         onOpenChange(false);
       }
     } catch (error: any) {

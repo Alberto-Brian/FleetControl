@@ -149,7 +149,7 @@ export default function VehiclesPageContent() {
     const el = toolbarCardRef.current;
     if (!el) return;
     const ro = new ResizeObserver(([entry]) => {
-      setSearchCollapsed(entry.contentRect.width < 500);
+      setSearchCollapsed(entry.contentRect.width < 1000);
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -598,7 +598,10 @@ export default function VehiclesPageContent() {
 
   function renderCardsView() {
     return (
-      <div className={cn('grid gap-5 md:grid-cols-2 lg:grid-cols-3', viewSettings.analyticsLayout !== 'vertical' && 'xl:grid-cols-4')}>
+      <div
+        className="grid gap-5"
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(max(240px, 25%), 1fr))' }}
+      >
         {vehicles.map((vehicle) => (
           <Card 
             key={vehicle.id} 
@@ -614,7 +617,7 @@ export default function VehiclesPageContent() {
                 <div className="p-2.5 rounded-xl bg-muted group-hover:bg-primary/5 group-hover:text-primary transition-colors">
                   <Truck className="w-5 h-5" />
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap justify-end items-center gap-1.5 min-w-0">
                   {isConnected && !vehicle.api_vehicle_id && (
                     <Badge
                       variant="outline"
@@ -638,14 +641,14 @@ export default function VehiclesPageContent() {
                   {getStatusBadge(vehicle.status)}
                 </div>
               </div>
-              <CardTitle className="text-xl font-mono font-bold">{vehicle.license_plate}</CardTitle>
+              <CardTitle className="text-xl font-mono font-bold truncate">{vehicle.license_plate}</CardTitle>
               <CardDescription className="text-sm font-bold text-foreground/70">
-                {vehicle.brand} {vehicle.model} ({vehicle.year})
+                <span className="line-clamp-1">{vehicle.brand} {vehicle.model} ({vehicle.year})</span>
 
                 {vehicle.tire_size && (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono px-1">
                     <span className="font-bold text-foreground/60">{t('vehicles:fields.tireSize')}:</span>
-                    <span>{vehicle.tire_size}</span>
+                    <span className="truncate">{vehicle.tire_size}</span>
                   </div>
                 )}
               </CardDescription>
@@ -663,7 +666,7 @@ export default function VehiclesPageContent() {
                   <div className="h-8 w-px bg-muted-foreground/10 mx-3" />
                   <div className="flex-1 text-right space-y-0.5">
                     <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t('vehicles:table.category')}</p>
-                    <p className="text-sm font-bold truncate max-w-[90px] ml-auto">{vehicle.category_name}</p>
+                    <p className="text-sm font-bold truncate min-w-0 ml-auto">{vehicle.category_name}</p>
                   </div>
                 </div>
                 <div className="border-t border-muted/60 px-3.5 py-2 flex items-center gap-1.5">
@@ -839,7 +842,7 @@ export default function VehiclesPageContent() {
                       </PopoverContent>
                     </Popover>
                   ) : (
-                    <div className="relative flex-1 min-w-[100px] max-w-sm">
+                    <div className="relative flex-1 min-w-[200px] max-w-sm">
                       <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         placeholder={t('vehicles:placeholders.search')}
@@ -851,7 +854,7 @@ export default function VehiclesPageContent() {
                   )}
 
                   <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
-                    <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
+                    <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
                       <Filter className="w-4 h-4 text-muted-foreground" />
                       <SelectValue placeholder={t('vehicles:filters.status')} />
                     </SelectTrigger>
@@ -865,7 +868,7 @@ export default function VehiclesPageContent() {
                   </Select>
 
                   <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setCurrentPage(1); }}>
-                    <SelectTrigger className="w-full sm:w-[225px] h-10 text-sm bg-muted/20 border-none">
+                    <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
                       <Tag className="w-4 h-4 text-muted-foreground" />
                       <SelectValue placeholder={t('vehicles:filters.category')} />
                     </SelectTrigger>
@@ -890,7 +893,7 @@ export default function VehiclesPageContent() {
 
                   {isConnected && (
                     <Select value={syncFilter} onValueChange={(v) => { setSyncFilter(v as typeof syncFilter); setCurrentPage(1); }}>
-                      <SelectTrigger className="w-full sm:w-[200px] h-10 text-sm bg-muted/20 border-none">
+                      <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
                         <Wifi className="w-4 h-4 text-muted-foreground" />
                         <SelectValue placeholder={t('vehicles:filters.sync')} />
                       </SelectTrigger>
@@ -904,7 +907,7 @@ export default function VehiclesPageContent() {
 
                   {isConnected && (
                     <Select value={imeiFilter} onValueChange={(v) => { setImeiFilter(v as typeof imeiFilter); setCurrentPage(1); }}>
-                      <SelectTrigger className="w-full sm:w-[185px] h-10 text-sm bg-muted/20 border-none">
+                      <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
                         <Upload className="w-4 h-4 text-muted-foreground" />
                         <SelectValue placeholder={t('vehicles:filters.imei')} />
                       </SelectTrigger>
@@ -1184,7 +1187,7 @@ export default function VehiclesPageContent() {
         </Dialog>
 
         {/* Dialogs */}
-        <EditVehicleDialog       open={editDialogOpen}         onOpenChange={setEditDialogOpen}         />
+        <EditVehicleDialog       open={editDialogOpen}         onOpenChange={setEditDialogOpen}         onSuccess={loadVehicles} />
         <EditVehicleCategoryDialog open={editCategoryDialogOpen} onOpenChange={setEditCategoryDialogOpen} />
         <ViewVehicleDialog       open={viewDialogOpen}         onOpenChange={setViewDialogOpen}         onRegisterGps={openAddGpsDialog} />
 

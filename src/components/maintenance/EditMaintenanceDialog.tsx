@@ -30,6 +30,7 @@ import { maintenanceStatus, maintenancePriority } from '@/lib/db/schemas/mainten
 interface EditMaintenanceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 const priorityOptions = [
@@ -46,7 +47,7 @@ const statusOptions = [
   { value: maintenanceStatus.CANCELLED, label: 'maintenances:status.cancelled.label', icon: Flag },
 ];
 
-export default function EditMaintenanceDialog({ open, onOpenChange }: EditMaintenanceDialogProps) {
+export default function EditMaintenanceDialog({ open, onOpenChange, onSuccess }: EditMaintenanceDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { 
@@ -124,6 +125,7 @@ export default function EditMaintenanceDialog({ open, onOpenChange }: EditMainte
       if (updatedMaintenance) {
         updateMaintenanceInContext(updatedMaintenance);
         showSuccess('maintenances:toast.updateSuccess');
+        onSuccess?.();
         onOpenChange(false);
       }
     } catch (error: any) {

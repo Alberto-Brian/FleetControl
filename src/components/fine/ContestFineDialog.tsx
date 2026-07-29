@@ -16,9 +16,10 @@ import { useFines } from '@/contexts/FinesContext';
 interface ContestFineDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export default function ContestFineDialog({ open, onOpenChange }: ContestFineDialogProps) {
+export default function ContestFineDialog({ open, onOpenChange, onSuccess }: ContestFineDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { state: { selectedFine }, updateFine: updateFineContext } = useFines();
@@ -79,6 +80,7 @@ ${contestData.notes ? `💬 Observações:\n${contestData.notes}` : ''}
       
       updateFineContext(updated);
       showSuccess('fines:toast.contestSuccess');
+      onSuccess?.();
       onOpenChange(false);
     } catch (error: any) {
       handleError(error, 'fines:toast.contestError');

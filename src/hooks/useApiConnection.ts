@@ -84,6 +84,19 @@ interface UseApiConnectionReturn {
 }
 
 // ========================================
+// UTILIDADES
+// ========================================
+
+function calcBearing(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const toRad = (d: number) => d * Math.PI / 180;
+  const dLon = toRad(lon2 - lon1);
+  const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+  const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+            Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+
+// ========================================
 // CONFIGURAÇÃO
 // ========================================
 
@@ -252,7 +265,17 @@ export function useApiConnection(): UseApiConnectionReturn {
 
         setPositions(prev => {
           const positionMap = new Map<number, Position>(prev.map(p => [p.deviceId, p]));
-          normalized.forEach(pos => positionMap.set(pos.deviceId, pos));
+          normalized.forEach(pos => {
+            // Se o dispositivo está em movimento mas o Traccar envia course=0 (hardware sem bússola),
+            // calcula o rumo a partir do delta de coordenadas entre a posição anterior e a actual.
+            if ((pos.speed ?? 0) > 0 && pos.course === 0) {
+              const prevPos = positionMap.get(pos.deviceId);
+              if (prevPos && (prevPos.latitude !== pos.latitude || prevPos.longitude !== pos.longitude)) {
+                pos.course = calcBearing(prevPos.latitude, prevPos.longitude, pos.latitude, pos.longitude);
+              }
+            }
+            positionMap.set(pos.deviceId, pos);
+          });
           // Array.from cria sempre nova referência → React detecta a mudança
           return Array.from(positionMap.values());
         });

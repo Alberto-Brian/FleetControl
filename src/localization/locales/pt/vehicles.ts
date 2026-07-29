@@ -253,6 +253,20 @@ export const ptVehicles = {
     },
   },
 
+  telemetry: {
+    online:          'Online',
+    onlineRealtime:  'Online — Tempo real',
+    offline:         'Offline',
+    awaitingData:    'A aguardar dados do dispositivo...',
+    notConnected:    'Rastreamento não está ligado',
+    noPosition:      'Sem posição disponível',
+    recentAlerts:    'Alertas Recentes',
+    noAlerts:        'Sem alertas registados para este veículo',
+    lastPosition:    'Última posição',
+    direction:       'Direcção',
+    coordinates:     'Coordenadas',
+  },
+
   tabs: {
     vehicles: "Veículos",
     categories: "Categorias",

@@ -9,9 +9,13 @@ export function setAppLanguage(lang: string, i18n: i18n) {
 }
 
 export function updateAppLanguage(i18n: i18n) {
-    const localLang = localStorage.getItem(languageLocalStorageKey);
-    if (!localLang) {
-        return;
+    let localLang = localStorage.getItem(languageLocalStorageKey);
+    if (!localLang) return;
+
+    // Migração: pt-BR → pt-PT
+    if (localLang === 'pt-BR') {
+        localLang = 'pt-PT';
+        localStorage.setItem(languageLocalStorageKey, localLang);
     }
 
     i18n.changeLanguage(localLang);

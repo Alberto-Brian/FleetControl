@@ -23,6 +23,7 @@ import { useExpenses } from '@/contexts/ExpensesContext';
 interface MarkAsPaidDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 const PAYMENT_METHODS = [
@@ -32,7 +33,7 @@ const PAYMENT_METHODS = [
   { value: 'other', label: 'expenses:paymentMethods.other', icon: FileText, color: 'text-pink-600' },
 ];
 
-export default function MarkAsPaidDialog({ open, onOpenChange }: MarkAsPaidDialogProps) {
+export default function MarkAsPaidDialog({ open, onOpenChange, onSuccess }: MarkAsPaidDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { state: { selectedExpense }, updateExpense } = useExpenses();
@@ -65,6 +66,7 @@ export default function MarkAsPaidDialog({ open, onOpenChange }: MarkAsPaidDialo
       
       updateExpense(updated);
       showSuccess('expenses:toast.markAsPaidSuccess');
+      onSuccess?.();
       onOpenChange(false);
     } catch (error: any) {
       handleError(error, 'expenses:toast.markAsPaidError');

@@ -417,12 +417,12 @@ export const enHelp = {
       title: 'Settings — Overview',
       content: [
         { type: 'text', text: 'Access Settings via the gear icon in the bottom-left corner (standalone mode) or the top-right of the panel (connected mode). There is a search bar at the top of the Settings dialog to quickly find any option.' },
+        { type: 'tip', text: 'To change the interface language, click the flag icon in the top-right bar (next to the help button). A dropdown with the available languages will appear.' },
         { type: 'table',
           headers: ['Tab', 'What you configure'],
           rows: [
             ['Appearance', 'Theme (light/dark), font family, text size, layout padding, sidebar collapse, glass panel (connected mode), listing preferences'],
             ['Views', 'Analytics panels per section (on/off) and layout position (vertical/horizontal)'],
-            ['Language', 'Interface language (Portuguese / English)'],
             ['Company', 'Company name, logo, NIF, phone, email, address and currency'],
             ['PDF Reports', 'Header, colours, watermark, charts, format and orientation of exported PDFs'],
             ['GPS Alerts', 'Which GPS events generate alerts and cooldown between notifications of the same type'],

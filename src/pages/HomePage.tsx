@@ -33,6 +33,7 @@ import ReportsPage      from '@/pages/ReportsPage';
 import AnalyticsPage    from '@/pages/AnalyticsPage';
 import TrackingPage     from '@/pages/TrackingPage';
 import HelpPage        from '@/pages/HelpPage';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 // ─── larguras do nav rail em modo connected ───────────────────────────────────
 const NAV_RAIL_COLLAPSED_W = 56;  // ícones apenas
@@ -255,8 +256,9 @@ export default function HomePage() {
                   {activeItem?.label}
                 </h2>
 
-                {/* Ajuda + Definições + perfil — lado direito */}
+                {/* Idioma + Ajuda + Definições + perfil — lado direito */}
                 <div className="ml-auto flex items-center gap-1">
+                  <LanguageSwitcher size="sm" />
                   <button
                     title={t('navigation:menu.help')}
                     onClick={() => setActiveSection('help')}
@@ -467,6 +469,7 @@ export default function HomePage() {
             </h1>
           </div>
           <div className="flex items-center gap-1">
+            <LanguageSwitcher size="md" />
             <button
               title={t('navigation:menu.help')}
               onClick={() => setActiveSection('help')}

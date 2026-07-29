@@ -66,7 +66,7 @@ export function Pagination({
 
   return (
     <div className={cn(
-      "flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 bg-card rounded-2xl border border-muted/50 shadow-sm",
+      "flex flex-row flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 py-2.5 bg-card rounded-2xl border border-muted/50 shadow-sm",
       className
     )}>
 
@@ -102,7 +102,7 @@ export function Pagination({
 
       {/* Direita — navegação de páginas */}
       {totalPages > 1 && (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 ml-auto">
           {/* Primeira página */}
           <Button
             variant="ghost"

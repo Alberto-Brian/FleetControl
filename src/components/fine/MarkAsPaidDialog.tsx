@@ -16,9 +16,10 @@ import { useFines } from '@/contexts/FinesContext';
 interface MarkAsPaidDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export default function MarkAsPaidDialog({ open, onOpenChange }: MarkAsPaidDialogProps) {
+export default function MarkAsPaidDialog({ open, onOpenChange, onSuccess }: MarkAsPaidDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { state: { selectedFine }, updateFine } = useFines();
@@ -46,6 +47,7 @@ export default function MarkAsPaidDialog({ open, onOpenChange }: MarkAsPaidDialo
       const updated = await markFineAsPaid(selectedFine!.id, paymentData);
       updateFine(updated);
       showSuccess('fines:toast.markAsPaidSuccess');
+      onSuccess?.();
       onOpenChange(false);
     } catch (error: any) {
       handleError(error, 'fines:toast.markAsPaidError');

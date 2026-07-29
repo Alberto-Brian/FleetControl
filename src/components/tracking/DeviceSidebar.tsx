@@ -72,8 +72,13 @@ export function DeviceSidebar({
   }
 
   const filtered = sidebarDevices.filter(d => {
-    const matchSearch = d.name.toLowerCase().includes(search.toLowerCase()) ||
-      d.uniqueId?.toLowerCase().includes(search.toLowerCase());
+    const q = search.toLowerCase();
+    const vehicleName = d.vehicle
+      ? `${d.vehicle.license_plate} ${d.vehicle.brand} ${d.vehicle.model}`.toLowerCase()
+      : '';
+    const matchSearch = d.name.toLowerCase().includes(q) ||
+      d.uniqueId?.toLowerCase().includes(q) ||
+      vehicleName.includes(q);
     const isInactive  = d.uniqueId ? linkedImeis.has(d.uniqueId) && !activeImeis.has(d.uniqueId) : false;
     if (filteredStatus === 'inactive') return matchSearch && isInactive;
     if (filteredStatus === 'online')   return matchSearch && d.status === 'online'  && !isInactive;

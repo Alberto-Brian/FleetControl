@@ -340,16 +340,16 @@ export default function FinesPageContent() {
 
         {/* Toolbar */}
         <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
-            <div className="flex flex-col sm:flex-row gap-3 flex-1">
-              <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-wrap gap-3 items-center p-3">
+            <div className="flex flex-wrap gap-3 flex-1 min-w-0">
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input placeholder={t('fines:searchPlaceholder')} value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
               </div>
               <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
-                <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
+                <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
                   <Filter className="w-4 h-4 text-muted-foreground" />
                   <SelectValue placeholder={t('fines:filters.all')} />
                 </SelectTrigger>
@@ -373,7 +373,7 @@ export default function FinesPageContent() {
               ))}
             </div>
           </div>
-          {paginationInfo.totalPages > 1 && (
+          {paginationInfo.total > 0 && (
             <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
               <Pagination pagination={paginationInfo}
                 onPageChange={(p) => setCurrentPage(p)}
@@ -405,9 +405,9 @@ export default function FinesPageContent() {
           onEdit={() => { setViewDialogOpen(false); setEditDialogOpen(true); }}
           onMarkAsPaid={() => { setViewDialogOpen(false); setMarkAsPaidDialogOpen(true); }}
           onContest={() => { setViewDialogOpen(false); setContestDialogOpen(true); }} />
-        <EditFineDialog    open={editDialogOpen}       onOpenChange={setEditDialogOpen}       />
-        <MarkAsPaidDialog  open={markAsPaidDialogOpen} onOpenChange={setMarkAsPaidDialogOpen} />
-        <ContestFineDialog open={contestDialogOpen}    onOpenChange={setContestDialogOpen}    />
+        <EditFineDialog    open={editDialogOpen}       onOpenChange={setEditDialogOpen}       onSuccess={loadFines} />
+        <MarkAsPaidDialog  open={markAsPaidDialogOpen} onOpenChange={setMarkAsPaidDialogOpen} onSuccess={loadFines} />
+        <ContestFineDialog open={contestDialogOpen}    onOpenChange={setContestDialogOpen}    onSuccess={loadFines} />
         <ConfirmDeleteDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}
           onConfirm={handleDelete}
           title={t('fines:dialogs.delete.title')}

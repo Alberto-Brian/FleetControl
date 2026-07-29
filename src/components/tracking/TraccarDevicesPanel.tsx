@@ -153,7 +153,7 @@ export function TraccarDevicesPanel({ isOpen, onClose, onViewVehicle, onCenterDe
       name:     row.device.name,
       uniqueId: row.device.uniqueId ?? '',
       phone:    rawData?.phone ?? '',
-      operator: rawData?.attributes?.operator ?? '',
+      operator: rawData?.operator ?? '',
     });
     setFormErrors({});
     setFormError(null);
@@ -670,7 +670,7 @@ export function TraccarDevicesPanel({ isOpen, onClose, onViewVehicle, onCenterDe
     const isOnline = device.status === 'online';
     const rawData  = (device as any).rawData;
     const phone    = rawData?.phone as string | undefined;
-    const operator = rawData?.attributes?.operator as string | undefined;
+    const operator = rawData?.operator as string | undefined;
 
     return (
       <div className="flex flex-col h-full relative">

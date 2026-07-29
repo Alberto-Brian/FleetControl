@@ -22,11 +22,13 @@ import { ImeiSelector } from './ImeiSelector';
 interface EditVehicleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export default function EditVehicleDialog({ 
-  open, 
-  onOpenChange, 
+export default function EditVehicleDialog({
+  open,
+  onOpenChange,
+  onSuccess,
 }: EditVehicleDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
@@ -106,6 +108,7 @@ export default function EditVehicleDialog({
         }
         updateVehicle(updatedVehicle);
         showSuccess(t('vehicles:toast.updateSuccess'));
+        onSuccess?.();
         onOpenChange(false);
       }
     } catch (error: any) {

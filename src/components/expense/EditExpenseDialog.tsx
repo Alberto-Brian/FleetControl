@@ -20,9 +20,10 @@ import { useExpenses } from '@/contexts/ExpensesContext';
 interface EditExpenseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export default function EditExpenseDialog({ open, onOpenChange }: EditExpenseDialogProps) {
+export default function EditExpenseDialog({ open, onOpenChange, onSuccess }: EditExpenseDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
   const { state: { categories, selectedExpense }, updateExpense: updateInContext } = useExpenses();
@@ -88,6 +89,7 @@ export default function EditExpenseDialog({ open, onOpenChange }: EditExpenseDia
       if (updated) {
         updateInContext(updated);
         showSuccess('expenses:toast.updateSuccess');
+        onSuccess?.();
         onOpenChange(false);
       }
     } catch (error: any) {

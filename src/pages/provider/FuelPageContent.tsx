@@ -511,8 +511,8 @@ export default function FuelPageContent() {
             <div className={cn('space-y-6', viewSettings.analyticsLayout === 'vertical' ? 'flex-1 min-w-0' : undefined)}>
             {/* Toolbar */}
             <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
-              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3">
-                <div className="relative flex-1 max-w-sm">
+              <div className="flex flex-wrap gap-3 items-center p-3">
+                <div className="relative flex-1 min-w-[200px] max-w-sm">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     placeholder={t('refuelings:searchPlaceholder')}
@@ -678,7 +678,7 @@ export default function FuelPageContent() {
 
         {/* ── Dialogs de abastecimentos ─────────────────────────────────── */}
         <ViewRefuelingDialog   open={viewDialogOpen}   onOpenChange={setViewDialogOpen} />
-        <EditRefuelingDialog   open={editDialogOpen}   onOpenChange={setEditDialogOpen} />
+        <EditRefuelingDialog   open={editDialogOpen}   onOpenChange={setEditDialogOpen} onSuccess={loadRefuelings} />
         <ConfirmDeleteDialog
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}

@@ -417,12 +417,12 @@ export const ptHelp = {
       title: 'Definições — Visão Geral',
       content: [
         { type: 'text', text: 'Acede às Definições através do botão de engrenagem no canto inferior esquerdo (modo autónomo) ou no canto superior direito do painel (modo conectado). Existe uma barra de pesquisa no topo do diálogo de definições para encontrar qualquer opção rapidamente.' },
+        { type: 'tip', text: 'Para alterar o idioma da interface, clica no ícone de bandeira na barra superior (junto ao botão de ajuda). Aparece um menu com os idiomas disponíveis.' },
         { type: 'table',
           headers: ['Separador', 'O que configuras'],
           rows: [
             ['Aparência', 'Tema (claro/escuro), família tipográfica, tamanho de texto, espaçamento do layout, compressão do sidebar, painel de fundo (modo conectado), preferências de listagens'],
             ['Vistas', 'Painéis de análise por secção (on/off) e posição (vertical/horizontal)'],
-            ['Idioma', 'Língua da interface (Português / Inglês)'],
             ['Empresa', 'Nome, logótipo, NIF, telefone, email, morada e moeda da empresa'],
             ['Relatórios PDF', 'Cabeçalho, cores, marca de água, gráficos, formato e orientação dos PDFs exportados'],
             ['Alertas GPS', 'Que eventos GPS geram alertas e cooldown entre notificações do mesmo tipo'],

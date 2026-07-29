@@ -657,7 +657,7 @@ function renderCardsView() {
             <div className={cn('space-y-6', viewSettings.analyticsLayout === 'vertical' ? 'flex-1 min-w-0' : undefined)}>
             {/* Toolbar */}
             <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
-              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3 flex-wrap">
+              <div className="flex flex-wrap gap-3 items-center p-3">
                 <div className="relative flex-1 min-w-[200px] max-w-sm">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input placeholder={t('expenses:searchPlaceholder')} value={searchTerm}
@@ -665,7 +665,7 @@ function renderCardsView() {
                     className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
                 </div>
                 <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
-                  <SelectTrigger className="w-full sm:w-[160px] h-10 text-sm bg-muted/20 border-none">
+                  <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
                     <Filter className="w-4 h-4 text-muted-foreground" />
                     <SelectValue placeholder={t('expenses:filters.all')} />
                   </SelectTrigger>
@@ -677,7 +677,7 @@ function renderCardsView() {
                   </SelectContent>
                 </Select>
                 <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setCurrentPage(1); }}>
-                  <SelectTrigger className="w-full sm:w-[180px] h-10 text-sm bg-muted/20 border-none">
+                  <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
                     <SelectValue placeholder={t('expenses:filters.allCategories')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -821,8 +821,8 @@ function renderCardsView() {
 
         {/* Dialogs de Visualização e Edição */}
         <ViewExpenseDialog open={viewDialogOpen} onOpenChange={setViewDialogOpen} />
-        <EditExpenseDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} />
-        <MarkAsPaidDialog open={markAsPaidDialogOpen} onOpenChange={setMarkAsPaidDialogOpen} />
+        <EditExpenseDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} onSuccess={loadExpenses} />
+        <MarkAsPaidDialog open={markAsPaidDialogOpen} onOpenChange={setMarkAsPaidDialogOpen} onSuccess={loadExpenses} />
         <EditExpenseCategoryDialog open={editCategoryDialogOpen} onOpenChange={setEditCategoryDialogOpen} />
 
         {/* NOVO: Dialogs de Confirmação de Exclusão (igual DriversPageContent) */}
