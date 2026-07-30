@@ -25,7 +25,7 @@ import { useTranslation }   from 'react-i18next';
 import {
   Search, Users, Edit, Trash2, Eye, Phone, Mail, Calendar, AlertTriangle, Truck,
   LayoutGrid, List, Rows, Filter, MoreHorizontal, CheckCircle2, Clock, UserX, Ban,
-  CalendarDays, Plus, AlarmClock, Crown,
+  CalendarDays, Plus, AlarmClock, Crown, RotateCcw,
 } from 'lucide-react';
 import { usePageViewSettings } from '@/hooks/usePageViewSettings';
 import { usePagePagination } from '@/hooks/usePagePagination';
@@ -91,6 +91,14 @@ export default function DriversPageContent() {
   const [statusCounts, setStatusCounts] = useState({
     available: 0, on_trip: 0, offline: 0, on_leave: 0, terminated: 0,
   });
+  const [analyticsDrivers, setAnalyticsDrivers] = useState<any[]>([]);
+
+  const hasActiveFilters = searchTerm !== '' || availabilityFilter !== 'all';
+  function resetFilters() {
+    setSearchTerm('');
+    setAvailabilityFilter('all');
+    setCurrentPage(1);
+  }
 
   const [vehiclesList, setVehiclesList] = useState<any[]>([]);
   const [routesList,   setRoutesList]   = useState<any[]>([]);
@@ -134,14 +142,17 @@ export default function DriversPageContent() {
 
   const loadDrivers = useCallback(async () => {
     setLoading(true);
+    const filterParams = {
+      search: debouncedSearch,
+      status: availabilityFilter === 'all' ? undefined : availabilityFilter,
+    };
     try {
-      const result = await getAllDrivers({
-        page:   currentPage,
-        limit:  itemsPerPage,
-        search: debouncedSearch,
-        status: availabilityFilter === 'all' ? undefined : availabilityFilter,
-      });
+      const [result, analytics] = await Promise.all([
+        getAllDrivers({ ...filterParams, page: currentPage, limit: itemsPerPage }),
+        getAllDrivers({ ...filterParams, limit: 9999 }),
+      ]);
       setDrivers(result.data);
+      setAnalyticsDrivers(analytics.data);
       setPaginationInfo(result.pagination);
       if (result.statusCounts) setStatusCounts(result.statusCounts as typeof statusCounts);
     } catch (error) {
@@ -549,7 +560,7 @@ export default function DriversPageContent() {
                   {viewSettings.analyticsLayout !== 'vertical' && viewSettings.driversAnalytics && (
                     <DriverAnalyticsPanel
                       layout="horizontal"
-                      drivers={drivers}
+                      drivers={analyticsDrivers}
                       statusCounts={statusCounts}
                       totalCount={paginationInfo.total}
                     />
@@ -591,9 +602,19 @@ export default function DriversPageContent() {
                         ))}
                       </div>
                     </div>
-                    {paginationInfo.total > 0 && (
-                      <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
-                        <Pagination pagination={paginationInfo} onPageChange={p => setCurrentPage(p)} onLimitChange={l => { setItemsPerPage(l); setCurrentPage(1); }} />
+                    {(paginationInfo.total > 0 || hasActiveFilters) && (
+                      <div className="border-t border-muted/40 px-3 py-2 flex items-center gap-2">
+                        {hasActiveFilters && (
+                          <Button variant="ghost" size="sm" onClick={resetFilters}
+                            className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground gap-1.5 shrink-0">
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            {t('common:actions.clearFilters')}
+                          </Button>
+                        )}
+                        <div className="flex-1" />
+                        {paginationInfo.total > 0 && (
+                          <Pagination pagination={paginationInfo} onPageChange={p => setCurrentPage(p)} onLimitChange={l => { setItemsPerPage(l); setCurrentPage(1); }} />
+                        )}
                       </div>
                     )}
                   </div>
@@ -621,7 +642,7 @@ export default function DriversPageContent() {
                     <div className="w-[300px] shrink-0 sticky top-4">
                       <DriverAnalyticsPanel
                         layout="vertical"
-                        drivers={drivers}
+                        drivers={analyticsDrivers}
                         statusCounts={statusCounts}
                         totalCount={paginationInfo.total}
                       />

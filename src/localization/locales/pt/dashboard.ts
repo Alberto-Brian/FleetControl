@@ -78,6 +78,7 @@ export const ptDashboard = {
   charts: {
     fuelByMonth: "Combustível por Mês",
     expensesByCategory: "Despesas por Categoria",
+    expensesByCategoryDescription: "Distribuição real de custos por categoria de despesa",
     maintenancesByType: "Manutenções por Tipo",
     tripsByMonth: "Viagens por Mês",
     vehicleUtilization: "Top 5 Veículos",
@@ -85,13 +86,18 @@ export const ptDashboard = {
     corrective: "Corretiva",
     fuelDescription: "Análise mensal de gastos com combustível (Kz)",
     fleetStatus: "Status da Frota",
-    fleetDescription: "Distribuição atual dos veículos",
+    fleetDescription: "Distribuição actual dos veículos",
     week: "Sem",
     weeklyExpenses: "Resumo de Despesas Semanais",
     weeklyExpensesDescription: "Comparativo entre combustível, manutenção e outros custos",
     fuel: "Combustível",
     maintenance: "Manutenção",
     other: "Outros",
+  },
+
+  upcomingMaintenances: {
+    title: "Manutenções Próximas",
+    noData: "Sem manutenções agendadas",
   },
   
   recentActivities: {

@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { CheckCircle2, Clock, XCircle, Navigation } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { MetricTile } from './MetricTile';
 
 interface StatusCounts {
   in_progress: number;
@@ -35,39 +35,6 @@ function fmt(n: number, suffix = '') {
   return `${n.toLocaleString('pt-PT')}${sfx}`;
 }
 
-function MetricTile({ label, value, icon: Icon, colorClass, rawValue, suffix = '' }: {
-  label: string; value: string; icon: React.ElementType; colorClass: string; rawValue?: number; suffix?: string;
-}) {
-  const textSize = rawValue !== undefined && rawValue >= 10_000 ? 'text-sm' : 'text-base';
-  const showTooltip = rawValue !== undefined && rawValue >= 1_000;
-  const fullValue = showTooltip
-    ? `${rawValue!.toLocaleString('pt-PT')}${suffix ? ' ' + suffix : ''}`
-    : undefined;
-
-  const tile = (
-    <div className="flex items-center gap-3 bg-muted/30 rounded-xl px-4 py-3 cursor-default">
-      <div className={`p-2 rounded-lg bg-background ${colorClass}`}>
-        <Icon className="w-4 h-4" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground leading-tight truncate">{label}</p>
-        <p className={`${textSize} font-black leading-tight truncate`}>{value}</p>
-      </div>
-    </div>
-  );
-
-  if (!showTooltip) return tile;
-
-  return (
-    <UITooltip>
-      <TooltipTrigger asChild>{tile}</TooltipTrigger>
-      <TooltipContent side="top" className="px-3 py-2.5 min-w-[120px]">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5 leading-tight">{label}</p>
-        <p className="text-sm font-black tabular-nums leading-tight">{fullValue}</p>
-      </TooltipContent>
-    </UITooltip>
-  );
-}
 
 export function TripsAnalyticsPanel({ statusCounts, totalCount, layout = 'horizontal' }: Props) {
   const { t } = useTranslation();
@@ -85,14 +52,12 @@ export function TripsAnalyticsPanel({ statusCounts, totalCount, layout = 'horizo
 
   return (
     <div className="rounded-2xl border border-muted/60 bg-card/80 backdrop-blur-sm p-4 space-y-4">
-      <TooltipProvider delayDuration={300}>
       <div className={isVertical ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-2 sm:grid-cols-4 gap-3'}>
         <MetricTile label={t('trips:analytics.completionRate')} value={`${derived.completionRate}%`} icon={CheckCircle2} colorClass="text-green-500" />
         <MetricTile label={t('trips:analytics.inProgress')} value={String(statusCounts.in_progress)} icon={Clock} colorClass="text-blue-500" />
         <MetricTile label={t('trips:analytics.cancelled')} value={String(statusCounts.cancelled)} icon={XCircle} colorClass="text-slate-400" />
         <MetricTile label={t('trips:analytics.totalDistance')} value={fmt(Number(statusCounts.totalDistance), 'km')} rawValue={Number(statusCounts.totalDistance)} suffix="km" icon={Navigation} colorClass="text-purple-500" />
       </div>
-      </TooltipProvider>
 
       <div>
         <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">{t('trips:analytics.tripsStatus')}</p>

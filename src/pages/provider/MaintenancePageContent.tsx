@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
 import {
   Wrench, Search, Tag, Edit, Trash2, LayoutGrid, List, Rows,
-  Building2, AlertCircle, Clock, Flag, Settings, Phone, Mail, MapPin, Eye, Play, CheckCircle2, Filter, MoreHorizontal, Gauge, X
+  Building2, AlertCircle, Clock, Flag, Settings, Phone, Mail, MapPin, Eye, Play, CheckCircle2, Filter, MoreHorizontal, Gauge, X, RotateCcw
 } from 'lucide-react';
 
 import { useMaintenances } from '@/contexts/MaintenancesContext';
@@ -69,9 +69,13 @@ export function MaintenancePageContent() {
   const [activeTab, setActiveTab]     = useState('maintenances');
   const [searchTerm, setSearchTerm]   = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(() => readPersistedFilter('maintenance', 'status', 'all'));
+  const [typeFilter, setTypeFilter]   = useState<string>(() => readPersistedFilter('maintenance', 'type', 'all'));
+  const [categoryFilter, setCategoryFilter] = useState<string>(() => readPersistedFilter('maintenance', 'category', 'all'));
   const [viewMode, setViewMode]       = useState<ViewMode>(() => readPersistedViewMode<ViewMode>('maintenance', 'cards'));
   useEffect(() => { writePersistedViewMode('maintenance', viewMode); }, [viewMode]);
   useEffect(() => { writePersistedFilter('maintenance', 'status',   statusFilter);   }, [statusFilter]);
+  useEffect(() => { writePersistedFilter('maintenance', 'type',     typeFilter);     }, [typeFilter]);
+  useEffect(() => { writePersistedFilter('maintenance', 'category', categoryFilter); }, [categoryFilter]);
   const [categorySearch, setCategorySearch] = useState('');
   const [workshopSearch, setWorkshopSearch] = useState('');
 
@@ -83,6 +87,7 @@ export function MaintenancePageContent() {
   const [statusCounts, setStatusCounts] = useState({
     scheduled: 0, in_progress: 0, completed: 0, cancelled: 0,
   });
+  const [analyticsMaintenances, setAnalyticsMaintenances] = useState<any[]>([]);
   const { settings: viewSettings } = usePageViewSettings();
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -114,7 +119,7 @@ export function MaintenancePageContent() {
 
   useEffect(() => {
     loadMaintenances();
-  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter]);
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, typeFilter, categoryFilter]);
 
   useEffect(() => {
     loadCategories();
@@ -139,16 +144,30 @@ export function MaintenancePageContent() {
     if (handler === RESTORE_MAINTENANCE_CATEGORY && result) updateCategory(result);
   }, [updateCategory]);
 
+  const hasActiveFilters = searchTerm !== '' || statusFilter !== 'all' || typeFilter !== 'all' || categoryFilter !== 'all';
+  function resetFilters() {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setTypeFilter('all');
+    setCategoryFilter('all');
+    setCurrentPage(1);
+  }
+
   const loadMaintenances = useCallback(async () => {
     setLoading(true);
+    const filterParams = {
+      search:      debouncedSearch,
+      status:      statusFilter   === 'all' ? undefined : statusFilter,
+      type:        typeFilter     === 'all' ? undefined : typeFilter,
+      category_id: categoryFilter === 'all' ? undefined : categoryFilter,
+    };
     try {
-      const result = await getAllMaintenancesHelper({
-        page:   currentPage,
-        limit:  itemsPerPage,
-        search: debouncedSearch,
-        status: statusFilter === 'all' ? undefined : statusFilter,
-      });
+      const [result, analytics] = await Promise.all([
+        getAllMaintenancesHelper({ ...filterParams, page: currentPage, limit: itemsPerPage }),
+        getAllMaintenancesHelper({ ...filterParams, limit: 9999 }),
+      ]);
       setMaintenances(result.data);
+      setAnalyticsMaintenances(analytics.data);
       setPaginationInfo(result.pagination);
       if (result.statusCounts) setStatusCounts(result.statusCounts as typeof statusCounts);
     } catch (error) {
@@ -156,7 +175,7 @@ export function MaintenancePageContent() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter]);
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, typeFilter, categoryFilter]);
 
   async function loadCategories() {
     setCategoriesLoading(true);
@@ -591,7 +610,7 @@ export function MaintenancePageContent() {
               <MaintenanceAnalyticsPanel
                 layout="horizontal"
                 statusCounts={statusCounts}
-                maintenances={maintenances}
+                maintenances={analyticsMaintenances}
                 totalCount={paginationInfo.total}
               />
             )}
@@ -622,6 +641,32 @@ export function MaintenancePageContent() {
                       <SelectItem value="cancelled">{t('maintenances:filters.cancelled')}</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setCurrentPage(1); }}>
+                    <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
+                      <SelectValue placeholder={t('maintenances:filters.allTypes')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('maintenances:filters.allTypes')}</SelectItem>
+                      <SelectItem value="preventive">{t('maintenances:type.preventive.label')}</SelectItem>
+                      <SelectItem value="corrective">{t('maintenances:type.corrective.label')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setCurrentPage(1); }}>
+                    <SelectTrigger className="flex-1 min-w-[150px] h-10 text-sm bg-muted/20 border-none">
+                      <SelectValue placeholder={t('maintenances:filters.allCategories')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('maintenances:filters.allCategories')}</SelectItem>
+                      {categories.filter(c => c.is_active !== false).map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
+                            {c.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50 self-center sm:self-auto shrink-0">
                   {viewModes.map((item) => (
@@ -635,11 +680,21 @@ export function MaintenancePageContent() {
                   ))}
                 </div>
               </div>
-              {paginationInfo.total > 0 && (
-                <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
-                  <Pagination pagination={paginationInfo}
-                    onPageChange={(p) => setCurrentPage(p)}
-                    onLimitChange={(l) => { setItemsPerPage(l); setCurrentPage(1); }} />
+              {(paginationInfo.total > 0 || hasActiveFilters) && (
+                <div className="border-t border-muted/40 px-3 py-2 flex items-center gap-2">
+                  {hasActiveFilters && (
+                    <Button variant="ghost" size="sm" onClick={resetFilters}
+                      className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground gap-1.5 shrink-0">
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      {t('common:actions.clearFilters')}
+                    </Button>
+                  )}
+                  <div className="flex-1" />
+                  {paginationInfo.total > 0 && (
+                    <Pagination pagination={paginationInfo}
+                      onPageChange={(p) => setCurrentPage(p)}
+                      onLimitChange={(l) => { setItemsPerPage(l); setCurrentPage(1); }} />
+                  )}
                 </div>
               )}
             </div>
@@ -668,7 +723,7 @@ export function MaintenancePageContent() {
                 <MaintenanceAnalyticsPanel
                   layout="vertical"
                   statusCounts={statusCounts}
-                  maintenances={maintenances}
+                  maintenances={analyticsMaintenances}
                   totalCount={paginationInfo.total}
                 />
               </div>

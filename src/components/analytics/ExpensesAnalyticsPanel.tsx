@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { DollarSign, CheckCircle2, Clock, TrendingUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { MetricTile } from './MetricTile';
 
 interface ExpenseStats {
   totalAmount: number;
@@ -48,39 +48,6 @@ function fmt(n: number, suffix = '') {
   return `${n.toLocaleString('pt-PT')}${sfx}`;
 }
 
-function MetricTile({ label, value, icon: Icon, colorClass, rawValue, suffix = '' }: {
-  label: string; value: string; icon: React.ElementType; colorClass: string; rawValue?: number; suffix?: string;
-}) {
-  const textSize = rawValue !== undefined && rawValue >= 10_000 ? 'text-sm' : 'text-base';
-  const showTooltip = rawValue !== undefined && rawValue >= 1_000;
-  const fullValue = showTooltip
-    ? `${rawValue!.toLocaleString('pt-PT')}${suffix ? ' ' + suffix : ''}`
-    : undefined;
-
-  const tile = (
-    <div className="flex items-center gap-3 bg-muted/30 rounded-xl px-4 py-3 cursor-default">
-      <div className={`p-2 rounded-lg bg-background ${colorClass}`}>
-        <Icon className="w-4 h-4" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground leading-tight truncate">{label}</p>
-        <p className={`${textSize} font-black leading-tight truncate`}>{value}</p>
-      </div>
-    </div>
-  );
-
-  if (!showTooltip) return tile;
-
-  return (
-    <UITooltip>
-      <TooltipTrigger asChild>{tile}</TooltipTrigger>
-      <TooltipContent side="top" className="px-3 py-2.5 min-w-[120px]">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5 leading-tight">{label}</p>
-        <p className="text-sm font-black tabular-nums leading-tight">{fullValue}</p>
-      </TooltipContent>
-    </UITooltip>
-  );
-}
 
 export function ExpensesAnalyticsPanel({ stats, expenses, totalCount, layout = 'horizontal' }: Props) {
   const { t } = useTranslation();
@@ -110,14 +77,12 @@ export function ExpensesAnalyticsPanel({ stats, expenses, totalCount, layout = '
 
   return (
     <div className="rounded-2xl border border-muted/60 bg-card/80 backdrop-blur-sm p-4 space-y-4">
-      <TooltipProvider delayDuration={300}>
       <div className={isVertical ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-2 sm:grid-cols-4 gap-3'}>
         <MetricTile label={t('expenses:analytics.totalExpenses')} value={String(totalCount)} icon={DollarSign} colorClass="text-blue-500" />
         <MetricTile label={t('expenses:analytics.totalAmount')} value={fmt(Number(stats.totalAmount), 'Kz')} rawValue={Number(stats.totalAmount)} suffix="Kz" icon={TrendingUp} colorClass="text-purple-500" />
         <MetricTile label={t('expenses:analytics.paid')} value={String(stats.paid)} icon={CheckCircle2} colorClass="text-green-500" />
         <MetricTile label={t('expenses:analytics.paymentRate')} value={`${derived.paymentRate}%`} icon={Clock} colorClass="text-amber-500" />
       </div>
-      </TooltipProvider>
 
       <div className={isVertical ? 'space-y-4' : 'grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1'}>
         <div>

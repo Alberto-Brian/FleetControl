@@ -15,7 +15,7 @@ import { readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-pers
 import {
   Fuel, Search, TrendingUp, MapPin, Eye, Edit, Trash2,
   LayoutGrid, List, Rows, Building2, Phone, Mail, TrendingDown,
-  Calendar, Gauge, MoreHorizontal,
+  Calendar, Gauge, MoreHorizontal, RotateCcw,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
@@ -36,6 +36,12 @@ import NewFuelStationDialog  from '@/components/refueling/NewFuelStationDialog';
 import EditFuelStationDialog from '@/components/refueling/EditFuelStationDialog';
 import ConfirmDeleteDialog   from '@/components/ConfirmDeleteDialog';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { SearchableSelect, type SearchableSelectOption } from '@/components/ui/searchable-select';
+import { getAllVehicles } from '@/helpers/vehicle-helpers';
+import { readPersistedFilter, writePersistedFilter } from '@/lib/filter-persistence';
 
 function fmt(n: number, suffix = '') {
   const abs = Math.abs(n);
@@ -64,10 +70,17 @@ export default function FuelPageContent() {
     updateFuelStation,
   } = useRefuelings();
 
-  const [activeTab,    setActiveTab]   = useState('refuelings');
-  const [searchTerm,   setSearchTerm]  = useState('');
-  const [viewMode,     setViewMode]    = useState<ViewMode>(() => readPersistedViewMode<ViewMode>('fuel', 'cards'));
+  const [activeTab,      setActiveTab]      = useState('refuelings');
+  const [searchTerm,     setSearchTerm]     = useState('');
+  const [vehicleFilter,  setVehicleFilter]  = useState<string>(() => readPersistedFilter('fuel', 'vehicleFilter',  'all'));
+  const [fuelTypeFilter, setFuelTypeFilter] = useState<string>(() => readPersistedFilter('fuel', 'fuelTypeFilter', 'all'));
+  const [stationFilter,  setStationFilter]  = useState<string>(() => readPersistedFilter('fuel', 'stationFilter',  'all'));
+  const [availableVehicles, setAvailableVehicles] = useState<{ id: string; license_plate: string }[]>([]);
+  const [viewMode,       setViewMode]       = useState<ViewMode>(() => readPersistedViewMode<ViewMode>('fuel', 'cards'));
   useEffect(() => { writePersistedViewMode('fuel', viewMode); }, [viewMode]);
+  useEffect(() => { writePersistedFilter('fuel', 'vehicleFilter',  vehicleFilter);  }, [vehicleFilter]);
+  useEffect(() => { writePersistedFilter('fuel', 'fuelTypeFilter', fuelTypeFilter); }, [fuelTypeFilter]);
+  useEffect(() => { writePersistedFilter('fuel', 'stationFilter',  stationFilter);  }, [stationFilter]);
   const [stationSearch, setStationSearch] = useState('');
 
   // Paginação
@@ -76,6 +89,7 @@ export default function FuelPageContent() {
     total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false,
   });
   const [stats, setStats] = useState({ totalCost: 0, totalLiters: 0, avgPrice: 0, totalCount: 0 });
+  const [analyticsRefuelings, setAnalyticsRefuelings] = useState<any[]>([]);
   const { settings: viewSettings } = usePageViewSettings();
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -101,14 +115,38 @@ export default function FuelPageContent() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  useEffect(() => { loadRefuelings(); }, [currentPage, itemsPerPage, debouncedSearch]);
+  useEffect(() => { loadRefuelings(); }, [currentPage, itemsPerPage, debouncedSearch, vehicleFilter, fuelTypeFilter, stationFilter]);
   useEffect(() => { loadStations(); },  []);
+  useEffect(() => {
+    getAllVehicles({ limit: 9999 })
+      .then(r => setAvailableVehicles(r.data))
+      .catch(() => {});
+  }, []);
+
+  const hasActiveFilters = searchTerm !== '' || vehicleFilter !== 'all' || fuelTypeFilter !== 'all' || stationFilter !== 'all';
+  function resetFilters() {
+    setSearchTerm('');
+    setVehicleFilter('all');
+    setFuelTypeFilter('all');
+    setStationFilter('all');
+    setCurrentPage(1);
+  }
 
   const loadRefuelings = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getAllRefuelings({ page: currentPage, limit: itemsPerPage, search: debouncedSearch });
+      const filterParams = {
+        search:     debouncedSearch || undefined,
+        vehicle_id: vehicleFilter  !== 'all' ? vehicleFilter  : undefined,
+        fuel_type:  fuelTypeFilter !== 'all' ? fuelTypeFilter as any : undefined,
+        station_id: stationFilter  !== 'all' ? stationFilter  : undefined,
+      };
+      const [result, analytics] = await Promise.all([
+        getAllRefuelings({ ...filterParams, page: currentPage, limit: itemsPerPage }),
+        getAllRefuelings({ ...filterParams, limit: 9999 }),
+      ]);
       setRefuelings(result.data);
+      setAnalyticsRefuelings(analytics.data);
       setPaginationInfo(result.pagination);
       if (result.statusCounts) setStats(result.statusCounts as typeof stats);
     } catch (error) {
@@ -116,7 +154,7 @@ export default function FuelPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, debouncedSearch]);
+  }, [currentPage, itemsPerPage, debouncedSearch, vehicleFilter, fuelTypeFilter, stationFilter]);
 
   async function loadStations() {
     setFuelStationsLoading(true);
@@ -150,7 +188,7 @@ export default function FuelPageContent() {
 
     setIsDeletingRefueling(true);
     try {
-      await deleteRefuelingHelper(selectedRefueling.id);
+      await deleteRefçuelingHelper(selectedRefueling.id);
       removeRefuelingFromContext(selectedRefueling.id);
       showSuccess('refuelings:toast.deleteSuccess');
       setDeleteDialogOpen(false);
@@ -501,7 +539,7 @@ export default function FuelPageContent() {
               <FuelAnalyticsPanel
                 layout="horizontal"
                 stats={stats}
-                refuelings={refuelings}
+                refuelings={analyticsRefuelings}
                 totalCount={paginationInfo.total}
               />
             )}
@@ -511,39 +549,94 @@ export default function FuelPageContent() {
             <div className={cn('space-y-6', viewSettings.analyticsLayout === 'vertical' ? 'flex-1 min-w-0' : undefined)}>
             {/* Toolbar */}
             <div className="bg-card rounded-2xl border border-muted/50 shadow-sm overflow-hidden">
-              <div className="flex flex-wrap gap-3 items-center p-3">
-                <div className="relative flex-1 min-w-[200px] max-w-sm">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              {/* Linha de filtros */}
+              <div className="flex flex-wrap gap-2 items-center py-3 px-6">
+                <div className="relative shrink-0">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     placeholder={t('refuelings:searchPlaceholder')}
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1"
+                    className="pl-9 h-9 w-[220px] text-sm bg-muted/20 border-none focus-visible:ring-1"
                   />
                 </div>
-                <div className="flex bg-muted/30 p-1 rounded-xl border border-muted/50 self-center shrink-0">
+
+                {/* Vehicle filter — SearchableSelect */}
+                <div className="w-[160px] shrink-0">
+                  <SearchableSelect
+                    value={vehicleFilter}
+                    onValueChange={v => { setVehicleFilter(v); setCurrentPage(1); }}
+                    placeholder={t('refuelings:filters.allVehicles')}
+                    searchPlaceholder={t('common:search')}
+                    emptyMessage={t('common:noData')}
+                    className="h-9 text-sm bg-muted/20 border-none w-full"
+                    noneOption={{ value: 'all', label: t('refuelings:filters.allVehicles') }}
+                    options={availableVehicles.map((v): SearchableSelectOption => ({
+                      value: v.id,
+                      label: v.license_plate,
+                      searchText: v.license_plate,
+                    }))}
+                  />
+                </div>
+
+                {/* Fuel type filter */}
+                <Select value={fuelTypeFilter} onValueChange={v => { setFuelTypeFilter(v); setCurrentPage(1); }}>
+                  <SelectTrigger className="h-9 w-[150px] text-sm bg-muted/20 border-none focus:ring-1 shrink-0">
+                    <SelectValue placeholder={t('refuelings:filters.allFuelTypes')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('refuelings:filters.allFuelTypes')}</SelectItem>
+                    <SelectItem value="gasoline">{t('refuelings:fuelTypes.gasoline')}</SelectItem>
+                    <SelectItem value="diesel">{t('refuelings:fuelTypes.diesel')}</SelectItem>
+                    <SelectItem value="ethanol">{t('refuelings:fuelTypes.ethanol')}</SelectItem>
+                    <SelectItem value="cng">{t('refuelings:fuelTypes.cng')}</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Station filter */}
+                <Select value={stationFilter} onValueChange={v => { setStationFilter(v); setCurrentPage(1); }}>
+                  <SelectTrigger className="h-9 w-[155px] text-sm bg-muted/20 border-none focus:ring-1 shrink-0">
+                    <SelectValue placeholder={t('refuelings:filters.allStations')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('refuelings:filters.allStations')}</SelectItem>
+                    {fuelStations.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Linha de view modes + paginação — sempre visível */}
+              <div className="border-t border-muted/40 px-3 py-2 flex items-center gap-2">
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" onClick={resetFilters}
+                    className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground gap-1.5 shrink-0">
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    {t('common:actions.clearFilters')}
+                  </Button>
+                )}
+                <div className="flex bg-muted/40 p-1 rounded-lg border border-border shrink-0">
                   {viewModes.map(item => (
                     <Button
-                      key={item.mode} variant={viewMode === item.mode ? 'secondary' : 'ghost'} size="sm"
+                      key={item.mode} variant="ghost" size="sm"
                       onClick={() => setViewMode(item.mode as ViewMode)}
-                      className={cn('h-8 px-3 rounded-lg transition-all flex items-center gap-2', viewMode === item.mode ? 'bg-background shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground')}
+                      className={cn('h-8 px-3 rounded-lg transition-all', viewMode === item.mode ? 'bg-background shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground')}
                       title={item.label}
                     >
                       <item.icon className="w-4 h-4" />
-                      <span className="hidden sm:inline text-xs">{item.label}</span>
                     </Button>
                   ))}
                 </div>
-              </div>
-              {paginationInfo.total > 0 && (
-                <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
+                <div className="flex-1" />
+                {paginationInfo.total > 0 && (
                   <Pagination
                     pagination={paginationInfo}
                     onPageChange={p => setCurrentPage(p)}
                     onLimitChange={l => { setItemsPerPage(l); setCurrentPage(1); }}
                   />
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {isLoading ? (
@@ -570,7 +663,7 @@ export default function FuelPageContent() {
                 <FuelAnalyticsPanel
                   layout="vertical"
                   stats={stats}
-                  refuelings={refuelings}
+                  refuelings={analyticsRefuelings}
                   totalCount={paginationInfo.total}
                 />
               </div>

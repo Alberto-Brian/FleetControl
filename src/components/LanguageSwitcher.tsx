@@ -3,6 +3,7 @@
 // ========================================
 import { useTranslation } from 'react-i18next';
 import ReactCountryFlag from 'react-country-flag';
+import React from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,8 +23,8 @@ export default function LanguageSwitcher({ size = 'md' }: LanguageSwitcherProps)
   const currentLang = langs.find(l => l.key === i18n.language) ?? langs[0];
 
   const btnClass = size === 'sm'
-    ? 'w-7 h-7 flex items-center justify-center rounded-md transition-colors select-none bg-white/15 hover:bg-white/25'
-    : 'h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted bg-muted/50 transition-colors select-none';
+    ? 'w-7 h-7 flex items-center justify-center rounded-md transition-colors select-none hover:bg-white/20'
+    : 'h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted transition-colors select-none';
 
   return (
     <DropdownMenu>
@@ -36,7 +37,7 @@ export default function LanguageSwitcher({ size = 'md' }: LanguageSwitcherProps)
           <ReactCountryFlag
             countryCode={currentLang.countryCode}
             svg
-            style={{ width: '18px', height: '13px', borderRadius: '2px', display: 'block' }}
+            style={{ width: '18px', height: '13px', borderRadius: '2px', display: 'block', opacity: 0.75 }}
             aria-hidden
           />
         </button>

@@ -5,15 +5,20 @@
 import React, { useState, useEffect } from 'react';
 import {
   Truck, Fuel, Wrench, Users, MapPin, Route as RouteIcon, DollarSign,
-  FileText, BarChart3, Home, Settings, Menu, AlertTriangle,
-  ChevronLeft, ChevronRight, HelpCircle,
+  FileText, Home, Settings, Menu, AlertTriangle,
+  ChevronLeft, ChevronRight, HelpCircle, Bell,
+  LogIn, LogOut, Gauge, Zap, ZapOff, Play, Square, CheckCheck,
 } from 'lucide-react';
 import { Button }      from '@/components/ui/button';
 import { ScrollArea }  from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAuth }     from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import UserMenu         from '@/components/UserMenu';
 import SettingsDialog   from '@/components/SettingsDialog';
+import { useTracking }  from '@/contexts/TrackingContext';
+import type { GeofenceAlert } from '@/contexts/TrackingContext';
+import { getDeviceDisplayName } from '@/helpers/tracking-helpers';
 import { useLicense }          from '@/hooks/useLicense';
 import { useLayoutSettings }   from '@/hooks/useLayoutSettings';
 import { useLayoutPadding }    from '@/hooks/useLayoutPadding';
@@ -50,6 +55,10 @@ export default function HomePage() {
 
   const isConnected     = license?.mode === 'connected';
   const isMobileOverlay = windowWidth < 640;
+
+  const { state: trackingState, dispatch: trackingDispatch } = useTracking();
+  const unreadAlerts = trackingState.unreadAlerts;
+  const alerts       = trackingState.alerts;
 
   const { sidebarCollapsed, setSidebarCollapsed, toggleSidebarCollapsed, navAutoCollapse } = useLayoutSettings();
   const isCompact = isMobileOverlay || sidebarCollapsed;
@@ -269,6 +278,24 @@ export default function HomePage() {
                   >
                     <HelpCircle className="w-4 h-4" />
                   </button>
+                  <AlertBellPopover
+                    alerts={alerts}
+                    unreadAlerts={unreadAlerts}
+                    onAcknowledge={id => trackingDispatch({ type: 'ALERT_ACKNOWLEDGED', payload: id })}
+                    onAcknowledgeAll={() => alerts.filter(a => !a.acknowledged).forEach(a => trackingDispatch({ type: 'ALERT_ACKNOWLEDGED', payload: a.id }))}
+                    trigger={
+                      <button
+                        title={t('navigation:menu.alerts')}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors relative"
+                        style={{ color: 'var(--ui-t40)', background: 'transparent' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--ui-b08)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t85)'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t40)'; }}
+                      >
+                        <Bell className="w-4 h-4" />
+                        {unreadAlerts > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />}
+                      </button>
+                    }
+                  />
                   <button
                     title={t('navigation:header.settings')}
                     onClick={() => setActiveSection('settings')}
@@ -294,6 +321,7 @@ export default function HomePage() {
             </div>
           )}
         </div>
+
 
       </div>
       </DashboardProvider>
@@ -477,6 +505,23 @@ export default function HomePage() {
             >
               <HelpCircle className="w-[18px] h-[18px]" />
             </button>
+            {isConnected && (
+              <AlertBellPopover
+                alerts={alerts}
+                unreadAlerts={unreadAlerts}
+                onAcknowledge={id => trackingDispatch({ type: 'ALERT_ACKNOWLEDGED', payload: id })}
+                onAcknowledgeAll={() => alerts.filter(a => !a.acknowledged).forEach(a => trackingDispatch({ type: 'ALERT_ACKNOWLEDGED', payload: a.id }))}
+                trigger={
+                  <button
+                    title={t('navigation:menu.alerts')}
+                    className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-muted text-muted-foreground transition-colors relative"
+                  >
+                    <Bell className="w-[18px] h-[18px]" />
+                    {unreadAlerts > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />}
+                  </button>
+                }
+              />
+            )}
             <UserMenu />
           </div>
         </header>
@@ -486,8 +531,241 @@ export default function HomePage() {
         </div>
       </main>
 
+
     </div>
     </DashboardProvider>
+  );
+}
+
+// ─── Alertas Bell Popover ────────────────────────────────────────────────────
+const ALERT_ICONS: Record<string, { icon: React.ElementType; color: string }> = {
+  geofenceEnter:  { icon: LogIn,    color: '#22c55e' },
+  geofenceExit:   { icon: LogOut,   color: '#f59e0b' },
+  speedLimit:     { icon: Gauge,    color: '#ef4444' },
+  ignitionOn:     { icon: Zap,      color: '#10b981' },
+  ignitionOff:    { icon: ZapOff,   color: '#6b7280' },
+  deviceMoving:   { icon: Play,     color: '#3b82f6' },
+  deviceStopped:  { icon: Square,   color: '#8b5cf6' },
+};
+
+function relativeTime(iso: string): string {
+  const diff  = Date.now() - new Date(iso).getTime();
+  const mins  = Math.floor(diff / 60_000);
+  const hours = Math.floor(diff / 3_600_000);
+  const days  = Math.floor(diff / 86_400_000);
+  if (mins  <  1) return 'agora';
+  if (mins  < 60) return `${mins}m`;
+  if (hours < 24) return `${hours}h`;
+  return `${days}d`;
+}
+
+function formatAlertDatetime(iso: string): string {
+  return new Date(iso).toLocaleString([], {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+}
+
+function AlertDetailPopover({
+  alert, devName, label, meta, onAcknowledge, t,
+}: {
+  alert:        GeofenceAlert;
+  devName:      string;
+  label:        string;
+  meta:         { icon: React.ElementType; color: string };
+  onAcknowledge: (id: string) => void;
+  t:            (key: string) => string;
+}) {
+  const Icon = meta.icon;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <div
+          className={`flex items-start gap-3 px-4 py-3 border-b border-border/50 last:border-b-0 transition-colors cursor-pointer select-none ${
+            alert.acknowledged ? 'opacity-50 hover:bg-muted/10' : 'hover:bg-muted/30'
+          }`}
+        >
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+            style={{ background: `${meta.color}1a` }}
+          >
+            <Icon className="w-4 h-4" style={{ color: meta.color }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold leading-snug truncate">
+              <span style={{ color: meta.color }}>{label}</span>
+              {' · '}
+              <span className="text-foreground">{devName}</span>
+            </p>
+            {(alert.geofenceName || alert.speed != null) && (
+              <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                {alert.geofenceName ?? devName}
+                {alert.speed != null && ` · ${Math.round(alert.speed)} km/h`}
+              </p>
+            )}
+            <p className="text-[10px] text-muted-foreground/60 mt-0.5">{relativeTime(alert.createdAt)}</p>
+          </div>
+          {!alert.acknowledged && (
+            <button
+              onClick={e => { e.stopPropagation(); onAcknowledge(alert.id); }}
+              className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-muted shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              title={t('tracking:alertDetail.markRead')}
+            >
+              <CheckCheck className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </PopoverTrigger>
+      <PopoverContent
+        side="left"
+        align="start"
+        sideOffset={4}
+        className="p-0 w-[260px] shadow-lg border border-border rounded-xl overflow-hidden"
+      >
+        {/* Cabeçalho do detalhe */}
+        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border/60"
+          style={{ background: `${meta.color}0d` }}
+        >
+          <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+            style={{ background: `${meta.color}22` }}
+          >
+            <Icon className="w-3.5 h-3.5" style={{ color: meta.color }} />
+          </div>
+          <span className="text-xs font-semibold" style={{ color: meta.color }}>{label}</span>
+          {!alert.acknowledged && (
+            <span className="ml-auto w-1.5 h-1.5 rounded-full bg-destructive shrink-0" />
+          )}
+        </div>
+
+        {/* Campos de detalhe */}
+        <div className="px-3 py-2.5 space-y-2">
+          <AlertDetailRow label={t('tracking:alertDetail.device')} value={devName} />
+          {alert.geofenceName && (
+            <AlertDetailRow label={t('tracking:alertDetail.zone')} value={alert.geofenceName} />
+          )}
+          {alert.speed != null && (
+            <AlertDetailRow label={t('tracking:alertDetail.speedDetected')} value={`${Math.round(alert.speed)} km/h`} />
+          )}
+          {alert.speedLimit != null && (
+            <AlertDetailRow label={t('tracking:alertDetail.speedLimit')} value={`${alert.speedLimit} km/h`} />
+          )}
+          {alert.latitude != null && alert.longitude != null && (
+            <AlertDetailRow
+              label={t('tracking:alertDetail.location')}
+              value={`${alert.latitude.toFixed(5)}, ${alert.longitude.toFixed(5)}`}
+              mono
+            />
+          )}
+          <AlertDetailRow label={t('tracking:alertDetail.datetime')} value={formatAlertDatetime(alert.createdAt)} />
+        </div>
+
+        {/* Acção */}
+        {!alert.acknowledged && (
+          <div className="px-3 pb-2.5">
+            <button
+              onClick={() => onAcknowledge(alert.id)}
+              className="w-full flex items-center justify-center gap-1.5 h-7 rounded-lg text-[11px] font-medium bg-muted/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            >
+              <CheckCheck className="w-3.5 h-3.5" />
+              {t('tracking:alertDetail.markRead')}
+            </button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function AlertDetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 leading-none mb-0.5">{label}</p>
+      <p className={`text-[11px] text-foreground leading-snug ${mono ? 'font-mono text-[10px]' : 'font-medium'}`}>{value}</p>
+    </div>
+  );
+}
+
+function AlertBellPopover({
+  alerts, unreadAlerts, onAcknowledge, onAcknowledgeAll, trigger,
+}: {
+  alerts:            GeofenceAlert[];
+  unreadAlerts:      number;
+  onAcknowledge:     (id: string) => void;
+  onAcknowledgeAll:  () => void;
+  trigger:           React.ReactNode;
+}) {
+  const { t } = useTranslation(['tracking', 'navigation']);
+  const { state } = useTracking();
+
+  const EVENT_LABELS: Record<string, string> = {
+    geofenceEnter: t('tracking:alertDetail.events.geofenceEnter'),
+    geofenceExit:  t('tracking:alertDetail.events.geofenceExit'),
+    speedLimit:    t('tracking:alertDetail.events.speedLimit'),
+    ignitionOn:    t('tracking:alertDetail.events.ignitionOn'),
+    ignitionOff:   t('tracking:alertDetail.events.ignitionOff'),
+    deviceMoving:  t('tracking:alertDetail.events.deviceMoving'),
+    deviceStopped: t('tracking:alertDetail.events.deviceStopped'),
+  };
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        className="p-0 w-[360px] shadow-xl border border-border rounded-xl overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <div className="flex items-center gap-2">
+            <Bell className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-semibold">{t('navigation:menu.alerts')}</span>
+            {unreadAlerts > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-destructive text-destructive-foreground">
+                {unreadAlerts > 99 ? '99+' : unreadAlerts}
+              </span>
+            )}
+          </div>
+          {unreadAlerts > 0 && (
+            <button
+              onClick={onAcknowledgeAll}
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <CheckCheck className="w-3.5 h-3.5" />
+              {t('tracking:alerts.readAll')}
+            </button>
+          )}
+        </div>
+
+        {/* Lista com scroll */}
+        {alerts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground">
+            <Bell className="w-8 h-8 opacity-20" />
+            <p className="text-xs">{t('tracking:alerts.empty')}</p>
+          </div>
+        ) : (
+          <ScrollArea style={{ height: 'min(440px, 68vh)' }}>
+            {alerts.slice(0, 100).map(alert => {
+              const meta    = ALERT_ICONS[alert.eventType] ?? ALERT_ICONS.geofenceEnter;
+              const device  = state.devices.find(d => d.traccar_id === alert.deviceId);
+              const devName = getDeviceDisplayName(device, alert.deviceId);
+              const label   = EVENT_LABELS[alert.eventType] ?? alert.eventType;
+              return (
+                <AlertDetailPopover
+                  key={alert.id}
+                  alert={alert}
+                  devName={devName}
+                  label={label}
+                  meta={meta}
+                  onAcknowledge={onAcknowledge}
+                  t={t as (key: string) => string}
+                />
+              );
+            })}
+          </ScrollArea>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
 

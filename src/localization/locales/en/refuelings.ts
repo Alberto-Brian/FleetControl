@@ -220,6 +220,9 @@ export const enRefuelings = {
     all: 'All',
     fullTank: 'Full Tank',
     partial: 'Partial',
+    allVehicles: 'All Vehicles',
+    allFuelTypes: 'All Fuel Types',
+    allStations: 'All Stations',
   },
 
   viewModes: {

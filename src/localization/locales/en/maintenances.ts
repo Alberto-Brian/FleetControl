@@ -281,6 +281,8 @@ export const enMaintenances = {
     in_progress: 'In Progress',
     completed: 'Completed',
     cancelled: 'Cancelled',
+    allTypes: 'All types',
+    allCategories: 'All categories',
   },
 
   viewModes: {

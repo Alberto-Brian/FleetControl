@@ -280,6 +280,8 @@ export const ptMaintenances = {
     in_progress: 'Em Andamento',
     completed: 'Concluídas',
     cancelled: 'Canceladas',
+    allTypes: 'Todos os tipos',
+    allCategories: 'Todas as categorias',
   },
 
   viewModes: {

@@ -16,6 +16,7 @@ export const enNavigation = {
     analytics: 'Analytics',
     tracking: "Tracking",
     help: 'Help',
+    alerts: 'Alerts',
   },
 
   // Header

@@ -1,41 +1,42 @@
-// ========================================
-// FILE: src/pages/provider/DashboardPageContent.tsx (ATUALIZADO - SEM TEXTO ESTÁTICO)
-// ========================================
 import React, { useState, useEffect } from 'react';
-import { 
-  Truck, Fuel, Wrench, Users, MapPin, DollarSign, 
-  AlertTriangle, Calendar, TrendingUp, Activity, Bell,
-  ArrowUpRight, ArrowDownRight, MoreHorizontal, Filter,
-  Download, ChevronRight
+import {
+  Truck, Fuel, Wrench, Users, MapPin, DollarSign,
+  AlertTriangle, Activity, Filter,
+  Download, ChevronRight, CheckCircle2,
 } from 'lucide-react';
-import { 
-  LineChart, Line, AreaChart, Area, BarChart, Bar, 
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, Legend 
+import {
+  AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Table, TableBody, TableCell, TableHead, 
-  TableHeader, TableRow 
-} from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useErrorHandler } from '@/hooks/useErrorHandler';
+  Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow,
+} from '@/components/ui/table';
 import { useTranslation } from 'react-i18next';
 import StatCard from '@/components/StatCard';
 import AllActivitiesDialog from '@/components/dashboard/AllActivitiesDialog';
 
-// Context & Helpers
 import { useDashboard } from '@/contexts/DashboardContext';
-import { useTracking } from '@/contexts/TrackingContext';
-import { Zap, ZapOff, Play, Square, LogIn, LogOut, Gauge, MapPin as MapPinIcon } from 'lucide-react';
+import { getAllMaintenances } from '@/helpers/maintenance-helpers';
+import { IMaintenance } from '@/lib/types/maintenance';
+
+type MaintenanceWithDetails = IMaintenance & {
+  vehicle_license?: string | null;
+  vehicle_brand?: string | null;
+  vehicle_model?: string | null;
+  category_name?: string | null;
+  category_color?: string | null;
+};
+
+const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
+
+const tooltipStyle = {
+  borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+};
 
 interface DashboardPageContentProps {
   onNavigate?: (section: string) => void;
@@ -43,62 +44,56 @@ interface DashboardPageContentProps {
 
 export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) {
   const { t } = useTranslation();
-
-  const GPS_ALERT_META: Record<string, { icon: React.ElementType; color: string; label: string }> = {
-    geofenceEnter: { icon: LogIn,   color: '#22c55e', label: t('tracking:alertDetail.events.geofenceEnter') },
-    geofenceExit:  { icon: LogOut,  color: '#f59e0b', label: t('tracking:alertDetail.events.geofenceExit') },
-    speedLimit:    { icon: Gauge,   color: '#ef4444', label: t('tracking:alertDetail.events.speedLimit') },
-    ignitionOn:    { icon: Zap,     color: '#10b981', label: t('tracking:alertDetail.events.ignitionOn') },
-    ignitionOff:   { icon: ZapOff,  color: '#6b7280', label: t('tracking:alertDetail.events.ignitionOff') },
-    deviceMoving:  { icon: Play,    color: '#3b82f6', label: t('tracking:alertDetail.events.deviceMoving') },
-    deviceStopped: { icon: Square,  color: '#8b5cf6', label: t('tracking:alertDetail.events.deviceStopped') },
-  };
-  const { handleError } = useErrorHandler();
   const { state, refreshData } = useDashboard();
-  const { state: trackingState, isConnected: trackingConnected } = useTracking();
+  const [showAllActivities, setShowAllActivities] = useState(false);
+  const [upcomingMaintenances, setUpcomingMaintenances] = useState<MaintenanceWithDetails[]>([]);
 
   useEffect(() => { refreshData(); }, []);
-  const recentAlerts = trackingState.alerts.slice(0, 6);
-  const [showAllActivities, setShowAllActivities] = useState(false);
+
+  useEffect(() => {
+    getAllMaintenances({ limit: 30 })
+      .then(r => {
+        const upcoming = (r.data as MaintenanceWithDetails[])
+          .filter(m => m.status === 'scheduled' || m.status === 'in_progress');
+        upcoming.sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 4) - (PRIORITY_ORDER[b.priority] ?? 4));
+        setUpcomingMaintenances(upcoming.slice(0, 5));
+      })
+      .catch(() => {});
+  }, []);
 
   if (state.isLoading || !state.stats) {
     return (
       <div className="flex flex-col items-center justify-center py-24 space-y-4">
         <div className="h-12 w-12 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
-        <p className="text-sm text-muted-foreground font-bold animate-pulse">
-          {t('common:loading')}...
-        </p>
+        <p className="text-sm text-muted-foreground font-bold animate-pulse">{t('common:loading')}...</p>
       </div>
     );
   }
 
   const { stats, chartData, recentActivities } = state;
 
-  // Preparar dados para gráficos
   const fleetStatusData = [
-  { name: t('vehicles:stats.available'), value: stats.activeVehicles, color: '#10b981' },     // Verde
-  { name: t('vehicles:stats.inUse'), value: stats.inUseVehicles, color: '#3b82f6' },          // Azul ✅ NOVO!
-  { name: t('vehicles:stats.inMaintenance'), value: stats.maintenanceVehicles, color: '#f59e0b' }, // Laranja
-  { name: t('vehicles:stats.inactive'), value: stats.inactiveVehicles, color: '#ef4444' },     // Vermelho
-].filter(item => item.value > 0); // Remove zeros
+    { name: t('vehicles:stats.available'),     value: stats.activeVehicles,      color: '#10b981' },
+    { name: t('vehicles:stats.inUse'),         value: stats.inUseVehicles,       color: '#3b82f6' },
+    { name: t('vehicles:stats.inMaintenance'), value: stats.maintenanceVehicles, color: '#f59e0b' },
+    { name: t('vehicles:stats.inactive'),      value: stats.inactiveVehicles,    color: '#ef4444' },
+  ].filter(item => item.value > 0);
 
-  // Formatar dados de combustível para o gráfico
   const fuelConsumptionData = chartData?.fuelByMonth.map(f => ({
     name: f.month.split('-')[1],
     value: f.amount,
   })) || [];
 
-  // Preparar dados de despesas semanais
-  const expenseData = chartData?.expensesByCategory.slice(0, 4).map((e, i) => ({
-    name: `${t('dashboard:charts.week')} ${i + 1}`,
-    fuel: stats.totalFuelCost / 4,
-    maintenance: stats.totalMaintenanceCost / 4,
-    other: e.amount / 4,
-  })) || [];
+  const expenseCategoryData = (chartData?.expensesByCategory ?? [])
+    .filter(e => e.amount > 0)
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 6)
+    .map(e => ({ name: e.category, value: e.amount }));
 
   return (
     <div className="p-6 space-y-8 bg-transparent min-h-screen">
-      {/* Header Section */}
+
+      {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">{t('dashboard:title')}</h1>
@@ -114,14 +109,14 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
         </div>
       </div>
 
-      {/* Stats Grid - Enhanced with Trends */}
+      {/* ── Stats Grid ────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={Truck}
           title={t('dashboard:stats.vehicles.total')}
           value={stats.totalVehicles}
           subtitle={`${stats.activeVehicles} ${t('dashboard:stats.vehicles.totalAvailable')}`}
-          trend={((stats.activeVehicles / stats.totalVehicles) * 100).toFixed(1)}
+          trend={((stats.activeVehicles / Math.max(stats.totalVehicles, 1)) * 100).toFixed(1)}
           color="bg-blue-600"
           onClick={onNavigate ? () => onNavigate('vehicles') : undefined}
         />
@@ -130,7 +125,7 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
           title={t('dashboard:stats.drivers.total')}
           value={stats.totalDrivers}
           subtitle={`${stats.availableDrivers} ${t('dashboard:stats.drivers.totalAvailable')}`}
-          trend={((stats.availableDrivers / stats.totalDrivers) * 100).toFixed(1)}
+          trend={((stats.availableDrivers / Math.max(stats.totalDrivers, 1)) * 100).toFixed(1)}
           color="bg-emerald-600"
           onClick={onNavigate ? () => onNavigate('drivers') : undefined}
         />
@@ -154,10 +149,11 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
         />
       </div>
 
-      {/* Charts Section */}
+      {/* ── Charts Row ────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Chart - Fuel Consumption */}
-        <Card className="lg:col-span-2 shadow-sm border-slate-200 dark:border-slate-800">
+
+        {/* Fuel by Month */}
+        <Card className="lg:col-span-2 shadow-sm">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -173,24 +169,20 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
                 <AreaChart data={fuelConsumptionData}>
                   <defs>
                     <linearGradient id="colorFuel" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                      <stop offset="5%"  stopColor="#2563eb" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12}} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12}} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
                     formatter={(value: number) => `${value.toLocaleString('pt-PT')} Kz`}
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="#2563eb" 
-                    strokeWidth={2}
-                    fillOpacity={1} 
-                    fill="url(#colorFuel)" 
+                  <Area
+                    type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2}
+                    fillOpacity={1} fill="url(#colorFuel)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -198,42 +190,36 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
           </CardContent>
         </Card>
 
-        {/* Fleet Distribution Pie Chart */}
-        <Card className="shadow-sm border-slate-200 dark:border-slate-800">
+        {/* Fleet Distribution */}
+        <Card className="shadow-sm">
           <CardHeader>
             <CardTitle>{t('dashboard:charts.fleetStatus')}</CardTitle>
             <CardDescription>{t('dashboard:charts.fleetDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[250px] w-full">
+            <div className="h-[220px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={fleetStatusData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
+                    data={fleetStatusData} cx="50%" cy="50%"
+                    innerRadius={55} outerRadius={75} paddingAngle={5} dataKey="value"
                   >
                     {fleetStatusData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip />
-                  <Legend verticalAlign="bottom" height={36}/>
+                  <Tooltip contentStyle={tooltipStyle} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="mt-4 space-y-2">
+            <div className="space-y-1.5 mt-2">
               {fleetStatusData.map((item) => (
                 <div key={item.name} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="text-muted-foreground">{item.name}</span>
+                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                    <span className="text-muted-foreground text-xs">{item.name}</span>
                   </div>
-                  <span className="font-medium">{item.value}</span>
+                  <span className="font-semibold text-xs tabular-nums">{item.value}</span>
                 </div>
               ))}
             </div>
@@ -241,21 +227,17 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
         </Card>
       </div>
 
-      {/* Recent Activities and Alerts Section */}
+      {/* ── Activities + Upcoming Maintenances ────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Activities Table */}
-        <Card className="lg:col-span-2 shadow-sm border-slate-200 dark:border-slate-800">
+
+        {/* Recent Activities */}
+        <Card className="lg:col-span-2 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>{t('dashboard:recentActivities.title')}</CardTitle>
               <CardDescription>{t('dashboard:recentActivities.description')}</CardDescription>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-blue-600"
-              onClick={() => setShowAllActivities(true)}
-            >
+            <Button variant="ghost" size="sm" className="text-blue-600" onClick={() => setShowAllActivities(true)}>
               {t('dashboard:recentActivities.viewAll')} <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </CardHeader>
@@ -278,23 +260,25 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
                 </TableHeader>
                 <TableBody>
                   {recentActivities.slice(0, 5).map((activity) => {
-                    const Icon = activity.type === 'trip' ? MapPin :
-                      activity.type === 'refueling' ? Fuel :
+                    const Icon =
+                      activity.type === 'trip'        ? MapPin :
+                      activity.type === 'refueling'   ? Fuel :
                       activity.type === 'maintenance' ? Wrench :
-                      activity.type === 'expense' ? DollarSign :
-                      activity.type === 'fine' ? AlertTriangle :
-                      activity.type === 'vehicle' ? Truck :
-                      activity.type === 'driver' ? Users :
-                      Activity; // fallback
+                      activity.type === 'expense'     ? DollarSign :
+                      activity.type === 'fine'        ? AlertTriangle :
+                      activity.type === 'vehicle'     ? Truck :
+                      activity.type === 'driver'      ? Users :
+                      Activity;
 
-                    const colorClass = activity.type === 'trip' ? 'text-blue-600 bg-blue-50' :
-                        activity.type === 'refueling' ? 'text-green-600 bg-green-50' :
-                        activity.type === 'maintenance' ? 'text-orange-600 bg-orange-50' :
-                        activity.type === 'expense' ? 'text-purple-600 bg-purple-50' :
-                        activity.type === 'fine' ? 'text-red-600 bg-red-50' :
-                        activity.type === 'vehicle' ? 'text-blue-600 bg-blue-50' :
-                        activity.type === 'driver' ? 'text-emerald-600 bg-emerald-50' :
-                        'text-gray-600 bg-gray-50';
+                    const colorClass =
+                      activity.type === 'trip'        ? 'text-blue-600 bg-blue-50 dark:bg-blue-950/30' :
+                      activity.type === 'refueling'   ? 'text-green-600 bg-green-50 dark:bg-green-950/30' :
+                      activity.type === 'maintenance' ? 'text-orange-600 bg-orange-50 dark:bg-orange-950/30' :
+                      activity.type === 'expense'     ? 'text-purple-600 bg-purple-50 dark:bg-purple-950/30' :
+                      activity.type === 'fine'        ? 'text-red-600 bg-red-50 dark:bg-red-950/30' :
+                      activity.type === 'vehicle'     ? 'text-blue-600 bg-blue-50 dark:bg-blue-950/30' :
+                      activity.type === 'driver'      ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30' :
+                      'text-gray-600 bg-gray-50 dark:bg-gray-950/30';
 
                     return (
                       <TableRow key={activity.id} className="group">
@@ -309,9 +293,7 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
                             <span className="text-xs text-muted-foreground truncate max-w-[200px]">{activity.description}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm font-mono">
-                          {activity.vehicle || '-'}
-                        </TableCell>
+                        <TableCell className="text-sm font-mono">{activity.vehicle || '-'}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {new Date(activity.date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}
                         </TableCell>
@@ -327,158 +309,116 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
           </CardContent>
         </Card>
 
-        {/* Alerts and Notifications */}
-        <Card className="shadow-sm border-slate-200 dark:border-slate-800">
+        {/* Upcoming Maintenances */}
+        <Card className="shadow-sm">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
-                <Bell className="w-5 h-5 text-blue-600" />
-                {t('dashboard:alerts.title')}
+                <Wrench className="w-4 h-4 text-amber-500" />
+                {t('dashboard:upcomingMaintenances.title')}
               </CardTitle>
-              <Badge variant="destructive" className="rounded-full px-2">
-                {stats.overdueFines + stats.scheduledMaintenances + trackingState.unreadAlerts}
-              </Badge>
+              <Button variant="ghost" size="sm" className="text-blue-600 -mr-2" onClick={() => onNavigate?.('maintenance')}>
+                {t('dashboard:recentActivities.viewAll')} <ChevronRight className="w-4 h-4 ml-0.5" />
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-3">
-                {/* Multas Vencidas */}
-                {stats.overdueFines > 0 && (
-                  <div className="p-3 rounded-xl border border-red-100 dark:border-red-900 bg-white dark:bg-slate-900 hover:shadow-md transition-all cursor-pointer">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-lg bg-red-100 text-red-600">
-                        <AlertTriangle className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-semibold">{t('dashboard:alerts.overdueFines', { count: stats.overdueFines })}</p>
-                          <span className="text-[10px] text-muted-foreground">{t('common:today')}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">{t('dashboard:alerts.actionRequired')}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Manutenções Agendadas */}
-                {stats.scheduledMaintenances > 0 && (
-                  <div className="p-3 rounded-xl border border-amber-100 dark:border-amber-900 bg-white dark:bg-slate-900 hover:shadow-md transition-all cursor-pointer">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-lg bg-amber-100 text-amber-600">
-                        <Wrench className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-semibold">{t('dashboard:alerts.pendingMaintenances', { count: stats.scheduledMaintenances })}</p>
-                          <span className="text-[10px] text-muted-foreground">{t('common:today')}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">{t('dashboard:alerts.requiresAttention')}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Alertas GPS em tempo real */}
-                {recentAlerts.length > 0 && (
-                  <>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1 pt-1">
-                      {t('dashboard:alerts.gpsRecent')}
-                    </p>
-                    {recentAlerts.map(alert => {
-                      const meta = GPS_ALERT_META[alert.eventType] ?? GPS_ALERT_META.geofenceEnter;
-                      const Icon = meta.icon;
-                      const device = trackingState.devices.find(d => d.traccar_id === alert.deviceId);
-                      const v = device?.vehicle;
-                      const deviceLabel = v
-                        ? [v.license_plate, `${v.brand} ${v.model}`.trim()].filter(Boolean).join(' · ')
-                        : (device?.name ?? `#${alert.deviceId}`);
-                      return (
+            {upcomingMaintenances.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">
+                <CheckCircle2 className="w-10 h-10 mx-auto mb-2 opacity-20" />
+                <p className="text-sm">{t('dashboard:upcomingMaintenances.noData')}</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {upcomingMaintenances.map(m => {
+                  const accent = m.category_color || '#f59e0b';
+                  const isUrgent  = m.priority === 'urgent';
+                  const isHigh    = m.priority === 'high';
+                  return (
+                    <div
+                      key={m.id}
+                      className="p-2.5 rounded-xl border border-muted/60 bg-card hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => onNavigate?.('maintenance')}
+                    >
+                      <div className="flex items-start gap-2.5">
                         <div
-                          key={alert.id}
-                          className="p-2.5 rounded-xl border bg-card hover:shadow-sm transition-all cursor-pointer flex items-center gap-3"
-                          style={{ borderColor: `${meta.color}33` }}
-                          onClick={() => onNavigate?.('tracking')}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                          style={{ background: `${accent}22`, color: accent }}
                         >
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${meta.color}22` }}>
-                            <Icon className="w-3.5 h-3.5" style={{ color: meta.color }} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold truncate">
-                              <span style={{ color: meta.color }}>{meta.label}</span>
-                              {' · '}
-                              {deviceLabel}
+                          <Wrench className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <p className="text-sm font-semibold truncate">
+                              {m.vehicle_license ?? '—'}
                             </p>
-                            {alert.geofenceName && (
-                              <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1">
-                                <MapPinIcon className="w-2.5 h-2.5" /> {alert.geofenceName}
-                              </p>
+                            {(isUrgent || isHigh) && (
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${
+                                isUrgent ? 'bg-destructive text-destructive-foreground' : 'bg-amber-500 text-white'
+                              }`}>
+                                {t(`maintenances:priority.${m.priority}.label`)}
+                              </span>
                             )}
                           </div>
-                          {!alert.acknowledged && (
-                            <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-                          )}
+                          <p className="text-xs text-muted-foreground truncate">
+                            {m.category_name ?? m.description}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] text-muted-foreground">
+                              {new Date(m.entry_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">·</span>
+                            <span
+                              className="text-[10px] font-medium"
+                              style={{ color: m.status === 'in_progress' ? '#3b82f6' : '#f59e0b' }}
+                            >
+                              {t(`maintenances:status.${m.status}.label`)}
+                            </span>
+                          </div>
                         </div>
-                      );
-                    })}
-                  </>
-                )}
-
-                {/* Sem alertas */}
-                {stats.overdueFines === 0 && stats.scheduledMaintenances === 0 && recentAlerts.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Bell className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                    <p className="text-sm">{t('dashboard:alerts.noAlerts')}</p>
-                  </div>
-                )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </ScrollArea>
-            <Button
-              variant="outline"
-              className="w-full mt-4 text-xs"
-              onClick={() => onNavigate?.('tracking')}
-              disabled={!trackingConnected}
-            >
-              {t('dashboard:alerts.viewHistory')}
-              {trackingState.unreadAlerts > 0 && (
-                <Badge variant="destructive" className="ml-2 rounded-full px-1.5 text-[10px]">
-                  {trackingState.unreadAlerts}
-                </Badge>
-              )}
-            </Button>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Bottom Summary - Expenses Bar Chart */}
-      <Card className="shadow-sm border-slate-200 dark:border-slate-800">
+      {/* ── Expenses by Category ──────────────────────────────────────────── */}
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle>{t('dashboard:charts.weeklyExpenses')}</CardTitle>
-          <CardDescription>{t('dashboard:charts.weeklyExpensesDescription')}</CardDescription>
+          <CardTitle>{t('dashboard:charts.expensesByCategory')}</CardTitle>
+          <CardDescription>{t('dashboard:charts.expensesByCategoryDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={expenseData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
-                <Tooltip 
-                  cursor={{fill: 'transparent'}}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                  formatter={(value: number) => `${value.toLocaleString('pt-PT')} Kz`}
-                />
-                <Legend />
-                <Bar dataKey="fuel" name={t('dashboard:charts.fuel')} fill="#2563eb" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="maintenance" name={t('dashboard:charts.maintenance')} fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="other" name={t('dashboard:charts.other')} fill="#94a3b8" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {expenseCategoryData.length === 0 ? (
+            <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground italic">
+              {t('common:noData')}
+            </div>
+          ) : (
+            <div className="h-[Math.max(expenseCategoryData.length * 40, 160)]" style={{ height: Math.max(expenseCategoryData.length * 44, 160) }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={expenseCategoryData} layout="vertical" margin={{ left: 0, right: 16, top: 4, bottom: 4 }}>
+                  <XAxis type="number" hide />
+                  <YAxis
+                    type="category" dataKey="name"
+                    tick={{ fontSize: 11 }} width={100}
+                    tickLine={false} axisLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(value: number) => [`${(value / 1000).toFixed(1)}K Kz`, t('dashboard:table.value')]}
+                  />
+                  <Bar dataKey="value" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* All Activities Dialog */}
       <AllActivitiesDialog
         open={showAllActivities}
         onOpenChange={setShowAllActivities}

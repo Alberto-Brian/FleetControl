@@ -6,6 +6,7 @@ export interface IPaginationParams {
     limit?: number;
     search?: string;
     status?: string;
+    type?: string;
     category_id?: string;
     vehicle_id?: string;
     driver_id?: string;

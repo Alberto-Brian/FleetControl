@@ -220,6 +220,9 @@ export const ptRefuelings = {
     all: 'Todos',
     fullTank: 'Tanque Cheio',
     partial: 'Parcial',
+    allVehicles: 'Todos os Veículos',
+    allFuelTypes: 'Todos os Combustíveis',
+    allStations: 'Todos os Postos',
   },
 
   viewModes: {

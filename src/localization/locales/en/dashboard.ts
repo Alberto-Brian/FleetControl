@@ -77,6 +77,7 @@ export const enDashboard = {
   charts: {
     fuelByMonth: "Fuel by Month",
     expensesByCategory: "Expenses by Category",
+    expensesByCategoryDescription: "Actual cost distribution by expense category",
     maintenancesByType: "Maintenances by Type",
     tripsByMonth: "Trips by Month",
     vehicleUtilization: "Top 5 Vehicles",
@@ -91,6 +92,11 @@ export const enDashboard = {
     fuel: "Fuel",
     maintenance: "Maintenance",
     other: "Other"
+  },
+
+  upcomingMaintenances: {
+    title: "Upcoming Maintenance",
+    noData: "No scheduled maintenance",
   },
   
   recentActivities: {

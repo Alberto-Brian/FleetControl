@@ -16,6 +16,7 @@ export const ptNavigation = {
     analytics: 'Análises',
     tracking: "Rastreamento",
     help: 'Ajuda',
+    alerts: 'Alertas',
   },
 
   // Header

@@ -177,47 +177,33 @@ export default function VehiclesPageContent() {
     loadVehicles();
   }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter, syncFilter, imeiFilter]);
 
-  // Carrega todos os veículos sem paginação para o painel de análise
-  const loadAnalyticsVehicles = useCallback(async () => {
-    try {
-      const r = await getAllVehicles({ limit: 9999 });
-      setAnalyticsVehicles(r.data);
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    loadAnalyticsVehicles();
-  }, []);
-
   const loadVehicles = useCallback(async () => {
     setLoading(true);
+    const filterParams = {
+      search:      debouncedSearch,
+      status:      statusFilter   === 'all' ? undefined : statusFilter,
+      category_id: categoryFilter === 'all' ? undefined : categoryFilter,
+      sync_status: syncFilter     === 'all' ? undefined : syncFilter,
+      imei_status: imeiFilter     === 'all' ? undefined : imeiFilter,
+    };
     try {
-      const result = await getAllVehicles({
-        page:         currentPage,
-        limit:        itemsPerPage,
-        search:       debouncedSearch,
-        status:       statusFilter   === 'all' ? undefined : statusFilter,
-        category_id:  categoryFilter === 'all' ? undefined : categoryFilter,
-        sync_status:  syncFilter     === 'all' ? undefined : syncFilter,
-        imei_status:  imeiFilter     === 'all' ? undefined : imeiFilter,
-      });
+      const [result, analytics] = await Promise.all([
+        getAllVehicles({ ...filterParams, page: currentPage, limit: itemsPerPage }),
+        getAllVehicles({ ...filterParams, limit: 9999 }),
+      ]);
 
       setVehicles(result.data);
+      setAnalyticsVehicles(analytics.data);
       setPaginationInfo(result.pagination);
-
-      // Counts reais vindos do back — não afectados pelos filtros
       if (result.statusCounts) {
         setStatusCounts(result.statusCounts as typeof statusCounts);
       }
-
-      // Sync analytics data so the panel always reflects current fleet state
-      loadAnalyticsVehicles();
     } catch (error) {
       handleError(error, 'vehicles:errors.errorLoading');
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter, syncFilter, imeiFilter, loadAnalyticsVehicles]);
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter, syncFilter, imeiFilter]);
 
   async function loadCategories() {
     setCategoriesLoading(true);
@@ -793,7 +779,7 @@ export default function VehiclesPageContent() {
             </TooltipProvider>
 
             {/* Análises horizontal (acima da lista) */}
-            {viewSettings.analyticsLayout !== 'vertical' && viewSettings.vehiclesAnalytics && analyticsVehicles.length > 0 && (
+            {viewSettings.analyticsLayout !== 'vertical' && viewSettings.vehiclesAnalytics && (
               <VehicleAnalyticsPanel
                 layout="horizontal"
                 vehicles={analyticsVehicles}
@@ -999,7 +985,7 @@ export default function VehiclesPageContent() {
               </div>
             )}
             </div>
-            {viewSettings.analyticsLayout === 'vertical' && viewSettings.vehiclesAnalytics && analyticsVehicles.length > 0 && (
+            {viewSettings.analyticsLayout === 'vertical' && viewSettings.vehiclesAnalytics && (
               <div className="w-[300px] shrink-0 sticky top-4">
                 <VehicleAnalyticsPanel
                   layout="vertical"

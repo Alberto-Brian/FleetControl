@@ -135,6 +135,12 @@ export async function getAllMaintenances(params: IPaginationParams = {}): Promis
     if (params.vehicle_id) {
         conditions.push(eq(maintenances.vehicle_id, params.vehicle_id));
     }
+    if (params.type && params.type !== 'all') {
+        conditions.push(eq(maintenances.type, params.type));
+    }
+    if (params.category_id && params.category_id !== 'all') {
+        conditions.push(eq(maintenances.category_id, params.category_id));
+    }
 
     const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
 
@@ -199,6 +205,15 @@ export async function getAllMaintenances(params: IPaginationParams = {}): Promis
             like(workshops.name,                s),
         )!);
     }
+    if (params.vehicle_id) {
+        baseConditions.push(eq(maintenances.vehicle_id, params.vehicle_id));
+    }
+    if (params.type && params.type !== 'all') {
+        baseConditions.push(eq(maintenances.type, params.type));
+    }
+    if (params.category_id && params.category_id !== 'all') {
+        baseConditions.push(eq(maintenances.category_id, params.category_id));
+    }
     const baseWhere = baseConditions.length > 1 ? and(...baseConditions) : baseConditions[0];
 
     const countsRaw = await db
@@ -206,6 +221,7 @@ export async function getAllMaintenances(params: IPaginationParams = {}): Promis
         .from(maintenances)
         .leftJoin(vehicles,               eq(maintenances.vehicle_id,  vehicles.id))
         .leftJoin(maintenance_categories, eq(maintenances.category_id, maintenance_categories.id))
+        .leftJoin(workshops,              eq(maintenances.workshop_id, workshops.id))
         .where(baseWhere)
         .groupBy(maintenances.status);
 
@@ -394,6 +410,7 @@ export async function getActiveMaintenances(): Promise<IMaintenance[]> {
         .from(maintenances)
         .leftJoin(vehicles, eq(maintenances.vehicle_id, vehicles.id))
         .leftJoin(maintenance_categories, eq(maintenances.category_id, maintenance_categories.id))
+        .leftJoin(workshops, eq(maintenances.workshop_id, workshops.id))
         .where(
             and(
                 eq(maintenances.status, 'in_progress'),

@@ -17,7 +17,7 @@ import { Pagination } from '@/components/ui/pagination';
 import {
   DollarSign, TrendingUp, AlertCircle, Calendar, Tag, Eye, Edit,
   Trash2, CheckCircle2, Search, LayoutGrid, List, Rows, Filter,
-  MoreHorizontal, X
+  MoreHorizontal, X, RotateCcw
 } from 'lucide-react';
 import { RESTORE_EXPENSE_CATEGORY } from '@/helpers/ipc/db/expense_categories/expense-categories-channels';
 import { cn } from '@/lib/utils';
@@ -88,6 +88,15 @@ export default function ExpensesPageContent() {
     totalAmount: 0, paidAmount: 0, pendingAmount: 0,
     pending: 0, paid: 0, cancelled: 0,
   });
+  const [analyticsExpenses, setAnalyticsExpenses] = useState<any[]>([]);
+
+  const hasActiveFilters = searchTerm !== '' || statusFilter !== 'all' || categoryFilter !== 'all';
+  function resetFilters() {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setCategoryFilter('all');
+    setCurrentPage(1);
+  }
 
   // Dialogs
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -128,15 +137,18 @@ export default function ExpensesPageContent() {
 
   const loadExpenses = useCallback(async () => {
     setLoading(true);
+    const filterParams = {
+      search:      debouncedSearch,
+      status:      statusFilter   === 'all' ? undefined : statusFilter,
+      category_id: categoryFilter === 'all' ? undefined : categoryFilter,
+    };
     try {
-      const result = await getAllExpenses({
-        page: currentPage,
-        limit: itemsPerPage,
-        search: debouncedSearch,
-        status: statusFilter === 'all' ? undefined : statusFilter,
-        category_id: categoryFilter === 'all' ? undefined : categoryFilter,
-      });
+      const [result, analytics] = await Promise.all([
+        getAllExpenses({ ...filterParams, page: currentPage, limit: itemsPerPage }),
+        getAllExpenses({ ...filterParams, limit: 9999 }),
+      ]);
       setExpenses(result.data);
+      setAnalyticsExpenses(analytics.data);
       setPaginationInfo(result.pagination);
       if (result.statusCounts) setStats(result.statusCounts as typeof stats);
     } catch (error) {
@@ -647,7 +659,7 @@ function renderCardsView() {
               <ExpensesAnalyticsPanel
                 layout="horizontal"
                 stats={stats}
-                expenses={expenses}
+                expenses={analyticsExpenses}
                 totalCount={paginationInfo.total}
               />
             )}
@@ -703,11 +715,21 @@ function renderCardsView() {
                   ))}
                 </div>
               </div>
-              {paginationInfo.total > 0 && (
-                <div className="border-t border-muted/40 px-3 py-2 flex justify-end">
-                  <Pagination pagination={paginationInfo}
-                    onPageChange={(p) => setCurrentPage(p)}
-                    onLimitChange={(l) => { setItemsPerPage(l); setCurrentPage(1); }} />
+              {(paginationInfo.total > 0 || hasActiveFilters) && (
+                <div className="border-t border-muted/40 px-3 py-2 flex items-center gap-2">
+                  {hasActiveFilters && (
+                    <Button variant="ghost" size="sm" onClick={resetFilters}
+                      className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground gap-1.5 shrink-0">
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      {t('common:actions.clearFilters')}
+                    </Button>
+                  )}
+                  <div className="flex-1" />
+                  {paginationInfo.total > 0 && (
+                    <Pagination pagination={paginationInfo}
+                      onPageChange={(p) => setCurrentPage(p)}
+                      onLimitChange={(l) => { setItemsPerPage(l); setCurrentPage(1); }} />
+                  )}
                 </div>
               )}
             </div>
@@ -736,7 +758,7 @@ function renderCardsView() {
                 <ExpensesAnalyticsPanel
                   layout="vertical"
                   stats={stats}
-                  expenses={expenses}
+                  expenses={analyticsExpenses}
                   totalCount={paginationInfo.total}
                 />
               </div>
