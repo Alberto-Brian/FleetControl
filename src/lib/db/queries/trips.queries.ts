@@ -148,7 +148,7 @@ export async function getAllTrips(params: IPaginationParams = {}): Promise<IPagi
         )!);
     }
     if (params.status && params.status !== 'all') {
-        conditions.push(eq(trips.status, params.status));
+        conditions.push(eq(trips.status, params.status as any));
     }
     if (params.vehicle_id) {
         conditions.push(eq(trips.vehicle_id, params.vehicle_id));

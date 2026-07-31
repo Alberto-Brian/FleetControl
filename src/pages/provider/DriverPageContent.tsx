@@ -166,10 +166,10 @@ export default function DriversPageContent() {
     try {
       const [vehiclesResult, routesResult] = await Promise.all([
         getAllVehicles({ limit: 500 }),
-        getAllRoutes({ limit: 500 }).catch(() => ({ data: [] })),
+        getAllRoutes().catch(() => []),
       ]);
       setVehiclesList((vehiclesResult.data || []).map((v: any) => ({ id: v.id, plate: v.license_plate, brand: v.brand, model: v.model, status: v.status })));
-      setRoutesList((routesResult.data   || []).map((r: any) => ({ id: r.id, name: r.name, origin: r.origin, destination: r.destination })));
+      setRoutesList((routesResult || []).map((r: any) => ({ id: r.id, name: r.name, origin: r.origin, destination: r.destination })));
     } catch { /* silencioso */ }
   }
 

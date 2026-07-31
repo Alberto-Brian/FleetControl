@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useTranslation } from 'react-i18next';
 import { Plus, Tag } from 'lucide-react';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
-import { createVehicleCategory, restoreVehicleCategory } from '@/helpers/vehicle-category-helpers';
+import { createVehicleCategory } from '@/helpers/vehicle-category-helpers';
 import { ICreateVehicleCategory } from '@/lib/types/vehicle-category';
 import { useVehicles } from '@/contexts/VehiclesContext';
 
@@ -19,7 +19,7 @@ interface NewVehicleCategoryDialogProps { onSuccess?: () => void; }
 export default function NewVehicleCategoryDialog({ onSuccess }: NewVehicleCategoryDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
-  const { addCategory, updateCategory } = useVehicles();
+  const { addCategory } = useVehicles();
   
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,20 +55,7 @@ export default function NewVehicleCategoryDialog({ onSuccess }: NewVehicleCatego
         onSuccess?.();
       }
     } catch (error: any) {
-      handleError(
-        error, 
-        async (actionType, actionData) => {
-          if (actionType === 'RESTORE_CATEGORY') {
-            const restored = await restoreVehicleCategory(actionData.categoryId);
-            
-            if (restored) {
-              updateCategory(restored);
-              setOpen(false);
-              resetForm();
-            }
-          }
-        }
-      );
+      handleError(error, t('vehicles:toast.categoryCreateError'));
     } finally {
       setIsLoading(false);
     }

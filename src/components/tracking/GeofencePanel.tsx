@@ -7,6 +7,7 @@ import {
   Plus, Minus, Loader2, Radio, Search,
 } from 'lucide-react';
 import { Button }   from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -205,7 +206,7 @@ function GeofenceDetail({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea className="flex-1">
         <div className="p-3 space-y-3">
 
           {/* Info da zona */}
@@ -388,7 +389,7 @@ function GeofenceDetail({
           </div>
 
         </div>
-      </div>
+      </ScrollArea>
     </div>
   );
 }
@@ -485,7 +486,7 @@ export function GeofencePanel({ isOpen, onStartDraw, onFocusGeofence, onClose }:
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea className="flex-1">
         {state.geofences.length === 0 ? (
           <div className="p-6 text-center">
             <MapPin className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
@@ -549,7 +550,7 @@ export function GeofencePanel({ isOpen, onStartDraw, onFocusGeofence, onClose }:
             );
           })
         )}
-      </div>
+      </ScrollArea>
 
       <GeofenceFormModal
         key={editing?.id ?? 'new'}

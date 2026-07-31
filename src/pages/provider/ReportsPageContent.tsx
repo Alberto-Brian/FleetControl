@@ -451,7 +451,7 @@ export function ReportsPageContent() {
   const [searchTerm,     setSearchTerm]     = useState('');
   const [categoryFilter, setCategoryFilter] = useState<ReportCategory>(() => readPersistedFilter<ReportCategory>('reports', 'category', 'all'));
   const [viewMode,       setViewMode]       = useState<ViewMode>(() => readPersistedViewMode<ViewMode>('reports', 'list'));
-  const [datePreset,     setDatePreset]     = useState(() => readPersistedFilter('reports', 'datePreset', 'thisMonth'));
+  const [datePreset,     setDatePreset]     = useState<string>(() => readPersistedFilter('reports', 'datePreset', 'thisMonth'));
   useEffect(() => { writePersistedViewMode('reports', viewMode); }, [viewMode]);
   useEffect(() => { writePersistedFilter('reports', 'category',    categoryFilter); }, [categoryFilter]);
   useEffect(() => { writePersistedFilter('reports', 'datePreset',  datePreset);     }, [datePreset]);

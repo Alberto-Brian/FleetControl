@@ -1628,8 +1628,8 @@ export default function SettingsDialog() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (open) getSystemVersion().then(setSystemVersion);
-  }, [open]);
+    getSystemVersion().then(setSystemVersion);
+  }, []);
 
   const navSections = [
     { id: 'appearance',      icon: Palette,     label: t('nav.appearance')    },
@@ -2362,6 +2362,130 @@ export default function SettingsDialog() {
                               onCheckedChange={(v) => setViewSetting('expensesAnalytics', v)}
                             />
                           </SettingRow>
+                        </SettingSection>
+                      </div>
+
+                      {/* ── Definição das Métricas ── */}
+                      <div className="space-y-1">
+                        <SettingSection
+                          title={t('views.metricsTitle')}
+                          description={t('views.metricsDesc')}
+                        >
+                          <div className="space-y-5 pt-1">
+                            {/* Veículos */}
+                            <div>
+                              <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
+                                {t('views.vehicles')}
+                              </p>
+                              <div className="pl-4 space-y-2.5 border-l border-blue-200 dark:border-blue-900">
+                                {[
+                                  [t('views.metricsVehiclesM1'), t('views.metricsVehiclesM1Desc')],
+                                  [t('views.metricsVehiclesM2'), t('views.metricsVehiclesM2Desc')],
+                                  [t('views.metricsVehiclesM3'), t('views.metricsVehiclesM3Desc')],
+                                ].map(([label, desc]) => (
+                                  <div key={label as string}>
+                                    <p className="text-xs font-medium text-foreground/90">{label}</p>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            {/* Motoristas */}
+                            <div>
+                              <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                                {t('views.drivers')}
+                              </p>
+                              <div className="pl-4 space-y-2.5 border-l border-emerald-200 dark:border-emerald-900">
+                                {[
+                                  [t('views.metricsDriversM1'), t('views.metricsDriversM1Desc')],
+                                  [t('views.metricsDriversM2'), t('views.metricsDriversM2Desc')],
+                                  [t('views.metricsDriversM3'), t('views.metricsDriversM3Desc')],
+                                  [t('views.metricsDriversM4'), t('views.metricsDriversM4Desc')],
+                                ].map(([label, desc]) => (
+                                  <div key={label as string}>
+                                    <p className="text-xs font-medium text-foreground/90">{label}</p>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            {/* Viagens */}
+                            <div>
+                              <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-violet-500 shrink-0" />
+                                {t('views.trips')}
+                              </p>
+                              <div className="pl-4 space-y-2.5 border-l border-violet-200 dark:border-violet-900">
+                                {[
+                                  [t('views.metricsTripsM1'), t('views.metricsTripsM1Desc')],
+                                  [t('views.metricsTripsM2'), t('views.metricsTripsM2Desc')],
+                                ].map(([label, desc]) => (
+                                  <div key={label as string}>
+                                    <p className="text-xs font-medium text-foreground/90">{label}</p>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            {/* Combustível */}
+                            <div>
+                              <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+                                {t('views.fuel')}
+                              </p>
+                              <div className="pl-4 space-y-2.5 border-l border-amber-200 dark:border-amber-900">
+                                {[
+                                  [t('views.metricsFuelM1'), t('views.metricsFuelM1Desc')],
+                                  [t('views.metricsFuelM2'), t('views.metricsFuelM2Desc')],
+                                  [t('views.metricsFuelM3'), t('views.metricsFuelM3Desc')],
+                                ].map(([label, desc]) => (
+                                  <div key={label as string}>
+                                    <p className="text-xs font-medium text-foreground/90">{label}</p>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            {/* Manutenção */}
+                            <div>
+                              <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-orange-500 shrink-0" />
+                                {t('views.maintenance')}
+                              </p>
+                              <div className="pl-4 space-y-2.5 border-l border-orange-200 dark:border-orange-900">
+                                {[
+                                  [t('views.metricsMainM1'), t('views.metricsMainM1Desc')],
+                                  [t('views.metricsMainM2'), t('views.metricsMainM2Desc')],
+                                  [t('views.metricsMainM3'), t('views.metricsMainM3Desc')],
+                                ].map(([label, desc]) => (
+                                  <div key={label as string}>
+                                    <p className="text-xs font-medium text-foreground/90">{label}</p>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            {/* Despesas */}
+                            <div>
+                              <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
+                                {t('views.expenses')}
+                              </p>
+                              <div className="pl-4 space-y-2.5 border-l border-rose-200 dark:border-rose-900">
+                                {[
+                                  [t('views.metricsExpM1'), t('views.metricsExpM1Desc')],
+                                  [t('views.metricsExpM2'), t('views.metricsExpM2Desc')],
+                                ].map(([label, desc]) => (
+                                  <div key={label as string}>
+                                    <p className="text-xs font-medium text-foreground/90">{label}</p>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
                         </SettingSection>
                       </div>
 

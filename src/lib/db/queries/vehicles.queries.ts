@@ -64,7 +64,8 @@ export async function createVehicle(vehicleData: ICreateVehicle): Promise<IVehic
             traccar_unique_id: vehicles.traccar_unique_id,
             api_vehicle_id: vehicles.api_vehicle_id,
             api_synced_at:  vehicles.api_synced_at,
-            deleted_at: vehicles.deleted_at
+            deleted_at: vehicles.deleted_at,
+            tracking_enabled: vehicles.tracking_enabled,
         });
 
     return result[0];
@@ -114,7 +115,7 @@ export async function getAllVehicles(params: IPaginationParams = {}): Promise<IP
         )!);
     }
     if (params.status && params.status !== 'all') {
-        conditions.push(eq(vehicles.status, params.status));
+        conditions.push(eq(vehicles.status, params.status as any));
     }
     if (params.category_id && params.category_id !== 'all') {
         conditions.push(eq(vehicles.category_id, params.category_id));

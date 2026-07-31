@@ -75,9 +75,6 @@ export const KPICards: React.FC<KPICardsProps> = ({ cards }) => {
               borderRadius: 8,
               padding: 12,
               minHeight: 60,
-              shadowColor: '#000000',
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
             }}
           >
             <Text style={{ 

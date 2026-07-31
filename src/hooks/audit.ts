@@ -1,5 +1,5 @@
 import { audit_logs } from '@/lib/db/schemas';
-import { dbManager, db } from '@/lib/db/db_client';
+import { getDb } from '@/lib/db/db_client';
 import { generateUuid } from '@/lib/utils/cripto';
 
 interface AuditOptions {
@@ -15,7 +15,7 @@ export async function createAuditLog(options: AuditOptions) {
   const { userId, tableName, recordId, action, previousData, newData } = options;
 
   try {
-    await db.insert(audit_logs).values({
+    await getDb().insert(audit_logs).values({
       id: generateUuid(),
       user_id: userId,
       table_name: tableName,

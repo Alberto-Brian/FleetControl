@@ -111,7 +111,8 @@ export function useApiConnection(): UseApiConnectionReturn {
   const socketRef    = useRef<Socket | null>(null);
   const currentTokenRef = useRef<string | null>(null);
   // URL do servidor: começa com o valor de build, substituída pela URL guardada nas definições
-  const socketUrlRef = useRef<string>(import.meta.env.VITE_API_URL || 'http://localhost:3001');
+  // @ts-ignore: import.meta.env é substituído pelo Vite no build
+  const socketUrlRef = useRef<string>((import.meta as any).env?.VITE_API_URL || 'http://localhost:3001');
 
   // Carrega a URL guardada nas definições (sobrepõe a variável de ambiente)
   useEffect(() => {

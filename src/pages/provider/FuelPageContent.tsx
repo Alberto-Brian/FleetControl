@@ -188,7 +188,7 @@ export default function FuelPageContent() {
 
     setIsDeletingRefueling(true);
     try {
-      await deleteRefçuelingHelper(selectedRefueling.id);
+      await deleteRefuelingHelper(selectedRefueling.id);
       removeRefuelingFromContext(selectedRefueling.id);
       showSuccess('refuelings:toast.deleteSuccess');
       setDeleteDialogOpen(false);
@@ -745,7 +745,7 @@ export default function FuelPageContent() {
                       <div className="space-y-2 min-h-[60px]">
                         {station.phone && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Phone className="w-4 h-4 shrink-0" /><span className="truncate">{station.phone}</span></div>}
                         {station.city  && <div className="flex items-center gap-2 text-sm text-muted-foreground"><MapPin className="w-4 h-4 shrink-0" /><span className="truncate">{station.city}</span></div>}
-                        {station.email && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Mail className="w-4 h-4 shrink-0" /><span className="truncate">{station.email}</span></div>}
+                        {(station as any).email && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Mail className="w-4 h-4 shrink-0" /><span className="truncate">{(station as any).email}</span></div>}
                       </div>
                       <div className="mt-auto pt-4 border-t border-muted/50 flex gap-2">
                         <Button

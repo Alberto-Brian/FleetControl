@@ -6,6 +6,7 @@ import {
   MapPin, Clock, Navigation, Zap, ZapOff, Play, Square, Search, Filter,
 } from 'lucide-react';
 import { Button }        from '@/components/ui/button';
+import { ScrollArea }     from '@/components/ui/scroll-area';
 import { useTracking }   from '@/contexts/TrackingContext';
 import type { GeofenceAlert } from '@/contexts/TrackingContext';
 import { AlertItem }     from './AlertItem';
@@ -105,7 +106,8 @@ function AlertDetail({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      <ScrollArea className="flex-1">
+      <div className="p-3 space-y-3">
         {/* Bloco principal */}
         <div className="rounded-lg border p-3 space-y-2.5 text-xs">
           {/* Data/hora */}
@@ -199,6 +201,7 @@ function AlertDetail({
           {alert.acknowledged ? t('alertDetail.read') : t('alertDetail.unread')}
         </div>
       </div>
+      </ScrollArea>
     </div>
   );
 }
@@ -434,7 +437,7 @@ export function AlertPanel({ isOpen, onClose, onFocusCoords }: Props) {
       )}
 
       {/* Lista de alertas */}
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea className="flex-1">
         {filteredAlerts.length === 0 ? (
           <div className="p-8 text-center">
             <Bell className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
@@ -452,7 +455,7 @@ export function AlertPanel({ isOpen, onClose, onFocusCoords }: Props) {
             />
           ))
         )}
-      </div>
+      </ScrollArea>
     </div>
   );
 }

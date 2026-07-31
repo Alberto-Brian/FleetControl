@@ -43,7 +43,8 @@ export default function StartMaintenanceDialog({ open, onOpenChange, onSuccess }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    
+    if (!selectedMaintenance) return;
+
     if (!diagnosis.trim()) {
       handleError(new Error('maintenances:alerts.diagnosisRequired'), 'maintenances:alerts.diagnosisRequired');
       return;

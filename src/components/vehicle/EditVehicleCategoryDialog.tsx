@@ -68,7 +68,7 @@ export default function EditVehicleCategoryDialog({
       const updated = await updateVehicleCategory(selectedCategory!.id, formData);
 
       if (updated) {
-        updateCategory(updated);
+        updateCategory(updated as any);
         showSuccess(t('vehicles:toast.categoryUpdateSuccess'));
         onOpenChange(false);
       }

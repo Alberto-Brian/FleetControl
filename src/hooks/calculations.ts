@@ -1,13 +1,13 @@
-import { dbManager, db } from '@/lib/db/db_client';
+import { getDb } from '@/lib/db/db_client';
 import { vehicles, maintenances } from '@/lib/db/schemas';
 
 import { eq } from 'drizzle-orm';
 
 // Atualiza quilometragem do veículo após viagem
 export async function updateVehicleMileage(vehicleId: string, newMileage: number) {
-  await db
+  await getDb()
     .update(vehicles)
-    .set({ 
+    .set({
       current_mileage: newMileage,
       updated_at: new Date().toISOString(),
     })
@@ -16,8 +16,8 @@ export async function updateVehicleMileage(vehicleId: string, newMileage: number
 
 // Atualiza status do veículo baseado em manutenções ativas
 export async function updateVehicleStatusByMaintenance(vehicleId: string) {
-  const activeMaintenance = await db.query.maintenances.findFirst({
-    where: (maintenances, { eq, and, or }) => 
+  const activeMaintenance = await getDb().query.maintenances.findFirst({
+    where: (maintenances: any, { eq, and, or }: any) =>
       and(
         eq(maintenances.vehicle_id, vehicleId),
         or(
@@ -29,9 +29,9 @@ export async function updateVehicleStatusByMaintenance(vehicleId: string) {
 
   const newStatus = activeMaintenance ? 'maintenance' : 'available';
 
-  await db
+  await getDb()
     .update(vehicles)
-    .set({ 
+    .set({
       status: newStatus,
       updated_at: new Date().toISOString(),
     })
@@ -40,24 +40,24 @@ export async function updateVehicleStatusByMaintenance(vehicleId: string) {
 
 // Calcula total de manutenção baseado nos itens
 export async function calculateMaintenanceTotal(maintenanceId: string) {
-  const items = await db.query.maintenance_items.findMany({
-    where: (items, { eq, isNull }) => 
+  const items: any[] = await getDb().query.maintenance_items.findMany({
+    where: (items: any, { eq, isNull }: any) =>
       eq(items.maintenance_id, maintenanceId) && isNull(items.deleted_at),
   });
 
   const totalParts = items
-    .filter(item => item.type === 'part')
-    .reduce((sum, item) => sum + item.total_price, 0);
+    .filter((item: any) => item.type === 'part')
+    .reduce((sum: number, item: any) => sum + item.total_price, 0);
 
   const totalLabor = items
-    .filter(item => item.type === 'service')
-    .reduce((sum, item) => sum + item.total_price, 0);
+    .filter((item: any) => item.type === 'service')
+    .reduce((sum: number, item: any) => sum + item.total_price, 0);
 
   const totalCost = totalParts + totalLabor;
 
-  await db
+  await getDb()
     .update(maintenances)
-    .set({ 
+    .set({
       parts_cost: totalParts,
       labor_cost: totalLabor,
       total_cost: totalCost,

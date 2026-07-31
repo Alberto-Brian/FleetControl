@@ -163,7 +163,7 @@ export async function getAllDrivers(params: IPaginationParams = {}): Promise<IPa
     }
     if (params.status && params.status !== 'all') {
         // Reutilizamos "status" para filtrar por availability
-        conditions.push(eq(drivers.availability, params.status));
+        conditions.push(eq(drivers.availability, params.status as any));
     }
 
     const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];

@@ -140,7 +140,7 @@ export const VehiclesReportPDF: React.FC<VehiclesReportProps> = ({
         <View style={commonStyles.section}>
           <SectionTitle>{t.sections.vehicleList}</SectionTitle>
           {!vehicles?.length ? (
-            <EmptyState message={t.empty.noVehicles} icon={true} />
+            <EmptyState message={t.empty.noVehicles} />
           ) : (
             <View style={commonStyles.table}>
               <TableHeader>

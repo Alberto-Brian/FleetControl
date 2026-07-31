@@ -200,7 +200,7 @@ const filteredCategories = categories.filter(cat =>
                   </div>
 
                   {/* Lista com scroll nativo */}
-                  <div className="overflow-y-auto max-h-[240px] p-1 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground">
+                  <div className="overflow-y-auto max-h-[240px] p-1">
                     {filteredCategories.length === 0 ? (
                       <div className="py-8 text-center text-sm text-muted-foreground">
                         {t('vehicles:errors.noCategoriesFound')}

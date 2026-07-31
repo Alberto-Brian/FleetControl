@@ -22,6 +22,7 @@ export interface Maintenance {
   entry_date: string;
   exit_date?: string | null;
   vehicle_mileage: number;
+  next_maintenance_km?: number | null;
   description: string;
   diagnosis?: string | null;
   solution?: string | null;

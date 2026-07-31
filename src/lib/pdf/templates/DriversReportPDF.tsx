@@ -215,7 +215,7 @@ export const DriversReportPDF: React.FC<DriversReportProps> = ({
         <View style={commonStyles.section}>
           <SectionTitle>{t.sections.driverList}</SectionTitle>
           {!drivers?.length ? (
-            <EmptyState message={t.empty.noDrivers} icon={true} />
+            <EmptyState message={t.empty.noDrivers} />
           ) : (
             <View style={commonStyles.table}>
               <TableHeader>

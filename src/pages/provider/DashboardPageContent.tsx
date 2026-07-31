@@ -116,7 +116,7 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
           title={t('dashboard:stats.vehicles.total')}
           value={stats.totalVehicles}
           subtitle={`${stats.activeVehicles} ${t('dashboard:stats.vehicles.totalAvailable')}`}
-          trend={((stats.activeVehicles / Math.max(stats.totalVehicles, 1)) * 100).toFixed(1)}
+          trend={parseFloat(((stats.activeVehicles / Math.max(stats.totalVehicles, 1)) * 100).toFixed(1))}
           color="bg-blue-600"
           onClick={onNavigate ? () => onNavigate('vehicles') : undefined}
         />
@@ -125,7 +125,7 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
           title={t('dashboard:stats.drivers.total')}
           value={stats.totalDrivers}
           subtitle={`${stats.availableDrivers} ${t('dashboard:stats.drivers.totalAvailable')}`}
-          trend={((stats.availableDrivers / Math.max(stats.totalDrivers, 1)) * 100).toFixed(1)}
+          trend={parseFloat(((stats.availableDrivers / Math.max(stats.totalDrivers, 1)) * 100).toFixed(1))}
           color="bg-emerald-600"
           onClick={onNavigate ? () => onNavigate('drivers') : undefined}
         />
@@ -134,7 +134,7 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
           title={t('dashboard:stats.trips.total')}
           value={stats.activeTrips}
           subtitle={`${stats.activeTrips} ${t('dashboard:stats.trips.totalInProgrees')}`}
-          trend={stats.completedTrips > 0 ? ((stats.activeTrips / stats.completedTrips) * 100).toFixed(1) : 14.3}
+          trend={stats.completedTrips > 0 ? parseFloat(((stats.activeTrips / stats.completedTrips) * 100).toFixed(1)) : 14.3}
           color="bg-violet-600"
           onClick={onNavigate ? () => onNavigate('trips') : undefined}
         />
@@ -178,7 +178,7 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    formatter={(value: number) => `${value.toLocaleString('pt-PT')} Kz`}
+                    formatter={((value: number) => `${value.toLocaleString('pt-PT')} Kz`) as any}
                   />
                   <Area
                     type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2}
@@ -409,7 +409,7 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
                   />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    formatter={(value: number) => [`${(value / 1000).toFixed(1)}K Kz`, t('dashboard:table.value')]}
+                    formatter={((value: number) => [`${(value / 1000).toFixed(1)}K Kz`, t('dashboard:table.value')]) as any}
                   />
                   <Bar dataKey="value" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
                 </BarChart>

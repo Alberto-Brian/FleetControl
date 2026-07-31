@@ -170,7 +170,7 @@ export const MaintenanceReportPDF: React.FC<MaintenanceReportProps> = ({
         >
           <SectionTitle>{t.sections.maintenanceHistory}</SectionTitle>
           {!maintenances?.length ? (
-            <EmptyState message={t.empty.noMaintenances} icon={true} />
+            <EmptyState message={t.empty.noMaintenances} />
           ) : (
             <View style={commonStyles.table}>
               <TableHeader>

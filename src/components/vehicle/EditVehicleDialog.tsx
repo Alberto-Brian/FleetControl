@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { FileText, Wrench, DollarSign, StickyNote } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { updateVehicle as updateVehiclesHelper } from '@/helpers/vehicle-helpers';
 import { getAllVehicleCategories } from '@/helpers/vehicle-category-helpers';
 import { IUpdateVehicle } from '@/lib/types/vehicle';
@@ -149,7 +150,8 @@ export default function EditVehicleDialog({
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex-1 overflow-y-auto pr-2">
+            <ScrollArea className="flex-1">
+            <div className="pr-2">
               <TabsContent value="basic" className="space-y-4 mt-0">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -400,6 +402,7 @@ export default function EditVehicleDialog({
                 </div>
               </TabsContent>
             </div>
+            </ScrollArea>
           </Tabs>
 
           <div className="flex justify-end gap-3 pt-4 mt-4 border-t">

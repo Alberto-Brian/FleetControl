@@ -116,7 +116,7 @@ export default function EditRefuelingDialog({
       ]);
       setVehicles(vData.data.filter((v: any) => v.status !== 'inactive'));
       setDrivers(dData.data.filter((d: any) => d.is_active === true));
-      const tripsArr = Array.isArray(tData) ? tData : (tData.data ?? []);
+      const tripsArr = tData;
       setTrips(tripsArr);
 
       // Re-derivar autoFilledDriver após trips carregadas

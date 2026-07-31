@@ -9,8 +9,7 @@
 // import { ValidatedLicense } from "./lib/types/licence";
 
 // whether you're running in development or production).
-declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
-declare const MAIN_WINDOW_VITE_NAME: string;
+// (MAIN_WINDOW_VITE_* constants are declared in vite-globals.d.ts)
 
 // Preload types
 interface ThemeModeContext {
@@ -68,8 +67,8 @@ interface Backup {
     export: () => Promise<BackupReturn>;
     restore: () => Promise<RestoreBackupReturn>;
     restoreFromDir: (folderPath: string) => Promise<RestoreBackupReturn>;
-    getConfig: () => Promise<void>;
-    updateConfig: () => Promise<void>;
+    getConfig: () => Promise<{ autoBackupEnabled?: boolean; autoBackupFrequency: string; keepLastN: number; lastAutoBackup?: string } | null>;
+    updateConfig: (config: any) => Promise<void>;
     listBackups: () => Promise<{ name: string; path: string; createdAt: Date; size: number }[]>;
     onProgress: (callback: (progress: any) => void) => void;
     onRestoreProgress: (callback: (progress: any) => void) => void;
@@ -252,6 +251,7 @@ interface IReports {
     getMaintenanceData:(dateRange: DateRange) => Promise<any>;
     getFinancialData:  (dateRange: DateRange) => Promise<any>;
     getGeneralData:    (dateRange: DateRange) => Promise<any>;
+    getExpensesData:   (params: { start: string; end: string; dateField?: string }) => Promise<any>;
     listGenerated:     (filters?: { type?: string; startDate?: string; endDate?: string; search?: string }) => Promise<any[]>;
     getGenerated:      (id: string) => Promise<any>;
     deleteGenerated:   (id: string) => Promise<void>;

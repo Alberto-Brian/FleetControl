@@ -204,7 +204,7 @@ export default function ChangeStatusDialog({
                     <div className="w-1 h-4 bg-primary rounded-full" />
                     {t('vehicles:statusChange.newStatus')} *
                   </Label>
-                  <RadioGroup value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <RadioGroup value={selectedStatus} onValueChange={(v) => setSelectedStatus(v as VehicleStatus)}>
                     <div className="grid grid-cols-2 gap-3">
                       {statusOptions.map((option) => {
                         const isDisabled = option.value === 'in_use';

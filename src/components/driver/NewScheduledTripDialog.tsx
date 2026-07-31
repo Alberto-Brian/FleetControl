@@ -166,8 +166,7 @@ export default function NewScheduledTripDialog({
           <DialogDescription>
             {preselectedDriverName
               ? t('scheduledTrips:dialogs.new.descriptionFor',
-                  { name: preselectedDriverName },
-                  `Agendar viagem para ${preselectedDriverName}`)
+                  { name: preselectedDriverName, defaultValue: `Agendar viagem para ${preselectedDriverName}` })
               : t('scheduledTrips:dialogs.new.description',
                   'Preencha os dados para agendar a viagem. Será iniciada automaticamente na data indicada.')}
           </DialogDescription>
@@ -273,8 +272,7 @@ export default function NewScheduledTripDialog({
                 <span className="font-semibold">
                   {daysUntil === 0
                     ? t('scheduledTrips:info.launchesToday', 'A viagem será iniciada automaticamente hoje.')
-                    : t('scheduledTrips:info.daysUntil', { days: daysUntil },
-                        `A viagem inicia em ${daysUntil} dia(s).`)}
+                    : t('scheduledTrips:info.daysUntil', { days: daysUntil, defaultValue: `A viagem inicia em ${daysUntil} dia(s).` })}
                 </span>
               </div>
             )}

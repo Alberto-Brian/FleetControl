@@ -143,7 +143,7 @@ export default function UpdateDriverAvailabilityDialog({ open, onOpenChange }: U
         <form onSubmit={handleSubmit} className="space-y-6">
           <RadioGroup 
             value={availability} 
-            onValueChange={setAvailability} 
+            onValueChange={(v) => setAvailability(v as DriverAvailability)}
             className="space-y-3"
             disabled={isDisabled}
           >

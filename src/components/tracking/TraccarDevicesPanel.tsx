@@ -10,6 +10,7 @@ import {
   Server, AlertTriangle, Loader2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { getTrackedDevices } from '@/helpers/tracking-helpers';
 import { getAllVehicles } from '@/helpers/vehicle-helpers';
 import { useTracking } from '@/contexts/TrackingContext';
@@ -340,7 +341,8 @@ export function TraccarDevicesPanel({ isOpen, onClose, onViewVehicle, onCenterDe
           </span>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        <ScrollArea className="flex-1">
+        <div className="p-3 space-y-3">
           {/* Device */}
           <div className="rounded-lg border p-3 space-y-1">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
@@ -446,6 +448,7 @@ export function TraccarDevicesPanel({ isOpen, onClose, onViewVehicle, onCenterDe
             </div>
           </div>
         </div>
+        </ScrollArea>
 
         <div className="border-t p-3 space-y-2 flex-shrink-0">
           <button
@@ -487,7 +490,8 @@ export function TraccarDevicesPanel({ isOpen, onClose, onViewVehicle, onCenterDe
           </span>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <ScrollArea className="flex-1">
+        <div className="p-4 space-y-4">
           <div className="rounded-lg border-2 border-destructive/60 bg-destructive/5 p-4 space-y-2">
             <div className="flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5 text-destructive" />
@@ -503,6 +507,7 @@ export function TraccarDevicesPanel({ isOpen, onClose, onViewVehicle, onCenterDe
             <p className="text-[11px] font-mono text-muted-foreground">{selected.device.uniqueId ?? '—'}</p>
           </div>
         </div>
+        </ScrollArea>
 
         <div className="border-t p-3 space-y-2 flex-shrink-0">
           <button
@@ -703,7 +708,8 @@ export function TraccarDevicesPanel({ isOpen, onClose, onViewVehicle, onCenterDe
         </div>
 
         {/* Corpo detalhe */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        <ScrollArea className="flex-1">
+        <div className="p-3 space-y-3">
 
           {/* IMEI */}
           <div className="rounded-lg border p-3 space-y-1">
@@ -858,6 +864,7 @@ export function TraccarDevicesPanel({ isOpen, onClose, onViewVehicle, onCenterDe
             </button>
           </div>
         </div>
+        </ScrollArea>
       </div>
     );
   }
@@ -953,7 +960,8 @@ export function TraccarDevicesPanel({ isOpen, onClose, onViewVehicle, onCenterDe
       )}
 
       {/* Body lista */}
-      <div className="flex-1 overflow-y-auto p-3">
+      <ScrollArea className="flex-1">
+      <div className="p-3">
         {loading && (
           <p className="text-sm text-muted-foreground">{t('devicesPanel.loading')}</p>
         )}
@@ -1032,6 +1040,7 @@ export function TraccarDevicesPanel({ isOpen, onClose, onViewVehicle, onCenterDe
           </div>
         )}
       </div>
+      </ScrollArea>
     </div>
   );
 }

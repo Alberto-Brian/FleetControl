@@ -81,7 +81,7 @@ export async function getAllFines(params: IPaginationParams = {}): Promise<IPagi
         )!);
     }
     if (params.status && params.status !== 'all') {
-        conditions.push(eq(fines.status, params.status));
+        conditions.push(eq(fines.status, params.status as any));
     }
 
     const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];

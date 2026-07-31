@@ -80,7 +80,7 @@ async function createWindow() {
         icon: path.join(app.getAppPath(), 'build', 'icons', 'icon.png'),
         show: false,
         webPreferences: {
-            devTools: true, // DEBUG — desactivar após diagnóstico
+            devTools: !inDevelopment,//true, // DEBUG — desactivar após diagnóstico
             contextIsolation: true,
             nodeIntegration: true,
             nodeIntegrationInSubFrames: false,

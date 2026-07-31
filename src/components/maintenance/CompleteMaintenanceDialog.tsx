@@ -53,6 +53,7 @@ export default function CompleteMaintenanceDialog({ open, onOpenChange, onSucces
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!selectedMaintenance) return;
 
     if (!formData.solution?.trim()) {
       handleError(new Error('maintenances:alerts.solutionRequired'), 'maintenances:alerts.solutionRequired');

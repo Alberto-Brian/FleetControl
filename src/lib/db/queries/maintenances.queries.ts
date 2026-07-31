@@ -130,13 +130,13 @@ export async function getAllMaintenances(params: IPaginationParams = {}): Promis
         )!);
     }
     if (params.status && params.status !== 'all') {
-        conditions.push(eq(maintenances.status, params.status));
+        conditions.push(eq(maintenances.status, params.status as any));
     }
     if (params.vehicle_id) {
         conditions.push(eq(maintenances.vehicle_id, params.vehicle_id));
     }
     if (params.type && params.type !== 'all') {
-        conditions.push(eq(maintenances.type, params.type));
+        conditions.push(eq(maintenances.type, params.type as any));
     }
     if (params.category_id && params.category_id !== 'all') {
         conditions.push(eq(maintenances.category_id, params.category_id));
@@ -209,7 +209,7 @@ export async function getAllMaintenances(params: IPaginationParams = {}): Promis
         baseConditions.push(eq(maintenances.vehicle_id, params.vehicle_id));
     }
     if (params.type && params.type !== 'all') {
-        baseConditions.push(eq(maintenances.type, params.type));
+        baseConditions.push(eq(maintenances.type, params.type as any));
     }
     if (params.category_id && params.category_id !== 'all') {
         baseConditions.push(eq(maintenances.category_id, params.category_id));

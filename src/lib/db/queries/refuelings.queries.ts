@@ -367,25 +367,25 @@ export async function getRefuelingStats(params: {
     totalCost:              totals?.totalCost ?? 0,
     avgPricePerLiter:       totals?.avgPrice  ?? 0,
     avgLitersPerRefueling:  tc > 0 ? tl / tc : 0,
-    topVehicles: topVehiclesRaw.map(r => ({
+    topVehicles: topVehiclesRaw.map((r: any) => ({
       vehicle_id:      r.vehicle_id,
       vehicle_license: r.vehicle_license ?? '—',
       totalLiters:     r.totalLiters,
       totalCost:       r.totalCost,
     })),
-    topStations: topStationsRaw.map(r => ({
+    topStations: topStationsRaw.map((r: any) => ({
       station_id:   r.station_id ?? '',
       station_name: r.station_name ?? '—',
       totalLiters:  r.totalLiters,
       totalCost:    r.totalCost,
     })),
-    byFuelType: byFuelTypeRaw.map(r => ({
+    byFuelType: byFuelTypeRaw.map((r: any) => ({
       fuel_type:   r.fuel_type,
       totalLiters: r.totalLiters,
       totalCost:   r.totalCost,
       count:       r.count,
     })),
-    byMonth: byMonthRaw.map(r => ({
+    byMonth: byMonthRaw.map((r: any) => ({
       month:       r.month,
       totalLiters: r.totalLiters,
       totalCost:   r.totalCost,

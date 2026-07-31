@@ -44,8 +44,11 @@ export interface ICreateMaintenance {
 }
 
 export interface IUpdateMaintenance {
+    vehicle_id?: string;
     category_id?: string;
     workshop_id?: string;
+    entry_date?: string;
+    description?: string;
     exit_date?: string;
     diagnosis?: string;
     solution?: string;

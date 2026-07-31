@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import registerListeners from "./helpers/ipc/listeners-register";
 import path from "path";

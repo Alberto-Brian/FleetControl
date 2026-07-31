@@ -160,7 +160,7 @@ export const TripsReportPDF: React.FC<TripsReportProps> = ({
         <View style={commonStyles.section}>
           <SectionTitle>{t.sections.tripHistory}</SectionTitle>
           {!trips?.length ? (
-            <EmptyState message={t.empty.noTrips} icon={true} />
+            <EmptyState message={t.empty.noTrips} />
           ) : (
             <View style={commonStyles.table}>
               <TableHeader>

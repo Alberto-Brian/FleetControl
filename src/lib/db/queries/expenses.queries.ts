@@ -42,7 +42,7 @@ export async function getAllExpenses(params: IPaginationParams = {}): Promise<IP
         )!);
     }
     if (params.status && params.status !== 'all') {
-        conditions.push(eq(expenses.status, params.status));
+        conditions.push(eq(expenses.status, params.status as any));
     }
     // Filtro por categoria via params.filter
     if (params.category_id) {

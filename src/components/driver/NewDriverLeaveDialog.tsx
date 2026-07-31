@@ -104,8 +104,8 @@ export default function NewDriverLeaveDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <CalendarDays className="w-5 h-5 text-primary" />
             {t('drivers:leaves.dialogs.new.title')}
@@ -117,122 +117,124 @@ export default function NewDriverLeaveDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-          {/* Driver — só mostra se não houver pré-selecção */}
-          {!preselectedDriverId && (
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden mt-2">
+          <div className="flex-1 overflow-y-auto space-y-4 pb-2">
+            {/* Driver — só mostra se não houver pré-selecção */}
+            {!preselectedDriverId && (
+              <div className="space-y-2">
+                <Label>{t('drivers:leaves.fields.driver')} *</Label>
+                <SearchableSelect
+                  options={drivers.map((d) => ({
+                    value:      d.id,
+                    searchText: d.name,
+                    label: (
+                      <div className="flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        <span>{d.name}</span>
+                      </div>
+                    ),
+                    selectedLabel: (
+                      <div className="flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        <span>{d.name}</span>
+                      </div>
+                    ),
+                  }))}
+                  value={form.driver_id}
+                  onValueChange={(v) => setForm({ ...form, driver_id: v })}
+                  placeholder={t('drivers:leaves.placeholders.selectDriver')}
+                  searchPlaceholder={t('drivers:leaves.placeholders.searchDriver', 'Pesquisar motorista...')}
+                  emptyMessage={t('common:noResults', 'Nenhum resultado encontrado.')}
+                />
+              </div>
+            )}
+
+            {/* Datas */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="start_date">{t('drivers:leaves.fields.startDate')} *</Label>
+                <Input
+                  id="start_date"
+                  type="date"
+                  min={todayStr}
+                  value={form.start_date}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setForm((f) => ({
+                      ...f,
+                      start_date: val,
+                      // Se end_date < novo start_date, limpa
+                      end_date: f.end_date && f.end_date < val ? '' : f.end_date,
+                    }));
+                  }}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end_date">{t('drivers:leaves.fields.endDate')} *</Label>
+                <Input
+                  id="end_date"
+                  type="date"
+                  min={form.start_date || todayStr}
+                  value={form.end_date}
+                  onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+                  required
+                  disabled={!form.start_date}
+                />
+              </div>
+            </div>
+
+            {/* Duração calculada */}
+            {durationDays > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20 text-sm">
+                <Info className="w-4 h-4 text-primary shrink-0" />
+                <span className="text-primary font-semibold">
+                  {t('drivers:leaves.info.duration', { days: durationDays })}
+                </span>
+              </div>
+            )}
+
+            {/* Motivo */}
             <div className="space-y-2">
-              <Label>{t('drivers:leaves.fields.driver')} *</Label>
-              <SearchableSelect
-                options={drivers.map((d) => ({
-                  value:      d.id,
-                  searchText: d.name,
-                  label: (
-                    <div className="flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      <span>{d.name}</span>
-                    </div>
-                  ),
-                  selectedLabel: (
-                    <div className="flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      <span>{d.name}</span>
-                    </div>
-                  ),
-                }))}
-                value={form.driver_id}
-                onValueChange={(v) => setForm({ ...form, driver_id: v })}
-                placeholder={t('drivers:leaves.placeholders.selectDriver')}
-                searchPlaceholder={t('drivers:leaves.placeholders.searchDriver', 'Pesquisar motorista...')}
-                emptyMessage={t('common:noResults', 'Nenhum resultado encontrado.')}
+              <Label>{t('drivers:leaves.fields.reason')}</Label>
+              <Select
+                value={form.reason}
+                onValueChange={(v) => setForm({ ...form, reason: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('drivers:leaves.placeholders.reason')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {LEAVE_REASONS.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {t(`drivers:leaves.reasons.${r}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Notas */}
+            <div className="space-y-2">
+              <Label htmlFor="notes">{t('drivers:leaves.fields.notes')}</Label>
+              <Textarea
+                id="notes"
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                placeholder={t('drivers:leaves.placeholders.notes')}
+                rows={3}
+                className="resize-none"
               />
             </div>
-          )}
 
-          {/* Datas */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="start_date">{t('drivers:leaves.fields.startDate')} *</Label>
-              <Input
-                id="start_date"
-                type="date"
-                min={todayStr}
-                value={form.start_date}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setForm((f) => ({
-                    ...f,
-                    start_date: val,
-                    // Se end_date < novo start_date, limpa
-                    end_date: f.end_date && f.end_date < val ? '' : f.end_date,
-                  }));
-                }}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="end_date">{t('drivers:leaves.fields.endDate')} *</Label>
-              <Input
-                id="end_date"
-                type="date"
-                min={form.start_date || todayStr}
-                value={form.end_date}
-                onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-                required
-                disabled={!form.start_date}
-              />
+            {/* Info sobre lógica de estados */}
+            <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+              <p className="font-bold">{t('drivers:leaves.info.schedulingNote')}</p>
+              <p>{t('drivers:leaves.info.schedulingNoteDetail')}</p>
             </div>
           </div>
 
-          {/* Duração calculada */}
-          {durationDays > 0 && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20 text-sm">
-              <Info className="w-4 h-4 text-primary shrink-0" />
-              <span className="text-primary font-semibold">
-                {t('drivers:leaves.info.duration', { days: durationDays })}
-              </span>
-            </div>
-          )}
-
-          {/* Motivo */}
-          <div className="space-y-2">
-            <Label>{t('drivers:leaves.fields.reason')}</Label>
-            <Select
-              value={form.reason}
-              onValueChange={(v) => setForm({ ...form, reason: v })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={t('drivers:leaves.placeholders.reason')} />
-              </SelectTrigger>
-              <SelectContent>
-                {LEAVE_REASONS.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {t(`drivers:leaves.reasons.${r}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Notas */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">{t('drivers:leaves.fields.notes')}</Label>
-            <Textarea
-              id="notes"
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder={t('drivers:leaves.placeholders.notes')}
-              rows={3}
-              className="resize-none"
-            />
-          </div>
-
-          {/* Info sobre lógica de estados */}
-          <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 space-y-1">
-            <p className="font-bold">{t('drivers:leaves.info.schedulingNote')}</p>
-            <p>{t('drivers:leaves.info.schedulingNoteDetail')}</p>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3 pt-2 flex-shrink-0">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t('common:cancel')}
             </Button>

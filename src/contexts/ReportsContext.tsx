@@ -3,7 +3,7 @@
 // ========================================
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import type { ReportType } from '@/lib/pdf/pdf-generator-react';
-import type { DateRange } from '@/helpers/report-helpers';
+import type { DateRange } from '@/lib/types/reports';
 
 // ==================== TYPES ====================
 

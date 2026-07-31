@@ -132,7 +132,7 @@ export function ImeiSelector({ value, onChange, currentVehicleImei, disabled }: 
         </div>
 
         {/* Lista com scroll nativo — idêntico ao selector de categorias */}
-        <div className="overflow-y-auto max-h-[240px] p-1 [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground">
+        <div className="overflow-y-auto max-h-[240px] p-1">
 
           {/* Estado: a carregar */}
           {loading && (

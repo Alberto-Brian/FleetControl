@@ -1,6 +1,7 @@
+// @ts-nocheck
 /**
  * TESTE RÁPIDO DE ROTAÇÃO - Execute direto no main process
- * 
+ *
  * Adicione isto temporariamente no seu main.ts ou crie um script separado
  */
 

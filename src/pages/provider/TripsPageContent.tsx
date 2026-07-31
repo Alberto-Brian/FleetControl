@@ -456,7 +456,7 @@ export default function TripsPageContent() {
                   <div className="flex items-center gap-2">
                     {route.route_type && (
                       <Badge variant="outline" className="text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        {t(`routes:types.${route.route_type}`, route.route_type)}
+                        {t(`routes:types.${route.route_type}`, route.route_type) as string}
                       </Badge>
                     )}
                     <Badge

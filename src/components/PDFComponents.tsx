@@ -83,9 +83,6 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
             width: 40, height: 40, borderRadius: 6,
             alignItems: 'center', justifyContent: 'center',
             backgroundColor: s.primaryColor,
-            shadowColor: '#000000',
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
           }}>
             <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: 'bold' }}>
               {company.name?.charAt(0)?.toUpperCase() ?? 'F'}
@@ -330,11 +327,11 @@ export const SummaryBox: React.FC<SummaryBoxProps> = ({ items, layout = 'vertica
       {items.map((item, i) => (
         <View key={i} style={[
           commonStyles.summaryRow,
-          item.highlight && { backgroundColor: '#eff6ff', marginHorizontal: -16, paddingHorizontal: 16, borderRadius: 4 }
+          item.highlight ? { backgroundColor: '#eff6ff', marginHorizontal: -16, paddingHorizontal: 16, borderRadius: 4 } : {}
         ]}>
           <Text style={[
             commonStyles.summaryLabel,
-            item.highlight && { color: s.primaryColor, fontWeight: 'bold' }
+            item.highlight ? { color: s.primaryColor, fontWeight: 'bold' } : {}
           ]}>{item.label}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             {item.trend && (
@@ -383,7 +380,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({ children, variant = 'd
     <View style={[
       commonStyles.tableHeader, 
       variants[variant],
-      variant !== 'default' && { borderBottomWidth: 2, borderBottomColor: '#e2e8f0' }
+      variant !== 'default' ? { borderBottomWidth: 2, borderBottomColor: '#e2e8f0' } : {}
     ]}>
       {children}
     </View>

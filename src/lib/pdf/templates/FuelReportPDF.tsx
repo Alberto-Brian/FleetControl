@@ -153,7 +153,7 @@ export const FuelReportPDF: React.FC<FuelReportProps> = ({
         <SectionTitle>{t.sections.refuelingHistory}</SectionTitle>
         
         {!refuelings?.length ? (
-          <EmptyState message={t.empty.noRefuelings} icon={true} />
+          <EmptyState message={t.empty.noRefuelings} />
         ) : (
           <View style={commonStyles.table}>
             <TableHeader>

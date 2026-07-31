@@ -23,7 +23,7 @@ export async function createVehicleCategory(data: ICreateVehicleCategory): Promi
     }
 }
 
-export async function updateVehicleCategory(id: string, data: IUpdateVehicleCategory): Promise<IVehicleCategory | Error> {
+export async function updateVehicleCategory(id: string, data: IUpdateVehicleCategory): Promise<IVehicleCategory | null> {
     try {
         const result = await window._vehicle_categories.update(id, data);
         return result;

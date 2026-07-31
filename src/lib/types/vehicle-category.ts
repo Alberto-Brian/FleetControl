@@ -24,6 +24,6 @@ export interface IUpdateVehicleCategory {
     description?: string;
     color?: string;
     is_active?: boolean;
-    deleted_at: string | null;
-    updated_at: string | null;
+    deleted_at?: string | null;
+    updated_at?: string | null;
 }

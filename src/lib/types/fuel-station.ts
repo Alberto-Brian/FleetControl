@@ -9,6 +9,7 @@ export interface IFuelStation {
     name: string;
     brand?: string;
     phone?: string;
+    email?: string;
     address?: string;
     city?: string;
     fuel_types?: string;

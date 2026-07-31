@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   CalendarDays, Plus, X, Clock, CheckCircle2, Ban, AlertTriangle, 
   Loader2, CalendarClock, RotateCcw
@@ -147,7 +148,8 @@ export default function DriverLeavesDialog({
             </div>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+          <ScrollArea className="flex-1">
+          <div className="space-y-4 pr-1">
             {isLoading ? (
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -212,6 +214,7 @@ export default function DriverLeavesDialog({
               </>
             )}
           </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 

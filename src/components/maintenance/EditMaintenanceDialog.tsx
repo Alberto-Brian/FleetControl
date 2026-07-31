@@ -499,7 +499,7 @@ export default function EditMaintenanceDialog({ open, onOpenChange, onSuccess }:
             <div className="flex items-center justify-between pt-2 border-t">
               <span className="text-sm font-bold text-muted-foreground">{t('maintenances:fields.totalCost')}</span>
               <span className="text-xl font-black text-primary font-mono">
-                {formData.total_cost.toLocaleString('pt-PT', { minimumFractionDigits: 2 })} Kz
+                {(formData.total_cost ?? 0).toLocaleString('pt-PT', { minimumFractionDigits: 2 })} Kz
               </span>
             </div>
           </div>

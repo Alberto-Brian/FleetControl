@@ -26,7 +26,7 @@ export function useErrorHandler() {
     if (appError) {
       // Erro estruturado - usa o tipo para escolher o toast correto
       const i18nPlaceholders = appError.data?.i18n || {};
-      const message = t(appError.i18nKey, i18nPlaceholders);
+      const message = t(appError.i18nKey, i18nPlaceholders) as string;
       
       // Extrai duração se existir (em ms)
       const duration = appError.data?.duration;
@@ -55,7 +55,7 @@ export function useErrorHandler() {
 
     // Erro genérico - usa fallback
     const message = error instanceof Error ? error.message : String(error);
-    const displayMessage = fallbackKey ? t(fallbackKey) : message;
+    const displayMessage = (fallbackKey ? t(fallbackKey) : message) as string;
     toast.error(displayMessage);
     
     return null;
@@ -65,28 +65,28 @@ export function useErrorHandler() {
    * Exibe toast de sucesso
    */
   const showSuccess = (i18nKey: string, placeholders?: Record<string, any>, duration?: number) => {
-    toast.success(t(i18nKey, placeholders), duration ? { duration } : undefined);
+    toast.success(t(i18nKey, placeholders) as string, duration ? { duration } : undefined);
   };
-  
+
   /**
    * Exibe toast de erro
    */
   const showError = (i18nKey: string, placeholders?: Record<string, any>, duration?: number) => {
-    toast.error(t(i18nKey, placeholders), duration ? { duration } : undefined);
+    toast.error(t(i18nKey, placeholders) as string, duration ? { duration } : undefined);
   };
 
   /**
    * Exibe toast de aviso
    */
   const showWarning = (i18nKey: string, placeholders?: Record<string, any>, duration?: number) => {
-    toast.warning(t(i18nKey, placeholders), duration ? { duration } : undefined);
+    toast.warning(t(i18nKey, placeholders) as string, duration ? { duration } : undefined);
   };
 
   /**
    * Exibe toast de informação
    */
   const showInfo = (i18nKey: string, placeholders?: Record<string, any>, duration?: number) => {
-    toast.info(t(i18nKey, placeholders), duration ? { duration } : undefined);
+    toast.info(t(i18nKey, placeholders) as string, duration ? { duration } : undefined);
   };
 
   return {

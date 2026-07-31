@@ -21,7 +21,7 @@ export async function softDelete(
   id: string,
   userId?: string
 ) {
-  const db = useDb();
+  const { db } = useDb();
   await db
     .update(table)
     .set({

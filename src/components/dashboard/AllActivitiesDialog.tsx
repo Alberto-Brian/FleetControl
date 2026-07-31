@@ -169,7 +169,8 @@ export default function AllActivitiesDialog({
         </div>
 
         {/* Activities List - ✅ COM OVERFLOW CORRETO */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6">
+        <ScrollArea className="flex-1">
+        <div className="px-6 pb-6">
           {filteredActivities.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Activity className="w-16 h-16 mx-auto mb-4 opacity-20" />
@@ -266,6 +267,7 @@ export default function AllActivitiesDialog({
             </div>
           )}
         </div>
+        </ScrollArea>
 
         {/* Footer - ✅ FLEX-SHRINK-0 */}
         <div className="px-6 py-4 border-t bg-muted/30 flex items-center justify-between flex-shrink-0">

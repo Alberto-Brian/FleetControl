@@ -36,4 +36,5 @@ export interface IUpdateRoute {
     description?: string;
     waypoints?: string;
     is_active?: boolean;
+    status?: string;
 }
