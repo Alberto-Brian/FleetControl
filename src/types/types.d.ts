@@ -336,6 +336,35 @@ export interface ITracking {
   updateAlertSettings:  (data: Record<string, unknown>) => Promise<unknown>;
 }
 declare global {
+  interface DbManagementTableConfig {
+      enabled: boolean;
+      retentionDays: number;
+      timestampColumn: string;
+  }
+
+  interface DbManagementConfig {
+      mode: 'disabled' | 'rotation' | 'retention';
+      rotation: { maxSizeInMB: number; maxAgeInDays: number; transitionPeriodDays: number };
+      retention: { tables: Record<string, DbManagementTableConfig> };
+  }
+
+  interface DbManagementStatus {
+      sizeInMB: number;
+      maxSizeInMB: number;
+      needsRotation: boolean;
+      mode: 'disabled' | 'rotation' | 'retention';
+      activeDb: { filename: string; size: number } | null;
+      error?: string;
+  }
+
+  interface IDbManagement {
+      getConfig:      () => Promise<DbManagementConfig>;
+      saveConfig:     (config: DbManagementConfig) => Promise<{ success: boolean; error?: string }>;
+      forceRotate:    () => Promise<{ success: boolean; error?: string; result?: any }>;
+      getStatus:      () => Promise<DbManagementStatus>;
+      applyRetention: (tables: { tableName: string; retentionDays: number; timestampColumn: string }[]) => Promise<{ success: boolean; error?: string }>;
+  }
+
   interface Window {
     system:                  System;
     license:                 License;
@@ -365,5 +394,6 @@ declare global {
     _scheduled_trips:        IScheduledTrip;
     _driverShifts:           IDriverShifts;
     _tracking:               ITracking;
+    dbManagement:            IDbManagement;
   }
 }

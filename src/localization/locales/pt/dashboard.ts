@@ -101,7 +101,7 @@ export const ptDashboard = {
   },
   
   recentActivities: {
-    title: "Atividades Recentes",
+    title: "Actividades Recentes",
     noActivities: "Nenhuma atividade recente",
     viewAll: "Ver Todas",
     trip: "Viagem",

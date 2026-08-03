@@ -240,8 +240,8 @@ export default function DriversPageContent() {
   ];
 
   const viewModes = [
-    { mode: 'list',    icon: List,       label: t('common:viewModes.normal') },
     { mode: 'compact', icon: Rows,       label: t('common:viewModes.compact', 'Compacto') },
+    { mode: 'list',    icon: List,       label: t('common:viewModes.normal') },
     { mode: 'cards',   icon: LayoutGrid, label: t('common:viewModes.cards')  },
   ] as const;
 
@@ -578,15 +578,35 @@ export default function DriversPageContent() {
                           <Input placeholder={t('drivers:searchPlaceholder')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
                         </div>
                         <Select value={availabilityFilter} onValueChange={v => { setAvailabilityFilter(v); setCurrentPage(1); }}>
-                          <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
+                          <SelectTrigger className="flex-1 min-w-[140px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
                             <Filter className="w-4 h-4 text-muted-foreground" />
                             <SelectValue placeholder={t('drivers:filters.all')} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">{t('drivers:filters.all')}</SelectItem>
-                            <SelectItem value="available">{t('drivers:availability.available.label')}</SelectItem>
-                            <SelectItem value="on_trip">{t('drivers:availability.on_trip.label')}</SelectItem>
-                            <SelectItem value="offline">{t('drivers:availability.offline.label')}</SelectItem>
+                            <SelectItem value="all">
+                              <span className="flex items-center gap-1.5 min-w-0">
+                                <span className="truncate">{t('drivers:filters.all')}</span>
+                                {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.available + statusCounts.on_trip + statusCounts.offline})</span>}
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="available">
+                              <span className="flex items-center gap-1.5 min-w-0">
+                                <span className="truncate">{t('drivers:availability.available.label')}</span>
+                                {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.available})</span>}
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="on_trip">
+                              <span className="flex items-center gap-1.5 min-w-0">
+                                <span className="truncate">{t('drivers:availability.on_trip.label')}</span>
+                                {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.on_trip})</span>}
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="offline">
+                              <span className="flex items-center gap-1.5 min-w-0">
+                                <span className="truncate">{t('drivers:availability.offline.label')}</span>
+                                {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.offline})</span>}
+                              </span>
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

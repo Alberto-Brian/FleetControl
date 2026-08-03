@@ -398,6 +398,41 @@ export const ptHelp = {
       ],
     },
 
+    // ─── GESTÃO DE BASE DE DADOS ──────────────────────────────────────────────
+    {
+      id: 'db-management',
+      title: 'Gestão de Base de Dados',
+      content: [
+        { type: 'text', text: 'O FleetControl guarda todos os dados localmente num ficheiro SQLite. Com o uso contínuo, esse ficheiro vai crescendo. A zona do programador em Definições › Bases de Dados oferece três modos de gestão para controlar o tamanho da base de dados:' },
+        { type: 'table',
+          headers: ['Modo', 'O que faz'],
+          rows: [
+            ['Desativado', 'Nenhuma gestão automática. O sistema apenas alerta quando a base de dados exceder 150 MB. O programador elimina dados manualmente quando necessário.'],
+            ['Rotacionamento', 'Quando a base de dados atinge o limite de tamanho ou idade configurado, o sistema cria automaticamente uma nova base de dados, arquiva a actual e copia os dados mais recentes para a nova.'],
+            ['Retenção', 'Em vez de criar uma nova base, o sistema apaga directamente os registos mais antigos das tabelas transacionais (viagens, despesas, etc.) com base num período de retenção definido por tabela.'],
+          ],
+        },
+        { type: 'text', text: 'Rotacionamento — como funciona:' },
+        { type: 'list', items: [
+          'O sistema verifica duas condições: tamanho do ficheiro (MB) e idade da base (dias)',
+          'Quando qualquer das condições é atingida, a rotação ocorre automaticamente no próximo arranque — ou pode ser forçada manualmente',
+          'A base antiga é arquivada (não apagada) e fica acessível em modo histórico',
+          'Os dados mais recentes (configurável em "dias a copiar") são copiados para a nova base: tabelas mestras (veículos, motoristas, rotas, etc.) são copiadas na totalidade; tabelas transacionais (viagens, despesas, etc.) apenas os registos dentro do período configurado',
+          'A licença e todas as configurações do sistema são preservadas na nova base',
+        ]},
+        { type: 'text', text: 'Retenção — como funciona:' },
+        { type: 'list', items: [
+          'Selecciona quais tabelas transacionais são geridas e define um período de retenção para cada uma (ex: manter últimos 60 dias de viagens)',
+          'Ao clicar "Aplicar Retenção Agora", os registos mais antigos do que o período são apagados permanentemente da base de dados activa',
+          'Tabelas mestras (veículos, motoristas, etc.) nunca são afectadas — só dados transacionais',
+          'A base de dados permanece uma só — não são criadas novas bases',
+        ]},
+        { type: 'warning', text: 'Tanto o rotacionamento forçado como a aplicação de retenção são operações irreversíveis. Cria sempre um backup antes de executar qualquer uma destas acções.' },
+        { type: 'tip', text: 'O modo Rotacionamento é ideal para sistemas em uso contínuo durante anos: cria um histórico organizado por períodos. O modo Retenção é ideal se queres manter a base de dados pequena sem acumular ficheiros históricos.' },
+        { type: 'tip', text: 'Para restaurar um backup ou aceder à zona do programador, abre Definições › Bases de Dados e introduz o PIN de programador. A sessão de desbloqueio dura até fechar a aplicação.' },
+      ],
+    },
+
     // ─── LICENÇA ──────────────────────────────────────────────────────────────
     {
       id: 'license',

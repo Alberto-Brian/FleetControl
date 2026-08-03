@@ -76,6 +76,92 @@ export const ptSettings = {
     backupFolderLabel:         'Cópia de',
     backupDatabaseCount:       'base(s) de dados',
     activateBackupDb:          'Activar para leitura',
+
+    // ── Estado da base de dados (visível a todos)
+    dbSizeAlertTitle: 'Base de dados pesada',
+    dbSizeAlertText:  'A base de dados activa tem {{size}} MB. Considera gerir o seu tamanho em Definições › Bases de Dados (zona do programador).',
+
+    // ── Zona do Programador
+    devZoneTitle:        'Zona do Programador',
+    devZoneLockHint:     'Esta área é reservada ao programador do sistema. Introduza o PIN para aceder às ferramentas de gestão da base de dados.',
+    devZonePinPlaceholder: 'PIN',
+    devZoneUnlockBtn:    'Desbloquear',
+    devZoneWrongPin:     'PIN incorreto. Tente novamente.',
+    devZoneLockBtn:      'Bloquear área',
+
+    // ── Gestão Automática de Base de Dados
+    dbMgmtTitle:      'Gestão Automática de Base de Dados',
+    dbMgmtDesc:       'Configura como o sistema gere o crescimento da base de dados local ao longo do tempo.',
+    dbMgmtSaveBtn:    'Guardar Configuração',
+    dbMgmtSaveSuccess:'Configuração guardada. Terá efeito no próximo arranque da aplicação.',
+    dbMgmtSaveError:  'Erro ao guardar a configuração.',
+
+    // Modos
+    mode_disabled:      'Desativado',
+    mode_disabled_desc: 'Sem gestão automática. Gere manualmente o espaço apagando registos antigos quando necessário. O sistema apenas alerta quando a base de dados estiver pesada.',
+    mode_rotation:      'Rotacionamento',
+    mode_rotation_desc: 'Cria automaticamente uma nova base de dados ao atingir o limite configurado, arquivando a actual e copiando dados recentes.',
+    mode_retention:     'Retenção de Dados',
+    mode_retention_desc:'Apaga periodicamente registos antigos das tabelas transacionais, mantendo apenas os dados dentro do período configurado.',
+
+    // Rotacionamento
+    rotationSettings:        'Parâmetros de Rotacionamento',
+    rotMaxSizeLabel:         'Tamanho máximo',
+    rotMaxSizeDesc:          'Cria nova base quando o ficheiro exceder este tamanho.',
+    rotMaxAgeLabel:          'Idade máxima',
+    rotMaxAgeDesc:           'Cria nova base quando a actual tiver mais do que este número de dias.',
+    rotTransitionDaysLabel:  'Dados a copiar ao rotar',
+    rotTransitionDaysDesc:   'Quantos dias de dados transacionais são copiados para a nova base.',
+    rotForceBtn:             'Forçar Rotacionamento Agora',
+    rotForceConfirmTitle:    'Confirmar Rotacionamento Forçado',
+    rotForceConfirmText:     'Será criada uma nova base de dados activa e a actual será arquivada. Os dados mais recentes serão copiados conforme a configuração. Esta acção é irreversível.',
+    rotForceConfirmBtn:      'Sim, rotar agora',
+    rotForceSuccess:         'Rotacionamento concluído com sucesso.',
+    rotForceError:           'Erro ao rotacionar a base de dados',
+
+    // Retenção
+    retentionSettings:           'Tabelas e Período de Retenção',
+    retentionDesc:               'Selecciona as tabelas a gerir e quantos dias de dados devem ser mantidos em cada uma.',
+    retentionApplyBtn:           'Aplicar Retenção Agora',
+    retentionApplyConfirmTitle:  'Confirmar Aplicação de Retenção',
+    retentionApplyConfirmText:   'Os registos mais antigos do que o período configurado serão apagados permanentemente das tabelas seleccionadas. Esta acção é irreversível.',
+    retentionApplyConfirmBtn:    'Sim, apagar dados antigos',
+    retentionApplySuccess:       'Retenção aplicada com sucesso.',
+    retentionApplyError:         'Erro ao aplicar retenção',
+    retentionDaysLabel:          'dias',
+
+    // Alertas de rotação
+    rotationNeededTitle:      'Rotação Automática Necessária',
+    rotationNeededText:       'A base de dados atingiu os limites configurados. A rotação ocorrerá automaticamente no próximo arranque da aplicação.',
+    rotationApproachingTitle: 'Base de Dados a Aproximar-se do Limite',
+    rotationApproachingText:  'A base de dados activa tem {{size}} MB dos {{max}} MB configurados (80%+). A rotação automática irá ocorrer em breve.',
+
+    // Classificação de tabelas
+    tableClassificationTitle:   'Classificação das Tabelas',
+    masterTablesLabel:          'Master — cópia completa na rotação',
+    transactionalTablesLabel:   'Transacional — cópia recente na rotação',
+
+    // Nomes das tabelas transacionais
+    table_trips:             'Viagens',
+    table_maintenances:      'Manutenções',
+    table_maintenance_items: 'Itens de Manutenção',
+    table_expenses:          'Despesas',
+    table_refuelings:        'Abastecimentos',
+    table_fines:             'Multas',
+
+    // Nomes das tabelas master
+    table_vehicles:               'Viaturas',
+    table_drivers:                'Condutores',
+    table_users:                  'Utilizadores',
+    table_routes:                 'Rotas',
+    table_fuel_stations:          'Postos de Combustível',
+    table_vehicle_categories:     'Categorias de Viatura',
+    table_maintenance_categories: 'Categorias de Manutenção',
+    table_expense_categories:     'Categorias de Despesa',
+    table_categories:             'Categorias',
+    table_workshops:              'Oficinas',
+    table_company_settings:       'Configurações da Empresa',
+    table_vehicle_documents:      'Documentos de Viatura',
   },
 
   // ── Licença ───────────────────────────────────────────────────────────────
@@ -213,6 +299,8 @@ export const ptSettings = {
     persistPageSizeDesc:      'Mantém o número de elementos a apresentar por página em cada listagem',
     persistCurrentPage:       'Guardar página actual',
     persistCurrentPageDesc:   'Retoma a última página visitada ao reabrir uma listagem',
+    showFilterCounts:         'Mostrar contagem nos filtros',
+    showFilterCountsDesc:     'Exibe o total de registos de cada opção nos menus de filtro (ex: "Ligeiro de Passageiros (55)"). Os valores são totais globais e não se alteram com outros filtros activos.',
   },
 
   // ── Idioma ────────────────────────────────────────────────────────────────
@@ -503,7 +591,9 @@ export const ptSettings = {
     exportDesc:      'Cria arquivo ZIP com todos os dados para transferir para outro computador',
     restore:         'Restaurar Backup',
     restoreDesc:     'Importa backup de outro computador. Requer reactivação da licença.',
-    warning:         '<strong>Importante:</strong> Ao restaurar um backup em outro computador, será necessário reactivar a licença com o novo Machine ID.',
+    warning:             '<strong>Importante:</strong> Ao restaurar um backup, <strong>todos os dados actuais serão permanentemente substituídos</strong> pelos dados do backup — esta operação é irreversível. A restauração é restrita ao programador do sistema. Se restaurar noutro computador, será necessário reactivar a licença com o Machine ID desse computador.',
+    restoreDevOnly:      'Acesso restrito',
+    restoreDevOnlyHint:  'A restauração é restrita ao programador. Desbloqueie a zona do programador em Definições › Bases de Dados para restaurar.',
     advanced:        'Ferramentas Avançadas (Testes)',
     advancedDesc:    'Estas acções são apenas para testes e manutenção. Não utilize em produção sem orientação técnica.',
     rotation:        'Forçar rotação da base de dados',

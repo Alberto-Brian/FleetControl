@@ -585,11 +585,11 @@ export default function FuelPageContent() {
                     <SelectValue placeholder={t('refuelings:filters.allFuelTypes')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">{t('refuelings:filters.allFuelTypes')}</SelectItem>
-                    <SelectItem value="gasoline">{t('refuelings:fuelTypes.gasoline')}</SelectItem>
-                    <SelectItem value="diesel">{t('refuelings:fuelTypes.diesel')}</SelectItem>
-                    <SelectItem value="ethanol">{t('refuelings:fuelTypes.ethanol')}</SelectItem>
-                    <SelectItem value="cng">{t('refuelings:fuelTypes.cng')}</SelectItem>
+                    <SelectItem value="all"><span className="truncate">{t('refuelings:filters.allFuelTypes')}</span></SelectItem>
+                    <SelectItem value="gasoline"><span className="truncate">{t('refuelings:fuelTypes.gasoline')}</span></SelectItem>
+                    <SelectItem value="diesel"><span className="truncate">{t('refuelings:fuelTypes.diesel')}</span></SelectItem>
+                    <SelectItem value="ethanol"><span className="truncate">{t('refuelings:fuelTypes.ethanol')}</span></SelectItem>
+                    <SelectItem value="cng"><span className="truncate">{t('refuelings:fuelTypes.cng')}</span></SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -599,9 +599,9 @@ export default function FuelPageContent() {
                     <SelectValue placeholder={t('refuelings:filters.allStations')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">{t('refuelings:filters.allStations')}</SelectItem>
+                    <SelectItem value="all"><span className="truncate">{t('refuelings:filters.allStations')}</span></SelectItem>
                     {fuelStations.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      <SelectItem key={s.id} value={s.id}><span className="truncate">{s.name}</span></SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

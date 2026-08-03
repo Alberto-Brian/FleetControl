@@ -75,6 +75,92 @@ export const enSettings = {
     backupFolderLabel:         'Backup from',
     backupDatabaseCount:       'database(s)',
     activateBackupDb:          'Activate for reading',
+
+    // ── Database size alert (visible to all)
+    dbSizeAlertTitle: 'Large database',
+    dbSizeAlertText:  'The active database is {{size}} MB. Consider managing its size in Settings › Databases (developer zone).',
+
+    // ── Developer Zone
+    devZoneTitle:        'Developer Zone',
+    devZoneLockHint:     'This area is reserved for the system developer. Enter the PIN to access database management tools.',
+    devZonePinPlaceholder: 'PIN',
+    devZoneUnlockBtn:    'Unlock',
+    devZoneWrongPin:     'Incorrect PIN. Please try again.',
+    devZoneLockBtn:      'Lock area',
+
+    // ── Automatic Database Management
+    dbMgmtTitle:      'Automatic Database Management',
+    dbMgmtDesc:       'Configure how the system manages local database growth over time.',
+    dbMgmtSaveBtn:    'Save Configuration',
+    dbMgmtSaveSuccess:'Configuration saved. It will take effect on the next application start.',
+    dbMgmtSaveError:  'Error saving configuration.',
+
+    // Modes
+    mode_disabled:      'Disabled',
+    mode_disabled_desc: 'No automatic management. Manage space manually by deleting old records when needed. The system only alerts when the database is getting large.',
+    mode_rotation:      'Rotation',
+    mode_rotation_desc: 'Automatically creates a new database when the configured limit is reached, archiving the current one and copying recent data.',
+    mode_retention:     'Data Retention',
+    mode_retention_desc:'Periodically deletes old records from transactional tables, keeping only data within the configured retention period.',
+
+    // Rotation
+    rotationSettings:        'Rotation Parameters',
+    rotMaxSizeLabel:         'Maximum size',
+    rotMaxSizeDesc:          'Creates a new database when the file exceeds this size.',
+    rotMaxAgeLabel:          'Maximum age',
+    rotMaxAgeDesc:           'Creates a new database when the current one is older than this number of days.',
+    rotTransitionDaysLabel:  'Data to copy on rotation',
+    rotTransitionDaysDesc:   'How many days of transactional data are copied to the new database.',
+    rotForceBtn:             'Force Rotation Now',
+    rotForceConfirmTitle:    'Confirm Forced Rotation',
+    rotForceConfirmText:     'A new active database will be created and the current one archived. The most recent data will be copied according to the configuration. This action is irreversible.',
+    rotForceConfirmBtn:      'Yes, rotate now',
+    rotForceSuccess:         'Rotation completed successfully.',
+    rotForceError:           'Error rotating database',
+
+    // Retention
+    retentionSettings:           'Tables and Retention Period',
+    retentionDesc:               'Select which tables to manage and how many days of data to keep in each.',
+    retentionApplyBtn:           'Apply Retention Now',
+    retentionApplyConfirmTitle:  'Confirm Retention Application',
+    retentionApplyConfirmText:   'Records older than the configured period will be permanently deleted from the selected tables. This action is irreversible.',
+    retentionApplyConfirmBtn:    'Yes, delete old data',
+    retentionApplySuccess:       'Retention applied successfully.',
+    retentionApplyError:         'Error applying retention',
+    retentionDaysLabel:          'days',
+
+    // Rotation alerts
+    rotationNeededTitle:      'Automatic Rotation Required',
+    rotationNeededText:       'The database has reached the configured limits. Rotation will occur automatically on the next application start.',
+    rotationApproachingTitle: 'Database Approaching Limit',
+    rotationApproachingText:  'The active database is {{size}} MB of the {{max}} MB configured (80%+). Automatic rotation will occur soon.',
+
+    // Table classification
+    tableClassificationTitle:   'Table Classification',
+    masterTablesLabel:          'Master — full copy on rotation',
+    transactionalTablesLabel:   'Transactional — recent data copy on rotation',
+
+    // Transactional table names
+    table_trips:             'Trips',
+    table_maintenances:      'Maintenance',
+    table_maintenance_items: 'Maintenance Items',
+    table_expenses:          'Expenses',
+    table_refuelings:        'Refueling',
+    table_fines:             'Fines',
+
+    // Master table names
+    table_vehicles:               'Vehicles',
+    table_drivers:                'Drivers',
+    table_users:                  'Users',
+    table_routes:                 'Routes',
+    table_fuel_stations:          'Fuel Stations',
+    table_vehicle_categories:     'Vehicle Categories',
+    table_maintenance_categories: 'Maintenance Categories',
+    table_expense_categories:     'Expense Categories',
+    table_categories:             'Categories',
+    table_workshops:              'Workshops',
+    table_company_settings:       'Company Settings',
+    table_vehicle_documents:      'Vehicle Documents',
   },
 
   // ── License ───────────────────────────────────────────────────────────────
@@ -211,6 +297,8 @@ export const enSettings = {
     persistPageSizeDesc:      'Remembers how many items to show per page in each listing',
     persistCurrentPage:       'Save current page',
     persistCurrentPageDesc:   'Resumes the last visited page when reopening a listing',
+    showFilterCounts:         'Show counts in filters',
+    showFilterCountsDesc:     'Displays the total number of records for each option in filter menus (e.g. "Passenger Light (55)"). Values are global totals and do not change when other filters are active.',
   },
 
   language: {
@@ -492,7 +580,9 @@ export const enSettings = {
     exportDesc:      'Creates a ZIP file with all data for transfer to another computer',
     restore:         'Restore Backup',
     restoreDesc:     'Imports a backup from another computer. Requires license reactivation.',
-    warning:         '<strong>Important:</strong> Restoring a backup on another computer will require license reactivation with the new Machine ID.',
+    warning:             '<strong>Important:</strong> Restoring a backup will <strong>permanently replace all current data</strong> with the backup data — this action is irreversible. Restore is restricted to the system developer. If restoring on another computer, license reactivation with that computer\'s Machine ID will be required.',
+    restoreDevOnly:      'Restricted access',
+    restoreDevOnlyHint:  'Restore is restricted to the developer. Unlock the developer zone in Settings › Databases to restore.',
     advanced:        'Advanced Tools (Testing)',
     advancedDesc:    'These actions are for testing and maintenance only. Do not use in production without technical guidance.',
     rotation:        'Force database rotation',

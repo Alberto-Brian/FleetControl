@@ -398,6 +398,41 @@ export const enHelp = {
       ],
     },
 
+    // ─── DATABASE MANAGEMENT ──────────────────────────────────────────────────
+    {
+      id: 'db-management',
+      title: 'Database Management',
+      content: [
+        { type: 'text', text: 'FleetControl stores all data locally in a SQLite file. With continuous use, that file grows over time. The developer zone in Settings › Databases offers three management modes to control database size:' },
+        { type: 'table',
+          headers: ['Mode', 'What it does'],
+          rows: [
+            ['Disabled', 'No automatic management. The system only alerts when the database exceeds 150 MB. The developer deletes data manually when needed.'],
+            ['Rotation', 'When the database reaches the configured size or age limit, the system automatically creates a new database, archives the current one, and copies the most recent data into the new one.'],
+            ['Retention', 'Instead of creating a new database, the system directly deletes old records from transactional tables (trips, expenses, etc.) based on a retention period defined per table.'],
+          ],
+        },
+        { type: 'text', text: 'Rotation — how it works:' },
+        { type: 'list', items: [
+          'The system checks two conditions: file size (MB) and database age (days)',
+          'When either condition is met, rotation occurs automatically on the next startup — or can be forced manually',
+          'The old database is archived (not deleted) and remains accessible in historical mode',
+          'The most recent data (configurable as "days to copy") is copied to the new database: master tables (vehicles, drivers, routes, etc.) are copied in full; transactional tables (trips, expenses, etc.) only within the configured period',
+          'The license and all system settings are preserved in the new database',
+        ]},
+        { type: 'text', text: 'Retention — how it works:' },
+        { type: 'list', items: [
+          'Select which transactional tables are managed and define a retention period for each (e.g. keep last 60 days of trips)',
+          'Clicking "Apply Retention Now" permanently deletes records older than the period from the active database',
+          'Master tables (vehicles, drivers, etc.) are never affected — only transactional data',
+          'The database remains a single file — no new databases are created',
+        ]},
+        { type: 'warning', text: 'Both forced rotation and applying retention are irreversible operations. Always create a backup before performing either of these actions.' },
+        { type: 'tip', text: 'Rotation mode is ideal for systems in continuous use over years: it creates an organised history by period. Retention mode is ideal if you want to keep the database small without accumulating historical files.' },
+        { type: 'tip', text: 'To restore a backup or access the developer zone, open Settings › Databases and enter the developer PIN. The unlock session lasts until the application is closed.' },
+      ],
+    },
+
     // ─── LICENSE ──────────────────────────────────────────────────────────────
     {
       id: 'license',

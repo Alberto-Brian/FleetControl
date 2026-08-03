@@ -629,40 +629,65 @@ export function MaintenancePageContent() {
                       className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
                   </div>
                   <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
-                    <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
+                    <SelectTrigger className="flex-1 min-w-[140px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
                       <Filter className="w-4 h-4 text-muted-foreground" />
                       <SelectValue placeholder={t('maintenances:filters.all')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">{t('maintenances:filters.all')}</SelectItem>
-                      <SelectItem value="scheduled">{t('maintenances:filters.scheduled')}</SelectItem>
-                      <SelectItem value="in_progress">{t('maintenances:filters.in_progress')}</SelectItem>
-                      <SelectItem value="completed">{t('maintenances:filters.completed')}</SelectItem>
-                      <SelectItem value="cancelled">{t('maintenances:filters.cancelled')}</SelectItem>
+                      <SelectItem value="all">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t('maintenances:filters.all')}</span>
+                          {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.scheduled + statusCounts.in_progress + statusCounts.completed + statusCounts.cancelled})</span>}
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="scheduled">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t('maintenances:filters.scheduled')}</span>
+                          {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.scheduled})</span>}
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="in_progress">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t('maintenances:filters.in_progress')}</span>
+                          {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.in_progress})</span>}
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="completed">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t('maintenances:filters.completed')}</span>
+                          {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.completed})</span>}
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="cancelled">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t('maintenances:filters.cancelled')}</span>
+                          {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.cancelled})</span>}
+                        </span>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setCurrentPage(1); }}>
-                    <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
+                    <SelectTrigger className="flex-1 min-w-[140px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
                       <SelectValue placeholder={t('maintenances:filters.allTypes')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">{t('maintenances:filters.allTypes')}</SelectItem>
-                      <SelectItem value="preventive">{t('maintenances:type.preventive.label')}</SelectItem>
-                      <SelectItem value="corrective">{t('maintenances:type.corrective.label')}</SelectItem>
+                      <SelectItem value="all"><span className="truncate">{t('maintenances:filters.allTypes')}</span></SelectItem>
+                      <SelectItem value="preventive"><span className="truncate">{t('maintenances:type.preventive.label')}</span></SelectItem>
+                      <SelectItem value="corrective"><span className="truncate">{t('maintenances:type.corrective.label')}</span></SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setCurrentPage(1); }}>
-                    <SelectTrigger className="flex-1 min-w-[150px] h-10 text-sm bg-muted/20 border-none">
+                    <SelectTrigger className="flex-1 min-w-[150px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
                       <SelectValue placeholder={t('maintenances:filters.allCategories')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">{t('maintenances:filters.allCategories')}</SelectItem>
+                      <SelectItem value="all"><span className="truncate">{t('maintenances:filters.allCategories')}</span></SelectItem>
                       {categories.filter(c => c.is_active !== false).map(c => (
                         <SelectItem key={c.id} value={c.id}>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
-                            {c.name}
-                          </div>
+                          <span className="flex items-center gap-1.5 min-w-0">
+                            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                            <span className="truncate">{c.name}</span>
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>

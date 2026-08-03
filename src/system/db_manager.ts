@@ -63,6 +63,35 @@ export class DatabaseManager {
     console.log(`   Período de transição: ${transitionPeriodDays} dias`);
   }
 
+  private loadManagementConfig(): any {
+    const configPath = path.join(path.dirname(this.baseDir), 'db_management.json');
+    if (fs.existsSync(configPath)) {
+      try { return JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch {}
+    }
+    return null;
+  }
+
+  async applyRetention(
+    tableConfigs: { tableName: string; retentionDays: number; timestampColumn: string }[]
+  ): Promise<{ deleted: { table: string; count: number }[]; errors: { table: string; error: string }[] }> {
+    if (!this.currentDb) throw new Error('Database not initialized');
+    const deleted: { table: string; count: number }[] = [];
+    const errors:  { table: string; error: string }[]  = [];
+    for (const { tableName, retentionDays, timestampColumn } of tableConfigs) {
+      try {
+        const result = this.currentDb
+          .prepare(`DELETE FROM ${tableName} WHERE ${timestampColumn} < date('now', '-${retentionDays} days')`)
+          .run();
+        deleted.push({ table: tableName, count: result.changes });
+        console.log(`  🗑️ ${tableName}: ${result.changes} registos eliminados (>${retentionDays} dias)`);
+      } catch (err: any) {
+        errors.push({ table: tableName, error: err.message });
+        console.error(`  ❌ Retenção falhou em ${tableName}:`, err.message);
+      }
+    }
+    return { deleted, errors };
+  }
+
   initialize() {
     if (this.isInitialized) {
       console.log('⚠️ DatabaseManager já inicializado');
@@ -70,7 +99,7 @@ export class DatabaseManager {
     }
 
     console.log('++ Inicializando DatabaseManager...');
-    
+
     try {
       const resolveUserData = (): string => {
         try {
@@ -92,6 +121,20 @@ export class DatabaseManager {
         return path.join(xdg, APP_NAME);
       };
       this.baseDir = path.join(resolveUserData(), 'databases');
+
+      // Apply saved management config (overrides constructor defaults)
+      const mgmtConfig = this.loadManagementConfig();
+      if (mgmtConfig) {
+        if (mgmtConfig.mode === 'disabled') {
+          this.maxSizeInMB  = Number.MAX_SAFE_INTEGER;
+          this.maxAgeInDays = Number.MAX_SAFE_INTEGER;
+        } else if (mgmtConfig.mode === 'rotation' && mgmtConfig.rotation) {
+          if (mgmtConfig.rotation.maxSizeInMB)        this.maxSizeInMB         = mgmtConfig.rotation.maxSizeInMB;
+          if (mgmtConfig.rotation.maxAgeInDays)       this.maxAgeInDays        = mgmtConfig.rotation.maxAgeInDays;
+          if (mgmtConfig.rotation.transitionPeriodDays) this.transitionPeriodDays = mgmtConfig.rotation.transitionPeriodDays;
+        }
+        console.log(`   Config de gestão aplicada: modo=${mgmtConfig.mode}`);
+      }
       console.log('📁 Base dir:', this.baseDir);
       
       if (!fs.existsSync(this.baseDir)) {
@@ -389,7 +432,7 @@ export class DatabaseManager {
    * ✅ NOVA VERSÃO: Rotação com período de transição
    */
   async rotate(copyRecentData: boolean = true, force: boolean = false) {
-    if (!this.shouldRotate()) {
+    if (!force && !this.shouldRotate()) {
       console.log('⚠️ Rotação cancelada - limite não atingido');
       return null;
     }

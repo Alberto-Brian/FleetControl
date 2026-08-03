@@ -12,6 +12,7 @@ import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
+import { usePageViewSettings } from '@/hooks/usePageViewSettings';
 import {
   AlertCircle, Search, DollarSign, FileText, Calendar, Eye, Edit,
   Trash2, CheckCircle2, Scale, LayoutGrid, List, Rows, MapPin, Filter
@@ -38,6 +39,7 @@ export default function FinesPageContent() {
     setFines, selectFine, deleteFine: removeFineFromContext, setLoading,
   } = useFines();
 
+  const { settings: viewSettings } = usePageViewSettings();
   const [searchTerm, setSearchTerm]     = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(() => readPersistedFilter('fines', 'status', 'all'));
   const [viewMode, setViewMode]         = useState<ViewMode>(() => readPersistedViewMode<ViewMode>('fines', 'cards'));
@@ -349,16 +351,40 @@ export default function FinesPageContent() {
                   className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
               </div>
               <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
-                <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
+                <SelectTrigger className="flex-1 min-w-[140px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
                   <Filter className="w-4 h-4 text-muted-foreground" />
                   <SelectValue placeholder={t('fines:filters.all')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{t('fines:filters.all')}</SelectItem>
-                  <SelectItem value="pending">{t('fines:filters.pending')}</SelectItem>
-                  <SelectItem value="paid">{t('fines:filters.paid')}</SelectItem>
-                  <SelectItem value="contested">{t('fines:filters.contested')}</SelectItem>
-                  <SelectItem value="overdue">{t('fines:filters.overdue')}</SelectItem>
+                  <SelectItem value="all">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span className="truncate">{t('fines:filters.all')}</span>
+                      {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({stats.pending + stats.paid + stats.contested + stats.cancelled})</span>}
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="pending">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span className="truncate">{t('fines:filters.pending')}</span>
+                      {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({stats.pending})</span>}
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="paid">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span className="truncate">{t('fines:filters.paid')}</span>
+                      {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({stats.paid})</span>}
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="contested">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span className="truncate">{t('fines:filters.contested')}</span>
+                      {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({stats.contested})</span>}
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="overdue">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span className="truncate">{t('fines:filters.overdue')}</span>
+                    </span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

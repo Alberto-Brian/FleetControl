@@ -31,6 +31,7 @@ import { addSystemSettingsEventListeners } from "./db/system_settings/system-set
 import { addScheduledTripsEventListeners } from "./db/scheduled-trips/scheduled–trips-listerners";
 import { addDriverShiftsEventListeners } from "./db/driver-shifts/driver-shifts-listeners";
 import { addTrackingEventListeners } from "./db/tracking/tracking-listeners";
+import { addDbManagementEventListeners } from "./db/db-management/db-management-listeners";
 
 
 export default function registerListeners(mainWindow: BrowserWindow) {
@@ -62,4 +63,5 @@ export default function registerListeners(mainWindow: BrowserWindow) {
     addScheduledTripsEventListeners();
     addDriverShiftsEventListeners();
     addTrackingEventListeners();
+    addDbManagementEventListeners();
 }

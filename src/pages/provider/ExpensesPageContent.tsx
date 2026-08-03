@@ -677,29 +677,48 @@ function renderCardsView() {
                     className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
                 </div>
                 <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
-                  <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
+                  <SelectTrigger className="flex-1 min-w-[140px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
                     <Filter className="w-4 h-4 text-muted-foreground" />
                     <SelectValue placeholder={t('expenses:filters.all')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">{t('expenses:filters.all')}</SelectItem>
-                    <SelectItem value="pending">{t('expenses:filters.pending')}</SelectItem>
-                    <SelectItem value="paid">{t('expenses:filters.paid')}</SelectItem>
-                    <SelectItem value="overdue">{t('expenses:filters.overdue')}</SelectItem>
+                    <SelectItem value="all">
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <span className="truncate">{t('expenses:filters.all')}</span>
+                        {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({stats.pending + stats.paid + stats.cancelled})</span>}
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="pending">
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <span className="truncate">{t('expenses:filters.pending')}</span>
+                        {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({stats.pending})</span>}
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="paid">
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <span className="truncate">{t('expenses:filters.paid')}</span>
+                        {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({stats.paid})</span>}
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="overdue">
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <span className="truncate">{t('expenses:filters.overdue')}</span>
+                      </span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setCurrentPage(1); }}>
-                  <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
+                  <SelectTrigger className="flex-1 min-w-[140px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
                     <SelectValue placeholder={t('expenses:filters.allCategories')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">{t('expenses:filters.allCategories')}</SelectItem>
+                    <SelectItem value="all"><span className="truncate">{t('expenses:filters.allCategories')}</span></SelectItem>
                     {categories.filter(c => c.is_active).map(c => (
                       <SelectItem key={c.id} value={c.id}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
-                          {c.name}
-                        </div>
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                          <span className="truncate">{c.name}</span>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>

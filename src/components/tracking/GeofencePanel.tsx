@@ -205,8 +205,9 @@ function GeofenceDetail({
           </button>
         </div>
       </div>
-
-      <ScrollArea className="flex-1">
+      
+      <div className="flex-1 overflow-y-auto">
+      {/* <ScrollArea className="flex-1"> */}
         <div className="p-3 space-y-3">
 
           {/* Info da zona */}
@@ -389,7 +390,8 @@ function GeofenceDetail({
           </div>
 
         </div>
-      </ScrollArea>
+      {/* </ScrollArea> */}
+      </div>
     </div>
   );
 }

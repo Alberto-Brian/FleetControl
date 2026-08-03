@@ -602,15 +602,35 @@ export default function TripsPageContent() {
                       className="pl-10 h-10 text-sm bg-muted/20 border-none focus-visible:ring-1" />
                   </div>
                   <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
-                    <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
+                    <SelectTrigger className="flex-1 min-w-[140px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
                       <Filter className="w-4 h-4 text-muted-foreground" />
                       <SelectValue placeholder={t('trips:filters.all')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">{t('trips:filters.all')}</SelectItem>
-                      <SelectItem value="in_progress">{t('trips:filters.in_progress')}</SelectItem>
-                      <SelectItem value="completed">{t('trips:filters.completed')}</SelectItem>
-                      <SelectItem value="cancelled">{t('trips:filters.cancelled')}</SelectItem>
+                      <SelectItem value="all">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t('trips:filters.all')}</span>
+                          {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.in_progress + statusCounts.completed + statusCounts.cancelled})</span>}
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="in_progress">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t('trips:filters.in_progress')}</span>
+                          {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.in_progress})</span>}
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="completed">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t('trips:filters.completed')}</span>
+                          {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.completed})</span>}
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="cancelled">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t('trips:filters.cancelled')}</span>
+                          {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.cancelled})</span>}
+                        </span>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

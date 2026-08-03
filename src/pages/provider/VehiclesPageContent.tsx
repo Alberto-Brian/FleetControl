@@ -128,6 +128,9 @@ export default function VehiclesPageContent() {
     inactive:    0,
   });
 
+  // Contagens estáticas por categoria — carregadas uma vez, sem filtros
+  const [staticCounts, setStaticCounts] = useState<{ total: number; byCategory: Record<string, number> }>({ total: 0, byCategory: {} });
+
   // Debounce para search
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -171,6 +174,14 @@ export default function VehiclesPageContent() {
 
   useEffect(() => {
     loadCategories();
+    // Contagens totais sem filtros — carregadas uma vez para o selector de categoria
+    getAllVehicles({ limit: 9999 }).then(result => {
+      const byCategory: Record<string, number> = {};
+      result.data.forEach((v: any) => {
+        if (v.category_id) byCategory[v.category_id] = (byCategory[v.category_id] ?? 0) + 1;
+      });
+      setStaticCounts({ total: result.pagination.total, byCategory });
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -403,7 +414,7 @@ export default function VehiclesPageContent() {
   );
 
   function getVehicleCountByCategory(categoryId: string) {
-    return vehicles.filter(v => v.category_id === categoryId).length;
+    return staticCounts.byCategory[categoryId] ?? 0;
   }
 
   function getNoGpsLabel(vehicle: IVehicle): string {
@@ -840,37 +851,62 @@ export default function VehiclesPageContent() {
                   )}
 
                   <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
-                    <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
-                      <Filter className="w-4 h-4 text-muted-foreground" />
+                    <SelectTrigger className="flex-1 min-w-[140px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
+                      <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
                       <SelectValue placeholder={t('vehicles:filters.status')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">{t('vehicles:filters.all')}</SelectItem>
-                      <SelectItem value="available">{t('vehicles:status.available.label')}</SelectItem>
-                      <SelectItem value="in_use">{t('vehicles:status.in_use.label')}</SelectItem>
-                      <SelectItem value="maintenance">{t('vehicles:status.maintenance.label')}</SelectItem>
-                      <SelectItem value="inactive">{t('vehicles:status.inactive.label')}</SelectItem>
+                      <SelectItem value="all">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t('vehicles:filters.all')}</span>
+                          {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.available + statusCounts.in_use + statusCounts.maintenance + statusCounts.inactive})</span>}
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="available">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t('vehicles:status.available.label')}</span>
+                          {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.available})</span>}
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="in_use">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t('vehicles:status.in_use.label')}</span>
+                          {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.in_use})</span>}
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="maintenance">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t('vehicles:status.maintenance.label')}</span>
+                          {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.maintenance})</span>}
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="inactive">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t('vehicles:status.inactive.label')}</span>
+                          {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({statusCounts.inactive})</span>}
+                        </span>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
 
                   <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setCurrentPage(1); }}>
-                    <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
-                      <Tag className="w-4 h-4 text-muted-foreground" />
+                    <SelectTrigger className="flex-1 min-w-[140px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
+                      <Tag className="w-4 h-4 text-muted-foreground shrink-0" />
                       <SelectValue placeholder={t('vehicles:filters.category')} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">
-                        <span className="flex items-center gap-2">
-                          <span>{t('vehicles:filters.allCategories')}</span>
-                          <span className="text-xs text-muted-foreground">({paginationInfo.total})</span>
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t('vehicles:filters.allCategories')}</span>
+                          {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({staticCounts.total})</span>}
                         </span>
                       </SelectItem>
                       {categories.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
-                          <span className="flex items-center gap-2">
+                          <span className="flex items-center gap-1.5 min-w-0">
                             <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: category.color }} />
                             <span className="truncate">{category.name}</span>
-                            <span className="text-xs text-muted-foreground">({getVehicleCountByCategory(category.id)})</span>
+                            {viewSettings.showFilterCounts && <span className="text-xs text-muted-foreground shrink-0">({getVehicleCountByCategory(category.id)})</span>}
                           </span>
                         </SelectItem>
                       ))}
@@ -879,8 +915,8 @@ export default function VehiclesPageContent() {
 
                   {isConnected && (
                     <Select value={syncFilter} onValueChange={(v) => { setSyncFilter(v as typeof syncFilter); setCurrentPage(1); }}>
-                      <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
-                        <Wifi className="w-4 h-4 text-muted-foreground" />
+                      <SelectTrigger className="flex-1 min-w-[140px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
+                        <Wifi className="w-4 h-4 text-muted-foreground shrink-0" />
                         <SelectValue placeholder={t('vehicles:filters.sync')} />
                       </SelectTrigger>
                       <SelectContent>
@@ -893,8 +929,8 @@ export default function VehiclesPageContent() {
 
                   {isConnected && (
                     <Select value={imeiFilter} onValueChange={(v) => { setImeiFilter(v as typeof imeiFilter); setCurrentPage(1); }}>
-                      <SelectTrigger className="flex-1 min-w-[140px] h-10 text-sm bg-muted/20 border-none">
-                        <Upload className="w-4 h-4 text-muted-foreground" />
+                      <SelectTrigger className="flex-1 min-w-[140px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
+                        <Upload className="w-4 h-4 text-muted-foreground shrink-0" />
                         <SelectValue placeholder={t('vehicles:filters.imei')} />
                       </SelectTrigger>
                       <SelectContent>

@@ -14,6 +14,7 @@ export interface PageViewSettings {
   driversAnalytics: boolean;
   expensesAnalytics: boolean;
   analyticsLayout: 'horizontal' | 'vertical';
+  showFilterCounts: boolean;
 }
 
 const DEFAULTS: PageViewSettings = {
@@ -24,6 +25,7 @@ const DEFAULTS: PageViewSettings = {
   driversAnalytics: true,
   expensesAnalytics: true,
   analyticsLayout: 'vertical',
+  showFilterCounts: true,
 };
 
 function loadFromStorage(): PageViewSettings {

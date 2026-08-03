@@ -10,7 +10,7 @@ import {
   Eye, CheckCircle2, LayoutGrid, List, Trash2,
   RefreshCcw, Plus, ChevronRight, AlertCircle,
   Loader2, History, Navigation, ParkingCircle,
-  Zap,
+  Zap, Rows
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,7 +36,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select';
 
 type ReportType = 'vehicles' | 'drivers' | 'trips' | 'fuel' | 'maintenance' | 'financial' | 'expenses' | 'general';
 type ReportCategory = 'all' | 'fleet' | 'financial' | 'operational';
-type ViewMode = 'grid' | 'list';
+type ViewMode = 'compact' | 'cards';
 type ActiveTab = 'reports' | 'history' | 'gps';
 
 interface ReportDefinition {
@@ -450,7 +450,7 @@ export function ReportsPageContent() {
   const [activeTab,      setActiveTab]      = useState<ActiveTab>('reports');
   const [searchTerm,     setSearchTerm]     = useState('');
   const [categoryFilter, setCategoryFilter] = useState<ReportCategory>(() => readPersistedFilter<ReportCategory>('reports', 'category', 'all'));
-  const [viewMode,       setViewMode]       = useState<ViewMode>(() => readPersistedViewMode<ViewMode>('reports', 'list'));
+  const [viewMode,       setViewMode]       = useState<ViewMode>(() => readPersistedViewMode<ViewMode>('reports', 'cards'));
   const [datePreset,     setDatePreset]     = useState<string>(() => readPersistedFilter('reports', 'datePreset', 'thisMonth'));
   useEffect(() => { writePersistedViewMode('reports', viewMode); }, [viewMode]);
   useEffect(() => { writePersistedFilter('reports', 'category',    categoryFilter); }, [categoryFilter]);
@@ -574,6 +574,12 @@ export function ReportsPageContent() {
       toast.error(t('reports:toast.error'));
     }
   };
+
+// ==================== VIEW MODES ====================
+  const viewModes = [
+    { mode: 'reports', icon: Rows,       label: t('common:viewModes.compact') },
+    { mode: 'cards',   icon: LayoutGrid, label: t('common:viewModes.cards')   },
+  ] as const;
 
   // ==================== FILTERED REPORTS ====================
 
@@ -763,22 +769,19 @@ export function ReportsPageContent() {
                     />
                   </div>
                   <div className="flex bg-muted/30 p-1 rounded-lg border border-muted/50">
-                    {(['grid', 'list'] as ViewMode[]).map(mode => (
-                      <Button
-                        key={mode}
-                        variant={viewMode === mode ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode(mode)}
-                        className={cn('h-8 px-3 rounded-md', viewMode === mode ? 'bg-background shadow-sm' : 'text-muted-foreground')}
-                      >
-                        {mode === 'grid' ? <LayoutGrid className="w-4 h-4" /> : <List className="w-4 h-4" />}
+                    {viewModes.map((item) => (
+                      <Button key={item.mode} variant={viewMode === item.mode ? 'secondary' : 'ghost'} size="sm"
+                        onClick={() => setViewMode(item.mode as ViewMode)}
+                        className={cn('h-8 px-3 rounded-lg transition-all flex items-center gap-2', viewMode === item.mode ? 'bg-background shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground')}>
+                        <item.icon className="w-4 h-4" />
+                        <span className="hidden sm:inline text-xs">{item.label}</span>
                       </Button>
                     ))}
                   </div>
                 </div>
 
                 {/* Cards Grid */}
-                {viewMode === 'grid' ? (
+                {viewMode === 'cards' ? (
                   <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                     {filteredDefinitions.map(report => {
                       const isGen  = generating === report.type;
@@ -845,7 +848,7 @@ export function ReportsPageContent() {
                     })}
                   </div>
                 ) : (
-                  /* List View */
+                  /* Compact View */
                   <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
                     <div className="bg-muted/50 px-6 py-3 grid grid-cols-12 gap-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground border-b">
                       <div className="col-span-4">{t('reports:table.report')}</div>

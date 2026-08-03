@@ -960,7 +960,8 @@ export function TraccarDevicesPanel({ isOpen, onClose, onViewVehicle, onCenterDe
       )}
 
       {/* Body lista */}
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto">
+      {/* <ScrollArea className="flex-1"> */}
       <div className="p-3">
         {loading && (
           <p className="text-sm text-muted-foreground">{t('devicesPanel.loading')}</p>
@@ -1040,7 +1041,8 @@ export function TraccarDevicesPanel({ isOpen, onClose, onViewVehicle, onCenterDe
           </div>
         )}
       </div>
-      </ScrollArea>
+      {/* </ScrollArea> */}
+      </div>
     </div>
   );
 }
