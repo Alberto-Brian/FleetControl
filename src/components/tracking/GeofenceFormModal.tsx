@@ -98,7 +98,7 @@ export function GeofenceFormModal({ open, pendingWkt, editing, onClose, onCreate
 
   return (
     <Dialog open={open} onOpenChange={o => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? t('geofences.editTitle') : t('geofences.createTitle')}</DialogTitle>
         </DialogHeader>
@@ -137,7 +137,7 @@ export function GeofenceFormModal({ open, pendingWkt, editing, onClose, onCreate
           {!isEdit && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label>{t('geofences.devicesLabel', 'Dispositivos a monitorizar')}</Label>
+                <Label>{t('geofences.devicesLabel')}</Label>
                 {devices.length > 0 && (
                   <button
                     type="button"
@@ -170,7 +170,7 @@ export function GeofenceFormModal({ open, pendingWkt, editing, onClose, onCreate
                       />
                       <span className="text-sm leading-none truncate min-w-0 flex-1">
                         {d.vehicle
-                          ? `${d.vehicle.license_plate} · ${d.vehicle.brand} ${d.vehicle.model}`.trim()
+                          ? `${d.vehicle.license_plate} · ${d.vehicle.brand}`.trim() //${d.vehicle.model}
                           : d.name || d.uniqueId}
                       </span>
                       <span className="text-xs text-muted-foreground ml-auto font-mono">{d.uniqueId}</span>

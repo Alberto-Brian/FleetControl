@@ -321,9 +321,11 @@ export function TrackingMap({
                         📍 {pos.address}
                       </p>
                     )}
-                    <p style={{ fontSize: 10, color: '#aaa', marginTop: 6 }}>
-                      {new Date(pos.timestamp).toLocaleString('pt-PT')}
-                    </p>
+                    {pos.timestamp && (
+                      <p style={{ fontSize: 10, color: '#aaa', marginTop: 6 }}>
+                        {new Date(pos.timestamp).toLocaleString('pt-PT')}
+                      </p>
+                    )}
                   </div>
                 </Popup>
               </Marker>
@@ -353,7 +355,7 @@ export function TrackingMap({
                   <strong>Início</strong>
                   {historyPositions.find(p => p.deviceId === deviceId && p.latitude === start[0]) && (
                     <p style={{ color: '#888', marginTop: 4 }}>
-                      {new Date(historyPositions.find(p => p.deviceId === deviceId)!.timestamp).toLocaleString('pt-PT')}
+                      {new Date(historyPositions.find(p => p.deviceId === deviceId)!.fixTime).toLocaleString('pt-PT')}
                     </p>
                   )}
                 </div>
@@ -365,7 +367,7 @@ export function TrackingMap({
                   <strong>Fim</strong>
                   {historyPositions.filter(p => p.deviceId === deviceId).at(-1) && (
                     <p style={{ color: '#888', marginTop: 4 }}>
-                      {new Date(historyPositions.filter(p => p.deviceId === deviceId).at(-1)!.timestamp).toLocaleString('pt-PT')}
+                      {new Date(historyPositions.filter(p => p.deviceId === deviceId).at(-1)!.fixTime).toLocaleString('pt-PT')}
                     </p>
                   )}
                 </div>

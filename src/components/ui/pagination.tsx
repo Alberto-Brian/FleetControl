@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface PaginationInfo {
   total: number;
@@ -34,6 +35,7 @@ export function Pagination({
   limitOptions = DEFAULT_LIMIT_OPTIONS,
   className,
 }: PaginationProps) {
+  const { t } = useTranslation();
   const { total, page, limit, totalPages, hasNextPage, hasPrevPage } = pagination;
 
   // Calcula o intervalo de registos visível — ex: "21 – 40 de 150"
@@ -74,13 +76,17 @@ export function Pagination({
       <div className="flex items-center gap-3 text-sm text-muted-foreground">
         <span className="font-medium whitespace-nowrap">
           {total === 0
-            ? 'Nenhum registo'
-            : `${from.toLocaleString('pt-PT')} – ${to.toLocaleString('pt-PT')} de ${total.toLocaleString('pt-PT')}`}
+            ? t('common:pagination.noRecords')
+            : t('common:pagination.range', {
+                from: from.toLocaleString(),
+                to:   to.toLocaleString(),
+                total: total.toLocaleString(),
+              })}
         </span>
 
         {onLimitChange && (
           <div className="flex items-center gap-2">
-            <span className="text-xs whitespace-nowrap hidden sm:inline">por página</span>
+            <span className="text-xs whitespace-nowrap hidden sm:inline">{t('common:pagination.perPage')}</span>
             <Select
               value={String(limit)}
               onValueChange={(v) => onLimitChange(Number(v))}
@@ -110,7 +116,7 @@ export function Pagination({
             className="h-8 w-8 rounded-lg"
             onClick={() => onPageChange(1)}
             disabled={!hasPrevPage}
-            title="Primeira página"
+            title={t('common:pagination.firstPage')}
           >
             <ChevronsLeft className="w-4 h-4" />
           </Button>
@@ -122,7 +128,7 @@ export function Pagination({
             className="h-8 w-8 rounded-lg"
             onClick={() => onPageChange(page - 1)}
             disabled={!hasPrevPage}
-            title="Página anterior"
+            title={t('common:pagination.prevPage')}
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
@@ -163,7 +169,7 @@ export function Pagination({
             className="h-8 w-8 rounded-lg"
             onClick={() => onPageChange(page + 1)}
             disabled={!hasNextPage}
-            title="Página seguinte"
+            title={t('common:pagination.nextPage')}
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
@@ -175,7 +181,7 @@ export function Pagination({
             className="h-8 w-8 rounded-lg"
             onClick={() => onPageChange(totalPages)}
             disabled={!hasNextPage}
-            title="Última página"
+            title={t('common:pagination.lastPage')}
           >
             <ChevronsRight className="w-4 h-4" />
           </Button>

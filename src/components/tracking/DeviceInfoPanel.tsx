@@ -249,7 +249,7 @@ export function DeviceInfoPanel({ device, position, onClose, onShowHistory }: Pr
                 {t('device.lastUpdate')}
               </p>
               <p style={{ color: G.textSecondary, fontSize: 11, fontWeight: 500, margin: '2px 0 0' }}>
-                {new Date(position.timestamp ?? (position as any).fixTime ?? Date.now()).toLocaleString()}
+                {position.timestamp ? new Date(position.timestamp).toLocaleString() : t('device.notAvailable')}
               </p>
             </div>
           </div>

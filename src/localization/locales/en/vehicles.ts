@@ -96,7 +96,7 @@ export const enVehicles = {
     delete: "Delete",
     cancel: "Cancel",
     save: "Save",
-    create: "Create Vehicle",
+    create: "New Vehicle",
     update: "Update",
     activating: "Activating...",
     creating: "Creating...",

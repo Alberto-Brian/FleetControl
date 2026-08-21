@@ -97,7 +97,7 @@ export const ptVehicles = {
     delete: "Excluir",
     cancel: "Cancelar",
     save: "Guardar",
-    create: "Criar Veículo",
+    create: "Novo Veículo",
     update: "Actualizar",
     creating: "A criar...",
     updating: "A actualizar...",

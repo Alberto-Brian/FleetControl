@@ -265,7 +265,7 @@ export default function ExpensesPageContent() {
         <div className="col-span-2">{t('expenses:compact.colDateExpVenc')}</div>
         <div className="col-span-2">{t('expenses:compact.colDatePgtoCriacao')}</div>
         <div className="col-span-1">{t('expenses:fields.status')}</div>
-        <div className="col-span-2">{t('expenses:fields.amount')}</div>
+        <div className="col-span-2 text-center">{t('expenses:fields.amount')}</div>
         <div className="col-span-1 text-right">{t('expenses:table.actions')}</div>
       </div>
       <div className="divide-y">
@@ -305,49 +305,33 @@ export default function ExpensesPageContent() {
               </div>
             </div>
             <div className="col-span-1">{getStatusBadge(expense)}</div>
-            <div className="col-span-2">
+            <div className="col-span-2 text-center ">
               <span className="text-sm font-bold">{expense.amount.toLocaleString('pt-PT')} Kz</span>
             </div>
-            {/* BOTÕES DIRETAMENTE VISÍVEIS */}
-            <div className="col-span-1 flex justify-end gap-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8" 
-                onClick={() => { selectExpense(expense); setViewDialogOpen(true); }}
-                title={t('expenses:actions.view')}
-              >
-                <Eye className="w-4 h-4" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8" 
-                onClick={() => { selectExpense(expense); setEditDialogOpen(true); }}
-                title={t('expenses:actions.edit')}
-              >
-                <Edit className="w-4 h-4" />
-              </Button>
-              {expense.status === 'pending' && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" 
-                  onClick={() => { selectExpense(expense); setMarkAsPaidDialogOpen(true); }}
-                  title={t('expenses:actions.markAsPaid')}
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                </Button>
-              )}
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" 
-                onClick={() => openDeleteExpenseDialog(expense)}
-                title={t('expenses:actions.delete')}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+            <div className="flex justify-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem onClick={() => { selectExpense(expense); setViewDialogOpen(true); }}>
+                    <Eye className="w-4 h-4 mr-2" />{t('expenses:actions.view')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { selectExpense(expense); setEditDialogOpen(true); }}>
+                    <Edit className="w-4 h-4 mr-2" />{t('expenses:actions.edit')}
+                  </DropdownMenuItem>
+                  {expense.status === 'pending' && (
+                    <DropdownMenuItem className="text-emerald-600 focus:text-emerald-600" onClick={() => { selectExpense(expense); setMarkAsPaidDialogOpen(true); }}>
+                      <CheckCircle2 className="w-4 h-4 mr-2" />{t('expenses:actions.markAsPaid')}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => openDeleteExpenseDialog(expense)}>
+                    <Trash2 className="w-4 h-4 mr-2" />{t('expenses:actions.delete')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         ))}

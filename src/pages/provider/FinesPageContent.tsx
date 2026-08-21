@@ -15,8 +15,11 @@ import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, write
 import { usePageViewSettings } from '@/hooks/usePageViewSettings';
 import {
   AlertCircle, Search, DollarSign, FileText, Calendar, Eye, Edit,
-  Trash2, CheckCircle2, Scale, LayoutGrid, List, Rows, MapPin, Filter
+  Trash2, CheckCircle2, Scale, LayoutGrid, List, Rows, MapPin, Filter, MoreHorizontal
 } from 'lucide-react';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 import { useFines } from '@/contexts/FinesContext';
 import { getAllFines, deleteFine as deleteFineHelper, isOverdue, getDaysOverdue, getDaysUntilDue } from '@/helpers/fine-helpers';
@@ -158,15 +161,32 @@ export default function FinesPageContent() {
               <div className="col-span-3"><span className="text-sm truncate block">{fine.infraction_type}</span></div>
               <div className="col-span-2">{getStatusBadge(fine.status)}</div>
               <div className="col-span-2"><span className="text-sm font-bold">{fine.fine_amount.toLocaleString('pt-PT')} Kz</span></div>
-              <div className="col-span-1 flex gap-1 justify-end">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { selectFine(fine); setViewDialogOpen(true); }}><Eye className="w-4 h-4" /></Button>
-                {fine.status === 'pending' && (
-                  <>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600" onClick={() => { selectFine(fine); setMarkAsPaidDialogOpen(true); }}><CheckCircle2 className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { selectFine(fine); setEditDialogOpen(true); }}><Edit className="w-4 h-4" /></Button>
-                  </>
-                )}
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { selectFine(fine); setDeleteDialogOpen(true); }}><Trash2 className="w-4 h-4" /></Button>
+              <div className="col-span-1 flex justify-end">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem onClick={() => { selectFine(fine); setViewDialogOpen(true); }}>
+                      <Eye className="w-4 h-4 mr-2" />{t('fines:actions.view')}
+                    </DropdownMenuItem>
+                    {fine.status === 'pending' && (
+                      <>
+                        <DropdownMenuItem className="text-emerald-600 focus:text-emerald-600" onClick={() => { selectFine(fine); setMarkAsPaidDialogOpen(true); }}>
+                          <CheckCircle2 className="w-4 h-4 mr-2" />{t('fines:actions.markAsPaid')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { selectFine(fine); setEditDialogOpen(true); }}>
+                          <Edit className="w-4 h-4 mr-2" />{t('fines:actions.edit')}
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => { selectFine(fine); setDeleteDialogOpen(true); }}>
+                      <Trash2 className="w-4 h-4 mr-2" />{t('fines:actions.delete')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           ))}

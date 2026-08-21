@@ -260,7 +260,7 @@ export function useApiConnection(): UseApiConnectionReturn {
           accuracy:     p.accuracy,
           address:      p.address   ?? null,
           batteryLevel: p.attributes?.batteryLevel ?? null,
-          timestamp: (p.fixTime || p.serverTime || p.deviceTime || new Date().toISOString()),
+          timestamp: (p.fixTime || p.serverTime || p.deviceTime || ''),
           attributes:   p.attributes,
         }));
 

@@ -159,20 +159,22 @@ function fmtDate(iso?: string): string {
   return new Date(iso).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
-const EVENT_LABELS: Record<string, string> = {
-  geofenceEnter:   'Entrou em zona',
-  geofenceExit:    'Saiu de zona',
-  speedLimit:      'Excesso velocidade',
-  deviceOverspeed: 'Excesso velocidade',
-  ignitionOn:      'Ignição ligada',
-  ignitionOff:     'Ignição desligada',
-  deviceMoving:    'Em movimento',
-  deviceStopped:   'Parado',
-};
-
 // ==================== GPS REPORTS TAB ====================
 
 function GpsReportsTab() {
+  const { t } = useTranslation();
+
+  const EVENT_LABELS: Record<string, string> = {
+    geofenceEnter:   t('tracking:gpsReports.eventGeofenceEnter'),
+    geofenceExit:    t('tracking:gpsReports.eventGeofenceExit'),
+    speedLimit:      t('tracking:gpsReports.eventSpeedLimit'),
+    deviceOverspeed: t('tracking:gpsReports.eventDeviceOverspeed'),
+    ignitionOn:      t('tracking:gpsReports.eventIgnitionOn'),
+    ignitionOff:     t('tracking:gpsReports.eventIgnitionOff'),
+    deviceMoving:    t('tracking:gpsReports.eventDeviceMoving'),
+    deviceStopped:   t('tracking:gpsReports.eventDeviceStopped'),
+  };
+
   const [devices,     setDevices]     = useState<GpsDevice[]>([]);
   const [selectedId,  setSelectedId]  = useState<string>('');
   const [from,        setFrom]        = useState(() => {
@@ -211,16 +213,16 @@ function GpsReportsTab() {
         setEvents(data ?? []);
       }
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? err?.message ?? 'Erro ao carregar dados');
+      setError(err?.response?.data?.message ?? err?.message ?? t('tracking:gpsReports.errorLoading'));
     } finally {
       setLoading(false);
     }
   }
 
   const SUB_TABS: { key: GpsSubTab; label: string; icon: React.ElementType }[] = [
-    { key: 'summary', label: 'Resumo',    icon: BarChart3        },
-    { key: 'stops',   label: 'Paragens',  icon: ParkingCircle    },
-    { key: 'events',  label: 'Eventos',   icon: Zap              },
+    { key: 'summary', label: t('tracking:gpsReports.subTabSummary'), icon: BarChart3     },
+    { key: 'stops',   label: t('tracking:gpsReports.subTabStops'),   icon: ParkingCircle },
+    { key: 'events',  label: t('tracking:gpsReports.subTabEvents'),  icon: Zap           },
   ];
 
   return (
@@ -231,11 +233,11 @@ function GpsReportsTab() {
           <div className="flex flex-col sm:flex-row gap-4 items-end">
             {/* Device selector */}
             <div className="flex-1 min-w-[220px]">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Dispositivo</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">{t('tracking:gpsReports.deviceLabel')}</label>
               <SearchableSelect
-                placeholder="Seleccionar dispositivo..."
-                searchPlaceholder="Pesquisar por nome ou IMEI..."
-                emptyMessage="Nenhum dispositivo encontrado."
+                placeholder={t('tracking:gpsReports.devicePlaceholder')}
+                searchPlaceholder={t('tracking:gpsReports.deviceSearchPlaceholder')}
+                emptyMessage={t('tracking:gpsReports.deviceEmpty')}
                 value={selectedId}
                 onValueChange={setSelectedId}
                 options={devices.map(d => {
@@ -263,7 +265,7 @@ function GpsReportsTab() {
 
             {/* Date from */}
             <div className="flex-1 min-w-[170px]">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">De</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">{t('tracking:gpsReports.fromLabel')}</label>
               <input
                 type="datetime-local"
                 value={from}
@@ -274,7 +276,7 @@ function GpsReportsTab() {
 
             {/* Date to */}
             <div className="flex-1 min-w-[170px]">
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Até</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">{t('tracking:gpsReports.toLabel')}</label>
               <input
                 type="datetime-local"
                 value={to}
@@ -285,7 +287,7 @@ function GpsReportsTab() {
 
             <Button onClick={handleGenerate} disabled={!selectedId || loading} className="h-9 gap-2 flex-shrink-0 self-end">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <BarChart3 className="w-4 h-4" />}
-              Gerar
+              {t('tracking:gpsReports.generateButton')}
             </Button>
           </div>
         </CardContent>
@@ -323,11 +325,11 @@ function GpsReportsTab() {
       {subTab === 'summary' && summary.length > 0 && (
         <Card className="border-none shadow-sm overflow-hidden">
           <div className="bg-muted/50 px-6 py-3 grid grid-cols-6 gap-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground border-b">
-            <div className="col-span-2">Dispositivo</div>
-            <div>Distância</div>
-            <div>Vel. Máx.</div>
-            <div>Vel. Média</div>
-            <div>Tempo motor</div>
+            <div className="col-span-2">{t('tracking:gpsReports.colDevice')}</div>
+            <div>{t('tracking:gpsReports.colDistance')}</div>
+            <div>{t('tracking:gpsReports.colMaxSpeed')}</div>
+            <div>{t('tracking:gpsReports.colAvgSpeed')}</div>
+            <div>{t('tracking:gpsReports.colEngineHours')}</div>
           </div>
           <div className="divide-y">
             {summary.map((s, i) => {
@@ -352,11 +354,11 @@ function GpsReportsTab() {
       {subTab === 'stops' && stops.length > 0 && (
         <Card className="border-none shadow-sm overflow-hidden">
           <div className="bg-muted/50 px-6 py-3 grid grid-cols-12 gap-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground border-b">
-            <div className="col-span-2">Dispositivo</div>
-            <div className="col-span-3">Início</div>
-            <div className="col-span-3">Fim</div>
-            <div className="col-span-2">Duração</div>
-            <div className="col-span-2">Localização</div>
+            <div className="col-span-2">{t('tracking:gpsReports.colDevice')}</div>
+            <div className="col-span-3">{t('tracking:gpsReports.colStart')}</div>
+            <div className="col-span-3">{t('tracking:gpsReports.colEnd')}</div>
+            <div className="col-span-2">{t('tracking:gpsReports.colDuration')}</div>
+            <div className="col-span-2">{t('tracking:gpsReports.colLocation')}</div>
           </div>
           <div className="divide-y">
             {stops.map((s, i) => {
@@ -383,10 +385,10 @@ function GpsReportsTab() {
       {subTab === 'events' && events.length > 0 && (
         <Card className="border-none shadow-sm overflow-hidden">
           <div className="bg-muted/50 px-6 py-3 grid grid-cols-12 gap-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground border-b">
-            <div className="col-span-2">Dispositivo</div>
-            <div className="col-span-4">Tipo</div>
-            <div className="col-span-3">Data/Hora</div>
-            <div className="col-span-3">Geofence</div>
+            <div className="col-span-2">{t('tracking:gpsReports.colDevice')}</div>
+            <div className="col-span-4">{t('tracking:gpsReports.colType')}</div>
+            <div className="col-span-3">{t('tracking:gpsReports.colDateTime')}</div>
+            <div className="col-span-3">{t('tracking:gpsReports.colGeofence')}</div>
           </div>
           <div className="divide-y">
             {events.map((e, i) => {
@@ -417,22 +419,22 @@ function GpsReportsTab() {
           {subTab === 'summary' && summary.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border-2 border-dashed border-muted/50">
               <BarChart3 className="w-10 h-10 text-muted-foreground/20 mb-3" />
-              <p className="font-bold text-base">Sem dados de resumo</p>
-              <p className="text-sm text-muted-foreground mt-1">Selecciona um dispositivo e clica em Gerar</p>
+              <p className="font-bold text-base">{t('tracking:gpsReports.emptySummaryTitle')}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('tracking:gpsReports.emptySummaryDesc')}</p>
             </div>
           )}
           {subTab === 'stops' && stops.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border-2 border-dashed border-muted/50">
               <ParkingCircle className="w-10 h-10 text-muted-foreground/20 mb-3" />
-              <p className="font-bold text-base">Sem paragens registadas</p>
-              <p className="text-sm text-muted-foreground mt-1">Altera o intervalo de datas e clica em Gerar</p>
+              <p className="font-bold text-base">{t('tracking:gpsReports.emptyStopsTitle')}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('tracking:gpsReports.emptyStopsDesc')}</p>
             </div>
           )}
           {subTab === 'events' && events.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border-2 border-dashed border-muted/50">
               <Zap className="w-10 h-10 text-muted-foreground/20 mb-3" />
-              <p className="font-bold text-base">Sem eventos registados</p>
-              <p className="text-sm text-muted-foreground mt-1">Altera o intervalo de datas e clica em Gerar</p>
+              <p className="font-bold text-base">{t('tracking:gpsReports.emptyEventsTitle')}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('tracking:gpsReports.emptyEventsDesc')}</p>
             </div>
           )}
         </>
@@ -444,7 +446,7 @@ function GpsReportsTab() {
 // ==================== COMPONENTE PRINCIPAL ====================
 
 export function ReportsPageContent() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
   // State
   const [activeTab,      setActiveTab]      = useState<ActiveTab>('reports');
@@ -626,7 +628,7 @@ export function ReportsPageContent() {
                 )}
               </TabsTrigger>
               <TabsTrigger value="gps" className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5">
-                <Navigation className="w-4 h-4" /> Rastreamento GPS
+                <Navigation className="w-4 h-4" /> {t('tracking:gpsReports.tabLabel')}
               </TabsTrigger>
             </TabsList>
             <Button className="h-9 gap-2 flex-shrink-0" onClick={() => { setDialogDefaultType(undefined); setDialogOpen(true); }}>

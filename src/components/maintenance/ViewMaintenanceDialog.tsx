@@ -4,18 +4,21 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { Calendar, DollarSign, FileText, Wrench, Settings, Eye, Flag, Clock, AlertCircle } from 'lucide-react';
+import { Calendar, DollarSign, FileText, Wrench, Settings, Flag, Clock, AlertCircle, Play, CheckCircle2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useMaintenances } from '@/contexts/MaintenancesContext';
 
 interface ViewMaintenanceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onStart?: () => void;
+  onComplete?: () => void;
 }
 
-export default function ViewMaintenanceDialog({ open, onOpenChange }: ViewMaintenanceDialogProps) {
+export default function ViewMaintenanceDialog({ open, onOpenChange, onStart, onComplete }: ViewMaintenanceDialogProps) {
   const { t } = useTranslation();
   const { state: { selectedMaintenance } } = useMaintenances();
 
@@ -193,6 +196,26 @@ export default function ViewMaintenanceDialog({ open, onOpenChange }: ViewMainte
               </div>
             )}
           </div>
+
+          {(selectedMaintenance.status === 'scheduled' || selectedMaintenance.status === 'in_progress') && (
+            <>
+              <Separator />
+              <div className="flex gap-3">
+                {selectedMaintenance.status === 'scheduled' && onStart && (
+                  <Button variant="outline" className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={onStart}>
+                    <Play className="w-4 h-4 mr-2" />
+                    {t('maintenances:actions.start')}
+                  </Button>
+                )}
+                {onComplete && (
+                  <Button variant="outline" className="flex-1 text-green-600 border-green-200 hover:bg-green-50" onClick={onComplete}>
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    {t('maintenances:actions.complete')}
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>

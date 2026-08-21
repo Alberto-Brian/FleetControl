@@ -26,7 +26,14 @@ export const ptCommon = {
     first: "Primeira",
     previous: "Anterior",
     next: "Próxima",
-    last: "Última"
+    last: "Última",
+    noRecords: "Nenhum registo",
+    range: "{{from}} – {{to}} de {{total}}",
+    perPage: "por página",
+    firstPage: "Primeira página",
+    prevPage: "Página anterior",
+    nextPage: "Página seguinte",
+    lastPage: "Última página",
     },
 
     colors: {

@@ -13,7 +13,7 @@ export const ptHelp = {
       id: 'intro',
       title: 'Introdução ao FleetControl',
       content: [
-        { type: 'text', text: 'O FleetControl é um sistema de gestão de frotas que permite monitorizar veículos, motoristas, viagens, abastecimentos, manutenções, despesas e multas. Inclui rastreamento GPS em tempo real via Traccar no modo conectado.' },
+        { type: 'text', text: 'O FleetControl é um sistema de gestão de frotas que permite monitorar veículos, motoristas, viagens, abastecimentos, manutenções, despesas e multas. Inclui rastreamento GPS em tempo real via Traccar no modo conectado.' },
         { type: 'text', text: 'Dois modos de operação:' },
         { type: 'list', items: [
           'Modo Autónomo (Standalone) — funciona completamente offline. Todos os dados são guardados localmente no computador. Chave de licença começa por ST-.',
@@ -74,7 +74,7 @@ export const ptHelp = {
             ['Despesas', 'Total despesas, valor total, pagas, taxa de pagamento', 'Donut de estado, barras de valor por categoria'],
           ],
         },
-        { type: 'tip', text: 'Valores grandes são automaticamente abreviados (ex: 85.300 km → "85.3K km"). Passa o rato sobre o KPI para ver o valor completo num tooltip com o nome da métrica e o número exacto.' },
+        { type: 'tip', text: 'Valores grandes são automaticamente abreviados (ex: 85.300 km → "85.3K km"). Passa o mouse sobre o KPI para ver o valor completo num tooltip com o nome da métrica e o número exacto.' },
       ],
     },
 
@@ -309,7 +309,7 @@ export const ptHelp = {
       title: 'Rastreamento GPS',
       connectedOnly: true,
       content: [
-        { type: 'text', text: 'O módulo de rastreamento GPS (disponível apenas no modo conectado) permite monitorizar em tempo real a posição de todos os veículos equipados com dispositivo GPS via servidor Traccar.' },
+        { type: 'text', text: 'O módulo de rastreamento GPS (disponível apenas no modo conectado) permite monitorar em tempo real a posição de todos os veículos equipados com dispositivo GPS via servidor Traccar.' },
         { type: 'list', items: [
           'Mapa em tempo real com posição de todos os dispositivos',
           'Velocidade, rumo e última actualização de cada veículo',

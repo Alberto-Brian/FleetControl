@@ -29,7 +29,14 @@ export const enCommon = {
         first: "First",
         previous: "Previous",
         next: "Next",
-        last: "Last"
+        last: "Last",
+        noRecords: "No records",
+        range: "{{from}} – {{to}} of {{total}}",
+        perPage: "per page",
+        firstPage: "First page",
+        prevPage: "Previous page",
+        nextPage: "Next page",
+        lastPage: "Last page",
     },
 
     colors: {

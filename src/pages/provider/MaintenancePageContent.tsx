@@ -311,12 +311,12 @@ export function MaintenancePageContent() {
               <div className="col-span-2 flex gap-1 justify-end items-center">
                 {m.status === maintenanceStatus.SCHEDULED && (
                   <>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(m); setStartDialogOpen(true); }} title={t('maintenances:actions.start')}><Play className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(m); setCompleteDialogOpen(true); }} title={t('maintenances:actions.complete')}><CheckCircle2 className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(m); }} title={t('maintenances:actions.start')}><Play className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(m); }} title={t('maintenances:actions.complete')}><CheckCircle2 className="w-4 h-4" /></Button>
                   </>
                 )}
                 {m.status === maintenanceStatus.IN_PROGRESS && (
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(m); setCompleteDialogOpen(true); }}><CheckCircle2 className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(m); }}><CheckCircle2 className="w-4 h-4" /></Button>
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -386,12 +386,12 @@ export function MaintenancePageContent() {
                   </div>
                   {maintenance.status === maintenanceStatus.SCHEDULED && (
                     <>
-                      <Button variant="outline" size="sm" className="h-9 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setStartDialogOpen(true); }}><Play className="w-4 h-4 mr-1.5" />{t('maintenances:actions.start')}</Button>
-                      <Button variant="outline" size="sm" className="h-9 text-green-600 border-green-200 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setCompleteDialogOpen(true); }}><CheckCircle2 className="w-4 h-4 mr-1.5" />{t('maintenances:actions.complete')}</Button>
+                      <Button variant="outline" size="sm" className="h-9 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); }}><Play className="w-4 h-4 mr-1.5" />{t('maintenances:actions.start')}</Button>
+                      <Button variant="outline" size="sm" className="h-9 text-green-600 border-green-200 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); }}><CheckCircle2 className="w-4 h-4 mr-1.5" />{t('maintenances:actions.complete')}</Button>
                     </>
                   )}
                   {maintenance.status === maintenanceStatus.IN_PROGRESS && (
-                    <Button variant="outline" size="sm" className="h-9 text-green-600 border-green-200 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setCompleteDialogOpen(true); }}><CheckCircle2 className="w-4 h-4 mr-1.5" />{t('maintenances:actions.complete')}</Button>
+                    <Button variant="outline" size="sm" className="h-9 text-green-600 border-green-200 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); }}><CheckCircle2 className="w-4 h-4 mr-1.5" />{t('maintenances:actions.complete')}</Button>
                   )}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -468,12 +468,12 @@ export function MaintenancePageContent() {
                 <div className="flex gap-2 flex-wrap">
                   {maintenance.status === maintenanceStatus.SCHEDULED && (
                     <>
-                      <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setStartDialogOpen(true); }}><Play className="w-3.5 h-3.5 mr-1.5" />{t('maintenances:actions.start')}</Button>
-                      <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold text-green-600 border-green-200 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setCompleteDialogOpen(true); }}><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />{t('maintenances:actions.complete')}</Button>
+                      <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); }}><Play className="w-3.5 h-3.5 mr-1.5" />{t('maintenances:actions.start')}</Button>
+                      <Button variant="outline" size="sm" className="flex-1 h-9 text-xs font-bold text-green-600 border-green-200 hover:bg-green-50" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); }}><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />{t('maintenances:actions.complete')}</Button>
                     </>
                   )}
                   {maintenance.status === maintenanceStatus.IN_PROGRESS && (
-                    <Button variant="default" size="sm" className="flex-1 h-9 text-xs font-bold bg-green-600 hover:bg-green-700" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setCompleteDialogOpen(true); }}><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />{t('maintenances:actions.complete')}</Button>
+                    <Button variant="default" size="sm" className="flex-1 h-9 text-xs font-bold bg-green-600 hover:bg-green-700" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); }}><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />{t('maintenances:actions.complete')}</Button>
                   )}
                   <Button variant="outline" size="sm" className="h-9 px-2" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setEditDialogOpen(true); }} title={t('common:actions.edit')}><Edit className="w-3.5 h-3.5" /></Button>
                   <Button variant="outline" size="sm" className="h-9 px-2 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); selectMaintenance(maintenance); setDeleteDialogOpen(true); }} title={t('common:actions.delete')}><Trash2 className="w-3.5 h-3.5" /></Button>
@@ -877,7 +877,12 @@ export function MaintenancePageContent() {
           </TabsContent>
         </Tabs>
 
-        <ViewMaintenanceDialog open={!!selectedMaintenance} onOpenChange={(open) => !open && selectMaintenance(null)} />
+        <ViewMaintenanceDialog
+          open={!!selectedMaintenance}
+          onOpenChange={(open) => !open && selectMaintenance(null)}
+          onStart={() => setStartDialogOpen(true)}
+          onComplete={() => setCompleteDialogOpen(true)}
+        />
         <StartMaintenanceDialog open={startDialogOpen} onOpenChange={setStartDialogOpen} onSuccess={loadMaintenances} />
         <CompleteMaintenanceDialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen} onSuccess={loadMaintenances} />
         <EditMaintenanceDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} onSuccess={loadMaintenances} />

@@ -13,7 +13,7 @@ import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useTranslation } from 'react-i18next';
 import {
   Search, MapPin, Truck, User, Flag, TrendingUp, Clock, Eye,
-  Route as RouteIcon, XCircle, List, LayoutGrid, MoreHorizontal,
+  Route as RouteIcon, XCircle, List, LayoutGrid, Rows, MoreHorizontal,
   Navigation, ArrowRight, Gauge, PlayCircle, CheckCircle2, Edit, Trash2,
   Filter
 } from 'lucide-react';
@@ -53,7 +53,7 @@ function fmt(n: number, suffix = '') {
   return `${n.toLocaleString('pt-PT')}${sfx}`;
 }
 
-type ViewMode = 'list' | 'cards';
+type ViewMode = 'compact' | 'list' | 'cards';
 
 export default function TripsPageContent() {
   const { t } = useTranslation();
@@ -236,15 +236,16 @@ export default function TripsPageContent() {
   ];
 
   const viewModes = [
-    { mode: 'list',  icon: List,       label: t('trips:dialogs.view.list')  },
-    { mode: 'cards', icon: LayoutGrid, label: t('trips:dialogs.view.cards') },
+    { mode: 'compact', icon: Rows,       label: t('common:viewModes.compact') },
+    { mode: 'list',    icon: List,       label: t('common:viewModes.normal')  },
+    { mode: 'cards',   icon: LayoutGrid, label: t('common:viewModes.cards')   },
   ] as const;
 
   // ---------------------------------------------------------------
   // Views — usam "trips" directamente (já filtrados pelo back)
   // ---------------------------------------------------------------
 
-  function renderListView() {
+  function renderCompactView() {
     return (
       <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
         <div className="bg-muted/50 px-6 py-4 grid grid-cols-12 gap-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground border-b">
@@ -313,6 +314,86 @@ export default function TripsPageContent() {
             );
           })}
         </div>
+      </div>
+    );
+  }
+
+  function renderListView() {
+    return (
+      <div className="grid gap-4">
+        {trips.map((trip) => {
+          const distance     = trip.end_mileage ? trip.end_mileage - trip.start_mileage : null;
+          const isInProgress = trip.status === 'in_progress';
+          return (
+            <Card key={trip.id} className="overflow-hidden group hover:shadow-md transition-all duration-200 bg-card">
+              <CardContent className="p-0">
+                <div className="flex items-start gap-4 p-5">
+                  <div className={cn('hidden sm:flex h-12 w-12 items-center justify-center rounded-xl shrink-0 transition-colors', isInProgress ? 'bg-blue-100 text-blue-600' : 'bg-muted/50 text-muted-foreground')}>
+                    <Navigation className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="font-mono font-bold text-base">{trip.trip_code}</span>
+                          {getStatusBadge(trip.status)}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span className="font-semibold text-green-600 dark:text-green-400 truncate">{trip.origin}</span>
+                          <ArrowRight className="w-3 h-3 shrink-0" />
+                          <span className="font-semibold text-red-600 dark:text-red-400 truncate">{trip.destination}</span>
+                        </div>
+                      </div>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                        {new Date(trip.start_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Truck className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <span className="font-bold block truncate">{trip.vehicle_license}</span>
+                          <span className="text-xs text-muted-foreground truncate block">{trip.vehicle_brand} {trip.vehicle_model}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <span className="truncate">{trip.driver_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Gauge className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <span className="font-medium">
+                          {distance !== null ? `${distance.toLocaleString('pt-PT')} km` : `${trip.start_mileage.toLocaleString('pt-PT')} km`}
+                        </span>
+                      </div>
+                      {trip.end_date && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Flag className="w-4 h-4 text-muted-foreground shrink-0" />
+                          <span className="truncate">{new Date(trip.end_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => closeDropdownsAndOpenDialog(() => { selectTrip(trip); setViewDialogOpen(true); })}>
+                        <Eye className="w-4 h-4 mr-2" />{t('trips:actions.view')}
+                      </Button>
+                      {isInProgress && (
+                        <>
+                          <Button size="sm" variant="outline" className="text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => closeDropdownsAndOpenDialog(() => { selectTrip(trip); setCompleteDialogOpen(true); })}>
+                            <Flag className="w-4 h-4 mr-2" />{t('trips:actions.complete')}
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => closeDropdownsAndOpenDialog(() => { selectTrip(trip); setCancelDialogOpen(true); })}>
+                            <XCircle className="w-4 h-4 mr-2" />{t('trips:actions.cancel')}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     );
   }
@@ -673,7 +754,7 @@ export default function TripsPageContent() {
               </div>
             ) : (
               <div className="animate-in fade-in duration-300">
-                {viewMode === 'list' ? renderListView() : renderCardsView()}
+                {viewMode === 'compact' ? renderCompactView() : viewMode === 'list' ? renderListView() : renderCardsView()}
               </div>
             )}
             </div>
