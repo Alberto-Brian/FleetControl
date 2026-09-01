@@ -200,19 +200,19 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
   }
   function tripStatusBadge(s: string) {
     const map: Record<string, { label: string; cls: string }> = {
-      in_progress: { label: t('trips:status.in_progress'), cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400' },
+      in_progress: { label: t('trips:status.in_progress.label'), cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400' },
       completed:   { label: t('trips:status.completed.label'),   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400' },
-      cancelled:   { label: t('trips:status.cancelled'),   cls: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400' },
+      cancelled:   { label: t('trips:status.cancelled.label'),   cls: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400' },
     };
     const info = map[s] || map.completed;
     return <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 font-bold', info.cls)}>{info.label}</Badge>;
   }
   function mntStatusBadge(s: string) {
     const map: Record<string, { label: string; cls: string }> = {
-      in_progress: { label: t('maintenances:status.in_progress'), cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400' },
-      completed:   { label: t('maintenances:status.completed'),   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400' },
-      scheduled:   { label: t('maintenances:status.scheduled'),   cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400' },
-      cancelled:   { label: t('maintenances:status.cancelled'),   cls: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400' },
+      in_progress: { label: t('maintenances:status.in_progress.label'), cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400' },
+      completed:   { label: t('maintenances:status.completed.label'),   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400' },
+      scheduled:   { label: t('maintenances:status.scheduled.label'),   cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400' },
+      cancelled:   { label: t('maintenances:status.cancelled.label'),   cls: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400' },
     };
     const info = map[s] || map.in_progress;
     return <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 font-bold', info.cls)}>{info.label}</Badge>;

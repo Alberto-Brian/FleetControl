@@ -177,7 +177,9 @@ export function DeviceInfoPanel({ device, position, onClose, onShowHistory }: Pr
               boxShadow: isOnline ? `0 0 6px ${G.green}` : 'none',
             }} />
             <p style={{ color: G.textPrimary, fontWeight: 700, fontSize: 15, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {device.name}
+              {device.vehicle
+                          ? `${device.vehicle.license_plate}`
+                          : device.name}
             </p>
           </div>
           <p style={{ color: G.textMuted, fontSize: 11, fontFamily: 'monospace', margin: '3px 0 0' }}>

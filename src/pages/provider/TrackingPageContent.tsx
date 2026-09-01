@@ -354,7 +354,7 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
               currentLayer={tileLayer}
               onLayerChange={setTileLayer}
               followMode={state.followMode}
-              followDeviceName={state.followMode && state.selectedDevice ? state.selectedDevice.name : null}
+              followDeviceName={state.followMode && state.selectedDevice ? state.selectedDevice.vehicle?.license_plate || state.selectedDevice.name : null}
               onFitAll={fitAllDevices}
               onStopFollow={() => dispatch({ type: 'SET_FOLLOW', payload: null })}
               unreadAlerts={state.unreadAlerts}
