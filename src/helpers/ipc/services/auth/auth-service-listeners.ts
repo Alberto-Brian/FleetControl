@@ -9,10 +9,15 @@ import {
     CREATE_FIRST_USER, 
     CHANGE_PASSWORD, 
     UPDATE_PROFILE,
-    SET_API_TOKEN
+    SET_API_TOKEN,
+    SAVE_CACHED_SESSION,
+    GET_CACHED_SESSION,
+    CLEAR_CACHED_SESSION,
+    SYNC_LOCAL_USER,
  } from "./auth-service-channels";
 
 import { setStoredApiToken } from './token-store';
+import { saveCachedSession, loadCachedSession, clearCachedSession, type CachedSession } from './session-cache';
 
 import { IUser } from "@/lib/types/user";
 import { ILogin, ICreateFirstUser, IChangePassword, IUpdateProfile } from "@/lib/types/auth";
@@ -32,6 +37,20 @@ export function addServiceAuthEventListeners() {
     ipcMain.handle(SET_API_TOKEN, (_event, token: string | null) => {
     setStoredApiToken(token);
   });
+
+    ipcMain.handle(SAVE_CACHED_SESSION, (_event, session: CachedSession) => {
+        saveCachedSession(session);
+    });
+    ipcMain.handle(GET_CACHED_SESSION, (_event) => {
+        return loadCachedSession();
+    });
+    ipcMain.handle(CLEAR_CACHED_SESSION, (_event) => {
+        clearCachedSession();
+    });
+
+    ipcMain.handle(SYNC_LOCAL_USER, async (_event, data: { name: string; email: string; password: string }) => {
+        return await AuthService.syncLocalUnlockRecord(data.name, data.email, data.password);
+    });
 }
 
 async function loginEvent(loginData: ILogin): Promise<IUser> {

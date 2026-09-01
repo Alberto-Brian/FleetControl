@@ -138,6 +138,51 @@ export class AuthService {
   }
 
   /**
+   * Fase 11B.10 — sincroniza (upsert) a representação local de um
+   * utilizador que a API acabou de autenticar com sucesso. Nunca decide
+   * identidade por si só (a API já decidiu, é a chamadora deste método) —
+   * só cria/actualiza o registo local para continuar a servir de cadeado
+   * do cache offline com a password actual. "API User ↕ local user
+   * representation": o local passa a ser um espelho, nunca uma segunda
+   * fonte independente.
+   */
+  static async syncLocalUnlockRecord(
+    name: string,
+    email: string,
+    password: string,
+  ): Promise<IUser> {
+    const db = getDb();
+    const passwordHash = await bcrypt.hash(password, 10);
+    const existing = await AuthService.findUserByEmail(email);
+
+    if (existing) {
+      await db
+        .update(users)
+        .set({
+          name,
+          password_hash: passwordHash,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+          updated_by: existing.id,
+        })
+        .where(eq(users.id, existing.id));
+      return { id: existing.id, name, email };
+    }
+
+    const userId = generateUuid();
+    await db.insert(users).values({
+      id: userId,
+      name,
+      email,
+      password_hash: passwordHash,
+      is_active: true,
+      created_by: userId,
+      updated_by: userId,
+    });
+    return { id: userId, name, email };
+  }
+
+  /**
    * Actualizar perfil
    */
   static async updateProfile(

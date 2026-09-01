@@ -58,3 +58,9 @@ export async function updateProfile(userId: string, profileData: IUpdateProfile)
     const result = await window._service_auth.updateProfile(userId, profileData);
     return result;
 }
+
+// Fase 11B.10 — sincroniza (upsert) o "cadeado" local com a identidade que
+// a API acabou de confirmar num login online bem-sucedido.
+export async function syncLocalUser(data: { name: string; email: string; password: string }): Promise<IUser> {
+    return await window._service_auth.syncLocalUser(data);
+}

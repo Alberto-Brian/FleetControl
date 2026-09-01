@@ -54,6 +54,27 @@ export const authTranslations = {
         changeSuccess:   "Password changed successfully",
         save:            "Change Password",
       },
+      // Fase 11B.11 — estados online/offline x sessão.
+      session: {
+        toast: {
+          expiredTitle:         "Session expired",
+          expiredDescription:   "Your session has expired. Sign in again.",
+          revokedTitle:         "Session ended",
+          revokedDescription:   "An administrator ended this session remotely. Sign in again.",
+          invalidTitle:         "Invalid session",
+          invalidDescription:   "Sign in again.",
+        },
+        badge: {
+          offlineCacheValidTitle:         "Working offline",
+          offlineCacheValidDescription:   "Using the last valid session. Remote changes will sync once you reconnect — role and permissions shown are not re-verified while offline.",
+          offlineCacheExpiredTitle:       "Cached session expired",
+          offlineCacheExpiredDescription: "Offline, and the saved session has expired. Connect to the Internet to sign in again.",
+          noSessionOfflineTitle:          "No session available",
+          noSessionOfflineDescription:    "Offline, with no previously saved session. Connect to the Internet to sign in.",
+          noSessionOnlineTitle:           "No active session",
+          noSessionOnlineDescription:     "Sign in to access online features.",
+        },
+      },
     }
   },
   pt: {
@@ -110,6 +131,27 @@ export const authTranslations = {
         currentRequired: "Introduza a senha actual",
         changeSuccess:   "Senha alterada com sucesso",
         save:            "Alterar Senha",
+      },
+      // Fase 11B.11 — estados online/offline x sessão.
+      session: {
+        toast: {
+          expiredTitle:         "Sessão expirada",
+          expiredDescription:   "A tua sessão expirou. Inicia sessão novamente.",
+          revokedTitle:         "Sessão terminada",
+          revokedDescription:   "Um administrador terminou esta sessão remotamente. Inicia sessão novamente.",
+          invalidTitle:         "Sessão inválida",
+          invalidDescription:   "Inicia sessão novamente.",
+        },
+        badge: {
+          offlineCacheValidTitle:         "A trabalhar offline",
+          offlineCacheValidDescription:   "A usar a última sessão válida. As alterações remotas sincronizam ao reconectar — o papel e as permissões apresentados não estão a ser reverificados enquanto offline.",
+          offlineCacheExpiredTitle:       "Sessão cacheada expirada",
+          offlineCacheExpiredDescription: "Sem ligação, e a sessão guardada expirou. Liga-te à Internet para iniciar sessão novamente.",
+          noSessionOfflineTitle:          "Sem sessão disponível",
+          noSessionOfflineDescription:    "Sem ligação e sem nenhuma sessão anteriormente guardada. Liga-te à Internet para iniciar sessão.",
+          noSessionOnlineTitle:           "Sem sessão activa",
+          noSessionOnlineDescription:     "Inicia sessão para aceder às funcionalidades online.",
+        },
       },
     }
   }

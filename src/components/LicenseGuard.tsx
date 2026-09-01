@@ -8,6 +8,7 @@ import { useLicense }              from '@/hooks/useLicense';
 import { getAccessToken }          from '@/helpers/license-helpers';
 import { Loader2 }                 from 'lucide-react';
 import { useTracking }             from '@/contexts/TrackingContext';
+import { DesktopSessionBadge }     from '@/components/DesktopSessionBadge';
 
 export function LicenseGuard({ children }: { children: React.ReactNode }) {
   const { license, loading: licenseLoading, refreshLicense } = useLicense();
@@ -66,6 +67,7 @@ export function LicenseGuard({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <DesktopSessionBadge />
       {children}
     </>
   );

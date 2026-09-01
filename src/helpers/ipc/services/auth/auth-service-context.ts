@@ -7,7 +7,11 @@ import {
     CREATE_FIRST_USER,
     CHANGE_PASSWORD,
     UPDATE_PROFILE,
-    SET_API_TOKEN
+    SET_API_TOKEN,
+    SAVE_CACHED_SESSION,
+    GET_CACHED_SESSION,
+    CLEAR_CACHED_SESSION,
+    SYNC_LOCAL_USER,
 } from "./auth-service-channels";
 
 import {
@@ -28,5 +32,9 @@ export function exposeServiceAuthContext() {
         changePassword: (changePasswordData: IChangePassword) => ipcRenderer.invoke(CHANGE_PASSWORD, changePasswordData),
         updateProfile: (userId: string, profileData: IUpdateProfile) => ipcRenderer.invoke(UPDATE_PROFILE, userId, profileData),
         setToken: (token: string | null) => ipcRenderer.invoke(SET_API_TOKEN, token),
+        saveCachedSession: (session: unknown) => ipcRenderer.invoke(SAVE_CACHED_SESSION, session),
+        getCachedSession: () => ipcRenderer.invoke(GET_CACHED_SESSION),
+        clearCachedSession: () => ipcRenderer.invoke(CLEAR_CACHED_SESSION),
+        syncLocalUser: (data: { name: string; email: string; password: string }) => ipcRenderer.invoke(SYNC_LOCAL_USER, data),
     })
 }

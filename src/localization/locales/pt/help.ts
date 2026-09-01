@@ -454,6 +454,14 @@ export const ptHelp = {
         ]},
         { type: 'warning', text: 'Guarda a tua chave de licença em local seguro. Em caso de perda, contacta a AKM Systems para assistência.' },
         { type: 'tip', text: 'A chave conectada (LK-) está vinculada à tua organização no servidor. Podes usar a mesma chave para activar o FleetControl noutro computador.' },
+        { type: 'text', text: 'Modo conectado sem ligação à Internet:' },
+        { type: 'list', items: [
+          'Se a app perder a ligação, continua a funcionar com a última sessão válida — aparece uma barra no topo a indicar que estás offline',
+          'Enquanto offline, o teu papel e permissões apresentados são os últimos conhecidos, não uma verificação em tempo real',
+          'Se a sessão guardada expirar sem que voltes a ligar-te, é necessário iniciar sessão novamente assim que houver Internet',
+          'Se vires a mensagem "Sessão terminada", um administrador encerrou a tua sessão remotamente — inicia sessão novamente',
+        ]},
+        { type: 'tip', text: 'Ao reconectar, a aplicação renova a sessão automaticamente em segundo plano — não precisas de fazer nada. Alterações que um administrador tenha feito ao teu acesso (ex: mudança de papel) só se reflectem depois de reconectares.' },
       ],
     },
 

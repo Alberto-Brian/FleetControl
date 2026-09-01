@@ -454,6 +454,14 @@ export const enHelp = {
         ]},
         { type: 'warning', text: 'Keep your license key in a safe place. If lost, contact AKM Systems for assistance.' },
         { type: 'tip', text: 'The connected key (LK-) is linked to your organisation on the server. You can use the same key to activate FleetControl on another computer.' },
+        { type: 'text', text: 'Connected mode without an Internet connection:' },
+        { type: 'list', items: [
+          'If the app loses connectivity, it keeps working with the last valid session — a bar appears at the top telling you that you are offline',
+          'While offline, the role and permissions shown are the last known ones, not a live, real-time check',
+          'If the saved session expires before you reconnect, you will need to sign in again once you are back online',
+          'If you see "Session ended", an administrator has terminated your session remotely — sign in again',
+        ]},
+        { type: 'tip', text: 'When connectivity returns, the app renews the session automatically in the background — no action needed. Any changes an administrator made to your access (e.g. a role change) only take effect once you reconnect.' },
       ],
     },
 

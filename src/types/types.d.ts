@@ -76,6 +76,19 @@ interface Backup {
     removeRestoreProgressListener: () => void;
 }
 
+// Fase 11B.9 — sessão API cacheada localmente (safeStorage), reutilizada
+// enquanto o Desktop está offline. Ver session-cache.ts (processo principal).
+export interface CachedSession {
+    access_token:  string;
+    refresh_token: string;
+    user: {
+        id:    string;
+        email: string;
+        name:  string;
+    };
+    cached_at: number;
+}
+
 interface Services {
     Auth: {
         login: (loginData: ILogin) => Promise<IUser>;
@@ -85,7 +98,11 @@ interface Services {
         createFirstUser: (userData: ICreateFirstUser) => Promise<IUser>;
         changePassword: (changePasswordData: IChangePassword) => Promise<any>;
         updateProfile: (userId: string, updateProfileData: IUpdateProfile) => Promise<IUser>;
-        setToken: (token: string | null) => Promise<void>
+        setToken: (token: string | null) => Promise<void>;
+        saveCachedSession:  (session: CachedSession) => Promise<void>;
+        getCachedSession:   () => Promise<CachedSession | null>;
+        clearCachedSession: () => Promise<void>;
+        syncLocalUser:      (data: { name: string; email: string; password: string }) => Promise<IUser>;
     }
 }
 
