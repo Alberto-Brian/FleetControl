@@ -8,6 +8,7 @@ import { exposeSystemContext } from "./system/system-context";
 import { exposeLicenseContext } from "./license/license-context";
 import { exposeBackupContext } from "./backup/backup-context";
 import { exposeServiceAuthContext } from "./services/auth/auth-service-context";
+import { exposeServicePowerSyncContext } from "./services/powersync/powersync-service-context";
 import { exposeClientsContext } from "./db/clients/clients-context";
 import { exposeVehiclesContext } from "./db/vehicles/vehicles-context";
 import { exposeVehicleCategoriesContext } from "./db/vehicle_categories/vehicle-categories-context";
@@ -41,6 +42,7 @@ export default function exposeContexts() {
     exposeLicenseContext();
     exposeBackupContext();
     exposeServiceAuthContext();
+    exposeServicePowerSyncContext();
     exposeClientsContext();
     exposeVehiclesContext();
     exposeVehicleCategoriesContext();

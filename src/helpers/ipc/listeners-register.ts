@@ -9,6 +9,7 @@ import { addSystemEventListeners } from "./system/system-listeners";
 import { addLicenseEventListeners } from "./license/license-listeners";
 import { addBackupEventListeners } from "./backup/backup-listeners";
 import { addServiceAuthEventListeners } from "./services/auth/auth-service-listeners";
+import { addServicePowerSyncEventListeners } from "./services/powersync/powersync-service-listeners";
 import { addClientsEventListeners } from "./db/clients/clients-listeners";
 import { addVehiclesEventListeners } from "./db/vehicles/vehicles-listeners";
 import { addVehicleCategoriesEventListeners } from "./db/vehicle_categories/vehicle-categories-listeners";
@@ -41,6 +42,7 @@ export default function registerListeners(mainWindow: BrowserWindow) {
     addLicenseEventListeners();
     addBackupEventListeners();
     addServiceAuthEventListeners();
+    addServicePowerSyncEventListeners();
     addClientsEventListeners();
     addVehiclesEventListeners();
     addVehicleCategoriesEventListeners();

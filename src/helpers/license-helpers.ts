@@ -175,6 +175,15 @@ export async function loginOnApi(email: string, password: string): Promise<ApiLo
       cached_at: Date.now(),
     });
 
+    // Fase 12, Prompt 22.8 — só depois de haver um access_token de sessão
+    // real (token-store.ts já actualizado acima via setToken) é que o
+    // PowerSyncBackendConnector consegue chamar fetchCredentials() com
+    // sucesso. Fire-and-forget deliberado: o próprio PowerSync já trata uma
+    // falha aqui (ex. serviço PowerSync ainda não disponível) como
+    // transitória e tenta de novo sozinho — nunca deve poder bloquear ou
+    // reprovar o login por si só.
+    void window._service_powersync.connect();
+
     return { success: true, user: { name: data.user.name, email: data.user.email } };
   } catch (err) {
     const axiosErr = err as AxiosError<{ message?: string; code?: string }>;
@@ -229,6 +238,15 @@ export async function tryRestoreCachedSession(expectedEmail: string): Promise<bo
     // offline, mantendo os tokens cacheados tal como estavam.
     void tryRefreshOrReactivate();
 
+    // Fase 12, Prompt 22.8 — mesmo raciocínio de loginOnApi(): reaproveitar
+    // uma sessão cacheada também deixa um access_token utilizável em
+    // token-store.ts, por isso também dispara connect(). Enquanto
+    // genuinamente offline, fetchCredentials() falha e o PowerSync fica a
+    // tentar em segundo plano com o seu próprio backoff — liga sozinho assim
+    // que tryRefreshOrReactivate() acima (ou o listener de 'online') obtiver
+    // ligação real.
+    void window._service_powersync.connect();
+
     return true;
   } catch (err) {
     console.warn('[License] Falha ao reaproveitar sessão cacheada:', err);
@@ -248,6 +266,12 @@ export async function clearApiSession(): Promise<void> {
   await window._service_auth.setToken(null);
   await window._service_auth.clearCachedSession();
   if (_refreshTimer) clearTimeout(_refreshTimer);
+
+  // Fase 12, Prompt 22.8 — desliga a sincronização e apaga a base local do
+  // PowerSync. Essencial num Desktop partilhado: sem isto, os dados
+  // sincronizados de uma pessoa (ou organização, numa troca de licença)
+  // ficariam legíveis localmente para quem iniciasse sessão a seguir.
+  await window._service_powersync.disconnectAndClear();
 }
 
 export async function removeLicense(): Promise<void> {
@@ -268,6 +292,10 @@ export async function removeLicense(): Promise<void> {
   await window._service_auth.setToken(null);
   await window._service_auth.clearCachedSession();
   if (_refreshTimer) clearTimeout(_refreshTimer);
+  // Fase 12, Prompt 22.8 — trocar/remover a licença muda potencialmente de
+  // organização; os dados PowerSync sincronizados pertencem à organização
+  // anterior e nunca devem sobreviver a isto.
+  await window._service_powersync.disconnectAndClear();
   await window.license.removeLicense();
 }
 

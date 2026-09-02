@@ -106,6 +106,13 @@ interface Services {
     }
 }
 
+// Fase 12, Prompt 22.8 — connect()/disconnectAndClear() do PowerSyncDatabase
+// (processo principal, src/lib/powersync/client.ts), expostos via IPC.
+interface IServicePowerSync {
+    connect:             () => Promise<void>;
+    disconnectAndClear:  () => Promise<void>;
+}
+
 interface IClients {
     createClient: (clientData: any) => Promise<any>;
     getAllClients: () => Promise<any>;
@@ -389,6 +396,7 @@ declare global {
     themeMode:               ThemeModeContext;
     electronWindow:          ElectronWindow;
     _service_auth:           Services["Auth"];
+    _service_powersync:      IServicePowerSync;
     _clients:                IClients;
     _vehicles:               IVehicles;
     _vehicle_categories:     IVehicleCategories;
