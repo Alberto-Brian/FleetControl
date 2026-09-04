@@ -77,3 +77,77 @@ export async function disconnectAndClearPowerSync(): Promise<void> {
   if (!_db) return;
   await _db.disconnectAndClear();
 }
+
+// Prompt 22.10 — ecrã de diagnóstico "Estado do PowerSync" no Desktop. Só
+// leitura, nunca decide nada: mostra o que o SDK já sabe (db.currentStatus)
+// e o que já está na base local (contagens + amostra de vehicles), para o
+// utilizador conseguir VER a sincronização a acontecer sem precisar de ir
+// aos logs do servidor. Nunca cria _db por si só (getDb() só é chamado se
+// connect() já correu antes) — se ainda não houver sessão, devolve um
+// estado "desligado" em vez de arrancar uma base nova só para diagnosticar.
+export interface IPowerSyncStatusSnapshot {
+  connected:      boolean;
+  connecting:     boolean;
+  lastSyncedAt:   string | null; // ISO — Date não atravessa bem o IPC
+  hasSynced:      boolean;
+  uploading:      boolean;
+  downloading:    boolean;
+  uploadError:    string | null; // Error não atravessa bem o IPC — só a mensagem
+  downloadError:  string | null;
+}
+
+export async function getPowerSyncStatus(): Promise<IPowerSyncStatusSnapshot> {
+  if (!_db) {
+    return {
+      connected: false, connecting: false, lastSyncedAt: null, hasSynced: false,
+      uploading: false, downloading: false, uploadError: null, downloadError: null,
+    };
+  }
+  const s = _db.currentStatus;
+  return {
+    connected:     s.connected,
+    connecting:    s.connecting,
+    lastSyncedAt:  s.lastSyncedAt ? s.lastSyncedAt.toISOString() : null,
+    hasSynced:     !!s.hasSynced,
+    uploading:     s.uploading,
+    downloading:   s.downloading,
+    uploadError:   s.uploadError   ? String(s.uploadError.message ?? s.uploadError)   : null,
+    downloadError: s.downloadError ? String(s.downloadError.message ?? s.downloadError) : null,
+  };
+}
+
+// As 7 tabelas dos Sync Streams (sync-config.yaml, Prompt 22.6/22.9) — lista
+// fixa, nunca interpolar um nome de tabela vindo do renderer directamente
+// numa query SQL.
+const SYNCED_TABLES = ['vehicles', 'drivers', 'trips', 'fuel', 'maintenance', 'expenses', 'categories'] as const;
+
+export interface IPowerSyncVehiclePreviewRow {
+  id:                string;
+  license_plate:     string | null;
+  brand:              string | null;
+  model:               string | null;
+  status:              string | null;
+  tracking_enabled:   number | null;
+}
+
+export interface IPowerSyncSnapshot {
+  counts:          Record<string, number>;
+  vehiclesPreview: IPowerSyncVehiclePreviewRow[];
+}
+
+export async function getPowerSyncSnapshot(): Promise<IPowerSyncSnapshot> {
+  if (!_db) return { counts: Object.fromEntries(SYNCED_TABLES.map(t => [t, 0])), vehiclesPreview: [] };
+  const db = _db;
+
+  const counts: Record<string, number> = {};
+  for (const table of SYNCED_TABLES) {
+    const row = await db.get<{ n: number }>(`SELECT COUNT(*) as n FROM ${table}`);
+    counts[table] = row.n;
+  }
+
+  const vehiclesPreview = await db.getAll<IPowerSyncVehiclePreviewRow>(
+    'SELECT id, license_plate, brand, model, status, tracking_enabled FROM vehicles ORDER BY license_plate LIMIT 20',
+  );
+
+  return { counts, vehiclesPreview };
+}

@@ -15,6 +15,7 @@ export const enNavigation = {
     reports: 'Reports',
     analytics: 'Analytics',
     tracking: "Tracking",
+    powersyncStatus: 'PowerSync Status',
     help: 'Help',
     alerts: 'Alerts',
   },

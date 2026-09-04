@@ -35,6 +35,8 @@ import { ptTracking } from "./locales/pt/tracking";
 import { enTracking } from "./locales/en/tracking";
 import { ptHelp } from "./locales/pt/help";
 import { enHelp } from "./locales/en/help";
+import { ptPowersyncStatus } from "./locales/pt/powersync-status";
+import { enPowersyncStatus } from "./locales/en/powersync-status";
 
 
 i18n.use(initReactI18next).init({
@@ -59,6 +61,7 @@ i18n.use(initReactI18next).init({
             scheduledTrips: enScheduledTrips,
             tracking: enTracking,
             help: enHelp,
+            powersyncStatus: enPowersyncStatus,
             homePage: {
                 registerNewClientButton: "Register new client",
                 idTableColumn: "ID",
@@ -103,6 +106,7 @@ i18n.use(initReactI18next).init({
             scheduledTrips: ptScheduledTrips,
             tracking: ptTracking,
             help: ptHelp,
+            powersyncStatus: ptPowersyncStatus,
             homePage: {
                 registerNewClientButton: "Cadastrar novo cliente",
                 idTableColumn: "ID",

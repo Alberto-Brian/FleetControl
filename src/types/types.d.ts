@@ -108,9 +108,15 @@ interface Services {
 
 // Fase 12, Prompt 22.8 — connect()/disconnectAndClear() do PowerSyncDatabase
 // (processo principal, src/lib/powersync/client.ts), expostos via IPC.
+// (IPowerSyncStatusSnapshot/IPowerSyncSnapshot/IPowerSyncVehiclePreviewRow
+// vivem dentro do bloco `declare global` abaixo — Prompt 22.10 — para
+// ficarem visíveis nas páginas sem import, mesmo padrão de DbManagementStatus.)
 interface IServicePowerSync {
     connect:             () => Promise<void>;
     disconnectAndClear:  () => Promise<void>;
+    // Prompt 22.10 — ecrã de diagnóstico "Estado do PowerSync"
+    getStatus:           () => Promise<IPowerSyncStatusSnapshot>;
+    getSnapshot:         () => Promise<IPowerSyncSnapshot>;
 }
 
 interface IClients {
@@ -387,6 +393,32 @@ declare global {
       forceRotate:    () => Promise<{ success: boolean; error?: string; result?: any }>;
       getStatus:      () => Promise<DbManagementStatus>;
       applyRetention: (tables: { tableName: string; retentionDays: number; timestampColumn: string }[]) => Promise<{ success: boolean; error?: string }>;
+  }
+
+  // Fase 12, Prompt 22.10 — ecrã de diagnóstico "Estado do PowerSync".
+  interface IPowerSyncStatusSnapshot {
+      connected:      boolean;
+      connecting:     boolean;
+      lastSyncedAt:   string | null;
+      hasSynced:      boolean;
+      uploading:      boolean;
+      downloading:    boolean;
+      uploadError:    string | null;
+      downloadError:  string | null;
+  }
+
+  interface IPowerSyncVehiclePreviewRow {
+      id:                string;
+      license_plate:     string | null;
+      brand:             string | null;
+      model:             string | null;
+      status:            string | null;
+      tracking_enabled:  number | null;
+  }
+
+  interface IPowerSyncSnapshot {
+      counts:          Record<string, number>;
+      vehiclesPreview: IPowerSyncVehiclePreviewRow[];
   }
 
   interface Window {
