@@ -15,21 +15,13 @@
 // fica como referência/backup, conforme a regra explícita da Fase 6
 // ("app.db deve permanecer apenas como backup/referência de migração").
 //
-// Seam temporário, documentado: a verificação de "viagem activa"
-// (updateDriver/deleteDriver) continua a consultar `trips` via app.db
-// (useDb(), Drizzle), não via powersync.db — Trips só é cortado no
-// Prompt 6.5 desta mesma fase; até lá, uma viagem criada nesta mesma
-// instância do Desktop só existe em app.db, nunca em powersync.db (as
-// duas bases não se espelham uma à outra localmente). Verificar
-// powersync.db aqui produziria falsos-negativos (deixaria alterar/apagar
-// um motorista com uma viagem activa real). Remover este seam faz parte
-// do Prompt 6.5.
+// Seam do Prompt 6.2 FECHADO no Prompt 6.5: a verificação de "viagem
+// activa" (updateDriver/deleteDriver) já consulta `trips` via powersync.db
+// — Trips foi cortado no Prompt 6.5, na mesma base que Vehicles/Drivers,
+// por isso volta a ser um SELECT normal, sem seam nenhum.
 import { getPowerSyncDb } from '@/lib/powersync/client';
 import { getSessionOrganizationId } from '@/helpers/ipc/services/auth/token-store';
 import { generateUuid } from '@/lib/utils/cripto';
-import { useDb } from '@/lib/db/db_helpers';
-import { trips } from '@/lib/db/schemas/trips';
-import { and, eq, isNull } from 'drizzle-orm';
 import { ICreateDriver, IUpdateDriver, IDriver } from '@/lib/types/driver';
 import { IPaginationParams, IPaginatedResult } from '@/lib/types/pagination';
 import { driverStatus, driverAvailability } from '@/lib/db/schemas/drivers';
@@ -237,16 +229,11 @@ export async function updateDriver(driverId: string, driverData: IUpdateDriver):
   const updateData: Record<string, unknown> = { ...driverData };
 
   if (driverData.status === driverStatus.ON_LEAVE || driverData.status === driverStatus.TERMINATED) {
-    // Seam temporário — ver comentário no topo do ficheiro. Consulta app.db
-    // (Trips ainda não cortado para PowerSync), não powersync.db.
-    const { db: legacyDb } = useDb();
-    const activeTrip = await legacyDb
-      .select({ id: trips.id })
-      .from(trips)
-      .where(and(eq(trips.driver_id, driverId), eq(trips.status, 'in_progress'), isNull(trips.deleted_at)))
-      .limit(1);
-
-    if (activeTrip.length > 0) {
+    const activeTrip = await db.getOptional<{ id: string }>(
+      `SELECT id FROM trips WHERE driver_id = ? AND status = 'in_progress' AND deleted_at IS NULL LIMIT 1`,
+      [driverId],
+    );
+    if (activeTrip) {
       throw new Error('drivers:errors.driverHasActiveTrip');
     }
 
@@ -274,15 +261,11 @@ export async function updateDriver(driverId: string, driverData: IUpdateDriver):
 export async function deleteDriver(driverId: string): Promise<string> {
   const db = await getPowerSyncDb();
 
-  // Seam temporário — ver comentário no topo do ficheiro.
-  const { db: legacyDb } = useDb();
-  const activeTrip = await legacyDb
-    .select({ id: trips.id, trip_code: trips.trip_code })
-    .from(trips)
-    .where(and(eq(trips.driver_id, driverId), eq(trips.status, 'in_progress'), isNull(trips.deleted_at)))
-    .limit(1);
-
-  if (activeTrip.length > 0) {
+  const activeTrip = await db.getOptional<{ id: string }>(
+    `SELECT id FROM trips WHERE driver_id = ? AND status = 'in_progress' AND deleted_at IS NULL LIMIT 1`,
+    [driverId],
+  );
+  if (activeTrip) {
     throw new Error('drivers:errors.driverHasActiveTrip');
   }
 

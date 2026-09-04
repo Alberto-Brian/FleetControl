@@ -13,6 +13,8 @@ import {
     RECONCILE_TRIPS,      // opcional — para trigger manual da reconciliação
 } from "./trips-channels";
 
+// Fase 6, Prompt 6.5 — powersync.db passa a ser a fonte operacional
+// (era app.db/Drizzle). trips.queries.ts fica só como backup.
 import {
     getAllTrips,
     getTripById,
@@ -24,7 +26,7 @@ import {
     isVehicleAvailable,
     isDriverAvailable,
     reconcileOrphanedStates,
-} from '@/lib/db/queries/trips.queries';
+} from '@/lib/db/queries/trips.queries.powersync';
 
 import { ICreateTrip, ICompleteTrip } from '@/lib/types/trip';
 import { NotFoundError, ValidationError } from '@/lib/errors/AppError';
