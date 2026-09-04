@@ -13,6 +13,13 @@ interface AuthContextType {
   user: IUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  // true quando o login online devolveu must_change_password:true (password
+  // temporária de bootstrap, Fase 8B.3) — App.tsx bloqueia o resto da app
+  // até clearMustChangePassword() ser chamado, depois de uma troca bem
+  // sucedida. Nunca definido por uma restauração de sessão offline/cache —
+  // só um login online confirma este estado com o servidor.
+  mustChangePassword: boolean;
+  clearMustChangePassword: () => void;
   login: (loginData: ILogin) => Promise<void>;
   logout: () => void;
   updateUser: (user: IUser) => void;
@@ -23,6 +30,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<IUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
 
   // Carregar usuário do localStorage na inicialização
   useEffect(() => {
@@ -74,14 +82,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password: loginData.password,
       });
       setUser(localUser);
+      setMustChangePassword(!!apiResult.mustChangePassword);
       localStorage.setItem('fleet_user', JSON.stringify(localUser));
       return;
     }
 
     if (apiResult.code !== 'OFFLINE') {
-      // API alcançável e recusou as credenciais — bloqueia aqui, nem chega
-      // a consultar o local (a API é a autoridade final quando alcançável).
-      throw new Error('auth:errors.loginFailed');
+      // API alcançável e recusou o pedido — bloqueia aqui, nem chega a
+      // consultar o local (a API é a autoridade final quando alcançável).
+      // Propaga o motivo real (rate limit, credenciais inválidas, conta
+      // inactiva, etc.) em vez de um "falha ao fazer login" genérico —
+      // loginOnApi() já traz apiResult.message da resposta real da API.
+      throw new Error(apiResult.message || 'auth:errors.loginFailed');
     }
 
     // Offline — aqui, e só aqui, o local SQLite desempenha o papel pedido:
@@ -99,11 +111,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null);
+    setMustChangePassword(false);
     localStorage.removeItem('fleet_user');
     // Liberta o token do utilizador que saiu — nunca deixar o próximo login
     // (mesmo Desktop, outro utilizador) herdar a sessão API anterior.
     void clearApiSession();
   };
+
+  const clearMustChangePassword = () => setMustChangePassword(false);
 
   // Fase 11B.11 (estado 6 — "sessão revogada remotamente") — quando a API
   // recusa explicitamente a sessão actual (revogada por um admin, ou
@@ -127,6 +142,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         isAuthenticated: !!user,
         isLoading,
+        mustChangePassword,
+        clearMustChangePassword,
         login,
         logout,
         updateUser,

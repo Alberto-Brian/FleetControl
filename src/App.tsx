@@ -1,14 +1,14 @@
 // ========================================
 // FILE: src/renderer/src/App.tsx
 // ========================================
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import HomePage from "./pages/HomePage";
-import SetupPage from "./pages/SetupPage";
 import LoginPage from "./pages/LoginPage";
+import ChangePasswordRequiredPage from "./pages/ChangePasswordRequiredPage";
 import BaseLayout from "./layouts/BaseLayout";
-import { hasUsers as CheckIfHasUsers } from "./helpers/service-auth-helpers";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { LicenseProvider } from "./contexts/LicenseContext";
 import { LicenseGuard } from "./components/LicenseGuard";
 import { TrackingProvider }    from '@/contexts/TrackingContext';
 import { LayoutProvider }      from '@/contexts/LayoutContext';
@@ -29,9 +29,7 @@ initGlassSettings();
 
 function AppContent() {
     const { i18n } = useTranslation();
-    const { isAuthenticated, isLoading } = useAuth();
-    const [hasUsers, setHasUsers] = useState<boolean | null>(null);
-    const [checkingSetup, setCheckingSetup] = useState(true);
+    const { isAuthenticated, isLoading, mustChangePassword } = useAuth();
 
     // Inicializar tema e idioma
     useEffect(() => {
@@ -40,24 +38,8 @@ function AppContent() {
         requestNotificationPermission();
     }, [i18n]);
 
-    // Verificar se já existe usuário no sistema
-    useEffect(() => {
-        async function checkSetup() {
-            try {
-                const users = await CheckIfHasUsers();
-                setHasUsers(users);
-            } catch (error) {
-                console.error('Erro ao verificar setup:', error);
-                setHasUsers(false);
-            } finally {
-                setCheckingSetup(false);
-            }
-        }
-        checkSetup();
-    }, []);
-
     // Loading state
-    if (isLoading || checkingSetup) {
+    if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
                 <div className="text-center">
@@ -68,18 +50,30 @@ function AppContent() {
         );
     }
 
-    // 1. Se não tem usuários → Setup (primeira vez)
-    if (!hasUsers) {
-        return <SetupPage onSetupComplete={() => setHasUsers(true)} />;
-    }
-
-    // 2. Se tem usuários mas não está autenticado → Login
+    // Connected-first: a identidade vem sempre de /api/auth/login (Fase
+    // 11B.8), nunca de um utilizador local criado antecipadamente — o
+    // "SetupPage" (criar o primeiro utilizador local antes de poder entrar)
+    // era um resquício do modelo Standalone. Login online cria o registo
+    // local automaticamente (syncLocalUser, "cadeado do cache"); login
+    // offline sem nenhum utilizador local ainda cacheado falha correctamente
+    // (limitação já aceite desde a Fase 11B.9).
     if (!isAuthenticated) {
         return <LoginPage />;
     }
 
-    // 3. Usuário autenticado → App principal com LicenseGuard
+    // Password temporária de bootstrap (Fase 8B.3) ainda por trocar — bloqueia
+    // tudo antes mesmo da licença, é um estado da SESSÃO, não da instalação.
+    if (mustChangePassword) {
+        return <ChangePasswordRequiredPage />;
+    }
+
+    // Utilizador autenticado → App principal com LicenseGuard
+    // LicenseProvider por cima de tudo: uma única verificação de licença
+    // partilhada por LicenseGuard, HomePage e todos os outros consumidores
+    // de useLicense() — elimina o "flash" de modo standalone que aparecia
+    // quando cada componente disparava a sua própria verificação do zero.
     return (
+        <LicenseProvider>
         <HistoricalDbProvider>
         <LayoutProvider>
         <TrackingProvider>
@@ -91,6 +85,7 @@ function AppContent() {
         </TrackingProvider>
         </LayoutProvider>
         </HistoricalDbProvider>
+        </LicenseProvider>
     );
 }
 

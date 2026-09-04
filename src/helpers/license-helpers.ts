@@ -52,6 +52,22 @@ let _refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function getAccessToken(): string | null { return _accessToken; }
 
+// ── Estado da sessão API (organização + troca de password obrigatória) ──────
+// Preenchido só por loginOnApi() — nunca por tryRestoreCachedSession() (a
+// sessão cacheada nunca é a primeira confirmação destes dois campos vindos
+// do servidor; um must_change_password pendente só é conhecido com certeza
+// numa ligação real). _currentOrganizationId existe só para o cross-check em
+// validateDisplayKey() abaixo — nunca usado para autorização (isso continua
+// a ser inteiramente do lado da API).
+let _currentOrganizationId: string | null = null;
+let _mustChangePassword = false;
+
+export function getMustChangePassword(): boolean { return _mustChangePassword; }
+function resetSessionMetadata(): void {
+  _currentOrganizationId = null;
+  _mustChangePassword = false;
+}
+
 // ── Machine ID ───────────────────────────────────────────────────────────────
 export function getMachineId(): string {
   const KEY = '_fc_machine_id';
@@ -149,6 +165,10 @@ export interface ApiLoginResult {
   // sincronizar o "cadeado" local (nunca para decidir role/scope/
   // permissions, que o Desktop nunca lê localmente).
   user?: { name: string; email: string };
+  // true quando a API devolve must_change_password:true (ex: password
+  // temporária de bootstrap, Fase 8B.3) — quem chama deve bloquear o resto
+  // da app até uma troca bem-sucedida (changePasswordOnApi abaixo).
+  mustChangePassword?: boolean;
 }
 
 export async function loginOnApi(email: string, password: string): Promise<ApiLoginResult> {
@@ -163,6 +183,8 @@ export async function loginOnApi(email: string, password: string): Promise<ApiLo
 
     _accessToken  = data.access_token;
     _refreshToken = data.refresh_token;
+    _currentOrganizationId = data.user.organizationId ?? null;
+    _mustChangePassword    = !!data.user.must_change_password;
     await window._service_auth.setToken(data.access_token);
     scheduleRefresh(data.expires_in);
 
@@ -184,9 +206,13 @@ export async function loginOnApi(email: string, password: string): Promise<ApiLo
     // reprovar o login por si só.
     void window._service_powersync.connect();
 
-    return { success: true, user: { name: data.user.name, email: data.user.email } };
+    return {
+      success: true,
+      user: { name: data.user.name, email: data.user.email },
+      mustChangePassword: _mustChangePassword,
+    };
   } catch (err) {
-    const axiosErr = err as AxiosError<{ message?: string; code?: string }>;
+    const axiosErr = err as AxiosError<{ message?: string; code?: string } | string>;
 
     if (!axiosErr.response) {
       // API inacessível — não é uma recusa de credenciais, é falta de
@@ -194,11 +220,18 @@ export async function loginOnApi(email: string, password: string): Promise<ApiLo
       return { success: false, code: 'OFFLINE', message: 'API inacessível.' };
     }
 
-    return {
-      success: false,
-      code:    axiosErr.response.data?.code,
-      message: axiosErr.response.data?.message || 'Credenciais inválidas.',
-    };
+    // Nem toda resposta de erro da API é {message, code} — o rate limit
+    // (authRateLimit.ts) devolve texto simples no corpo, não um objecto.
+    // Sem isto, response.data?.message dava sempre undefined numa string e
+    // caía silenciosamente no "Credenciais inválidas." genérico, escondendo
+    // o motivo real (ex: limite de pedidos atingido).
+    const responseData = axiosErr.response.data;
+    const message = typeof responseData === 'string'
+      ? responseData
+      : responseData?.message || 'Credenciais inválidas.';
+    const code = typeof responseData === 'string' ? undefined : responseData?.code;
+
+    return { success: false, code, message };
   }
 }
 
@@ -260,9 +293,21 @@ export async function tryRestoreCachedSession(expectedEmail: string): Promise<bo
 // num Desktop partilhado por vários utilizadores: sem isto, o próximo login
 // herdaria o token/refresh do utilizador anterior até ao próximo refresh
 // agendado.
+// Troca a password do utilizador com sessão iniciada — usado sobretudo pelo
+// gate de must_change_password (password temporária de bootstrap, Fase
+// 8B.3), mas serve qualquer troca de password autenticada. Em sucesso, o
+// próprio backend já limpa must_change_password (IAuthRepository.
+// updatePasswordHash, Fase 8B.3) — replicamos isso aqui só para o estado em
+// memória deste processo não ficar desalinhado até ao próximo login.
+export async function changePasswordOnApi(currentPassword: string, newPassword: string): Promise<void> {
+  await apiClient.post('/api/auth/change-password', { currentPassword, newPassword }, { headers: authHeaders() });
+  _mustChangePassword = false;
+}
+
 export async function clearApiSession(): Promise<void> {
   _accessToken  = null;
   _refreshToken = null;
+  resetSessionMetadata();
   await window._service_auth.setToken(null);
   await window._service_auth.clearCachedSession();
   if (_refreshTimer) clearTimeout(_refreshTimer);
@@ -289,6 +334,7 @@ export async function removeLicense(): Promise<void> {
 
   _accessToken  = null;
   _refreshToken = null;
+  resetSessionMetadata();
   await window._service_auth.setToken(null);
   await window._service_auth.clearCachedSession();
   if (_refreshTimer) clearTimeout(_refreshTimer);
@@ -318,6 +364,22 @@ async function validateDisplayKey(displayKey: string): Promise<ValidatedLicense>
     }
 
     if (data.mode === 'connected') {
+      // Licença e sessão são independentes (Fase 11B.12) — nada impedia,
+      // até aqui, activar uma licença de outra Organization enquanto já
+      // havia sessão iniciada como um utilizador de uma Organization
+      // diferente. Não é falha de segurança (o acesso aos dados continua
+      // sempre limitado pelo organizationId do JWT, nunca pela licença),
+      // mas é um estado inconsistente sem aviso nenhum — rejeitamos aqui,
+      // antes de persistir a licença localmente. Só verificável quando já
+      // existe sessão (login sempre antes da activação, App.tsx) e só para
+      // licenças connected (standalone não tem organization_id nenhum).
+      if (_currentOrganizationId && data.data.organization_id !== _currentOrganizationId) {
+        return {
+          isValid: false,
+          error: 'Esta licença pertence a outra organização — não corresponde ao utilizador com sessão iniciada.',
+        };
+      }
+
       // Fase 11B.12 — activar a licença já não autentica ninguém nem emite
       // tokens (licença = direito da Organization, não sessão humana). A
       // identidade real vem sempre de /api/auth/login (Fase 11B.8) — nada
