@@ -68,6 +68,8 @@ export const ptVehicles = {
     updatedAt: "Última Actualização",
     gpsImei: "IMEI / ID do GPS",
     gpsImeiOptional: "(opcional)",
+    gpsImeiEditHint: "IMEI do dispositivo GPS instalado neste veículo. Utilizado para rastreamento em tempo real.",
+    gpsImeiCreationHint: "Se preenchido, o dispositivo GPS é criado automaticamente no servidor de rastreamento.",
   },
 
   placeholders: {
@@ -150,6 +152,9 @@ export const ptVehicles = {
       tooltip: "Registar dispositivo GPS neste veículo",
       register: "Registar GPS",
       registering: "A registar...",
+      imeiLoading: "A carregar dispositivos...",
+      noImeiAvailable: "Nenhum dispositivo disponível. Registe um dispositivo primeiro.",
+      clearImei: "Sem GPS (remover associação)",
     },
     mileage: {
       title: "Actualizar Quilometragem",

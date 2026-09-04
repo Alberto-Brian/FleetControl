@@ -138,14 +138,14 @@ export function ImeiSelector({ value, onChange, currentVehicleImei, disabled }: 
           {loading && (
             <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              {t('dialogs.sync.imeiLoading')}
+              {t('dialogs.addGps.imeiLoading')}
             </div>
           )}
 
           {/* Estado: sem dispositivos */}
           {!loading && filtered.length === 0 && !value && (
             <div className="py-8 text-center text-sm text-muted-foreground">
-              {t('dialogs.sync.noImeiAvailable')}
+              {t('dialogs.addGps.noImeiAvailable')}
             </div>
           )}
 
@@ -157,7 +157,7 @@ export function ImeiSelector({ value, onChange, currentVehicleImei, disabled }: 
               className="flex items-center gap-2 w-full px-2 py-2 rounded-md text-sm text-left text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               <X className="h-3 w-3 shrink-0" />
-              <span className="flex-1">{t('dialogs.sync.clearImei')}</span>
+              <span className="flex-1">{t('dialogs.addGps.clearImei')}</span>
             </button>
           )}
 

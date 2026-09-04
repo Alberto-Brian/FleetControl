@@ -328,7 +328,7 @@ const filteredCategories = categories.filter(cat =>
                   onChange={(v) => setFormData({ ...formData, traccar_unique_id: v ?? '' })}
                 />
                 <p className="text-xs text-muted-foreground">
-                  {t('vehicles:dialogs.sync.imeiCreationHint')}
+                  {t('vehicles:fields.gpsImeiCreationHint')}
                 </p>
               </div>
             )}

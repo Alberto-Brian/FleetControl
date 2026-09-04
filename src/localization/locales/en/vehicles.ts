@@ -68,6 +68,8 @@ export const enVehicles = {
     updatedAt: "Last Update",
     gpsImei: "IMEI / GPS ID",
     gpsImeiOptional: "(optional)",
+    gpsImeiEditHint: "IMEI of the GPS device installed in this vehicle. Used for real-time tracking.",
+    gpsImeiCreationHint: "If filled in, the GPS device is created automatically on the tracking server.",
   },
 
   placeholders: {
@@ -117,6 +119,9 @@ export const enVehicles = {
       tooltip: "Register GPS device on this vehicle",
       register: "Register GPS",
       registering: "Registering...",
+      imeiLoading: "Loading devices...",
+      noImeiAvailable: "No devices available. Register a device first.",
+      clearImei: "No GPS (remove link)",
     },
     new: {
       title: "New Vehicle",

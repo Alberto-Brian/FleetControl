@@ -307,7 +307,7 @@ export default function EditVehicleDialog({
                       currentVehicleImei={selectedVehicle?.traccar_unique_id ?? undefined}
                     />
                     <p className="text-xs text-muted-foreground">
-                      {t('vehicles:dialogs.sync.imeiEditHint')}
+                      {t('vehicles:fields.gpsImeiEditHint')}
                     </p>
                   </div>
                 )}
