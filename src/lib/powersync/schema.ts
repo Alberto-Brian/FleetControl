@@ -407,6 +407,18 @@ export async function loadAppSchema() {
     maintenance,
     expenses,
     categories,
+    // Fase 4 (migração Standalone -> Connected-first) — estas 8 tabelas
+    // estavam declaradas acima mas nunca chegaram a entrar no Schema
+    // devolvido, por isso o PowerSync nunca as criava na base local
+    // ("no such table: fines" e equivalentes nas outras 7). Corrigido.
+    routes,
+    workshops,
+    fuel_stations,
+    maintenance_categories,
+    fines,
+    vehicle_documents,
+    maintenance_items,
+    scheduled_trips,
   });
 }
 

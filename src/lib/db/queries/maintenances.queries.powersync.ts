@@ -238,6 +238,15 @@ export async function getMaintenancesByWorkshop(workshopId: string) {
   );
 }
 
+// Fecha o seam deixado em aberto desde o Prompt 6.4 (Maintenance Categories)
+// — só corrigível depois de Maintenance também estar em powersync.db (6.7).
+export async function getMaintenancesByCategory(categoryId: string) {
+  const db = await getPowerSyncDb();
+  return db.getAll<{ id: string }>(
+    `SELECT id FROM maintenance WHERE category_id = ? AND deleted_at IS NULL`, [categoryId],
+  );
+}
+
 export async function deleteMaintenance(maintenanceId: string): Promise<string> {
   const db = await getPowerSyncDb();
   const now = new Date().toISOString();

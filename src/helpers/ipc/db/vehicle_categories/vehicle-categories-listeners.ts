@@ -95,15 +95,23 @@ export async function updateVehicleCategoryEvent(id: string, data: IUpdateVehicl
     
     if (data.name) {
         const otherCategory = await findVehicleCategoryByName(data.name);
-        
+
         if (otherCategory && otherCategory.id !== id) {
+            throw new Error(
                 new ConflictError(T_ERRORS.CATEGORY_EXISTS, {
                     i18n: { name: data.name.trim() }
-                })
+                }).toIpcString()
+            );
         }
     }
-    
-    return await updateVehicleCategory(id, data);
+
+    const updated = await updateVehicleCategory(id, data);
+    if (!updated) {
+        throw new Error(
+            new NotFoundError(T_ERRORS.CATEGORY_NOT_FOUND).toIpcString()
+        );
+    }
+    return updated;
 }
 
 async function deleteVehicleCategoryEvent(id: string): Promise<string | Error> {

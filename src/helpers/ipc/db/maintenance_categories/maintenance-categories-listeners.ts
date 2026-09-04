@@ -11,11 +11,11 @@ import {
     RESTORE_MAINTENANCE_CATEGORY,
 } from "./maintenance-categories-channels";
 
-// Fase 6, Prompt 6.4 — powersync.db passa a ser a fonte operacional
-// (era app.db/Drizzle). maintenance_categories.queries.ts fica só como
-// backup, excepto getMaintenancesByCategory (guarda de eliminação) — essa
-// continua a consultar `maintenances` via app.db de propósito, Maintenance
-// só corta para PowerSync no Prompt 6.7 (mesmo seam de Drivers/Trips).
+// Fase 6, Prompt 6.4 — powersync.db passa a ser a fonte operacional (era
+// app.db/Drizzle). maintenance_categories.queries.ts fica só como backup.
+// getMaintenancesByCategory (guarda de eliminação) tinha ficado como seam
+// temporário (Maintenance só cortou no Prompt 6.7) mas nunca foi fechado —
+// corrigido: já vem de maintenances.queries.powersync.ts.
 import {
     getAllMaintenanceCategories,
     createMaintenanceCategory,
@@ -25,7 +25,7 @@ import {
     getMaintenanceCategoryById,
     getActiveMaintenanceCategories,
 } from '@/lib/db/queries/maintenance_categories.queries.powersync';
-import { getMaintenancesByCategory } from '@/lib/db/queries/maintenance_categories.queries';
+import { getMaintenancesByCategory } from '@/lib/db/queries/maintenances.queries.powersync';
 
 import { ICreateMaintenanceCategory, IUpdateMaintenanceCategory } from '@/lib/types/maintenance_category';
 import { ConflictError, NotFoundError, WarningError } from '@/lib/errors/AppError';

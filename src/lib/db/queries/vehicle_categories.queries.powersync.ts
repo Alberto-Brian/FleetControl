@@ -25,13 +25,13 @@ const TYPE = 'vehicle';
 
 interface CategoryRow {
   id: string; name: string; description: string | null; color: string;
-  is_active: number; created_at: string;
+  is_active: number; created_at: string; updated_at: string;
 }
 
 function mapRow(row: CategoryRow): IVehicleCategory {
   return {
     id: row.id, name: row.name, description: row.description, color: row.color,
-    is_active: !!row.is_active, created_at: row.created_at,
+    is_active: !!row.is_active, created_at: row.created_at, updated_at: row.updated_at,
   };
 }
 
@@ -48,13 +48,13 @@ export async function createVehicleCategory(categoryData: ICreateVehicleCategory
     [id, organizationId, categoryData.name, categoryData.description ?? null, TYPE, color, null, 1, now, now],
   );
 
-  return { id, name: categoryData.name, description: categoryData.description ?? null, color, is_active: true, created_at: now };
+  return { id, name: categoryData.name, description: categoryData.description ?? null, color, is_active: true, created_at: now, updated_at: now };
 }
 
 export async function findVehicleCategoryByName(name: string): Promise<IVehicleCategory | null> {
   const db = await getPowerSyncDb();
   const row = await db.getOptional<CategoryRow>(
-    `SELECT id, name, description, color, is_active, created_at FROM categories WHERE type = ? AND name = ? LIMIT 1`,
+    `SELECT id, name, description, color, is_active, created_at, updated_at FROM categories WHERE type = ? AND name = ? LIMIT 1`,
     [TYPE, name],
   );
   return row ? mapRow(row) : null;
@@ -63,7 +63,7 @@ export async function findVehicleCategoryByName(name: string): Promise<IVehicleC
 export async function findVehicleCategoryById(category_id: string): Promise<IVehicleCategory | null> {
   const db = await getPowerSyncDb();
   const row = await db.getOptional<CategoryRow>(
-    `SELECT id, name, description, color, is_active, created_at FROM categories WHERE type = ? AND id = ? LIMIT 1`,
+    `SELECT id, name, description, color, is_active, created_at, updated_at FROM categories WHERE type = ? AND id = ? LIMIT 1`,
     [TYPE, category_id],
   );
   return row ? mapRow(row) : null;
@@ -72,7 +72,7 @@ export async function findVehicleCategoryById(category_id: string): Promise<IVeh
 export async function getAllVehicleCategories(): Promise<IVehicleCategory[]> {
   const db = await getPowerSyncDb();
   const rows = await db.getAll<CategoryRow>(
-    `SELECT id, name, description, color, is_active, created_at
+    `SELECT id, name, description, color, is_active, created_at, updated_at
      FROM categories WHERE type = ? AND deleted_at IS NULL ORDER BY created_at DESC`,
     [TYPE],
   );

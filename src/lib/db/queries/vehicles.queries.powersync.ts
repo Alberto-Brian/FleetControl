@@ -32,15 +32,13 @@
 //    `registerGpsOnVehicleEvent`/`waitForVehicleOnBackend` em
 //    vehicles-listeners.ts para o fluxo real.
 //
-// Seam temporário (mesmo padrão de drivers.queries.powersync.ts): o nome/
-// cor da categoria (`vehicle_categories`, Categories só corta no Prompt
-// 6.4) continua a vir de app.db via `vehicle_categories.queries.ts`,
-// combinado em memória com as linhas de `vehicles` vindas de powersync.db —
-// as duas bases não permitem um JOIN SQL directo entre si.
+// Seam do Prompt 6.3 (nome/cor da categoria vinham de app.db, combinados em
+// memória) fechado neste corte: categories já vive em powersync.db desde o
+// Prompt 6.4 (Categories), por isso passa a ser um LEFT JOIN SQL normal —
+// mesmo padrão já usado para routes/workshops em trips/maintenance (6.9).
 import { getPowerSyncDb } from '@/lib/powersync/client';
 import { getSessionOrganizationId } from '@/helpers/ipc/services/auth/token-store';
 import { generateUuid } from '@/lib/utils/cripto';
-import { getAllVehicleCategories, findVehicleCategoryById } from '@/lib/db/queries/vehicle_categories.queries';
 import { ICreateVehicle, IUpdateVehicle, IVehicle, IUpdateStatus } from '@/lib/types/vehicle';
 import { IPaginatedResult, IPaginationParams } from '@/lib/types/pagination';
 import { vehicleStatus } from '@/lib/db/schemas/vehicles';
@@ -52,27 +50,23 @@ interface VehicleRow {
   acquisition_date: string | null; acquisition_value: number | null; status: string;
   photo: string | null; notes: string | null; is_active: number; tracking_enabled: number;
   traccar_unique_id: string | null; created_at: string; updated_at: string; deleted_at: string | null;
+  category_name: string | null; category_color: string | null;
 }
 
-const VEHICLE_COLUMNS = `id, category_id, license_plate, brand, model, year, color, chassis_number,
-  engine_number, fuel_tank_capacity, tire_size, current_mileage, acquisition_date, acquisition_value,
-  status, photo, notes, is_active, tracking_enabled, traccar_unique_id, created_at, updated_at, deleted_at`;
+// Colunas prefixadas por alias — `categories` partilha nomes de coluna com
+// `vehicles` (deleted_at, is_active, created_at, updated_at, color, etc.),
+// por isso todas as referências no WHERE/ORDER BY também têm de ser
+// qualificadas com `v.` sempre que este JOIN estiver presente na query.
+const VEHICLE_SELECT = `v.id, v.category_id, v.license_plate, v.brand, v.model, v.year, v.color, v.chassis_number,
+  v.engine_number, v.fuel_tank_capacity, v.tire_size, v.current_mileage, v.acquisition_date, v.acquisition_value,
+  v.status, v.photo, v.notes, v.is_active, v.tracking_enabled, v.traccar_unique_id, v.created_at, v.updated_at, v.deleted_at,
+  c.name as category_name, c.color as category_color`;
+const VEHICLE_FROM_JOIN = `FROM vehicles v LEFT JOIN categories c ON c.id = v.category_id`;
 
-async function mapRow(row: VehicleRow, categoryCache?: Map<string, { name: string; color: string }>): Promise<IVehicle> {
-  let category_name: string | undefined;
-  let category_color: string | undefined;
-  if (categoryCache) {
-    const cat = categoryCache.get(row.category_id);
-    category_name = cat?.name;
-    category_color = cat?.color;
-  } else {
-    const cat = await findVehicleCategoryById(row.category_id);
-    category_name = cat?.name;
-    category_color = cat?.color;
-  }
-
+function mapRow(row: VehicleRow): IVehicle {
   return {
-    id: row.id, category_id: row.category_id, category_name, category_color,
+    id: row.id, category_id: row.category_id,
+    category_name: row.category_name ?? undefined, category_color: row.category_color ?? undefined,
     license_plate: row.license_plate, brand: row.brand, model: row.model, year: row.year,
     color: row.color, chassis_number: row.chassis_number, engine_number: row.engine_number,
     fuel_tank_capacity: row.fuel_tank_capacity, tire_size: row.tire_size,
@@ -84,11 +78,6 @@ async function mapRow(row: VehicleRow, categoryCache?: Map<string, { name: strin
     api_vehicle_id: null, api_synced_at: null,
     created_at: row.created_at, updated_at: row.updated_at, deleted_at: row.deleted_at,
   };
-}
-
-async function buildCategoryCache(): Promise<Map<string, { name: string; color: string }>> {
-  const categories = await getAllVehicleCategories();
-  return new Map(categories.map(c => [c.id, { name: c.name, color: c.color }]));
 }
 
 /**
@@ -143,54 +132,53 @@ export async function getAllVehicles(params: IPaginationParams = {}): Promise<IP
   const limit  = params.limit || 60;
   const offset = (page - 1) * limit;
 
-  const filters: string[] = ['deleted_at IS NULL'];
+  const filters: string[] = ['v.deleted_at IS NULL'];
   const filterParams: unknown[] = [];
 
   if (params.search?.trim()) {
     const s = `%${params.search.toLowerCase()}%`;
-    filters.push('(LOWER(license_plate) LIKE ? OR LOWER(brand) LIKE ? OR LOWER(model) LIKE ? OR LOWER(traccar_unique_id) LIKE ?)');
+    filters.push('(LOWER(v.license_plate) LIKE ? OR LOWER(v.brand) LIKE ? OR LOWER(v.model) LIKE ? OR LOWER(v.traccar_unique_id) LIKE ?)');
     filterParams.push(s, s, s, s);
   }
   if (params.status && params.status !== 'all') {
-    filters.push('status = ?');
+    filters.push('v.status = ?');
     filterParams.push(params.status);
   }
   if (params.category_id && params.category_id !== 'all') {
-    filters.push('category_id = ?');
+    filters.push('v.category_id = ?');
     filterParams.push(params.category_id);
   }
   if (params.imei_status === 'with_imei') {
-    filters.push(`(traccar_unique_id IS NOT NULL AND traccar_unique_id != '')`);
+    filters.push(`(v.traccar_unique_id IS NOT NULL AND v.traccar_unique_id != '')`);
   } else if (params.imei_status === 'without_imei') {
-    filters.push(`(traccar_unique_id IS NULL OR traccar_unique_id = '')`);
+    filters.push(`(v.traccar_unique_id IS NULL OR v.traccar_unique_id = '')`);
   }
   // sync_status: sem equivalente no modelo PowerSync (ver nota 1 no topo) — ignorado deliberadamente.
 
   const where = filters.join(' AND ');
 
-  const totalRow = await db.get<{ total: number }>(`SELECT COUNT(*) as total FROM vehicles WHERE ${where}`, filterParams);
+  const totalRow = await db.get<{ total: number }>(`SELECT COUNT(*) as total FROM vehicles v WHERE ${where}`, filterParams);
   const total = totalRow.total;
 
   const rows = await db.getAll<VehicleRow>(
-    `SELECT ${VEHICLE_COLUMNS} FROM vehicles WHERE ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+    `SELECT ${VEHICLE_SELECT} ${VEHICLE_FROM_JOIN} WHERE ${where} ORDER BY v.created_at DESC LIMIT ? OFFSET ?`,
     [...filterParams, limit, offset],
   );
 
-  const categoryCache = await buildCategoryCache();
-  const data = await Promise.all(rows.map(r => mapRow(r, categoryCache)));
+  const data = rows.map(mapRow);
 
   // Counts por status — sem filtros de status/categoria (totais reais), só o de pesquisa.
-  const baseFilters: string[] = ['deleted_at IS NULL'];
+  const baseFilters: string[] = ['v.deleted_at IS NULL'];
   const baseParams: unknown[] = [];
   if (params.search?.trim()) {
     const s = `%${params.search.toLowerCase()}%`;
-    baseFilters.push('(LOWER(license_plate) LIKE ? OR LOWER(brand) LIKE ? OR LOWER(model) LIKE ? OR LOWER(traccar_unique_id) LIKE ?)');
+    baseFilters.push('(LOWER(v.license_plate) LIKE ? OR LOWER(v.brand) LIKE ? OR LOWER(v.model) LIKE ? OR LOWER(v.traccar_unique_id) LIKE ?)');
     baseParams.push(s, s, s, s);
   }
   const baseWhere = baseFilters.join(' AND ');
 
   const countsRaw = await db.getAll<{ status: string; count: number }>(
-    `SELECT status, COUNT(*) as count FROM vehicles WHERE ${baseWhere} GROUP BY status`, baseParams,
+    `SELECT v.status as status, COUNT(*) as count FROM vehicles v WHERE ${baseWhere} GROUP BY v.status`, baseParams,
   );
   const statusCounts: Record<string, number> = { available: 0, in_use: 0, maintenance: 0, inactive: 0 };
   for (const row of countsRaw) statusCounts[row.status] = row.count;
@@ -213,7 +201,7 @@ export async function getAllVehicles(params: IPaginationParams = {}): Promise<IP
 export async function findVehicleById(vehicleId: string): Promise<IVehicle | null> {
   const db = await getPowerSyncDb();
   const row = await db.getOptional<VehicleRow>(
-    `SELECT ${VEHICLE_COLUMNS} FROM vehicles WHERE id = ? AND deleted_at IS NULL AND is_active = 1 LIMIT 1`,
+    `SELECT ${VEHICLE_SELECT} ${VEHICLE_FROM_JOIN} WHERE v.id = ? AND v.deleted_at IS NULL AND v.is_active = 1 LIMIT 1`,
     [vehicleId],
   );
   return row ? mapRow(row) : null;
@@ -261,16 +249,15 @@ export async function deleteVehicle(vehicleId: string): Promise<string> {
  */
 export async function getAvailableVehicles() {
   const db = await getPowerSyncDb();
-  const rows = await db.getAll<{
+  return db.getAll<{
     id: string; license_plate: string; brand: string; current_mileage: number; model: string;
-    year: number; category_id: string;
+    year: number; category_id: string; category_name: string | null;
   }>(
-    `SELECT id, license_plate, brand, current_mileage, model, year, category_id
-     FROM vehicles WHERE status = ? AND deleted_at IS NULL`,
+    `SELECT v.id, v.license_plate, v.brand, v.current_mileage, v.model, v.year, v.category_id, c.name as category_name
+     FROM vehicles v LEFT JOIN categories c ON c.id = v.category_id
+     WHERE v.status = ? AND v.deleted_at IS NULL`,
     [vehicleStatus.AVAILABLE],
   );
-  const categoryCache = await buildCategoryCache();
-  return rows.map(r => ({ ...r, category_name: categoryCache.get(r.category_id)?.name }));
 }
 
 /**
