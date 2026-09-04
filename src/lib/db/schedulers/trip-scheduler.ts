@@ -6,7 +6,12 @@
 // Pode correr em conjunto com o leave-scheduler sem conflitos.
 // ========================================
 
-import { processScheduledTrips } from '@/lib/db/queries/scheduled_trips.queries';
+// Fase 6 — corrigido para powersync.db (era app.db/Drizzle). Este
+// scheduler corre a cada 5 minutos desde o arranque da app; antes deste
+// corte estava a ler/escrever drivers/vehicles/trips já desactualizados
+// (esses 3 só escrevem em powersync.db desde os Prompts 6.2/6.3/6.5) —
+// ver nota grande em scheduled_trips.queries.powersync.ts.
+import { processScheduledTrips } from '@/lib/db/queries/scheduled_trips.queries.powersync';
 
 const INTERVAL_MS = 5 * 60 * 1000; // 5 minutos — igual ao leave-scheduler
 

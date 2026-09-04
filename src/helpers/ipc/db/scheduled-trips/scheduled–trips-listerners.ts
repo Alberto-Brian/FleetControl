@@ -11,6 +11,10 @@ import {
   CANCEL_SCHEDULED_TRIP,
   RUN_TRIP_SCHEDULER,
 } from './scheduled-trips-channels';
+// Fase 6 — powersync.db passa a ser a fonte operacional (era app.db/
+// Drizzle). scheduled_trips.queries.ts fica só como backup. Achado tardio
+// (ver nota grande em scheduled_trips.queries.powersync.ts): este domínio
+// estava totalmente ligado, ao contrário do que se assumira no Prompt 6.5.
 import {
   getAllScheduledTrips,
   getScheduledTripById,
@@ -19,7 +23,7 @@ import {
   updateScheduledTrip,
   cancelScheduledTrip,
   hasConflictingScheduledTrip,
-} from '@/lib/db/queries/scheduled_trips.queries';
+} from '@/lib/db/queries/scheduled_trips.queries.powersync';
 import { runTripSchedulerCycle } from '@/lib/db/schedulers/trip-scheduler';
 import {
   ICreateScheduledTrip,
