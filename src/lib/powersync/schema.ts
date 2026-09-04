@@ -97,6 +97,9 @@ export async function loadAppSchema() {
       organization_id: column.text,
       vehicle_id:      column.text,
       driver_id:       column.text,
+      // Fase 4 (migração Standalone -> Connected-first)
+      route_id:        column.text,
+      trip_code:       column.text,
       origin:          column.text,
       destination:     column.text,
       start_date:      column.text,
@@ -120,6 +123,13 @@ export async function loadAppSchema() {
     {
       organization_id: column.text,
       vehicle_id:      column.text,
+      // Fase 4 (migração Standalone -> Connected-first)
+      driver_id:       column.text,
+      trip_id:         column.text,
+      station_id:      column.text,
+      fuel_type:       column.text,
+      is_full_tank:    column.integer,
+      invoice_number:  column.text,
       refueling_date:  column.text,
       liters:          column.real,
       price_per_liter: column.real,
@@ -142,6 +152,14 @@ export async function loadAppSchema() {
     {
       organization_id: column.text,
       vehicle_id:      column.text,
+      // Fase 4 (migração Standalone -> Connected-first)
+      category_id:         column.text,
+      workshop_id:          column.text,
+      diagnosis:            column.text,
+      solution:             column.text,
+      priority:             column.text,
+      next_maintenance_km:  column.integer,
+      work_order_number:    column.text,
       entry_date:      column.text,
       exit_date:       column.text,
       type:            column.text,
@@ -168,6 +186,14 @@ export async function loadAppSchema() {
       organization_id: column.text,
       vehicle_id:      column.text,
       category_id:     column.text,
+      // Fase 4 (migração Standalone -> Connected-first)
+      driver_id:        column.text,
+      trip_id:          column.text,
+      payment_method:   column.text,
+      due_date:         column.text,
+      payment_date:     column.text,
+      document_number:  column.text,
+      supplier:         column.text,
       expense_date:    column.text,
       description:     column.text,
       amount:          column.real,
@@ -180,6 +206,179 @@ export async function loadAppSchema() {
       updated_by:      column.text,
       deleted_at:      column.text,
       deleted_by:      column.text,
+    },
+    { indexes: { vehicle: ['vehicle_id'] } },
+  );
+
+  // ── Fase 4 (migração Standalone -> Connected-first) — 8 domínios geridos
+  //    inteiramente pelo Desktop, subindo via PowerSync. route/workshop/
+  //    fuel_station/maintenance_category são org-only (mesmo grupo de
+  //    categories); fine/vehicle_document/scheduled_trip/maintenance_item
+  //    têm vehicle_id (directo ou, no caso de maintenance_item, via
+  //    maintenance_id — indexado localmente na mesma). ───────────────────
+  const routes = new Table({
+    organization_id:          column.text,
+    name:                     column.text,
+    origin:                   column.text,
+    destination:              column.text,
+    distance_km:              column.integer,
+    estimated_duration_hours: column.integer,
+    route_type:               column.text,
+    description:              column.text,
+    waypoints:                column.text,
+    is_active:                column.integer,
+    created_at:               column.text,
+    created_by:               column.text,
+    updated_at:               column.text,
+    updated_by:               column.text,
+    deleted_at:               column.text,
+    deleted_by:               column.text,
+  });
+
+  const workshops = new Table({
+    organization_id: column.text,
+    name:            column.text,
+    phone:           column.text,
+    email:           column.text,
+    address:         column.text,
+    city:            column.text,
+    state:           column.text,
+    specialties:     column.text,
+    notes:           column.text,
+    is_active:       column.integer,
+    created_at:      column.text,
+    created_by:      column.text,
+    updated_at:      column.text,
+    updated_by:      column.text,
+    deleted_at:      column.text,
+    deleted_by:      column.text,
+  });
+
+  const fuel_stations = new Table({
+    organization_id:        column.text,
+    name:                   column.text,
+    brand:                  column.text,
+    phone:                  column.text,
+    address:                column.text,
+    city:                   column.text,
+    fuel_types:             column.text,
+    has_convenience_store:  column.integer,
+    has_car_wash:           column.integer,
+    notes:                  column.text,
+    is_active:              column.integer,
+    created_at:             column.text,
+    created_by:             column.text,
+    updated_at:             column.text,
+    updated_by:             column.text,
+    deleted_at:             column.text,
+    deleted_by:             column.text,
+  });
+
+  const maintenance_categories = new Table({
+    organization_id: column.text,
+    name:            column.text,
+    type:            column.text,
+    description:     column.text,
+    color:           column.text,
+    is_active:       column.integer,
+    created_at:      column.text,
+    created_by:      column.text,
+    updated_at:      column.text,
+    updated_by:      column.text,
+    deleted_at:      column.text,
+    deleted_by:      column.text,
+  });
+
+  const fines = new Table(
+    {
+      organization_id:    column.text,
+      vehicle_id:         column.text,
+      driver_id:          column.text,
+      fine_number:        column.text,
+      fine_date:          column.text,
+      infraction_type:    column.text,
+      description:        column.text,
+      location:           column.text,
+      fine_amount:        column.real,
+      due_date:           column.text,
+      payment_date:       column.text,
+      status:             column.text,
+      points:             column.integer,
+      authority:          column.text,
+      notes:              column.text,
+      responsible_party:  column.text,
+      created_at:         column.text,
+      created_by:         column.text,
+      updated_at:         column.text,
+      updated_by:         column.text,
+      deleted_at:         column.text,
+      deleted_by:         column.text,
+    },
+    { indexes: { vehicle: ['vehicle_id'] } },
+  );
+
+  const vehicle_documents = new Table(
+    {
+      organization_id: column.text,
+      vehicle_id:      column.text,
+      document_type:   column.text,
+      document_number: column.text,
+      issue_date:      column.text,
+      expiry_date:     column.text,
+      value:           column.real,
+      file_path:       column.text,
+      notes:           column.text,
+      created_at:      column.text,
+      created_by:      column.text,
+      updated_at:      column.text,
+      updated_by:      column.text,
+      deleted_at:      column.text,
+      deleted_by:      column.text,
+    },
+    { indexes: { vehicle: ['vehicle_id'] } },
+  );
+
+  const maintenance_items = new Table(
+    {
+      organization_id: column.text,
+      maintenance_id:  column.text,
+      type:            column.text,
+      description:     column.text,
+      quantity:        column.integer,
+      unit_price:      column.real,
+      total_price:     column.real,
+      created_at:      column.text,
+      created_by:      column.text,
+      updated_at:      column.text,
+      updated_by:      column.text,
+      deleted_at:      column.text,
+      deleted_by:      column.text,
+    },
+    { indexes: { maintenance: ['maintenance_id'] } },
+  );
+
+  const scheduled_trips = new Table(
+    {
+      organization_id:  column.text,
+      driver_id:        column.text,
+      vehicle_id:       column.text,
+      route_id:         column.text,
+      scheduled_date:   column.text,
+      origin:           column.text,
+      destination:      column.text,
+      purpose:          column.text,
+      notes:            column.text,
+      status:           column.text,
+      trip_id:          column.text,
+      launched_at:      column.text,
+      cancelled_at:     column.text,
+      cancelled_reason: column.text,
+      created_at:       column.text,
+      created_by:       column.text,
+      updated_at:       column.text,
+      updated_by:       column.text,
+      deleted_at:       column.text,
+      deleted_by:       column.text,
     },
     { indexes: { vehicle: ['vehicle_id'] } },
   );
