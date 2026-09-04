@@ -7,14 +7,10 @@
 // para o motivo de não ter esperado pelo Prompt 6.9). `reports.queries.ts`
 // (Drizzle/app.db) não tocado, fica como backup/referência.
 //
-// `fines` ainda não foi cortado (Prompt 6.9) — único seam temporário que
-// resta aqui, mesmo padrão já usado em dashboard.queries.powersync.ts.
+// `fines` cortou no Prompt 6.9 — sem seam nenhum neste ficheiro.
 // `vehicle_categories` local tornou-se a tabela unificada `categories`
 // (type='vehicle') no Prompt 6.4 — os JOINs abaixo já reflectem isso.
 import { getPowerSyncDb } from '@/lib/powersync/client';
-import { useDb } from '@/lib/db/db_helpers';
-import { fines as finesSchema } from '@/lib/db/schemas/fines';
-import { isNull, and, gte, lte, sql as drizzleSql } from 'drizzle-orm';
 
 // ==================== VEHICLES REPORT ====================
 
@@ -264,12 +260,10 @@ export async function getFinancialReportData(startDate: string, endDate: string)
   const fuelData = await getFuelReportData(startDate, endDate);
   const maintenanceData = await getMaintenanceReportData(startDate, endDate);
 
-  // Fines — seam temporário (app.db), ver nota no topo do ficheiro.
-  const { db: legacyDb } = useDb();
-  const [finesRow] = await legacyDb
-    .select({ total_cost: drizzleSql<number>`sum(${finesSchema.fine_amount})` })
-    .from(finesSchema)
-    .where(and(isNull(finesSchema.deleted_at), gte(finesSchema.fine_date, startDate), lte(finesSchema.fine_date, endDate)));
+  const finesRow = await db.get<{ total_cost: number }>(
+    `SELECT COALESCE(SUM(fine_amount),0) as total_cost FROM fines WHERE deleted_at IS NULL AND fine_date >= ? AND fine_date <= ?`,
+    [startDate, endDate],
+  );
   const finesTotal = finesRow?.total_cost || 0;
 
   const expensesTotal = expensesList.reduce((sum, e) => sum + (e.amount || 0), 0);

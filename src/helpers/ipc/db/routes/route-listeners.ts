@@ -9,6 +9,8 @@ import {
     GET_ACTIVE_ROUTES,
 } from "./routes-channels";
 
+// Fase 6, Prompt 6.9 — powersync.db passa a ser a fonte operacional
+// (era app.db/Drizzle). routes.queries.ts fica só como backup.
 import {
     createRoute,
     getAllRoutes,
@@ -16,7 +18,7 @@ import {
     updateRoute,
     deleteRoute,
     getActiveRoutes,
-} from "@/lib/db/queries/routes.queries";
+} from "@/lib/db/queries/routes.queries.powersync";
 
 import { ICreateRoute, IUpdateRoute } from "@/lib/types/route";
 

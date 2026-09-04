@@ -8,6 +8,8 @@ import {
     RESTORE_WORKSHOP, // ✨ NOVO
 } from "./workshops-channels";
 
+// Fase 6, Prompt 6.9 — powersync.db passa a ser a fonte operacional
+// (era app.db/Drizzle). workshops.queries.ts fica só como backup.
 import {
     createWorkshop,
     getAllWorkshops,
@@ -15,7 +17,7 @@ import {
     deleteWorkshop,
     getWorkshopById,
     findWorkshopByName
-} from "@/lib/db/queries/workshops.queries";
+} from "@/lib/db/queries/workshops.queries.powersync";
 
 // Maintenance já corre em powersync.db desde o Prompt 6.7 — usar sempre a
 // versão PowerSync-backed daqui, nunca a app.db (ficaria a verificar uma

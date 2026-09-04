@@ -9,16 +9,13 @@
 // como a tabela local — confirmado contra schema.ts antes de escrever
 // (mesmo erro já cometido e corrigido no Prompt 6.6, desta vez evitado).
 //
-// vehicle (6.3) e maintenance_categories (6.4) já vivem em powersync.db —
-// JOINs normais. `workshops` ainda não cortado (mesma descoberta do
-// Prompt 6.5/6.9) — enriquecido em memória a partir de app.db, mesmo
-// padrão já usado nos ficheiros anteriores.
+// vehicle (6.3), maintenance_categories (6.4) e agora workshops (6.9)
+// vivem TODOS em powersync.db — JOINs normais, nenhum seam resta neste
+// ficheiro (enrichWithWorkshop, que fazia o merge cruzado com app.db, foi
+// removido).
 import { getPowerSyncDb } from '@/lib/powersync/client';
 import { getSessionOrganizationId } from '@/helpers/ipc/services/auth/token-store';
 import { generateUuid } from '@/lib/utils/cripto';
-import { useDb } from '@/lib/db/db_helpers';
-import { workshops as workshopsSchema } from '@/lib/db/schemas/workshops';
-import { inArray, isNull, eq, and } from 'drizzle-orm';
 import { ICreateMaintenance, IUpdateMaintenance, IMaintenance } from '@/lib/types/maintenance';
 import { IPaginatedResult, IPaginationParams } from '@/lib/types/pagination';
 import { maintenanceStatus } from '@/lib/db/schemas/maintenances';
@@ -31,6 +28,7 @@ interface MaintenanceRow {
   work_order_number: string | null; notes: string | null; created_at: string; updated_at: string;
   vehicle_license: string | null; vehicle_brand: string | null; vehicle_model: string | null; vehicle_current_mileage: number | null;
   category_name: string | null; category_type: string | null; category_color: string | null;
+  workshop_name: string | null;
 }
 
 const MAINT_SELECT = `
@@ -39,24 +37,18 @@ const MAINT_SELECT = `
   m.parts_cost, m.labor_cost, m.total_cost, m.status, m.priority, m.work_order_number, m.notes,
   m.created_at, m.updated_at,
   v.license_plate as vehicle_license, v.brand as vehicle_brand, v.model as vehicle_model, v.current_mileage as vehicle_current_mileage,
-  c.name as category_name, c.type as category_type, c.color as category_color
+  c.name as category_name, c.type as category_type, c.color as category_color,
+  w.name as workshop_name
 `;
 const MAINT_FROM_JOIN = `
   FROM maintenance m
   LEFT JOIN vehicles v ON v.id = m.vehicle_id
   LEFT JOIN maintenance_categories c ON c.id = m.category_id
+  LEFT JOIN workshops w ON w.id = m.workshop_id
 `;
 
-// Workshop — seam temporário (app.db), ver nota no topo do ficheiro.
-async function enrichWithWorkshop(rows: MaintenanceRow[]): Promise<IMaintenance[]> {
-  const workshopIds = [...new Set(rows.map(r => r.workshop_id).filter((id): id is string => !!id))];
-  const { db: legacyDb } = useDb();
-  const workshopsList = workshopIds.length
-    ? await legacyDb.select({ id: workshopsSchema.id, name: workshopsSchema.name }).from(workshopsSchema).where(inArray(workshopsSchema.id, workshopIds))
-    : [];
-  const workshopMap = new Map(workshopsList.map(w => [w.id, w.name]));
-
-  return rows.map(r => ({
+function mapRow(r: MaintenanceRow): IMaintenance {
+  return {
     id: r.id, vehicle_id: r.vehicle_id, category_id: r.category_id, workshop_id: r.workshop_id,
     type: r.type as IMaintenance['type'], entry_date: r.entry_date, exit_date: r.exit_date,
     vehicle_mileage: r.mileage, next_maintenance_km: r.next_maintenance_km, description: r.description,
@@ -71,9 +63,9 @@ async function enrichWithWorkshop(rows: MaintenanceRow[]): Promise<IMaintenance[
       vehicle_model: r.vehicle_model ?? undefined,
       category_name: r.category_name ?? undefined, category_type: r.category_type ?? undefined,
       category_color: r.category_color ?? undefined,
-      workshop_name: r.workshop_id ? workshopMap.get(r.workshop_id) : undefined,
+      workshop_name: r.workshop_name ?? undefined,
     } as Record<string, unknown>),
-  } as IMaintenance));
+  } as IMaintenance;
 }
 
 export async function getMaintenanceById(maintenanceId: string): Promise<IMaintenance | null> {
@@ -82,9 +74,7 @@ export async function getMaintenanceById(maintenanceId: string): Promise<IMainte
     `SELECT ${MAINT_SELECT} ${MAINT_FROM_JOIN} WHERE m.id = ? AND m.deleted_at IS NULL LIMIT 1`,
     [maintenanceId],
   );
-  if (!row) return null;
-  const [enriched] = await enrichWithWorkshop([row]);
-  return enriched;
+  return row ? mapRow(row) : null;
 }
 
 export async function createMaintenance(maintenanceData: ICreateMaintenance): Promise<IMaintenance> {
@@ -152,7 +142,7 @@ export async function getAllMaintenances(params: IPaginationParams = {}): Promis
     `SELECT ${MAINT_SELECT} ${MAINT_FROM_JOIN} WHERE ${where} ORDER BY m.created_at DESC LIMIT ? OFFSET ?`,
     [...filterParams, limit, offset],
   );
-  const data = await enrichWithWorkshop(rows);
+  const data = rows.map(mapRow);
 
   const countsRaw = await db.getAll<{ status: string; count: number }>(
     `SELECT m.status as status, COUNT(*) as count ${MAINT_FROM_JOIN} WHERE ${where} GROUP BY m.status`, filterParams,
@@ -264,5 +254,5 @@ export async function getActiveMaintenances(): Promise<IMaintenance[]> {
     `SELECT ${MAINT_SELECT} ${MAINT_FROM_JOIN} WHERE m.status = ? AND m.deleted_at IS NULL ORDER BY m.entry_date DESC`,
     [maintenanceStatus.IN_PROGRESS],
   );
-  return enrichWithWorkshop(rows);
+  return rows.map(mapRow);
 }

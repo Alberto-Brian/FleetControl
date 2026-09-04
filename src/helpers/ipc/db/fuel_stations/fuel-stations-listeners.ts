@@ -9,17 +9,21 @@ import {
     RESTORE_FUEL_STATION
 } from "./fuel-stations-channels";
 
+// Fase 6, Prompt 6.9 — powersync.db passa a ser a fonte operacional
+// (era app.db/Drizzle). fuel_stations.queries.ts fica só como backup.
 import {
     createFuelStation,
     getAllFuelStations,
     getFuelStationById,
     updateFuelStation,
     deleteFuelStation,
-} from "@/lib/db/queries/fuel_stations.queries";
+    findStationByName,
+} from "@/lib/db/queries/fuel_stations.queries.powersync";
 import { ConflictError, NotFoundError, WarningError } from '@/lib/errors/AppError';
 import { ICreateFuelStation, IUpdateFuelStation } from "@/lib/types/fuel-station";
-import { findStationByName } from "@/lib/db/queries/fuel_stations.queries";
-import { getRefuelingsByStation } from "@/lib/db/queries/refuelings.queries";
+// Fuel já corre em powersync.db desde o Prompt 6.6 — usar sempre a versão
+// PowerSync-backed, nunca a app.db.
+import { getRefuelingsByStation } from "@/lib/db/queries/refuelings.queries.powersync";
 
 export function addFuelStationsEventListeners() {
     ipcMain.handle(CREATE_FUEL_STATION, async (_, data: ICreateFuelStation) => await createFuelStationEvent(data));

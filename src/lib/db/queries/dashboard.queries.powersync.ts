@@ -16,14 +16,8 @@
 // propósito, antes do Prompt 6.9 (que não tinha essa urgência — os
 // domínios que falta cortar continuam correctos em app.db).
 //
-// `fines` ainda não foi cortado (Prompt 6.9) — único seam temporário que
-// resta aqui, mesmo padrão já usado nos ficheiros anteriores.
+// `fines` cortou no Prompt 6.9 — sem seam nenhum neste ficheiro.
 import { getPowerSyncDb } from '@/lib/powersync/client';
-import { useDb } from '@/lib/db/db_helpers';
-import { fines as finesSchema } from '@/lib/db/schemas/fines';
-import { vehicles as vehiclesSchema } from '@/lib/db/schemas/vehicles';
-import { drivers as driversSchema } from '@/lib/db/schemas/drivers';
-import { eq, and, isNull, gte, sql as drizzleSql } from 'drizzle-orm';
 
 // ==================== STATS ====================
 export async function getDashboardStats() {
@@ -79,19 +73,15 @@ export async function getDashboardStats() {
      FROM expenses WHERE deleted_at IS NULL`,
   );
 
-  // Fines — seam temporário (app.db), ver nota no topo do ficheiro.
-  const { db: legacyDb } = useDb();
-  const [fineStats] = await legacyDb
-    .select({
-      total: drizzleSql<number>`count(*)`,
-      pending: drizzleSql<number>`sum(case when ${finesSchema.status} = 'pending' then 1 else 0 end)`,
-      paid: drizzleSql<number>`sum(case when ${finesSchema.status} = 'paid' then 1 else 0 end)`,
-      contested: drizzleSql<number>`sum(case when ${finesSchema.status} = 'contested' then 1 else 0 end)`,
-      overdue: drizzleSql<number>`sum(case when ${finesSchema.status} = 'pending' and ${finesSchema.due_date} < date('now') then 1 else 0 end)`,
-      totalAmount: drizzleSql<number>`sum(${finesSchema.fine_amount})`,
-    })
-    .from(finesSchema)
-    .where(isNull(finesSchema.deleted_at));
+  const fineStats = await db.get<{ total: number; pending: number; paid: number; contested: number; overdue: number; totalAmount: number }>(
+    `SELECT COUNT(*) as total,
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paid,
+            SUM(CASE WHEN status = 'contested' THEN 1 ELSE 0 END) as contested,
+            SUM(CASE WHEN status = 'pending' AND due_date < date('now') THEN 1 ELSE 0 END) as overdue,
+            COALESCE(SUM(fine_amount),0) as totalAmount
+     FROM fines WHERE deleted_at IS NULL`,
+  );
 
   return {
     totalVehicles: Number(vehicleStats.total) || 0,
@@ -198,24 +188,16 @@ export async function getRecentActivities(limit: number = 10): Promise<Activity[
      FROM drivers WHERE deleted_at IS NULL AND created_at >= ? ORDER BY created_at DESC LIMIT ?`, [since, limit],
   );
 
-  // Fines — seam temporário (app.db), ver nota no topo do ficheiro.
-  const { db: legacyDb } = useDb();
-  const recentFines = await legacyDb
-    .select({
-      id: finesSchema.id,
-      description: drizzleSql<string>`${finesSchema.infraction_type} || ' - ' || ${finesSchema.location}`,
-      date: finesSchema.created_at,
-      amount: finesSchema.fine_amount,
-      status: finesSchema.status,
-      vehicle: vehiclesSchema.license_plate,
-      driver: driversSchema.name,
-    })
-    .from(finesSchema)
-    .leftJoin(vehiclesSchema, eq(finesSchema.vehicle_id, vehiclesSchema.id))
-    .leftJoin(driversSchema, eq(finesSchema.driver_id, driversSchema.id))
-    .where(and(isNull(finesSchema.deleted_at), gte(finesSchema.created_at, since)))
-    .orderBy(drizzleSql`${finesSchema.created_at} DESC`)
-    .limit(limit);
+  const recentFines = await db.getAll<{ id: string; description: string; date: string; amount: number; status: string; vehicle: string | null; driver: string | null }>(
+    `SELECT f.id as id, (COALESCE(f.infraction_type,'') || ' - ' || COALESCE(f.location,'')) as description,
+            f.created_at as date, f.fine_amount as amount, f.status as status,
+            v.license_plate as vehicle, d.name as driver
+     FROM fines f
+     LEFT JOIN vehicles v ON v.id = f.vehicle_id
+     LEFT JOIN drivers d ON d.id = f.driver_id
+     WHERE f.deleted_at IS NULL AND f.created_at >= ?
+     ORDER BY f.created_at DESC LIMIT ?`, [since, limit],
+  );
 
   const all: Activity[] = [
     ...recentTrips.map(t => ({ id: t.id, type: 'trip' as const, title: 'dashboard:recentActivities.newTripStarted', description: t.description, date: t.date, status: t.status, vehicle: t.vehicle ?? '', driver: t.driver ?? '' })),

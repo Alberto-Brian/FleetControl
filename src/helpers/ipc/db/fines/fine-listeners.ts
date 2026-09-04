@@ -10,6 +10,8 @@ import {
     GET_PENDING_FINES,
 } from "./fines-channels";
 
+// Fase 6, Prompt 6.9 — powersync.db passa a ser a fonte operacional
+// (era app.db/Drizzle). fines.queries.ts fica só como backup.
 import {
     createFine,
     getAllFines,
@@ -18,7 +20,7 @@ import {
     markFineAsPaid,
     deleteFine,
     getPendingFines,
-} from "@/lib/db/queries/fines.queries";
+} from "@/lib/db/queries/fines.queries.powersync";
 
 import { ICreateFine, IUpdateFine, PayFineData } from "@/lib/types/fine";
 import { IPaginationParams } from "@/lib/types/pagination";

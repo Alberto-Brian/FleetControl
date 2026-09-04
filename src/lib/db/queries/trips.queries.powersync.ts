@@ -6,14 +6,10 @@
 // cortado para PowerSync. `trips.queries.ts` (Drizzle/app.db) não tocado,
 // fica como backup/referência.
 //
-// Diferente dos domínios anteriores: agora que Vehicles (6.3) e Drivers
-// (6.2) TAMBÉM já vivem em powersync.db, os JOINs vehicle/driver deixam de
-// precisar de qualquer seam — é a MESMA base SQLite, um JOIN normal
-// resolve tudo. Só `routes` continua num seam temporário (ver
-// `enrichWithRouteName`) — Routes ainda não foi cortado (fica para a
-// revisão de âmbito do Prompt 6.9, que descobriu que routes/workshops/
-// fuel_stations/fines já têm CRUD legado completo no Desktop, ao
-// contrário do que a investigação inicial assumia).
+// Vehicles (6.3), Drivers (6.2) e agora Routes (6.9) vivem TODOS em
+// powersync.db — nenhum JOIN precisa de seam nenhum, é a mesma base
+// SQLite. `enrichWithRouteName`/o seam via app.db foi removido no Prompt
+// 6.9 quando Routes cortou (rota resolvida directamente por JOIN abaixo).
 //
 // createTrip/completeTrip/cancelTrip/deleteTrip usam `db.writeTransaction`
 // (atomicidade real — trips+vehicles+drivers na MESMA base agora),
@@ -21,9 +17,6 @@
 import { getPowerSyncDb } from '@/lib/powersync/client';
 import { getSessionOrganizationId } from '@/helpers/ipc/services/auth/token-store';
 import { generateUuid } from '@/lib/utils/cripto';
-import { useDb } from '@/lib/db/db_helpers';
-import { routes as routesSchema } from '@/lib/db/schemas/routes';
-import { eq } from 'drizzle-orm';
 import { ICreateTrip, ICompleteTrip, ITrip } from '@/lib/types/trip';
 import { IPaginationParams, IPaginatedResult } from '@/lib/types/pagination';
 import { tripStatus } from '@/lib/db/schemas/trips';
@@ -41,6 +34,7 @@ interface TripRow {
   notes: string | null; created_at: string; updated_at: string;
   vehicle_license: string | null; vehicle_brand: string | null; vehicle_model: string | null;
   driver_name: string | null; driver_license_number: string | null; driver_email: string | null;
+  route_name: string | null;
 }
 
 const TRIP_SELECT = `
@@ -48,27 +42,15 @@ const TRIP_SELECT = `
   t.start_mileage, t.end_mileage, t.origin, t.destination, t.purpose, t.status, t.notes,
   t.created_at, t.updated_at,
   v.license_plate as vehicle_license, v.brand as vehicle_brand, v.model as vehicle_model,
-  d.name as driver_name, d.license_number as driver_license_number, d.email as driver_email
+  d.name as driver_name, d.license_number as driver_license_number, d.email as driver_email,
+  r.name as route_name
 `;
 const TRIP_FROM_JOIN = `
   FROM trips t
   LEFT JOIN vehicles v ON v.id = t.vehicle_id
   LEFT JOIN drivers d ON d.id = t.driver_id
+  LEFT JOIN routes r ON r.id = t.route_id
 `;
-
-// Routes ainda não cortado (ver nota no topo) — enriquecimento cruzado
-// entre bases, mesmo padrão já usado para vehicle_categories em
-// vehicles.queries.powersync.ts.
-async function enrichWithRouteName<T extends { route_id: string | null }>(rows: T[]): Promise<(T & { route_name?: string })[]> {
-  const routeIds = [...new Set(rows.map(r => r.route_id).filter((id): id is string => !!id))];
-  if (routeIds.length === 0) return rows;
-
-  const { db: legacyDb } = useDb();
-  const routeRows = await legacyDb.select({ id: routesSchema.id, name: routesSchema.name }).from(routesSchema);
-  const routeNames = new Map(routeRows.map(r => [r.id, r.name]));
-
-  return rows.map(r => ({ ...r, route_name: r.route_id ? routeNames.get(r.route_id) : undefined }));
-}
 
 export async function getTripById(tripId: string): Promise<ITrip | null> {
   const db = await getPowerSyncDb();
@@ -76,9 +58,7 @@ export async function getTripById(tripId: string): Promise<ITrip | null> {
     `SELECT ${TRIP_SELECT} ${TRIP_FROM_JOIN} WHERE t.id = ? AND t.deleted_at IS NULL LIMIT 1`,
     [tripId],
   );
-  if (!row) return null;
-  const [enriched] = await enrichWithRouteName([row]);
-  return enriched as unknown as ITrip;
+  return row ? (row as unknown as ITrip) : null;
 }
 
 export async function isVehicleAvailable(vehicleId: string): Promise<boolean> {
@@ -104,9 +84,9 @@ export async function createTrip(tripData: ICreateTrip): Promise<ITrip> {
   let destination = tripData.destination;
 
   if (tripData.route_id) {
-    // Routes ainda em app.db — ver nota no topo do ficheiro.
-    const { db: legacyDb } = useDb();
-    const [route] = await legacyDb.select().from(routesSchema).where(eq(routesSchema.id, tripData.route_id)).limit(1);
+    const route = await db.getOptional<{ origin: string; destination: string }>(
+      `SELECT origin, destination FROM routes WHERE id = ? LIMIT 1`, [tripData.route_id],
+    );
     if (!route) throw new Error('trips:errors.routeNotFound');
     origin = route.origin;
     destination = route.destination;
@@ -161,7 +141,7 @@ export async function getAllTrips(params: IPaginationParams = {}): Promise<IPagi
     `SELECT ${TRIP_SELECT} ${TRIP_FROM_JOIN} WHERE ${where} ORDER BY t.created_at DESC LIMIT ? OFFSET ?`,
     [...filterParams, limit, offset],
   );
-  const data = await enrichWithRouteName(rows);
+  const data = rows;
 
   const baseFilters: string[] = ['t.deleted_at IS NULL'];
   const baseParams: unknown[] = [];
@@ -200,7 +180,7 @@ export async function getActiveTrips(): Promise<ITrip[]> {
     `SELECT ${TRIP_SELECT} ${TRIP_FROM_JOIN} WHERE t.status = ? AND t.deleted_at IS NULL ORDER BY t.start_date DESC`,
     [tripStatus.IN_PROGRESS],
   );
-  return (await enrichWithRouteName(rows)) as unknown as ITrip[];
+  return rows as unknown as ITrip[];
 }
 
 export async function completeTrip(tripId: string, completeData: ICompleteTrip): Promise<ITrip | null> {

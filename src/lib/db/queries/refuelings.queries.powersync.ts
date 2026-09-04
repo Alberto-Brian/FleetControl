@@ -6,19 +6,13 @@
 // (refuelings) cortado para PowerSync. `refuelings.queries.ts` (Drizzle/
 // app.db) não tocado, fica como backup/referência.
 //
-// vehicle/driver/trip já vivem em powersync.db (6.2/6.3/6.5) — JOINs
-// normais, sem seam. `fuel_stations` e `routes` (via trips.route_id)
-// ainda não cortados (mesma descoberta do Prompt 6.5 — routes/
-// fuel_stations já têm CRUD legado completo, ficam para o Prompt 6.9) —
-// enriquecidos em memória a partir de app.db, mesmo padrão de
-// enrichWithRouteName em trips.queries.powersync.ts.
+// vehicle/driver/trip já vivem em powersync.db (6.2/6.3/6.5); fuel_stations
+// e routes cortaram no Prompt 6.9 — todos os JOINs são normais agora,
+// nenhum seam resta neste ficheiro (enrichStationAndRoute, que fazia o
+// merge cruzado com app.db, foi removido).
 import { getPowerSyncDb } from '@/lib/powersync/client';
 import { getSessionOrganizationId } from '@/helpers/ipc/services/auth/token-store';
 import { generateUuid } from '@/lib/utils/cripto';
-import { useDb } from '@/lib/db/db_helpers';
-import { fuel_stations as fuelStationsSchema } from '@/lib/db/schemas/fuel_stations';
-import { routes as routesSchema } from '@/lib/db/schemas/routes';
-import { inArray } from 'drizzle-orm';
 import { IPaginatedResult } from '@/lib/types/pagination';
 import {
   IRefueling, ICreateRefueling, IUpdateRefueling, IRefuelingsPaginationParams, IRefuelingStats,
@@ -33,7 +27,8 @@ interface RefuelingRow {
   driver_name: string | null;
   trip_code: string | null; trip_destination: string | null; trip_origin: string | null;
   trip_start_date: string | null; trip_status: string | null; trip_driver_id: string | null;
-  trip_route_id: string | null;
+  station_name: string | null; station_brand: string | null; station_city: string | null;
+  route_name: string | null; route_origin: string | null; route_destination: string | null;
 }
 
 const REFUELING_SELECT = `
@@ -44,51 +39,33 @@ const REFUELING_SELECT = `
   d.name as driver_name,
   t.trip_code as trip_code, t.destination as trip_destination, t.origin as trip_origin,
   t.start_date as trip_start_date, t.status as trip_status, t.driver_id as trip_driver_id,
-  t.route_id as trip_route_id
+  s.name as station_name, s.brand as station_brand, s.city as station_city,
+  rt.name as route_name, rt.origin as route_origin, rt.destination as route_destination
 `;
 const REFUELING_FROM_JOIN = `
   FROM fuel r
   LEFT JOIN vehicles v ON v.id = r.vehicle_id
   LEFT JOIN drivers d ON d.id = r.driver_id
   LEFT JOIN trips t ON t.id = r.trip_id
+  LEFT JOIN fuel_stations s ON s.id = r.station_id
+  LEFT JOIN routes rt ON rt.id = t.route_id
 `;
 
-// Estação/rota — seam temporário (app.db), ver nota no topo do ficheiro.
-async function enrichStationAndRoute(rows: RefuelingRow[]): Promise<IRefueling[]> {
-  const stationIds = [...new Set(rows.map(r => r.station_id).filter((id): id is string => !!id))];
-  const routeIds   = [...new Set(rows.map(r => r.trip_route_id).filter((id): id is string => !!id))];
-
-  const { db: legacyDb } = useDb();
-  const stations = stationIds.length
-    ? await legacyDb.select({ id: fuelStationsSchema.id, name: fuelStationsSchema.name, brand: fuelStationsSchema.brand, city: fuelStationsSchema.city })
-        .from(fuelStationsSchema).where(inArray(fuelStationsSchema.id, stationIds))
-    : [];
-  const routesList = routeIds.length
-    ? await legacyDb.select({ id: routesSchema.id, name: routesSchema.name, origin: routesSchema.origin, destination: routesSchema.destination })
-        .from(routesSchema).where(inArray(routesSchema.id, routeIds))
-    : [];
-
-  const stationMap = new Map(stations.map(s => [s.id, s]));
-  const routeMap = new Map(routesList.map(r => [r.id, r]));
-
-  return rows.map(r => {
-    const station = r.station_id ? stationMap.get(r.station_id) : undefined;
-    const route = r.trip_route_id ? routeMap.get(r.trip_route_id) : undefined;
-    return {
-      id: r.id, vehicle_id: r.vehicle_id, driver_id: r.driver_id, trip_id: r.trip_id, station_id: r.station_id,
-      refueling_date: r.refueling_date, fuel_type: r.fuel_type, liters: r.liters, price_per_liter: r.price_per_liter,
-      total_cost: r.total_cost, current_mileage: r.current_mileage, is_full_tank: !!r.is_full_tank,
-      invoice_number: r.invoice_number, notes: r.notes, created_at: r.created_at, updated_at: r.updated_at,
-      deleted_at: r.deleted_at,
-      vehicle_license: r.vehicle_license ?? undefined, vehicle_brand: r.vehicle_brand ?? undefined,
-      vehicle_model: r.vehicle_model ?? undefined, driver_name: r.driver_name ?? undefined,
-      station_name: station?.name, station_brand: station?.brand ?? undefined, station_city: station?.city ?? undefined,
-      trip_code: r.trip_code ?? undefined, trip_destination: r.trip_destination ?? undefined,
-      trip_origin: r.trip_origin ?? undefined, trip_start_date: r.trip_start_date ?? undefined,
-      trip_status: r.trip_status ?? undefined, trip_driver_id: r.trip_driver_id ?? undefined,
-      route_name: route?.name, route_origin: route?.origin, route_destination: route?.destination,
-    };
-  });
+function mapRow(r: RefuelingRow): IRefueling {
+  return {
+    id: r.id, vehicle_id: r.vehicle_id, driver_id: r.driver_id, trip_id: r.trip_id, station_id: r.station_id,
+    refueling_date: r.refueling_date, fuel_type: r.fuel_type, liters: r.liters, price_per_liter: r.price_per_liter,
+    total_cost: r.total_cost, current_mileage: r.current_mileage, is_full_tank: !!r.is_full_tank,
+    invoice_number: r.invoice_number, notes: r.notes, created_at: r.created_at, updated_at: r.updated_at,
+    deleted_at: r.deleted_at,
+    vehicle_license: r.vehicle_license ?? undefined, vehicle_brand: r.vehicle_brand ?? undefined,
+    vehicle_model: r.vehicle_model ?? undefined, driver_name: r.driver_name ?? undefined,
+    station_name: r.station_name ?? undefined, station_brand: r.station_brand ?? undefined, station_city: r.station_city ?? undefined,
+    trip_code: r.trip_code ?? undefined, trip_destination: r.trip_destination ?? undefined,
+    trip_origin: r.trip_origin ?? undefined, trip_start_date: r.trip_start_date ?? undefined,
+    trip_status: r.trip_status ?? undefined, trip_driver_id: r.trip_driver_id ?? undefined,
+    route_name: r.route_name ?? undefined, route_origin: r.route_origin ?? undefined, route_destination: r.route_destination ?? undefined,
+  };
 }
 
 export async function createRefueling(data: ICreateRefueling): Promise<IRefueling> {
@@ -122,9 +99,7 @@ export async function getRefuelingById(id: string): Promise<IRefueling | null> {
     `SELECT ${REFUELING_SELECT} ${REFUELING_FROM_JOIN} WHERE r.id = ? AND r.deleted_at IS NULL LIMIT 1`,
     [id],
   );
-  if (!row) return null;
-  const [enriched] = await enrichStationAndRoute([row]);
-  return enriched;
+  return row ? mapRow(row) : null;
 }
 
 export async function getAllRefuelings(params: IRefuelingsPaginationParams = {}): Promise<IPaginatedResult<IRefueling>> {
@@ -159,7 +134,7 @@ export async function getAllRefuelings(params: IRefuelingsPaginationParams = {})
     `SELECT ${REFUELING_SELECT} ${REFUELING_FROM_JOIN} WHERE ${where} ORDER BY r.refueling_date DESC LIMIT ? OFFSET ?`,
     [...filterParams, limit, offset],
   );
-  const data = await enrichStationAndRoute(rows);
+  const data = rows.map(mapRow);
 
   const totalsRow = await db.get<{ totalCost: number; totalLiters: number; avgPrice: number; totalCount: number }>(
     `SELECT COALESCE(SUM(r.total_cost),0) as totalCost, COALESCE(SUM(r.liters),0) as totalLiters,
@@ -188,7 +163,7 @@ async function getRefuelingsByField(field: 'vehicle_id' | 'driver_id' | 'trip_id
     `SELECT ${REFUELING_SELECT} ${REFUELING_FROM_JOIN} WHERE r.${field} = ? AND r.deleted_at IS NULL ORDER BY r.refueling_date DESC`,
     [value],
   );
-  return enrichStationAndRoute(rows);
+  return rows.map(mapRow);
 }
 
 export const getRefuelingsByVehicle = (vehicleId: string) => getRefuelingsByField('vehicle_id', vehicleId);
@@ -221,18 +196,14 @@ export async function getRefuelingStats(params: { from_date?: string; to_date?: 
 
   const topStationsFilters = [...filters, 'r.station_id IS NOT NULL'];
   const topStationsWhere = topStationsFilters.join(' AND ');
-  const stationTotalsRaw = await db.getAll<{ station_id: string; totalLiters: number; totalCost: number }>(
-    `SELECT r.station_id as station_id, COALESCE(SUM(r.liters),0) as totalLiters, COALESCE(SUM(r.total_cost),0) as totalCost
-     FROM fuel r WHERE ${topStationsWhere}
-     GROUP BY r.station_id ORDER BY totalLiters DESC LIMIT 10`, filterParams,
+  const stationTotalsRaw = await db.getAll<{ station_id: string; station_name: string | null; totalLiters: number; totalCost: number }>(
+    `SELECT r.station_id as station_id, s.name as station_name,
+            COALESCE(SUM(r.liters),0) as totalLiters, COALESCE(SUM(r.total_cost),0) as totalCost
+     FROM fuel r
+     LEFT JOIN fuel_stations s ON s.id = r.station_id
+     WHERE ${topStationsWhere}
+     GROUP BY r.station_id, s.name ORDER BY totalLiters DESC LIMIT 10`, filterParams,
   );
-  // Nome do posto — seam temporário (app.db), ver nota no topo do ficheiro.
-  const { db: legacyDb } = useDb();
-  const stationIds = stationTotalsRaw.map(s => s.station_id);
-  const stationNames = stationIds.length
-    ? await legacyDb.select({ id: fuelStationsSchema.id, name: fuelStationsSchema.name }).from(fuelStationsSchema).where(inArray(fuelStationsSchema.id, stationIds))
-    : [];
-  const stationNameMap = new Map(stationNames.map(s => [s.id, s.name]));
 
   const byFuelTypeRaw = await db.getAll<{ fuel_type: string; totalLiters: number; totalCost: number; count: number }>(
     `SELECT r.fuel_type as fuel_type, COALESCE(SUM(r.liters),0) as totalLiters,
@@ -258,7 +229,7 @@ export async function getRefuelingStats(params: { from_date?: string; to_date?: 
       vehicle_id: r.vehicle_id, vehicle_license: r.vehicle_license ?? '—', totalLiters: r.totalLiters, totalCost: r.totalCost,
     })),
     topStations: stationTotalsRaw.map(r => ({
-      station_id: r.station_id, station_name: stationNameMap.get(r.station_id) ?? '—', totalLiters: r.totalLiters, totalCost: r.totalCost,
+      station_id: r.station_id, station_name: r.station_name ?? '—', totalLiters: r.totalLiters, totalCost: r.totalCost,
     })),
     byFuelType: byFuelTypeRaw.map(r => ({ fuel_type: r.fuel_type, totalLiters: r.totalLiters, totalCost: r.totalCost, count: r.count })),
     byMonth: byMonthRaw.map(r => ({ month: r.month, totalLiters: r.totalLiters, totalCost: r.totalCost, count: r.count })),
