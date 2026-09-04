@@ -9,6 +9,8 @@ import {
     DELETE_VEHICLE_CATEGORY,
 } from "./vehicle-categories-channels";
 
+// Fase 6, Prompt 6.4 — powersync.db passa a ser a fonte operacional
+// (era app.db/Drizzle). vehicle_categories.queries.ts fica só como backup.
 import {
     getAllVehicleCategories,
     createVehicleCategory,
@@ -16,8 +18,11 @@ import {
     deleteVehicleCategory,
     findVehicleCategoryByName,
     findVehicleCategoryById
-} from '@/lib/db/queries/vehicle_categories.queries';
-import { getVehiclesByCategory } from '@/lib/db/queries/vehicles.queries';
+} from '@/lib/db/queries/vehicle_categories.queries.powersync';
+// Vehicles já corre sobre powersync.db desde o Prompt 6.3 — usar sempre a
+// versão PowerSync-backed daqui, nunca a app.db (ficaria a verificar uma
+// tabela que já não recebe escritas de veículos novos).
+import { getVehiclesByCategory } from '@/lib/db/queries/vehicles.queries.powersync';
 
 import { ICreateVehicleCategory, IUpdateVehicleCategory, IVehicleCategory } from '@/lib/types/vehicle-category';
 import { ConflictError, NotFoundError, WarningError } from '@/lib/errors/AppError';

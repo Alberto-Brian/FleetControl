@@ -4,12 +4,18 @@
 import { ipcMain } from "electron";
 import {
     GET_ALL_MAINTENANCE_CATEGORIES,
+    GET_ACTIVE_MAINTENANCE_CATEGORIES,
     CREATE_MAINTENANCE_CATEGORY,
     UPDATE_MAINTENANCE_CATEGORY,
     DELETE_MAINTENANCE_CATEGORY,
     RESTORE_MAINTENANCE_CATEGORY,
 } from "./maintenance-categories-channels";
 
+// Fase 6, Prompt 6.4 — powersync.db passa a ser a fonte operacional
+// (era app.db/Drizzle). maintenance_categories.queries.ts fica só como
+// backup, excepto getMaintenancesByCategory (guarda de eliminação) — essa
+// continua a consultar `maintenances` via app.db de propósito, Maintenance
+// só corta para PowerSync no Prompt 6.7 (mesmo seam de Drivers/Trips).
 import {
     getAllMaintenanceCategories,
     createMaintenanceCategory,
@@ -17,14 +23,19 @@ import {
     deleteMaintenanceCategory,
     findMaintenanceCategoryByName,
     getMaintenanceCategoryById,
-    getMaintenancesByCategory,
-} from '@/lib/db/queries/maintenance_categories.queries';
+    getActiveMaintenanceCategories,
+} from '@/lib/db/queries/maintenance_categories.queries.powersync';
+import { getMaintenancesByCategory } from '@/lib/db/queries/maintenance_categories.queries';
 
 import { ICreateMaintenanceCategory, IUpdateMaintenanceCategory } from '@/lib/types/maintenance_category';
 import { ConflictError, NotFoundError, WarningError } from '@/lib/errors/AppError';
 
 export function addMaintenanceCategoriesEventListeners() {
     ipcMain.handle(GET_ALL_MAINTENANCE_CATEGORIES, async () => await getAllMaintenanceCategories());
+    // Canal já exposto em maintenance-categories-context.ts mas sem handler
+    // registado (bug pré-existente, não introduzido aqui) — corrigido de
+    // propósito por já precisar exactamente desta função para outra coisa.
+    ipcMain.handle(GET_ACTIVE_MAINTENANCE_CATEGORIES, async () => await getActiveMaintenanceCategories());
     
     // ✅ CREATE com validação de nome duplicado
     ipcMain.handle(CREATE_MAINTENANCE_CATEGORY, async (_, data: ICreateMaintenanceCategory) => {

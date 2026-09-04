@@ -11,6 +11,8 @@ import {
     RESTORE_EXPENSE_CATEGORY,
 } from "./expense-categories-channels";
 
+// Fase 6, Prompt 6.4 — powersync.db passa a ser a fonte operacional
+// (era app.db/Drizzle). expense-categories.queries.ts fica só como backup.
 import {
     createExpenseCategory,
     getAllExpenseCategories,
@@ -18,7 +20,7 @@ import {
     updateExpenseCategory,
     deleteExpenseCategory,
     findExpenseCategoryByName,
-} from '@/lib/db/queries/expense-categories.queries';
+} from '@/lib/db/queries/expense-categories.queries.powersync';
 
 import { ICreateExpenseCategory, IUpdateExpenseCategory } from '@/lib/types/expense-category';
 import { ConflictError, NotFoundError, WarningError } from '@/lib/errors/AppError';
