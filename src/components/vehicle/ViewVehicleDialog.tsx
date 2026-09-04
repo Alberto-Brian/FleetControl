@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Edit, Gauge, RefreshCw, CheckCircle2, Clock, Settings2, Ban,
-  Truck, Tag, Calendar, DollarSign, FileText, RotateCcw, Hash, Wifi, Upload, WifiOff, MapPin,
+  Truck, Tag, Calendar, DollarSign, FileText, RotateCcw, Hash, Wifi, WifiOff, MapPin,
   Route, Fuel, Wrench, ChevronRight, Loader2, Activity, Navigation, Zap, ZapOff,
   LogIn, LogOut, AlertTriangle, Radio,
 } from 'lucide-react';
@@ -451,28 +451,12 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
                 </div>
               )}
 
-              {/* Sincronização & GPS */}
+              {/* GPS */}
               <div className="p-4 bg-muted/30 rounded-xl">
                 <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
-                  <Upload className="w-3 h-3" /> {t('vehicles:dialogs.view.syncInfo')}
+                  <Wifi className="w-3 h-3" /> {t('vehicles:dialogs.view.syncInfo')}
                 </h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground text-xs">{t('vehicles:dialogs.view.syncStatus')}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      {selectedVehicle.api_vehicle_id ? (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                          <span className="font-medium text-emerald-600 dark:text-emerald-400">{t('vehicles:dialogs.view.syncedWithApi')}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="font-medium text-muted-foreground">{t('vehicles:dialogs.view.pendingSync')}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
+                <div className="grid grid-cols-1 gap-4 text-sm">
                   <div>
                     <p className="text-muted-foreground text-xs">{t('vehicles:dialogs.view.gpsDevice')}</p>
                     {selectedVehicle.traccar_unique_id ? (

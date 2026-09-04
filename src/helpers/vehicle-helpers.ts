@@ -91,15 +91,6 @@ export async function updateVehicleMileage(vehicleId: string, mileage: number): 
     }
 }
 
-export async function syncVehicleToApi(vehicleId: string, imei?: string): Promise<IVehicle | null> {
-    try {
-        return await window._vehicles.syncToApi(vehicleId, imei);
-    } catch (error) {
-        console.error(error);
-        throw error;
-    }
-}
-
 export async function registerGpsOnVehicle(vehicleId: string, imei: string): Promise<IVehicle | null> {
     try {
         const result = await window._vehicles.registerGps(vehicleId, imei);

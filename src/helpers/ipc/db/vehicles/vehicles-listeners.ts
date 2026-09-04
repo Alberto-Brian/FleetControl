@@ -24,7 +24,6 @@ import {
   UPDATE_VEHICLE_MILEAGE,
   GET_VEHICLES_BY_CATEGORY,
   COUNT_VEHICLES_BY_STATUS,
-  SYNC_VEHICLE_TO_API,
   REGISTER_GPS_ON_VEHICLE,
   UNREGISTER_GPS_FROM_VEHICLE,
   TOGGLE_VEHICLE_TRACKING,
@@ -53,7 +52,7 @@ import { IPaginationParams } from "@/lib/types/pagination";
 
 import {
   findVehicleCategoryById
-} from '@/lib/db/queries/vehicle_categories.queries'
+} from '@/lib/db/queries/vehicle_categories.queries.powersync'
 
 import { ICreateVehicle, IUpdateStatus, IUpdateVehicle } from '@/lib/types/vehicle';
 import { ConflictError, NotFoundError, WarningError } from "@/lib/errors/AppError";
@@ -95,7 +94,6 @@ export function addVehiclesEventListeners() {
   ipcMain.handle(UPDATE_VEHICLE_MILEAGE, async (_, vehicleId: string, mileage: number) => await updateVehicleMileageEvent(vehicleId, mileage));
   ipcMain.handle(GET_VEHICLES_BY_CATEGORY, async (_, categoryId: string) => await getVehiclesByCategoryEvent(categoryId));
   ipcMain.handle(COUNT_VEHICLES_BY_STATUS, async () => await countVehiclesByStatusEvent());
-  ipcMain.handle(SYNC_VEHICLE_TO_API,     async (_, vehicleId: string) => await syncVehicleToApiEvent(vehicleId));
   ipcMain.handle(REGISTER_GPS_ON_VEHICLE, async (_, vehicleId: string, imei: string)  => await registerGpsOnVehicleEvent(vehicleId, imei));
 
   ipcMain.handle(UNREGISTER_GPS_FROM_VEHICLE, async (_, vehicleId: string) => {
@@ -357,17 +355,3 @@ async function registerGpsOnVehicleEvent(vehicleId: string, imei: string) {
   return await findVehicleById(vehicleId);
 }
 
-// Antes (modelo REST): "sincronizar" um veículo local com a API, guardando
-// o api_vehicle_id devolvido. Com PowerSync, todo veículo já é enviado
-// automaticamente pela fila de upload assim que criado — não há um passo
-// manual de "sincronizar agora" que faça sentido. Mantido como pass-through
-// inofensivo só porque o canal IPC continua exposto (não é chamado por
-// nenhum ponto da UI, confirmado por grep) — nunca voltar a fazer um POST
-// /api/vehicles aqui, criaria um veículo duplicado no servidor.
-async function syncVehicleToApiEvent(vehicleId: string) {
-  const vehicle = await findVehicleById(vehicleId);
-  if (!vehicle) {
-    throw new Error(new NotFoundError(T_ERRORS.VEHICLE_NOT_FOUND).toIpcString());
-  }
-  return vehicle;
-}

@@ -19,8 +19,7 @@ import {
   Search, Truck, Edit, Trash2, Eye, Tag, LayoutGrid, List, Rows,
   Plus, Filter, MoreHorizontal, CheckCircle2, Clock, Settings2, Ban, Upload, Wifi, RotateCcw,
 } from 'lucide-react';
-import { getAllVehicles, deleteVehicle, syncVehicleToApi, registerGpsOnVehicle, unregisterVehicleGps } from '@/helpers/vehicle-helpers';
-import type { IVehicle } from '@/lib/types/vehicle';
+import { getAllVehicles, deleteVehicle, registerGpsOnVehicle, unregisterVehicleGps } from '@/helpers/vehicle-helpers';
 import { useLicense } from '@/hooks/useLicense';
 import { getAllVehicleCategories, deleteVehicleCategory } from '@/helpers/vehicle-category-helpers';
 import { cn } from '@/lib/utils';
@@ -56,10 +55,6 @@ export default function VehiclesPageContent() {
   const { handleError, showSuccess } = useErrorHandler();
   const { license } = useLicense();
   const isConnected = license?.mode === 'connected';
-  const [syncingVehicleId, setSyncingVehicleId] = useState<string | null>(null);
-  const [syncImeiDialogOpen, setSyncImeiDialogOpen] = useState(false);
-  const [pendingSyncVehicleId, setPendingSyncVehicleId] = useState<string | null>(null);
-  const [imeiInput, setImeiInput] = useState('');
 
   const [addGpsDialogOpen, setAddGpsDialogOpen] = useState(false);
   const [addGpsVehicleId, setAddGpsVehicleId] = useState<string | null>(null);
@@ -88,23 +83,20 @@ export default function VehiclesPageContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter,   setStatusFilter]   = useState<string>(() => readPersistedFilter('vehicles', 'status',   'all'));
   const [categoryFilter, setCategoryFilter] = useState<string>(() => readPersistedFilter('vehicles', 'category', 'all'));
-  const [syncFilter,     setSyncFilter]     = useState<'all' | 'synced' | 'not_synced'>(() => readPersistedFilter('vehicles', 'sync', 'all'));
   const [imeiFilter,     setImeiFilter]     = useState<'all' | 'with_imei' | 'without_imei'>(() => readPersistedFilter('vehicles', 'imei', 'all'));
   const [viewMode,       setViewMode]       = useState<ViewMode>(() => readPersistedViewMode<ViewMode>('vehicles', 'cards'));
 
   useEffect(() => { writePersistedViewMode('vehicles', viewMode); }, [viewMode]);
   useEffect(() => { writePersistedFilter('vehicles', 'status',     statusFilter);   }, [statusFilter]);
   useEffect(() => { writePersistedFilter('vehicles', 'category',   categoryFilter); }, [categoryFilter]);
-  useEffect(() => { writePersistedFilter('vehicles', 'sync',       syncFilter);     }, [syncFilter]);
   useEffect(() => { writePersistedFilter('vehicles', 'imei',       imeiFilter);     }, [imeiFilter]);
 
-  const hasActiveFilters = searchTerm !== '' || statusFilter !== 'all' || categoryFilter !== 'all' || syncFilter !== 'all' || imeiFilter !== 'all';
+  const hasActiveFilters = searchTerm !== '' || statusFilter !== 'all' || categoryFilter !== 'all' || imeiFilter !== 'all';
 
   function resetFilters() {
     setSearchTerm('');
     setStatusFilter('all');
     setCategoryFilter('all');
-    setSyncFilter('all');
     setImeiFilter('all');
     setCurrentPage(1);
   }
@@ -186,7 +178,7 @@ export default function VehiclesPageContent() {
 
   useEffect(() => {
     loadVehicles();
-  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter, syncFilter, imeiFilter]);
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter, imeiFilter]);
 
   const loadVehicles = useCallback(async () => {
     setLoading(true);
@@ -194,7 +186,6 @@ export default function VehiclesPageContent() {
       search:      debouncedSearch,
       status:      statusFilter   === 'all' ? undefined : statusFilter,
       category_id: categoryFilter === 'all' ? undefined : categoryFilter,
-      sync_status: syncFilter     === 'all' ? undefined : syncFilter,
       imei_status: imeiFilter     === 'all' ? undefined : imeiFilter,
     };
     try {
@@ -214,7 +205,7 @@ export default function VehiclesPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter, syncFilter, imeiFilter]);
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter, imeiFilter]);
 
   async function loadCategories() {
     setCategoriesLoading(true);
@@ -288,55 +279,6 @@ export default function VehiclesPageContent() {
     } finally {
       setIsDeletingCategory(false);
     }
-  }
-
-  function openSyncFlow(vehicle: any) {
-    if (vehicle.traccar_unique_id) {
-      // Já tem IMEI — sincronizar directamente
-      doSync(vehicle.id);
-    } else {
-      // Sem IMEI — pedir ao utilizador
-      setPendingSyncVehicleId(vehicle.id);
-      setImeiInput('');
-      setSyncImeiDialogOpen(true);
-    }
-  }
-
-  async function doSync(vehicleId: string, imei?: string) {
-    setSyncingVehicleId(vehicleId);
-    try {
-      const updated = await syncVehicleToApi(vehicleId, imei);
-      showSuccess('vehicles:toast.syncSuccess');
-      if (updated) {
-        const current = vehicles.find(v => v.id === vehicleId);
-        updateVehicleInContext({ ...updated, category_name: current?.category_name, category_color: current?.category_color });
-      } else {
-        loadVehicles();
-      }
-    } catch (error: any) {
-      const raw: string | undefined = error?.message;
-      if (raw && !raw.startsWith('APP_ERROR||')) {
-        // Strip Electron IPC wrapper: "Error invoking remote method '...': Error: actual message"
-        const match = raw.match(/^Error invoking remote method '[^']+': Error: (.+)$/s);
-        toast.error(match ? match[1] : raw);
-      } else {
-        handleError(error, 'vehicles:toast.syncError');
-      }
-    } finally {
-      setSyncingVehicleId(null);
-      setSyncImeiDialogOpen(false);
-      setPendingSyncVehicleId(null);
-    }
-  }
-
-  function syncWithImei() {
-    if (!imeiInput.trim() || !pendingSyncVehicleId) return;
-    doSync(pendingSyncVehicleId, imeiInput.trim());
-  }
-
-  function syncWithoutImei() {
-    if (!pendingSyncVehicleId) return;
-    doSync(pendingSyncVehicleId);
   }
 
   function openAddGpsDialog(vehicleId: string) {
@@ -417,11 +359,8 @@ export default function VehiclesPageContent() {
     return staticCounts.byCategory[categoryId] ?? 0;
   }
 
-  function getNoGpsLabel(vehicle: IVehicle): string {
-    if (isConnected) {
-      return vehicle.api_vehicle_id ? 'Sem GPS configurado' : 'Não sincronizado';
-    }
-    return 'Sem GPS';
+  function getNoGpsLabel(): string {
+    return 'Sem GPS configurado';
   }
 
   // Stats — totais reais do back, não afectados pelos filtros
@@ -473,7 +412,7 @@ export default function VehiclesPageContent() {
                   <span className="text-xs text-muted-foreground">{vehicle.year}</span>
                   {vehicle.traccar_unique_id
                     ? <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1 mt-0.5"><Wifi className="w-3 h-3 text-emerald-500" />{vehicle.traccar_unique_id}</span>
-                    : <span className="text-[11px] text-muted-foreground/50 mt-0.5">— {getNoGpsLabel(vehicle)}</span>
+                    : <span className="text-[11px] text-muted-foreground/50 mt-0.5">— {getNoGpsLabel()}</span>
                   }
                 </div>
               </div>
@@ -496,12 +435,7 @@ export default function VehiclesPageContent() {
                     <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectVehicle(vehicle); setEditDialogOpen(true); })}>
                       <Edit className="w-4 h-4 mr-2" /> {t('vehicles:actions.edit')}
                     </DropdownMenuItem>
-                    {isConnected && !vehicle.api_vehicle_id && (
-                      <DropdownMenuItem onClick={() => openSyncFlow(vehicle)} disabled={syncingVehicleId === vehicle.id}>
-                        <Upload className="w-4 h-4 mr-2" /> {t('vehicles:dialogs.sync.tooltipSync')}
-                      </DropdownMenuItem>
-                    )}
-                    {isConnected && vehicle.api_vehicle_id && !vehicle.traccar_unique_id && (
+                    {isConnected && !vehicle.traccar_unique_id && (
                       <DropdownMenuItem onClick={() => openAddGpsDialog(vehicle.id)}>
                         <Wifi className="w-4 h-4 mr-2" /> {t('vehicles:dialogs.addGps.action')}
                       </DropdownMenuItem>
@@ -533,11 +467,6 @@ export default function VehiclesPageContent() {
                   <div className="flex items-center gap-3 mb-1">
                     <h3 className="font-bold text-lg tracking-tight">{vehicle.license_plate}</h3>
                     {getStatusBadge(vehicle.status)}
-                    {isConnected && !vehicle.api_vehicle_id && (
-                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-bold">
-                        <Upload className="w-2.5 h-2.5 mr-1" />Sync
-                      </Badge>
-                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
                     <span className="font-bold text-foreground/80">{vehicle.brand} {vehicle.model}</span>
@@ -547,24 +476,12 @@ export default function VehiclesPageContent() {
                     </span>
                     {vehicle.traccar_unique_id
                       ? <span className="flex items-center gap-1.5 font-mono text-xs"><Wifi className="w-3.5 h-3.5 text-emerald-500" />{vehicle.traccar_unique_id}</span>
-                      : <span className="flex items-center gap-1.5 text-xs text-muted-foreground/50"><Wifi className="w-3.5 h-3.5" />{getNoGpsLabel(vehicle)}</span>
+                      : <span className="flex items-center gap-1.5 text-xs text-muted-foreground/50"><Wifi className="w-3.5 h-3.5" />{getNoGpsLabel()}</span>
                     }
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {isConnected && !vehicle.api_vehicle_id && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10"
-                      title={t('vehicles:dialogs.sync.tooltipSync')}
-                      disabled={syncingVehicleId === vehicle.id}
-                      onClick={() => openSyncFlow(vehicle)}
-                    >
-                      <Upload className={`w-5 h-5 ${syncingVehicleId === vehicle.id ? 'animate-pulse' : ''}`} />
-                    </Button>
-                  )}
-                  {isConnected && vehicle.api_vehicle_id && !vehicle.traccar_unique_id && (
+                  {isConnected && !vehicle.traccar_unique_id && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -615,17 +532,7 @@ export default function VehiclesPageContent() {
                   <Truck className="w-5 h-5" />
                 </div>
                 <div className="flex flex-wrap justify-end items-center gap-1.5 min-w-0">
-                  {isConnected && !vehicle.api_vehicle_id && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] px-2 py-0.5 font-semibold cursor-pointer rounded-full transition-colors hover:bg-muted"
-                      title={t('vehicles:dialogs.sync.tooltipSync')}
-                      onClick={() => openSyncFlow(vehicle)}
-                    >
-                      <Upload className="w-2.5 h-2.5 mr-1 inline" />Sync
-                    </Badge>
-                  )}
-                  {isConnected && vehicle.api_vehicle_id && !vehicle.traccar_unique_id && (
+                  {isConnected && !vehicle.traccar_unique_id && (
                     <Badge
                       variant="outline"
                       className="text-[10px] px-2 py-0.5 font-semibold cursor-pointer rounded-full transition-colors hover:bg-muted"
@@ -675,7 +582,7 @@ export default function VehiclesPageContent() {
                   ) : (
                     <>
                       <Wifi className="w-3 h-3 text-muted-foreground/40 flex-shrink-0" />
-                      <span className="text-[11px] text-muted-foreground/40">{getNoGpsLabel(vehicle)}</span>
+                      <span className="text-[11px] text-muted-foreground/40">{getNoGpsLabel()}</span>
                     </>
                   )}
                 </div>
@@ -694,13 +601,7 @@ export default function VehiclesPageContent() {
                     <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectVehicle(vehicle); setEditDialogOpen(true); })}>
                       <Edit className="w-4 h-4 mr-2" /> {t('vehicles:actions.edit')}
                     </DropdownMenuItem>
-                    {isConnected && !vehicle.api_vehicle_id && (
-                      <DropdownMenuItem onClick={() => openSyncFlow(vehicle)} disabled={syncingVehicleId === vehicle.id}>
-                        <Upload className="w-4 h-4 mr-2" />
-                        {syncingVehicleId === vehicle.id ? t('vehicles:loading.syncing') : t('vehicles:dialogs.sync.tooltipSync')}
-                      </DropdownMenuItem>
-                    )}
-                    {isConnected && vehicle.api_vehicle_id && !vehicle.traccar_unique_id && (
+                    {isConnected && !vehicle.traccar_unique_id && (
                       <DropdownMenuItem onClick={() => openAddGpsDialog(vehicle.id)}>
                         <Wifi className="w-4 h-4 mr-2" /> {t('vehicles:dialogs.addGps.action')}
                       </DropdownMenuItem>
@@ -914,20 +815,6 @@ export default function VehiclesPageContent() {
                   </Select>
 
                   {isConnected && (
-                    <Select value={syncFilter} onValueChange={(v) => { setSyncFilter(v as typeof syncFilter); setCurrentPage(1); }}>
-                      <SelectTrigger className="flex-1 min-w-[140px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
-                        <Wifi className="w-4 h-4 text-muted-foreground shrink-0" />
-                        <SelectValue placeholder={t('vehicles:filters.sync')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">{t('vehicles:filters.syncAll')}</SelectItem>
-                        <SelectItem value="synced">{t('vehicles:filters.synced')}</SelectItem>
-                        <SelectItem value="not_synced">{t('vehicles:filters.notSynced')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-
-                  {isConnected && (
                     <Select value={imeiFilter} onValueChange={(v) => { setImeiFilter(v as typeof imeiFilter); setCurrentPage(1); }}>
                       <SelectTrigger className="flex-1 min-w-[140px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
                         <Upload className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -1128,54 +1015,7 @@ export default function VehiclesPageContent() {
           </TabsContent>
         </Tabs>
 
-        {/* Diálogo — IMEI para sync sem GPS configurado */}
-        <Dialog open={syncImeiDialogOpen} onOpenChange={(o) => { if (!o) { setSyncImeiDialogOpen(false); setPendingSyncVehicleId(null); } }}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Upload className="w-5 h-5" />
-                {t('vehicles:dialogs.sync.title')}
-              </DialogTitle>
-              <DialogDescription>
-                {t('vehicles:dialogs.sync.description')}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-3 py-1">
-              <div className="space-y-1.5">
-                <Label htmlFor="sync-imei" className="text-sm font-medium">
-                  {t('vehicles:fields.gpsImei')}
-                  <span className="ml-1.5 text-xs text-muted-foreground font-normal">{t('vehicles:fields.gpsImeiOptional')}</span>
-                </Label>
-                <ImeiSelector
-                  value={imeiInput || null}
-                  onChange={(v) => setImeiInput(v ?? '')}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {imeiInput ? t('vehicles:dialogs.sync.imeiCreationHint') : t('vehicles:dialogs.sync.imeiHint')}
-                </p>
-              </div>
-            </div>
-
-            <DialogFooter className="gap-2">
-              <Button variant="ghost" size="sm" onClick={() => { setSyncImeiDialogOpen(false); setPendingSyncVehicleId(null); }}>
-                {t('vehicles:actions.cancel')}
-              </Button>
-              <Button
-                onClick={imeiInput.trim() ? syncWithImei : syncWithoutImei}
-                disabled={syncingVehicleId !== null}
-                className="flex items-center gap-2"
-              >
-                {imeiInput.trim()
-                  ? <><Wifi className="w-4 h-4" />{t('vehicles:dialogs.sync.syncWithGps')}</>
-                  : <><Upload className="w-4 h-4" />{t('vehicles:dialogs.sync.syncWithoutGps')}</>
-                }
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Diálogo — Adicionar GPS a veículo já sincronizado */}
+        {/* Diálogo — Adicionar GPS a um veículo */}
         <Dialog open={addGpsDialogOpen} onOpenChange={(o) => { if (!o) { setAddGpsDialogOpen(false); setAddGpsVehicleId(null); } }}>
           <DialogContent className="max-w-md">
             <DialogHeader>
