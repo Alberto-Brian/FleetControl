@@ -13,6 +13,8 @@ import {
     GET_ALL_EXPENSES_CATEGORIES,
 } from "./expenses-channels";
 
+// Fase 6, Prompt 6.8 — powersync.db passa a ser a fonte operacional
+// (era app.db/Drizzle). expenses.queries.ts fica só como backup.
 import {
     getAllExpenses,
     getExpenseById,
@@ -20,11 +22,12 @@ import {
     updateExpense,
     deleteExpense,
     markAsPaid,
-    getAllExpenseCategories,
     getExpensesByPeriod,
-} from '@/lib/db/queries/expenses.queries';
+} from '@/lib/db/queries/expenses.queries.powersync';
 
-import { getExpenseCategoryById } from "@/lib/db/queries/expense-categories.queries";
+// Categories já corre em powersync.db desde o Prompt 6.4 — usar sempre a
+// versão PowerSync-backed, nunca a app.db.
+import { getExpenseCategoryById, getAllExpenseCategories } from "@/lib/db/queries/expense-categories.queries.powersync";
 
 import { WarningError, NotFoundError } from "@/lib/errors/AppError";
 

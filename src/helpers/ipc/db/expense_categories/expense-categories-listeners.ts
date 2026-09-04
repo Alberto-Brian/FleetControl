@@ -24,21 +24,17 @@ import {
 
 import { ICreateExpenseCategory, IUpdateExpenseCategory } from '@/lib/types/expense-category';
 import { ConflictError, NotFoundError, WarningError } from '@/lib/errors/AppError';
-import { useDb } from '@/lib/db/db_helpers';
-import { expenses } from '@/lib/db/schemas';
-import { eq, and, isNull } from 'drizzle-orm';
+import { getPowerSyncDb } from '@/lib/powersync/client';
 
-// ✨ Helper para verificar despesas vinculadas
+// ✨ Helper para verificar despesas vinculadas — Expenses já corre em
+// powersync.db desde o Prompt 6.8, usar sempre essa versão (nunca app.db,
+// que já não recebe escritas de despesas novas).
 async function getExpensesByCategory(categoryId: string) {
-    const { db } = useDb();
-    const result = await db
-        .select()
-        .from(expenses)
-        .where(and(
-            eq(expenses.category_id, categoryId),
-            isNull(expenses.deleted_at)
-        ));
-    return result;
+    const db = await getPowerSyncDb();
+    return db.getAll<{ id: string }>(
+        `SELECT id FROM expenses WHERE category_id = ? AND deleted_at IS NULL`,
+        [categoryId],
+    );
 }
 
 export function addExpenseCategoriesEventListeners() {
