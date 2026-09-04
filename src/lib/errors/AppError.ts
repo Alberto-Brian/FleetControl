@@ -153,11 +153,23 @@ export class WarningError extends AppError {
 
 /**
  * Helper para criar erro de não encontrado
+ *
+ * Achado real (2026-09-05): esta classe pré-fixava `common:errors.notFound.`
+ * ao parâmetro recebido, esperando um nome curto de recurso (ex: "vehicle").
+ * Na prática, TODOS os ~40 pontos de chamada em todo o código (drivers,
+ * trips, vehicles, expenses, workshops, etc.) já passam a chave i18n
+ * COMPLETA (ex: "vehicles:errors.vehicleNotFound") — exactamente como
+ * ConflictError/WarningError/ValidationError já fazem, sem qualquer prefixo.
+ * O pré-fixo produzia uma chave inválida por concatenação
+ * ("common:errors.notFound.vehicles:errors.vehicleNotFound"), que o i18next
+ * nunca conseguia traduzir — o utilizador via a string bruta serializada no
+ * toast em vez de uma mensagem legível. Alinhado com o uso real e com as
+ * outras subclasses de AppError — nunca mais prefixar.
  */
 export class NotFoundError extends AppError {
-  constructor(resource: string, data?: any) {
+  constructor(i18nKey: string, data?: any) {
     super({
-      i18nKey: `common:errors.notFound.${resource}`,
+      i18nKey,
       type: 'error',
       action: 'not_found',
       data,

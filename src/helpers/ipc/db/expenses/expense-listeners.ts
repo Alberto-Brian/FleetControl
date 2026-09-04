@@ -60,7 +60,7 @@ async function createExpenseEvent(data: ICreateExpense) {
     
       const categoryExists = await getExpenseCategoryById(data.category_id);
       if (!categoryExists) {
-        throw new Error(new NotFoundError('expenseCategory').toIpcString());
+        throw new Error(new NotFoundError('expenses:errors.categoryNotFound').toIpcString());
       }
 
     return await createExpense(data);
