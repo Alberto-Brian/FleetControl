@@ -14,6 +14,8 @@ import {
   UPDATE_REFUELING,
   DELETE_REFUELING,
 } from './refuelings-channels';
+// Fase 6, Prompt 6.6 — powersync.db passa a ser a fonte operacional
+// (era app.db/Drizzle). refuelings.queries.ts fica só como backup.
 import {
   getAllRefuelings,
   getRefuelingById,
@@ -25,7 +27,7 @@ import {
   createRefueling,
   updateRefueling,
   softDeleteRefueling,
-} from '@/lib/db/queries/refuelings.queries';
+} from '@/lib/db/queries/refuelings.queries.powersync';
 import {
   ICreateRefueling,
   IUpdateRefueling,
