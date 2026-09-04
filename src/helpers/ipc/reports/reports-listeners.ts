@@ -4,6 +4,8 @@
 import { ipcMain, dialog } from "electron";
 import { writeFileSync } from "fs";
 import { REPORTS_CHANNELS } from "./reports-channels";
+// Reescrito depois dos 7 dominios prioritarios (Prompts 6.1-6.8) estarem
+// todos em powersync.db — reports.queries.ts fica so como backup.
 import {
   getVehiclesReportData,
   getDriversReportData,
@@ -13,7 +15,7 @@ import {
   getFinancialReportData,
   getExpensesReportData,
   getGeneralReportData,
-} from "@/lib/db/queries/reports.queries";
+} from "@/lib/db/queries/reports.queries.powersync";
 
 import {
   saveGeneratedReport,
