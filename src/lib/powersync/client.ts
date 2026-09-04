@@ -39,6 +39,16 @@ import { PowerSyncConnector } from './connector';
 let _db: PowerSyncDatabaseType | null = null;
 let _connector: PowerSyncConnector | null = null;
 
+// Fase 6 (migração Standalone -> Connected-first), Prompt 6.1 — exportado
+// para os módulos de query por-domínio (src/lib/db/queries/*.queries.powersync.ts)
+// poderem correr leituras/escritas locais contra a mesma instância partilhada,
+// nunca criando a sua própria — mesmo cuidado de instanciação preguiçosa já
+// documentado acima (nunca ao carregar o módulo, só quando algo precisa de
+// facto de tocar na base).
+export async function getPowerSyncDb(): Promise<PowerSyncDatabaseType> {
+  return getDb();
+}
+
 async function getDb(): Promise<PowerSyncDatabaseType> {
   if (!_db) {
     const [{ PowerSyncDatabase }, schema] = await Promise.all([

@@ -13,6 +13,12 @@ import {
     GET_AVAILABLE_DRIVERS
 } from "./drivers-channels";
 
+// Fase 6 (migração Standalone -> Connected-first), Prompt 6.2 — powersync.db
+// passa a ser a fonte operacional de Drivers (era app.db/Drizzle). Mesmas
+// assinaturas/comportamento, só a origem do import muda — ver o comentário
+// no topo de drivers.queries.powersync.ts para o seam temporário da
+// verificação de "viagem activa" (continua em app.db até o Prompt 6.5
+// cortar Trips). drivers.queries.ts (app.db) fica só como referência.
 import {
     getAllDrivers,
     getDriverById,
@@ -26,7 +32,7 @@ import {
     findDriverByTaxId,
     hasDriverWithLicense,
     hasDriverWithTaxId
-} from '@/lib/db/queries/drivers.queries';
+} from '@/lib/db/queries/drivers.queries.powersync';
 
 import { ICreateDriver, IUpdateDriver } from '@/lib/types/driver';
 import { ConflictError, NotFoundError, ValidationError, WarningError } from '@/lib/errors/AppError';
