@@ -17,7 +17,10 @@ import {
     findWorkshopByName
 } from "@/lib/db/queries/workshops.queries";
 
-import { getMaintenancesByWorkshop } from "@/lib/db/queries/maintenances.queries";
+// Maintenance já corre em powersync.db desde o Prompt 6.7 — usar sempre a
+// versão PowerSync-backed daqui, nunca a app.db (ficaria a verificar uma
+// tabela que já não recebe escritas de manutenções novas).
+import { getMaintenancesByWorkshop } from "@/lib/db/queries/maintenances.queries.powersync";
 
 import { ICreateWorkshop, IUpdateWorkshop } from "@/lib/types/workshop";
 import { ConflictError, NotFoundError, WarningError } from '@/lib/errors/AppError';

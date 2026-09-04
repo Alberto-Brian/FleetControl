@@ -1,0 +1,268 @@
+// ========================================
+// FILE: src/lib/db/queries/maintenances.queries.powersync.ts
+// ========================================
+//
+// Fase 6 (migração Standalone -> Connected-first), Prompt 6.7 — Maintenance
+// cortado para PowerSync. `maintenances.queries.ts` (Drizzle/app.db) não
+// tocado, fica como backup/referência. Tabela PowerSync chama-se
+// `maintenance` (singular, nome do schema da API), não `maintenances`
+// como a tabela local — confirmado contra schema.ts antes de escrever
+// (mesmo erro já cometido e corrigido no Prompt 6.6, desta vez evitado).
+//
+// vehicle (6.3) e maintenance_categories (6.4) já vivem em powersync.db —
+// JOINs normais. `workshops` ainda não cortado (mesma descoberta do
+// Prompt 6.5/6.9) — enriquecido em memória a partir de app.db, mesmo
+// padrão já usado nos ficheiros anteriores.
+import { getPowerSyncDb } from '@/lib/powersync/client';
+import { getSessionOrganizationId } from '@/helpers/ipc/services/auth/token-store';
+import { generateUuid } from '@/lib/utils/cripto';
+import { useDb } from '@/lib/db/db_helpers';
+import { workshops as workshopsSchema } from '@/lib/db/schemas/workshops';
+import { inArray, isNull, eq, and } from 'drizzle-orm';
+import { ICreateMaintenance, IUpdateMaintenance, IMaintenance } from '@/lib/types/maintenance';
+import { IPaginatedResult, IPaginationParams } from '@/lib/types/pagination';
+import { maintenanceStatus } from '@/lib/db/schemas/maintenances';
+
+interface MaintenanceRow {
+  id: string; vehicle_id: string; category_id: string; workshop_id: string | null; type: string;
+  entry_date: string; exit_date: string | null; mileage: number; next_maintenance_km: number | null;
+  description: string; diagnosis: string | null; solution: string | null;
+  parts_cost: number; labor_cost: number; total_cost: number; status: string; priority: string;
+  work_order_number: string | null; notes: string | null; created_at: string; updated_at: string;
+  vehicle_license: string | null; vehicle_brand: string | null; vehicle_model: string | null; vehicle_current_mileage: number | null;
+  category_name: string | null; category_type: string | null; category_color: string | null;
+}
+
+const MAINT_SELECT = `
+  m.id, m.vehicle_id, m.category_id, m.workshop_id, m.type, m.entry_date, m.exit_date,
+  m.mileage, m.next_maintenance_km, m.description, m.diagnosis, m.solution,
+  m.parts_cost, m.labor_cost, m.total_cost, m.status, m.priority, m.work_order_number, m.notes,
+  m.created_at, m.updated_at,
+  v.license_plate as vehicle_license, v.brand as vehicle_brand, v.model as vehicle_model, v.current_mileage as vehicle_current_mileage,
+  c.name as category_name, c.type as category_type, c.color as category_color
+`;
+const MAINT_FROM_JOIN = `
+  FROM maintenance m
+  LEFT JOIN vehicles v ON v.id = m.vehicle_id
+  LEFT JOIN maintenance_categories c ON c.id = m.category_id
+`;
+
+// Workshop — seam temporário (app.db), ver nota no topo do ficheiro.
+async function enrichWithWorkshop(rows: MaintenanceRow[]): Promise<IMaintenance[]> {
+  const workshopIds = [...new Set(rows.map(r => r.workshop_id).filter((id): id is string => !!id))];
+  const { db: legacyDb } = useDb();
+  const workshopsList = workshopIds.length
+    ? await legacyDb.select({ id: workshopsSchema.id, name: workshopsSchema.name }).from(workshopsSchema).where(inArray(workshopsSchema.id, workshopIds))
+    : [];
+  const workshopMap = new Map(workshopsList.map(w => [w.id, w.name]));
+
+  return rows.map(r => ({
+    id: r.id, vehicle_id: r.vehicle_id, category_id: r.category_id, workshop_id: r.workshop_id,
+    type: r.type as IMaintenance['type'], entry_date: r.entry_date, exit_date: r.exit_date,
+    vehicle_mileage: r.mileage, next_maintenance_km: r.next_maintenance_km, description: r.description,
+    diagnosis: r.diagnosis, solution: r.solution, parts_cost: r.parts_cost, labor_cost: r.labor_cost,
+    total_cost: r.total_cost, status: r.status as IMaintenance['status'], priority: r.priority as IMaintenance['priority'],
+    work_order_number: r.work_order_number, notes: r.notes, created_at: r.created_at, updated_at: r.updated_at,
+    vehicle_current_mileage: r.vehicle_current_mileage,
+    // Campos extra, mais ricos que IMaintenance declara — mesma situação já
+    // documentada em trips/refuelings (renderer já os lê via `as any`).
+    ...({
+      vehicle_license: r.vehicle_license ?? undefined, vehicle_brand: r.vehicle_brand ?? undefined,
+      vehicle_model: r.vehicle_model ?? undefined,
+      category_name: r.category_name ?? undefined, category_type: r.category_type ?? undefined,
+      category_color: r.category_color ?? undefined,
+      workshop_name: r.workshop_id ? workshopMap.get(r.workshop_id) : undefined,
+    } as Record<string, unknown>),
+  } as IMaintenance));
+}
+
+export async function getMaintenanceById(maintenanceId: string): Promise<IMaintenance | null> {
+  const db = await getPowerSyncDb();
+  const row = await db.getOptional<MaintenanceRow>(
+    `SELECT ${MAINT_SELECT} ${MAINT_FROM_JOIN} WHERE m.id = ? AND m.deleted_at IS NULL LIMIT 1`,
+    [maintenanceId],
+  );
+  if (!row) return null;
+  const [enriched] = await enrichWithWorkshop([row]);
+  return enriched;
+}
+
+export async function createMaintenance(maintenanceData: ICreateMaintenance): Promise<IMaintenance> {
+  const db = await getPowerSyncDb();
+  const id = generateUuid();
+  const organizationId = getSessionOrganizationId();
+  const now = new Date().toISOString();
+
+  const partsCost = maintenanceData.parts_cost || 0;
+  const laborCost = maintenanceData.labor_cost || 0;
+  const totalCost = partsCost + laborCost;
+  const status = maintenanceData.status || maintenanceStatus.SCHEDULED;
+  const priority = maintenanceData.priority || 'normal';
+
+  await db.writeTransaction(async (tx) => {
+    await tx.execute(
+      `INSERT INTO maintenance (
+        id, organization_id, vehicle_id, category_id, workshop_id, type, entry_date, mileage,
+        next_maintenance_km, description, parts_cost, labor_cost, total_cost, status, priority,
+        work_order_number, notes, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id, organizationId, maintenanceData.vehicle_id, maintenanceData.category_id,
+        maintenanceData.workshop_id || null, maintenanceData.type, now, maintenanceData.vehicle_mileage,
+        maintenanceData.next_maintenance_km || null, maintenanceData.description, partsCost, laborCost,
+        totalCost, status, priority, maintenanceData.work_order_number || null, maintenanceData.notes || null,
+        now, now,
+      ],
+    );
+
+    if (status === maintenanceStatus.IN_PROGRESS) {
+      await tx.execute(`UPDATE vehicles SET status = 'maintenance', updated_at = ? WHERE id = ?`, [now, maintenanceData.vehicle_id]);
+    }
+  });
+
+  return (await getMaintenanceById(id)) as IMaintenance;
+}
+
+export async function getAllMaintenances(params: IPaginationParams = {}): Promise<IPaginatedResult<IMaintenance>> {
+  const db = await getPowerSyncDb();
+
+  const page   = params.page  || 1;
+  const limit  = params.limit || 20;
+  const offset = (page - 1) * limit;
+
+  const filters: string[] = ['m.deleted_at IS NULL'];
+  const filterParams: unknown[] = [];
+
+  if (params.search?.trim()) {
+    const s = `%${params.search.toLowerCase()}%`;
+    filters.push(`(LOWER(v.license_plate) LIKE ? OR LOWER(c.name) LIKE ?)`);
+    filterParams.push(s, s);
+  }
+  if (params.status && params.status !== 'all') { filters.push('m.status = ?'); filterParams.push(params.status); }
+  if (params.vehicle_id) { filters.push('m.vehicle_id = ?'); filterParams.push(params.vehicle_id); }
+  if (params.type && params.type !== 'all') { filters.push('m.type = ?'); filterParams.push(params.type); }
+  if (params.category_id && params.category_id !== 'all') { filters.push('m.category_id = ?'); filterParams.push(params.category_id); }
+
+  const where = filters.join(' AND ');
+
+  const totalRow = await db.get<{ total: number }>(`SELECT COUNT(*) as total ${MAINT_FROM_JOIN} WHERE ${where}`, filterParams);
+  const total = totalRow.total;
+
+  const rows = await db.getAll<MaintenanceRow>(
+    `SELECT ${MAINT_SELECT} ${MAINT_FROM_JOIN} WHERE ${where} ORDER BY m.created_at DESC LIMIT ? OFFSET ?`,
+    [...filterParams, limit, offset],
+  );
+  const data = await enrichWithWorkshop(rows);
+
+  const countsRaw = await db.getAll<{ status: string; count: number }>(
+    `SELECT m.status as status, COUNT(*) as count ${MAINT_FROM_JOIN} WHERE ${where} GROUP BY m.status`, filterParams,
+  );
+  const statusCounts: Record<string, number> = { scheduled: 0, in_progress: 0, completed: 0, cancelled: 0 };
+  for (const row of countsRaw) statusCounts[row.status] = row.count;
+
+  return {
+    data,
+    pagination: {
+      total, page, limit,
+      totalPages: Math.ceil(total / limit),
+      hasNextPage: page < Math.ceil(total / limit),
+      hasPrevPage: page > 1,
+    },
+    statusCounts,
+  };
+}
+
+export async function updateMaintenance(maintenanceId: string, maintenanceData: IUpdateMaintenance): Promise<IMaintenance | null> {
+  const db = await getPowerSyncDb();
+
+  const current = await db.getOptional<{ vehicle_id: string; status: string; parts_cost: number; labor_cost: number }>(
+    `SELECT vehicle_id, status, parts_cost, labor_cost FROM maintenance WHERE id = ? LIMIT 1`, [maintenanceId],
+  );
+  if (!current) throw new Error('maintenances:errors.maintenanceNotFound');
+
+  const updateData: Record<string, unknown> = { ...maintenanceData };
+  if (maintenanceData.parts_cost !== undefined || maintenanceData.labor_cost !== undefined) {
+    const partsCost = maintenanceData.parts_cost ?? current.parts_cost;
+    const laborCost = maintenanceData.labor_cost ?? current.labor_cost;
+    updateData.total_cost = partsCost + laborCost;
+  }
+
+  const now = new Date().toISOString();
+  await db.writeTransaction(async (tx) => {
+    const fields = Object.keys(updateData).filter(f => updateData[f] !== undefined);
+    if (fields.length > 0) {
+      const setClause = fields.map(f => `${f} = ?`).join(', ');
+      await tx.execute(
+        `UPDATE maintenance SET ${setClause}, updated_at = ? WHERE id = ?`,
+        [...fields.map(f => updateData[f]), now, maintenanceId],
+      );
+    }
+
+    if (maintenanceData.status === maintenanceStatus.IN_PROGRESS && current.status !== maintenanceStatus.IN_PROGRESS) {
+      await tx.execute(`UPDATE vehicles SET status = 'maintenance', updated_at = ? WHERE id = ?`, [now, current.vehicle_id]);
+    }
+  });
+
+  return getMaintenanceById(maintenanceId);
+}
+
+export async function completeMaintenance(maintenanceId: string, completeData: IUpdateMaintenance): Promise<IMaintenance | null> {
+  const db = await getPowerSyncDb();
+
+  const current = await db.getOptional<{ vehicle_id: string; parts_cost: number; labor_cost: number }>(
+    `SELECT vehicle_id, parts_cost, labor_cost FROM maintenance WHERE id = ? LIMIT 1`, [maintenanceId],
+  );
+  if (!current) throw new Error('maintenances:errors.maintenanceNotFound');
+
+  const partsCost = completeData.parts_cost ?? current.parts_cost;
+  const laborCost = completeData.labor_cost ?? current.labor_cost;
+  const totalCost = partsCost + laborCost;
+  const now = new Date().toISOString();
+
+  const updateData: Record<string, unknown> = { ...completeData };
+  // Aplicados sempre explicitamente abaixo (parts_cost/labor_cost recalculados,
+  // exit_date/status fixos ao completar) — nunca deixar entrar na lista de
+  // campos dinâmicos, evita SET duplicado da mesma coluna (SQLite rejeita).
+  delete updateData.parts_cost;
+  delete updateData.labor_cost;
+  delete updateData.exit_date;
+  delete updateData.status;
+  const extraFields = Object.keys(updateData).filter(f => updateData[f] !== undefined);
+  const extraSet = extraFields.length ? extraFields.map(f => `${f} = ?`).join(', ') + ', ' : '';
+
+  await db.writeTransaction(async (tx) => {
+    await tx.execute(
+      `UPDATE maintenance SET ${extraSet} parts_cost = ?, labor_cost = ?, total_cost = ?, exit_date = ?, status = ?, updated_at = ? WHERE id = ?`,
+      [...extraFields.map(f => updateData[f]), partsCost, laborCost, totalCost, now, maintenanceStatus.COMPLETED, now, maintenanceId],
+    );
+    await tx.execute(`UPDATE vehicles SET status = 'available', updated_at = ? WHERE id = ?`, [now, current.vehicle_id]);
+  });
+
+  return getMaintenanceById(maintenanceId);
+}
+
+export async function getMaintenancesByWorkshop(workshopId: string) {
+  const db = await getPowerSyncDb();
+  return db.getAll<{ id: string }>(
+    `SELECT id FROM maintenance WHERE workshop_id = ? AND deleted_at IS NULL`, [workshopId],
+  );
+}
+
+export async function deleteMaintenance(maintenanceId: string): Promise<string> {
+  const db = await getPowerSyncDb();
+  const now = new Date().toISOString();
+  await db.execute(
+    `UPDATE maintenance SET deleted_at = ?, status = ?, updated_at = ? WHERE id = ?`,
+    [now, maintenanceStatus.CANCELLED, now, maintenanceId],
+  );
+  return maintenanceId;
+}
+
+export async function getActiveMaintenances(): Promise<IMaintenance[]> {
+  const db = await getPowerSyncDb();
+  const rows = await db.getAll<MaintenanceRow>(
+    `SELECT ${MAINT_SELECT} ${MAINT_FROM_JOIN} WHERE m.status = ? AND m.deleted_at IS NULL ORDER BY m.entry_date DESC`,
+    [maintenanceStatus.IN_PROGRESS],
+  );
+  return enrichWithWorkshop(rows);
+}

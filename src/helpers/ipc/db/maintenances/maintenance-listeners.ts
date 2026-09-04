@@ -12,6 +12,8 @@ import {
     GET_ACTIVE_MAINTENANCES,
 } from "./maintenances-channels";
 
+// Fase 6, Prompt 6.7 — powersync.db passa a ser a fonte operacional
+// (era app.db/Drizzle). maintenances.queries.ts fica só como backup.
 import {
     getAllMaintenances,
     getMaintenanceById,
@@ -20,7 +22,7 @@ import {
     completeMaintenance,
     deleteMaintenance,
     getActiveMaintenances,
-} from '@/lib/db/queries/maintenances.queries';
+} from '@/lib/db/queries/maintenances.queries.powersync';
 
 import { ICreateMaintenance, IUpdateMaintenance } from '@/lib/types/maintenance';
 import { ValidationError, NotFoundError } from '@/lib/errors/AppError';
