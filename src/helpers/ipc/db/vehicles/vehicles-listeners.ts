@@ -2,6 +2,15 @@
 // PROJECT: fleetcontrol-desktop
 // FILE: src/helpers/ipc/db/vehicles/vehicles-listeners.ts
 // ========================================
+//
+// Fase 6 (migração Standalone -> Connected-first), Prompt 6.3 — powersync.db
+// passa a ser a fonte operacional de Vehicles (era app.db/Drizzle). O CRUD
+// principal (create/update/delete/list/status/mileage) sobe pela fila do
+// PowerSync automaticamente — deixou de haver um `POST /api/vehicles`
+// síncrono nem `api_vehicle_id`/`api_synced_at` a reconciliar (o id local
+// JÁ é o id final). Ligação de GPS Traccar (register-gps/unregister-gps/
+// tracking) continua a ser um caminho REST directo e dedicado — nunca
+// passa pelo PowerSync, ver a nota grande em vehicles.queries.powersync.ts.
 import { ipcMain } from "electron";
 import axios from "axios";
 import {
@@ -36,7 +45,9 @@ import {
   getVehiclesByCategory,
   countVehiclesByStatus,
   findVehicleByLicensePlate,
-} from '@/lib/db/queries/vehicles.queries';
+  getActiveImeis,
+  setLocalGpsFields,
+} from '@/lib/db/queries/vehicles.queries.powersync';
 
 import { IPaginationParams } from "@/lib/types/pagination";
 
@@ -46,9 +57,7 @@ import {
 
 import { ICreateVehicle, IUpdateStatus, IUpdateVehicle } from '@/lib/types/vehicle';
 import { ConflictError, NotFoundError, WarningError } from "@/lib/errors/AppError";
-import { vehicleStatus, vehicles } from "@/lib/db/schemas/vehicles";
-import { useDb } from '@/lib/db/db_helpers';
-import { eq, and, isNull, isNotNull } from 'drizzle-orm';
+import { vehicleStatus } from "@/lib/db/schemas/vehicles";
 import { getStoredApiToken } from "@/helpers/ipc/services/auth/token-store";
 
 const API_URL = process.env.API_URL || 'http://localhost:3001';
@@ -72,6 +81,7 @@ const T_ERRORS = {
   IMEI_ALREADY_EXISTS:       'vehicles:errors.imeiAlreadyExists',
   TRACCAR_UNAVAILABLE:       'vehicles:errors.traccarUnavailable',
   TRACCAR_ERROR:             'vehicles:errors.traccarError',
+  VEHICLE_NOT_YET_SYNCED:    'vehicles:errors.vehicleNotYetSynced',
 } as const;
 
 export function addVehiclesEventListeners() {
@@ -85,33 +95,28 @@ export function addVehiclesEventListeners() {
   ipcMain.handle(UPDATE_VEHICLE_MILEAGE, async (_, vehicleId: string, mileage: number) => await updateVehicleMileageEvent(vehicleId, mileage));
   ipcMain.handle(GET_VEHICLES_BY_CATEGORY, async (_, categoryId: string) => await getVehiclesByCategoryEvent(categoryId));
   ipcMain.handle(COUNT_VEHICLES_BY_STATUS, async () => await countVehiclesByStatusEvent());
-  ipcMain.handle(SYNC_VEHICLE_TO_API,     async (_, vehicleId: string, imei?: string) => await syncVehicleToApiEvent(vehicleId, imei));
+  ipcMain.handle(SYNC_VEHICLE_TO_API,     async (_, vehicleId: string) => await syncVehicleToApiEvent(vehicleId));
   ipcMain.handle(REGISTER_GPS_ON_VEHICLE, async (_, vehicleId: string, imei: string)  => await registerGpsOnVehicleEvent(vehicleId, imei));
 
   ipcMain.handle(UNREGISTER_GPS_FROM_VEHICLE, async (_, vehicleId: string) => {
     const vehicle = await findVehicleById(vehicleId);
-    const apiId = vehicle?.api_vehicle_id;
+    if (!vehicle) throw new Error(new NotFoundError(T_ERRORS.VEHICLE_NOT_FOUND).toIpcString());
 
-    // SQLite é autoritativo — actualizar imediatamente, sem esperar pela API.
-    const { db } = useDb();
-    await db.update(vehicles)
-      .set({ traccar_unique_id: null, tracking_enabled: false, updated_at: new Date().toISOString() })
-      .where(eq(vehicles.id, vehicleId));
+    // powersync.db é autoritativo — actualizar imediatamente, sem esperar pela API.
+    await setLocalGpsFields(vehicleId, { traccar_unique_id: null, tracking_enabled: false });
 
     // Sync API em fire-and-forget: não bloqueia o retorno ao renderer.
     // Se offline (sem resposta do servidor), enfileira para retry automático
     // quando o TrackingContext detectar reconexão.
-    if (apiId) {
-      try {
-        const headers = apiHeaders(); // lança se sem token (standalone) — não enfileirar
-        axios.post(`${API_URL}/api/vehicles/${apiId}/unregister-gps`, {}, { headers, timeout: 10_000 })
-          .catch((err: any) => {
-            if (!err.response) enqueue('post', `/api/vehicles/${apiId}/unregister-gps`, {});
-            else console.warn('[vehicles] unregister-gps falhou:', err.response.status);
-          });
-      } catch {
-        // sem token (modo standalone) — não enfileirar
-      }
+    try {
+      const headers = apiHeaders(); // lança se sem token (standalone) — não enfileirar
+      axios.post(`${API_URL}/api/vehicles/${vehicleId}/unregister-gps`, {}, { headers, timeout: 10_000 })
+        .catch((err: any) => {
+          if (!err.response) enqueue('post', `/api/vehicles/${vehicleId}/unregister-gps`, {});
+          else console.warn('[vehicles] unregister-gps falhou:', err.response.status);
+        });
+    } catch {
+      // sem token (modo standalone) — não enfileirar
     }
 
     return { success: true };
@@ -119,43 +124,27 @@ export function addVehiclesEventListeners() {
 
   ipcMain.handle(TOGGLE_VEHICLE_TRACKING, async (_, vehicleId: string, enabled: boolean) => {
     const vehicle = await findVehicleById(vehicleId);
-    const apiId = vehicle?.api_vehicle_id;
+    if (!vehicle) throw new Error(new NotFoundError(T_ERRORS.VEHICLE_NOT_FOUND).toIpcString());
 
-    // SQLite é autoritativo — actualizar imediatamente, sem esperar pela API.
-    const { db } = useDb();
-    await db.update(vehicles)
-      .set({ tracking_enabled: enabled, updated_at: new Date().toISOString() })
-      .where(eq(vehicles.id, vehicleId));
+    // powersync.db é autoritativo — actualizar imediatamente, sem esperar pela API.
+    await setLocalGpsFields(vehicleId, { tracking_enabled: enabled });
 
     // Sync API em fire-and-forget com retry automático em caso de offline.
-    if (apiId) {
-      try {
-        const headers = apiHeaders();
-        axios.patch(`${API_URL}/api/vehicles/${apiId}/tracking`, { tracking_enabled: enabled }, { headers, timeout: 8_000 })
-          .catch((err: any) => {
-            if (!err.response) enqueue('patch', `/api/vehicles/${apiId}/tracking`, { tracking_enabled: enabled });
-            else console.warn('[vehicles] toggle-tracking falhou:', err.response.status);
-          });
-      } catch {
-        // sem token (modo standalone) — não enfileirar
-      }
+    try {
+      const headers = apiHeaders();
+      axios.patch(`${API_URL}/api/vehicles/${vehicleId}/tracking`, { tracking_enabled: enabled }, { headers, timeout: 8_000 })
+        .catch((err: any) => {
+          if (!err.response) enqueue('patch', `/api/vehicles/${vehicleId}/tracking`, { tracking_enabled: enabled });
+          else console.warn('[vehicles] toggle-tracking falhou:', err.response.status);
+        });
+    } catch {
+      // sem token (modo standalone) — não enfileirar
     }
 
     return { success: true };
   });
 
-  ipcMain.handle(GET_ACTIVE_IMEIS, async () => {
-    const { db } = useDb();
-    const rows = await db
-      .select({ imei: vehicles.traccar_unique_id })
-      .from(vehicles)
-      .where(and(
-        isNotNull(vehicles.traccar_unique_id),
-        eq(vehicles.tracking_enabled, true),
-        isNull(vehicles.deleted_at),
-      ));
-    return rows.map(r => r.imei as string);
-  });
+  ipcMain.handle(GET_ACTIVE_IMEIS, async () => await getActiveImeis());
 
   // Chamado pelo TrackingContext quando detecta reconexão ao servidor (reconnectCount sobe).
   // Reutiliza a monitorização de conectividade já existente — sem scheduler adicional.
@@ -199,116 +188,28 @@ async function createVehicleEvent(vehicleData: ICreateVehicle) {
     );
   }
 
-  const hasImei  = !!vehicleData.traccar_unique_id?.trim();
-  const token    = getStoredApiToken();
-  const { db }   = useDb();
-
-  // ── Com IMEI: fluxo transaccional ─────────────────────────────────────────
-  // O IMEI só pode ser registado se houver ligação à API (modo conectado),
-  // pois requer a criação do device no Traccar. Se falhar, o veículo não é criado.
-  if (hasImei) {
-    if (!token) {
-      throw new Error(new WarningError(T_ERRORS.IMEI_REQUIRES_CONNECTED).toIpcString());
-    }
-
-    // 1. Criar localmente (provisório)
-    const localVehicle = await createVehicle(vehicleData);
-
-    // 2. Tentar registar na API (que inclui criação do device Traccar)
-    try {
-      const { data: apiResponse } = await axios.post(`${API_URL}/api/vehicles`, {
-        license_plate:      vehicleData.license_plate,
-        brand:              vehicleData.brand,
-        model:              vehicleData.model,
-        year:               vehicleData.year,
-        color:              vehicleData.color,
-        chassis_number:     vehicleData.chassis_number,
-        engine_number:      vehicleData.engine_number,
-        fuel_tank_capacity: vehicleData.fuel_tank_capacity,
-        tire_size:          vehicleData.tire_size,
-        current_mileage:    vehicleData.current_mileage,
-        acquisition_date:   vehicleData.acquisition_date,
-        acquisition_value:  vehicleData.acquisition_value,
-        photo:              vehicleData.photo,
-        notes:              vehicleData.notes,
-        traccar_unique_id:  vehicleData.traccar_unique_id,
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 20_000,
-      });
-
-      // Sucesso: gravar api_vehicle_id localmente
-      if (apiResponse?.data?.id) {
-        await db.update(vehicles)
-          .set({ api_vehicle_id: apiResponse.data.id, api_synced_at: new Date().toISOString() })
-          .where(eq(vehicles.id, localVehicle.id));
-        return { ...localVehicle, api_vehicle_id: apiResponse.data.id };
-      }
-      return localVehicle;
-
-    } catch (err: any) {
-      // Rollback local — o veículo não deve existir se o IMEI não foi registado
-      try {
-        await db.delete(vehicles).where(eq(vehicles.id, localVehicle.id));
-      } catch (rollbackErr) {
-        console.error('[Vehicles] Falha no rollback local:', rollbackErr);
-      }
-
-      // Mapear erro da API para mensagem i18n apropriada
-      const status  = err?.response?.status as number | undefined;
-      const apiMsg  = (err?.response?.data?.message as string | undefined) ?? '';
-      const isConflict = status === 409 || apiMsg.toLowerCase().includes('imei');
-      const isUnavailable = !err?.response || err?.code === 'ECONNREFUSED'
-        || err?.code === 'ECONNABORTED' || err?.code === 'ETIMEDOUT' || status === 503;
-
-      if (isConflict) {
-        throw new Error(new ConflictError(T_ERRORS.IMEI_ALREADY_EXISTS).toIpcString());
-      }
-      if (isUnavailable) {
-        throw new Error(new WarningError(T_ERRORS.TRACCAR_UNAVAILABLE).toIpcString());
-      }
-      throw new Error(new WarningError(T_ERRORS.TRACCAR_ERROR).toIpcString());
-    }
+  const hasImei = !!vehicleData.traccar_unique_id?.trim();
+  if (hasImei && !getStoredApiToken()) {
+    throw new Error(new WarningError(T_ERRORS.IMEI_REQUIRES_CONNECTED).toIpcString());
   }
 
-  // ── Sem IMEI: guardar localmente + sync best-effort ───────────────────────
+  // O veículo é sempre criado localmente primeiro (nunca inclui GPS — ver
+  // vehicles.queries.powersync.ts) e sobe pela fila do PowerSync sozinho,
+  // online ou offline. Isto NUNCA é revertido a seguir — ao contrário do
+  // fluxo antigo (REST síncrono + rollback local se falhasse), o PowerSync
+  // não tem um protocolo de "desfazer" uma escrita local já efectuada.
   const localVehicle = await createVehicle(vehicleData);
 
-  if (token) {
-    try {
-      const { data: apiResponse } = await axios.post(`${API_URL}/api/vehicles`, {
-        license_plate:      vehicleData.license_plate,
-        brand:              vehicleData.brand,
-        model:              vehicleData.model,
-        year:               vehicleData.year,
-        color:              vehicleData.color,
-        chassis_number:     vehicleData.chassis_number,
-        engine_number:      vehicleData.engine_number,
-        fuel_tank_capacity: vehicleData.fuel_tank_capacity,
-        tire_size:          vehicleData.tire_size,
-        current_mileage:    vehicleData.current_mileage,
-        acquisition_date:   vehicleData.acquisition_date,
-        acquisition_value:  vehicleData.acquisition_value,
-        photo:              vehicleData.photo,
-        notes:              vehicleData.notes,
-        traccar_unique_id:  null,
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 15_000,
-      });
+  if (!hasImei) return localVehicle;
 
-      if (apiResponse?.data?.id) {
-        await db.update(vehicles)
-          .set({ api_vehicle_id: apiResponse.data.id, api_synced_at: new Date().toISOString() })
-          .where(eq(vehicles.id, localVehicle.id));
-        return { ...localVehicle, api_vehicle_id: apiResponse.data.id };
-      }
-    } catch (err: any) {
-      console.warn('[Vehicles] Sync API sem IMEI falhou (best-effort):', err?.message ?? err);
-    }
-  }
-
-  return localVehicle;
+  // Ligação de GPS é best-effort a seguir à criação: se falhar (IMEI
+  // desconhecido/já ligado/servidor em baixo), o veículo FICA criado — só a
+  // ligação de GPS é que não se concretizou. O erro propaga-se ao chamador
+  // (mesmo padrão de sempre: toast de erro no renderer), mas uma nova
+  // consulta à lista já mostra o veículo criado, sem GPS — assimetria
+  // conhecida face ao comportamento antigo (rollback atómico), aceite como
+  // consequência directa de não haver rollback no modelo PowerSync.
+  return await registerGpsOnVehicleEvent(localVehicle.id, vehicleData.traccar_unique_id!);
 }
 
 async function updateVehicleEvent(vehicleId: string, vehicleData: IUpdateVehicle) {
@@ -387,30 +288,63 @@ async function countVehiclesByStatusEvent() {
   return await countVehiclesByStatus();
 }
 
-// Regista um IMEI num veículo, sincronizando-o com a API primeiro se necessário
+// Espera até o veículo existir no backend (upload PowerSync já aterrou) —
+// necessário porque register-gps faz vehicleRepository.findById(id) e dá
+// 404 se ainda não tiver chegado. Nunca consome a fila de CRUD do PowerSync
+// directamente (getNextCrudTransaction()/getCrudBatch() são exclusivos do
+// connector — consumi-los aqui competiria com o próprio upload); em vez
+// disso pergunta directamente ao servidor, que é a fonte real da resposta
+// que interessa.
+async function waitForVehicleOnBackend(vehicleId: string, headers: Record<string, string>): Promise<boolean> {
+  const MAX_WAIT_MS = 12_000;
+  const INTERVAL_MS = 800;
+  const deadline = Date.now() + MAX_WAIT_MS;
+
+  while (Date.now() < deadline) {
+    try {
+      await axios.get(`${API_URL}/api/vehicles/${vehicleId}`, { headers, timeout: 5_000 });
+      return true;
+    } catch (err: any) {
+      if (err?.response?.status !== 404) throw err; // erro real (não "ainda não existe") propaga-se já
+    }
+    await new Promise(resolve => setTimeout(resolve, INTERVAL_MS));
+  }
+  return false;
+}
+
+// Regista um IMEI num veículo, ligando o dispositivo Traccar via o
+// endpoint REST dedicado (nunca via powersync.db directamente — ver nota
+// (2) em vehicles.queries.powersync.ts).
 async function registerGpsOnVehicleEvent(vehicleId: string, imei: string) {
-  let vehicle = await findVehicleById(vehicleId);
+  const vehicle = await findVehicleById(vehicleId);
   if (!vehicle) throw new Error(new NotFoundError(T_ERRORS.VEHICLE_NOT_FOUND).toIpcString());
 
   if (!imei?.trim()) throw new Error('IMEI é obrigatório');
 
-  // Se o veículo não tem api_vehicle_id, sincronizar com a API primeiro (sem IMEI — GPS registado separadamente)
-  if (!vehicle.api_vehicle_id) {
-    vehicle = await syncVehicleToApiEvent(vehicleId, null);
+  const headers = apiHeaders();
+
+  const existsOnBackend = await waitForVehicleOnBackend(vehicleId, headers);
+  if (!existsOnBackend) {
+    throw new Error(new WarningError(T_ERRORS.VEHICLE_NOT_YET_SYNCED).toIpcString());
   }
 
-  const apiVehicleId = vehicle.api_vehicle_id!;
-
   try {
-    await axios.post(`${API_URL}/api/vehicles/${apiVehicleId}/register-gps`, {
+    await axios.post(`${API_URL}/api/vehicles/${vehicleId}/register-gps`, {
       traccar_unique_id: imei.trim(),
     }, {
-      headers: apiHeaders(),
+      headers,
       timeout: 15_000,
     });
   } catch (err: any) {
     if (axios.isAxiosError(err)) {
-      const data = err.response?.data as { message?: string; code?: string } | undefined;
+      const status  = err.response?.status as number | undefined;
+      const data    = err.response?.data as { message?: string; code?: string } | undefined;
+      const isUnavailable = !err.response || err.code === 'ECONNREFUSED'
+        || err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT' || status === 503;
+
+      if (isUnavailable) {
+        throw new Error(new WarningError(T_ERRORS.TRACCAR_UNAVAILABLE).toIpcString());
+      }
       const error = new Error(data?.message ?? 'Erro ao registar GPS') as Error & { apiCode?: string };
       if (data?.code) error.apiCode = data.code;
       throw error;
@@ -418,71 +352,22 @@ async function registerGpsOnVehicleEvent(vehicleId: string, imei: string) {
     throw err;
   }
 
-  const { db } = useDb();
-  await db.update(vehicles)
-    .set({ traccar_unique_id: imei.trim(), tracking_enabled: true })
-    .where(eq(vehicles.id, vehicleId));
+  await setLocalGpsFields(vehicleId, { traccar_unique_id: imei.trim(), tracking_enabled: true });
 
   return await findVehicleById(vehicleId);
 }
 
-// Sincroniza um veículo local com a API (quando a licença conectada é activada)
-// imei: IMEI a incluir na criação. Passar null para omitir o IMEI local (GPS registado separadamente).
-async function syncVehicleToApiEvent(vehicleId: string, imei?: string | null) {
+// Antes (modelo REST): "sincronizar" um veículo local com a API, guardando
+// o api_vehicle_id devolvido. Com PowerSync, todo veículo já é enviado
+// automaticamente pela fila de upload assim que criado — não há um passo
+// manual de "sincronizar agora" que faça sentido. Mantido como pass-through
+// inofensivo só porque o canal IPC continua exposto (não é chamado por
+// nenhum ponto da UI, confirmado por grep) — nunca voltar a fazer um POST
+// /api/vehicles aqui, criaria um veículo duplicado no servidor.
+async function syncVehicleToApiEvent(vehicleId: string) {
   const vehicle = await findVehicleById(vehicleId);
   if (!vehicle) {
     throw new Error(new NotFoundError(T_ERRORS.VEHICLE_NOT_FOUND).toIpcString());
   }
-
-  if (vehicle.api_vehicle_id) {
-    return vehicle;
-  }
-
-  // null → sem IMEI (GPS registado separadamente); undefined → usa o local; string → usa este
-  const traccar_unique_id = imei === null ? null : (imei?.trim() || vehicle.traccar_unique_id || null);
-  console.log("aqiu", traccar_unique_id)
-  let apiResponse: any;
-  try {
-    const { data } = await axios.post(`${API_URL}/api/vehicles`, {
-      license_plate:      vehicle.license_plate,
-      brand:              vehicle.brand,
-      model:              vehicle.model,
-      year:               vehicle.year,
-      color:              vehicle.color,
-      chassis_number:     vehicle.chassis_number,
-      engine_number:      vehicle.engine_number,
-      fuel_tank_capacity: vehicle.fuel_tank_capacity,
-      tire_size:          vehicle.tire_size,
-      current_mileage:    vehicle.current_mileage,
-      acquisition_date:   vehicle.acquisition_date,
-      acquisition_value:  vehicle.acquisition_value,
-      notes:              vehicle.notes,
-      traccar_unique_id,
-    }, {
-      headers: apiHeaders(),
-      timeout: 15_000,
-    });
-    apiResponse = data;
-  } catch (err: any) {
-    if (axios.isAxiosError(err) && err.response?.status === 409) {
-      throw new Error(err.response.data?.message ?? 'IMEI já registado');
-    }
-    throw err;
-  }
-
-  const apiVehicleId = apiResponse?.data?.id;
-  if (!apiVehicleId) throw new Error('API não devolveu ID do veículo criado');
-
-
-  // Persistir localmente: api_vehicle_id + IMEI (se fornecido agora)
-  const { db } = useDb();
-  await db.update(vehicles)
-    .set({
-      api_vehicle_id:    apiVehicleId,
-      api_synced_at:     new Date().toISOString(),
-      ...(traccar_unique_id ? { traccar_unique_id } : {}),
-    })
-    .where(eq(vehicles.id, vehicleId));
-
-  return { ...vehicle, api_vehicle_id: apiVehicleId, traccar_unique_id, api_synced_at: new Date().toISOString() };
+  return vehicle;
 }

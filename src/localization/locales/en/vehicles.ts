@@ -368,6 +368,7 @@ export const enVehicles = {
     imeiAlreadyExists: "A device with this IMEI is already registered",
     traccarUnavailable: "Tracking server unreachable. Check the connection and try again",
     traccarError: "Error registering tracking device. Please try again",
+    vehicleNotYetSynced: "The vehicle is still syncing with the server. Wait a few seconds and try again.",
     gpsImeiNotFound: "IMEI not found. Sync Traccar devices or register the device on the Traccar server first.",
     gpsDeviceAlreadyLinked: "This GPS device is already linked to another vehicle.",
     gpsVehicleAlreadyHasDevice: "This vehicle already has a GPS device registered. Remove it first.",
