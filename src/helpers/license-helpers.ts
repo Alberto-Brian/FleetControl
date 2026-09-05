@@ -585,9 +585,16 @@ export async function getDesktopSessionState(): Promise<DesktopSessionInfo> {
   if (isOnline) {
     if (hasLiveAccessToken) return { state: 'online-valid', isOnline };
     if (_accessToken) return { state: 'online-expired', isOnline };
-    // Licença válida (LicenseGuard já garantiu isto antes de renderizar
-    // quem consome este estado), mas nenhuma sessão de utilizador
-    // estabelecida ainda — estado 8 do prompt.
+    // Estado 8 do prompt original — mas achado real (2026-09-05): quem
+    // consome este estado (DesktopSessionBadge, dentro de LicenseGuard) só
+    // é montado por App.tsx DEPOIS de isAuthenticated já ser true (ver
+    // App.tsx: `if (!isAuthenticated) return <LoginPage/>`) — nunca antes.
+    // Nunca interpretar este estado como "ainda não fez login": o utilizador
+    // já está autenticado localmente; só falta uma sessão live/em cache com
+    // o servidor (`navigator.onLine` reporta true mesmo sem WAN real, ex.
+    // API self-hosted acessível só por LAN — não confundir com "não há
+    // sessão nenhuma"). A mensagem mostrada (noSessionOnlineTitle/
+    // Description) reflecte isto — nunca "inicia sessão" a quem já entrou.
     return { state: 'no-session', isOnline };
   }
 

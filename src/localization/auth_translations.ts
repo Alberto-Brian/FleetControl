@@ -99,8 +99,15 @@ export const authTranslations = {
           offlineCacheExpiredDescription: "Offline, and the saved session has expired. Connect to the Internet to sign in again.",
           noSessionOfflineTitle:          "No session available",
           noSessionOfflineDescription:    "Offline, with no previously saved session. Connect to the Internet to sign in.",
-          noSessionOnlineTitle:           "No active session",
-          noSessionOnlineDescription:     "Sign in to access online features.",
+          // Achado real (2026-09-05): este banner só aparece DEPOIS do login
+          // (App.tsx só monta LicenseGuard/este componente quando
+          // isAuthenticated já é true) — nunca antes. A frase antiga ("Sign
+          // in to...") dizia a uma pessoa já autenticada para iniciar sessão,
+          // uma contradição óbvia. O que este estado realmente significa: a
+          // app está ligada, mas não há (ainda, ou de todo) uma sessão
+          // válida/em cache com o servidor — normalmente transitório.
+          noSessionOnlineTitle:           "No live server session",
+          noSessionOnlineDescription:     "Signed in locally, but without a verified session with the server yet. This is usually momentary and resolves on its own — if it persists, sign out and sign in again.",
         },
       },
     }
@@ -205,8 +212,16 @@ export const authTranslations = {
           offlineCacheExpiredDescription: "Sem ligação, e a sessão guardada expirou. Liga-te à Internet para iniciar sessão novamente.",
           noSessionOfflineTitle:          "Sem sessão disponível",
           noSessionOfflineDescription:    "Sem ligação e sem nenhuma sessão anteriormente guardada. Liga-te à Internet para iniciar sessão.",
-          noSessionOnlineTitle:           "Sem sessão activa",
-          noSessionOnlineDescription:     "Inicia sessão para aceder às funcionalidades online.",
+          // Achado real (2026-09-05): este banner só aparece DEPOIS do login
+          // (App.tsx só monta o LicenseGuard/este componente quando
+          // isAuthenticated já é true) — nunca antes. A frase antiga ("Inicia
+          // sessão para...") dizia a alguém já autenticado para iniciar
+          // sessão, uma contradição óbvia (foi o que motivou esta correcção).
+          // O que este estado realmente significa: a app está ligada, mas
+          // ainda não há (ou nunca chegou a haver) uma sessão válida/em cache
+          // com o servidor — normalmente transitório.
+          noSessionOnlineTitle:           "Sem sessão activa com o servidor",
+          noSessionOnlineDescription:     "Sessão local iniciada, mas ainda sem uma sessão verificada com o servidor. Costuma resolver-se sozinho em poucos segundos — se persistir, termina sessão e inicia de novo.",
         },
       },
     }
