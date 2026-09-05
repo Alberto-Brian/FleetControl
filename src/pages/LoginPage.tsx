@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { Truck, Loader2, Mail, Lock } from 'lucide-react';
+import { Truck, Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 // ─── Fundo: rota GPS estilizada ─────────────────────────────────────────────
 // Grelha ténue + duas rotas de fundo + uma rota "activa" com um ponto a
@@ -127,6 +127,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -246,15 +247,25 @@ export default function LoginPage() {
                 />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder={t('auth:login.passwordPlaceholder')}
                   value={formData.password}
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
                   required
                   autoComplete="current-password"
-                  className="pl-9 h-11 rounded-xl"
+                  className="pl-9 pr-9 h-11 rounded-xl"
                   style={{ background: 'var(--ui-b04)', borderColor: 'var(--ui-b07)', color: 'var(--ui-t90)' }}
                 />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                  style={{ color: 'var(--ui-t35)' }}
+                  aria-label={showPassword ? t('auth:login.hidePassword') : t('auth:login.showPassword')}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
