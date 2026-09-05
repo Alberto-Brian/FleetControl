@@ -106,3 +106,7 @@ out/
 /playwright/.cache/
 
 .idea/
+
+# Backups/temporários deixados por ferramentas de edição (Fase 9, limpeza —
+# encontrados espalhados pelo repo em 2026-09-05, ex. SettingsDialog.tsx.tmp.14920.88295920b9ba)
+*.tmp.[0-9]*.*
