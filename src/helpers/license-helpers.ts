@@ -214,9 +214,18 @@ export async function loginOnApi(email: string, password: string): Promise<ApiLo
   } catch (err) {
     const axiosErr = err as AxiosError<{ message?: string; code?: string } | string>;
 
-    if (!axiosErr.response) {
-      // API inacessível — não é uma recusa de credenciais, é falta de
-      // ligação; quem chama decide cair para o login local apenas.
+    if (!axiosErr.response || axiosErr.response.status >= 500) {
+      // Achado real (2026-09-05): sem internet, mas com o servidor
+      // self-hosted acessível na LAN (o container fica de pé mesmo sem
+      // acesso ao Neon), o pedido chega e RECEBE uma resposta — só que um
+      // 500 genuíno, porque AuthUseCase.authenticate() falha a ligar à
+      // base de dados real. `axiosErr.response` estava presente, por isso
+      // este caso caía sempre no ramo "API recusou" (bloqueia, nunca cai
+      // para o cache offline) mostrando o "Internal Server Error" bruto do
+      // Fastify em vez de reaproveitar a sessão cacheada. Um 5xx nunca é
+      // uma decisão de negócio sobre as credenciais (isso é sempre 4xx —
+      // 401/403/429) — é o servidor a falhar a decidir, o que para quem
+      // chama deve valer exactamente como "API inacessível".
       return { success: false, code: 'OFFLINE', message: 'API inacessível.' };
     }
 
@@ -473,7 +482,17 @@ async function tryRefreshOrReactivate(): Promise<void> {
     } catch (err) {
       const axiosErr = err as AxiosError<{ code?: string }>;
 
-      if (axiosErr.response) {
+      // Achado real (2026-09-05): sem internet, mas com a API self-hosted
+      // acessível na LAN, um refresh em segundo plano ainda recebe uma
+      // resposta HTTP — só que um 500 genuíno (AuthUseCase.refreshAccessToken
+      // falha a ligar ao Neon), não uma recusa deliberada da sessão. Tratar
+      // qualquer `axiosErr.response` como "revogado" apagava a cache
+      // (clearApiSession()) exactamente na situação em que ela mais falta
+      // fazia — a app ficava sem sessão cacheada nenhuma na próxima vez que
+      // precisasse dela offline. Só um 4xx é uma decisão de negócio real
+      // sobre esta sessão (REFRESH_EXPIRED/SESSION_REVOKED/etc.); um 5xx
+      // vale como "sem ligação", tal como a ausência de resposta.
+      if (axiosErr.response && axiosErr.response.status < 500) {
         // Fase 11B.11 (estado 6 — "sessão revogada remotamente") — o
         // servidor RESPONDEU e recusou explicitamente esta sessão; não é
         // falta de ligação. Nunca cair para activateOnApi() aqui: isso
@@ -505,10 +524,12 @@ async function tryRefreshOrReactivate(): Promise<void> {
         return;
       }
 
-      // Sem resposta — genuinamente sem ligação, não uma recusa. Mantém os
-      // tokens/cache actuais (continuam válidos localmente) e tenta a
-      // reactivação por licença como último recurso — falha silenciosamente
-      // se também não houver ligação (activateOnApi já trata isso).
+      // Sem resposta, ou resposta com 5xx — genuinamente sem ligação (ou o
+      // servidor a falhar por não conseguir alcançar a sua própria BD), não
+      // uma recusa. Mantém os tokens/cache actuais (continuam válidos
+      // localmente) e tenta a reactivação por licença como último recurso —
+      // falha silenciosamente se também não houver ligação (activateOnApi
+      // já trata isso).
       console.warn('[License] Refresh falhou (sem ligação):', err);
     }
   }
