@@ -17,7 +17,6 @@ import { updateVehicle as updateVehiclesHelper } from '@/helpers/vehicle-helpers
 import { getAllVehicleCategories } from '@/helpers/vehicle-category-helpers';
 import { IUpdateVehicle } from '@/lib/types/vehicle';
 import { useVehicles } from '@/contexts/VehiclesContext';
-import { useLicense } from '@/hooks/useLicense';
 import { ImeiSelector } from './ImeiSelector';
 
 interface EditVehicleDialogProps {
@@ -33,8 +32,6 @@ export default function EditVehicleDialog({
 }: EditVehicleDialogProps) {
   const { t } = useTranslation();
   const { showSuccess, handleError } = useErrorHandler();
-  const { license } = useLicense();
-  const isConnectedLicense = license?.mode === 'connected';
   const { state: {selectedVehicle}, updateVehicle } = useVehicles()
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
@@ -295,22 +292,20 @@ export default function EditVehicleDialog({
 
                 </div>
 
-                {isConnectedLicense && (
-                  <div className="col-span-2 space-y-2">
-                    <Label>
-                      {t('vehicles:fields.gpsImei')}
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">{t('vehicles:fields.gpsImeiOptional')}</span>
-                    </Label>
-                    <ImeiSelector
-                      value={formData.traccar_unique_id || null}
-                      onChange={(v) => setFormData({ ...formData, traccar_unique_id: v })}
-                      currentVehicleImei={selectedVehicle?.traccar_unique_id ?? undefined}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {t('vehicles:fields.gpsImeiEditHint')}
-                    </p>
-                  </div>
-                )}
+                <div className="col-span-2 space-y-2">
+                  <Label>
+                    {t('vehicles:fields.gpsImei')}
+                    <span className="ml-1 text-xs font-normal text-muted-foreground">{t('vehicles:fields.gpsImeiOptional')}</span>
+                  </Label>
+                  <ImeiSelector
+                    value={formData.traccar_unique_id || null}
+                    onChange={(v) => setFormData({ ...formData, traccar_unique_id: v })}
+                    currentVehicleImei={selectedVehicle?.traccar_unique_id ?? undefined}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t('vehicles:fields.gpsImeiEditHint')}
+                  </p>
+                </div>
 
                 <div className="p-4 bg-muted/50 rounded-lg border border-muted">
                   <p className="text-sm text-muted-foreground">

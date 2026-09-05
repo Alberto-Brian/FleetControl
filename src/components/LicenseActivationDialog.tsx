@@ -36,19 +36,11 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Props
     return () => clearTimeout(id);
   }, [open, tab]);
 
-  // LK- curta → válida via API (online). ST- curta → deve colar a FULL key (offline/RSA).
+  // LK- curta → válida via API (online).
   const isConnectedDisplayKey  = /^LK-[A-F0-9]{5}(-[A-F0-9]{5}){4}$/i.test(key.trim());
-  const isStandaloneDisplayKey = /^ST-[A-F0-9]{5}(-[A-F0-9]{5}){4}$/i.test(key.trim());
 
   const handleActivate = async () => {
     if (!key.trim()) { setError('Insere a chave de licença'); return; }
-    if (isStandaloneDisplayKey) {
-      setError(
-        'Esta é a chave de referência de uma licença standalone. ' +
-        'No ficheiro .txt, copia o conteúdo completo da linha FULL:'
-      );
-      return;
-    }
 
     setLoading(true);
     setError('');
@@ -168,15 +160,6 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Props
                         </div>
                       )}
 
-                      {/* ST- curta → não funciona, precisa FULL */}
-                      {isStandaloneDisplayKey && (
-                        <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                          <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                          <p className="text-xs text-amber-700 dark:text-amber-300">
-                            Licença standalone (ST-) não pode ser activada com a chave curta — funciona offline sem servidor. No ficheiro .txt, copia o conteúdo completo da linha <span className="font-mono font-bold">FULL:</span>
-                          </p>
-                        </div>
-                      )}
                     </div>
 
                     {/* Erro de validação */}
@@ -189,7 +172,7 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Props
 
                     <button
                       onClick={handleActivate}
-                      disabled={loading || !key.trim() || isStandaloneDisplayKey}
+                      disabled={loading || !key.trim()}
                       className="w-full px-6 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 font-semibold text-base"
                     >
                       {loading

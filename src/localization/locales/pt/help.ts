@@ -13,13 +13,8 @@ export const ptHelp = {
       id: 'intro',
       title: 'Introdução ao FleetControl',
       content: [
-        { type: 'text', text: 'O FleetControl é um sistema de gestão de frotas que permite monitorar veículos, motoristas, viagens, abastecimentos, manutenções, despesas e multas. Inclui rastreamento GPS em tempo real via Traccar no modo conectado.' },
-        { type: 'text', text: 'Dois modos de operação:' },
-        { type: 'list', items: [
-          'Modo Autónomo (Standalone) — funciona completamente offline. Todos os dados são guardados localmente no computador. Chave de licença começa por ST-.',
-          'Modo Conectado — liga-se ao servidor FleetControl e ao módulo de rastreamento GPS em tempo real via Traccar. Chave de licença começa por LK-.',
-        ]},
-        { type: 'tip', text: 'O modo de operação é determinado pelo tipo de licença activada. Podes ver o teu modo actual em Definições › Licença.' },
+        { type: 'text', text: 'O FleetControl é um sistema de gestão de frotas que permite monitorar veículos, motoristas, viagens, abastecimentos, manutenções, despesas e multas. Inclui rastreamento GPS em tempo real via Traccar.' },
+        { type: 'text', text: 'O Desktop liga-se ao servidor FleetControl (chave de licença começa por LK-) e sincroniza os dados automaticamente; continua a funcionar temporariamente sem ligação à internet, sincronizando de novo assim que a ligação voltar.' },
       ],
     },
 
@@ -438,14 +433,7 @@ export const ptHelp = {
       id: 'license',
       title: 'Licença e Activação',
       content: [
-        { type: 'text', text: 'O FleetControl é activado através de uma chave de licença fornecida pela AKM Systems. Existem dois tipos de licença:' },
-        { type: 'table',
-          headers: ['Tipo', 'Chave começa por', 'Características'],
-          rows: [
-            ['Autónomo', 'ST-', 'Modo offline, dados locais, sem necessidade de servidor'],
-            ['Conectado', 'LK-', 'Servidor, rastreamento GPS em tempo real, multi-utilizador'],
-          ],
-        },
+        { type: 'text', text: 'O FleetControl é activado através de uma chave de licença fornecida pela AKM Systems (começa por LK-), ligada à Organization do cliente — servidor, rastreamento GPS em tempo real e multi-utilizador.' },
         { type: 'steps', steps: [
           'Vai a Definições › Licença',
           'Introduz a chave de licença fornecida',
@@ -470,7 +458,7 @@ export const ptHelp = {
       id: 'settings',
       title: 'Definições — Visão Geral',
       content: [
-        { type: 'text', text: 'Acede às Definições através do botão de engrenagem no canto inferior esquerdo (modo autónomo) ou no canto superior direito do painel (modo conectado). Existe uma barra de pesquisa no topo do diálogo de definições para encontrar qualquer opção rapidamente.' },
+        { type: 'text', text: 'Acede às Definições através do botão de engrenagem no canto superior direito do painel. Existe uma barra de pesquisa no topo do diálogo de definições para encontrar qualquer opção rapidamente.' },
         { type: 'tip', text: 'Para alterar o idioma da interface, clica no ícone de bandeira na barra superior (junto ao botão de ajuda). Aparece um menu com os idiomas disponíveis.' },
         { type: 'table',
           headers: ['Separador', 'O que configuras'],

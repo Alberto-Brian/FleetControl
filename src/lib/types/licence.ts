@@ -9,7 +9,10 @@ export interface LicenseData {
   licenseType: 'trial' | 'basic' | 'professional' | 'enterprise';
 }
 
-export type LicenseMode = 'standalone' | 'connected';
+// Modo "standalone" removido (2026-09-05) — só existe licença connected.
+// `mode` mantido como metadado (sempre 'connected') por compatibilidade
+// com consumidores existentes; deixou de ser uma escolha real.
+export type LicenseMode = 'connected';
 export interface ValidatedLicense {
   isValid: boolean;
   clientName?: string;

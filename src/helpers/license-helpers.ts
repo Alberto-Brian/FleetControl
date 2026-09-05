@@ -134,7 +134,6 @@ export async function validateLicense(licenseKey: string): Promise<ValidatedLice
 
   const localResult: ValidatedLicense = await window.license.validateLicense(key);
   if (!localResult.isValid) return localResult;
-  if (localResult.mode === 'standalone') return localResult;
 
   await activateOnApi(key);
   return localResult;
@@ -144,9 +143,7 @@ export async function checkExistingLicense(): Promise<ValidatedLicense> {
   const result: ValidatedLicense = await window.license.checkExistingLicense();
   if (!result.isValid) return result;
 
-  if (result.mode === 'connected') {
-    await tryRefreshOrReactivate();
-  }
+  await tryRefreshOrReactivate();
 
   return result;
 }
@@ -372,46 +369,33 @@ async function validateDisplayKey(displayKey: string): Promise<ValidatedLicense>
       if (!localResult.isValid) return localResult;
     }
 
-    if (data.mode === 'connected') {
-      // Licença e sessão são independentes (Fase 11B.12) — nada impedia,
-      // até aqui, activar uma licença de outra Organization enquanto já
-      // havia sessão iniciada como um utilizador de uma Organization
-      // diferente. Não é falha de segurança (o acesso aos dados continua
-      // sempre limitado pelo organizationId do JWT, nunca pela licença),
-      // mas é um estado inconsistente sem aviso nenhum — rejeitamos aqui,
-      // antes de persistir a licença localmente. Só verificável quando já
-      // existe sessão (login sempre antes da activação, App.tsx) e só para
-      // licenças connected (standalone não tem organization_id nenhum).
-      if (_currentOrganizationId && data.data.organization_id !== _currentOrganizationId) {
-        return {
-          isValid: false,
-          error: 'Esta licença pertence a outra organização — não corresponde ao utilizador com sessão iniciada.',
-        };
-      }
-
-      // Fase 11B.12 — activar a licença já não autentica ninguém nem emite
-      // tokens (licença = direito da Organization, não sessão humana). A
-      // identidade real vem sempre de /api/auth/login (Fase 11B.8) — nada
-      // a fazer aqui além de confirmar a licença e mostrar os metadados.
+    // Licença e sessão são independentes (Fase 11B.12) — nada impedia, até
+    // aqui, activar uma licença de outra Organization enquanto já havia
+    // sessão iniciada como um utilizador de uma Organization diferente. Não
+    // é falha de segurança (o acesso aos dados continua sempre limitado
+    // pelo organizationId do JWT, nunca pela licença), mas é um estado
+    // inconsistente sem aviso nenhum — rejeitamos aqui, antes de persistir
+    // a licença localmente. Só verificável quando já existe sessão (login
+    // sempre antes da activação, App.tsx).
+    if (_currentOrganizationId && data.data.organization_id !== _currentOrganizationId) {
       return {
-        isValid:     true,
-        mode:        'connected',
-        clientName:  data.data.organization,
-        expiryDate:  data.data.license?.expiryDate ? new Date(data.data.license.expiryDate) : undefined,
-        maxUsers:    data.data.license?.maxUsers,
-        features:    data.data.license?.features,
-        licenseType: data.data.license?.licenseType,
+        isValid: false,
+        error: 'Esta licença pertence a outra organização — não corresponde ao utilizador com sessão iniciada.',
       };
     }
 
+    // Fase 11B.12 — activar a licença já não autentica ninguém nem emite
+    // tokens (licença = direito da Organization, não sessão humana). A
+    // identidade real vem sempre de /api/auth/login (Fase 11B.8) — nada
+    // a fazer aqui além de confirmar a licença e mostrar os metadados.
     return {
       isValid:     true,
-      mode:        'standalone',
-      clientName:  data.data?.clientName,
-      expiryDate:  data.data?.expiryDate ? new Date(data.data.expiryDate) : undefined,
-      maxUsers:    data.data?.maxUsers,
-      features:    data.data?.features,
-      licenseType: data.data?.licenseType,
+      mode:        'connected',
+      clientName:  data.data.organization,
+      expiryDate:  data.data.license?.expiryDate ? new Date(data.data.license.expiryDate) : undefined,
+      maxUsers:    data.data.license?.maxUsers,
+      features:    data.data.license?.features,
+      licenseType: data.data.license?.licenseType,
     };
   } catch (err) {
     const axiosErr = err as AxiosError<{ message?: string; code?: string }>;

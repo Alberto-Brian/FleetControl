@@ -3,18 +3,17 @@
 // FILE: src/contexts/LicenseContext.tsx
 // ========================================
 //
-// Corrige o "flash" de modo standalone ao entrar numa licença connected:
-// useLicense() era um hook simples (useState+useEffect próprios), por isso
-// CADA componente que o chamava (LicenseGuard, HomePage, SettingsDialog,
-// etc.) disparava a sua PRÓPRIA verificação assíncrona de licença do zero.
-// LicenseGuard já esperava a sua cópia resolver antes de montar HomePage,
-// mas a cópia independente do HomePage arrancava outra vez de license=null
-// — nesse instante isConnected era false, renderizando o layout standalone
-// até a sua própria chamada resolver. Um Context partilhado, montado uma
-// vez acima de LicenseGuard, elimina a segunda verificação: quando
-// LicenseGuard finalmente monta os filhos, o valor já está resolvido e
-// qualquer consumidor (incluindo HomePage) lê-o de imediato, sem novo ciclo
-// de loading.
+// Corrige um "flash" de loading ao entrar na app: useLicense() era um hook
+// simples (useState+useEffect próprios), por isso CADA componente que o
+// chamava (LicenseGuard, HomePage, SettingsDialog, etc.) disparava a sua
+// PRÓPRIA verificação assíncrona de licença do zero. LicenseGuard já
+// esperava a sua cópia resolver antes de montar HomePage, mas a cópia
+// independente do HomePage arrancava outra vez de license=null, mostrando
+// um novo ciclo de loading até a sua própria chamada resolver. Um Context
+// partilhado, montado uma vez acima de LicenseGuard, elimina a segunda
+// verificação: quando LicenseGuard finalmente monta os filhos, o valor já
+// está resolvido e qualquer consumidor (incluindo HomePage) lê-o de
+// imediato.
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { ValidatedLicense } from '@/lib/types/licence';
 import { checkExistingLicense } from '@/helpers/license-helpers';

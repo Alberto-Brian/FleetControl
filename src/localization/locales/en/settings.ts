@@ -169,7 +169,6 @@ export const enSettings = {
     subtitle:       'License information and management',
     active:         'Active License',
     reactivate:     'Reactivate',
-    modeStandalone: 'Standalone (Offline)',
     modeConnected:  'Connected (Online)',
     typeTrial:      'Trial',
     typeBasic:      'Basic',

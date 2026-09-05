@@ -170,7 +170,6 @@ export const ptSettings = {
     subtitle:       'Informações e gestão da licença do sistema',
     active:         'Licença Activa',
     reactivate:     'Reactivar',
-    modeStandalone: 'Standalone (Offline)',
     modeConnected:  'Conectado (Online)',
     typeTrial:      'Avaliação',
     typeBasic:      'Básica',

@@ -10,7 +10,8 @@ import * as crypto from 'crypto';
 import * as fs     from 'fs';
 import * as path   from 'path';
 
-export type LicenseMode = 'standalone' | 'connected';
+// Modo "standalone" removido (2026-09-05) — só existe licença connected.
+export type LicenseMode = 'connected';
 
 export interface ValidatedLicense {
   isValid:        boolean;
@@ -59,10 +60,10 @@ export class LicenseManager {
     try {
       const clean = licenseKey.trim().replace(/\s/g, '');
 
-      // Rejeita imediatamente chaves no formato display (LK-/ST-)
+      // Rejeita imediatamente chaves no formato display (LK-)
       // O renderer trata este caso antes de chamar IPC,
       // mas defendemos aqui também por segurança
-      if (/^(LK|ST)-[A-F0-9]{5}(-[A-F0-9]{5}){4}$/i.test(clean)) {
+      if (/^LK-[A-F0-9]{5}(-[A-F0-9]{5}){4}$/i.test(clean)) {
         return {
           isValid: false,
           error:   'Chave de referência — usa o conteúdo da linha FULL: do ficheiro de licença',
@@ -95,7 +96,7 @@ export class LicenseManager {
       }
 
       const features      = (raw.ft as string).split(',').filter(Boolean);
-      const mode: LicenseMode = raw.md === 'standalone' ? 'standalone' : 'connected';
+      const mode: LicenseMode = 'connected';
       const daysRemaining = Math.ceil((expiryDate.getTime() - Date.now()) / 86_400_000);
 
       this.saveLicense(licenseKey);

@@ -107,14 +107,14 @@ export function addVehiclesEventListeners() {
     // Se offline (sem resposta do servidor), enfileira para retry automático
     // quando o TrackingContext detectar reconexão.
     try {
-      const headers = apiHeaders(); // lança se sem token (standalone) — não enfileirar
+      const headers = apiHeaders(); // lança se ainda não há sessão API — não enfileirar
       axios.post(`${API_URL}/api/vehicles/${vehicleId}/unregister-gps`, {}, { headers, timeout: 10_000 })
         .catch((err: any) => {
           if (!err.response) enqueue('post', `/api/vehicles/${vehicleId}/unregister-gps`, {});
           else console.warn('[vehicles] unregister-gps falhou:', err.response.status);
         });
     } catch {
-      // sem token (modo standalone) — não enfileirar
+      // sem sessão API ainda — não enfileirar
     }
 
     return { success: true };
@@ -136,7 +136,7 @@ export function addVehiclesEventListeners() {
           else console.warn('[vehicles] toggle-tracking falhou:', err.response.status);
         });
     } catch {
-      // sem token (modo standalone) — não enfileirar
+      // sem sessão API ainda — não enfileirar
     }
 
     return { success: true };

@@ -649,7 +649,6 @@ function LicenseTab() {
   const [revoking, setRevoking]              = useState(false);
 
   const modeLabel: Record<string, string> = {
-    standalone: t('license.modeStandalone'),
     connected:  t('license.modeConnected'),
   };
 
@@ -661,10 +660,10 @@ function LicenseTab() {
   };
 
   useEffect(() => {
-    if (license?.isValid && license.mode === 'connected') {
+    if (license?.isValid) {
       loadActivations();
     }
-  }, [license?.isValid, license?.mode]);
+  }, [license?.isValid]);
 
   async function loadActivations() {
     setActivationsLoading(true);
@@ -780,8 +779,8 @@ function LicenseTab() {
               ))}
           </div>
 
-          {/* Desktops activos — só para licenças connected */}
-          {license.mode === 'connected' && (
+          {/* Desktops activos */}
+          {(
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Desktops activos</p>
@@ -1989,7 +1988,7 @@ export default function SettingsDialog() {
   const { hasPadding, setHasPadding }                                = useLayoutPadding();
   const { labelType, animateMarkers, pulseMarkers, setLabelType, setAnimateMarkers, setPulseMarkers } = useMapSettings();
   const { license }                                                   = useLicense();
-  const isConnectedMode = license?.mode === 'connected' && license?.isValid;
+  const isConnectedMode = !!license?.isValid;
   const [systemVersion, setSystemVersion] = useState('');
   const [search, setSearch]               = useState('');
   const [persistFilters, setPersistFiltersState] = useState(() => localStorage.getItem('app_persist_filters') === 'true');

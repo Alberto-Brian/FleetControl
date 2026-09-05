@@ -20,7 +20,6 @@ import SettingsDialog   from '@/components/SettingsDialog';
 import { useTracking }  from '@/contexts/TrackingContext';
 import type { GeofenceAlert } from '@/contexts/TrackingContext';
 import { getDeviceDisplayName } from '@/helpers/tracking-helpers';
-import { useLicense }          from '@/hooks/useLicense';
 import { useLayoutSettings }   from '@/hooks/useLayoutSettings';
 import { useLayoutPadding }    from '@/hooks/useLayoutPadding';
 import { TrackingPageContent } from '@/pages/provider/TrackingPageContent';
@@ -49,21 +48,14 @@ const NAV_RAIL_EXPANDED_W  = 180; // ícones + etiquetas
 export default function HomePage() {
   const { t }    = useTranslation();
   const { user, logout } = useAuth();
-  const { license } = useLicense();
   const [activeSection,      setActiveSection]      = useState('dashboard');
-  const [isSidebarOpen,      setIsSidebarOpen]      = useState(true);
-  const [windowWidth,        setWindowWidth]        = useState(window.innerWidth);
   const [glassPreviewActive, setGlassPreviewActive] = useState(false);
-
-  const isConnected     = license?.mode === 'connected';
-  const isMobileOverlay = windowWidth < 640;
 
   const { state: trackingState, dispatch: trackingDispatch } = useTracking();
   const unreadAlerts = trackingState.unreadAlerts;
   const alerts       = trackingState.alerts;
 
   const { sidebarCollapsed, setSidebarCollapsed, toggleSidebarCollapsed, navAutoCollapse } = useLayoutSettings();
-  const isCompact = isMobileOverlay || sidebarCollapsed;
   const { hasPadding } = useLayoutPadding();
 
   const menuItems = [
@@ -76,14 +68,8 @@ export default function HomePage() {
     { id: 'expenses',    icon: DollarSign,     label: t('navigation:menu.expenses')    },
     { id: 'fines',       icon: AlertTriangle,  label: t('navigation:menu.fines')       },
     { id: 'reports',     icon: FileText,       label: t('navigation:menu.reports')     },
-    ...(isConnected ? [{ id: 'tracking', icon: MapPin, label: t('navigation:menu.tracking') }] : []),
+    { id: 'tracking',    icon: MapPin,         label: t('navigation:menu.tracking')    },
   ];
-
-  useEffect(() => {
-    if ((activeSection === 'tracking' || activeSection === 'powersync-status') && !isConnected) {
-      setActiveSection('dashboard');
-    }
-  }, [isConnected, activeSection]);
 
   useEffect(() => {
     const start = () => setGlassPreviewActive(true);
@@ -94,16 +80,6 @@ export default function HomePage() {
       window.removeEventListener('glassPreviewStart', start);
       window.removeEventListener('glassPreviewEnd',   end);
     };
-  }, []);
-
-  useEffect(() => {
-    const handle = () => {
-      setWindowWidth(window.innerWidth);
-      setIsSidebarOpen(window.innerWidth >= 640);
-    };
-    window.addEventListener('resize', handle);
-    handle();
-    return () => window.removeEventListener('resize', handle);
   }, []);
 
   function renderContent() {
@@ -127,14 +103,14 @@ export default function HomePage() {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // MODO MAPA (connected) — mapa é o fundo de todo o sistema
+  // Mapa é o fundo de todo o sistema
   // ─────────────────────────────────────────────────────────────────────────────
-  if (isConnected) {
+  {
     const activeItem  = menuItems.find(m => m.id === activeSection)
       ?? (activeSection === 'settings'         ? { id: 'settings',         icon: Settings,  label: t('navigation:header.settings') }      : undefined)
       ?? (activeSection === 'help'             ? { id: 'help',             icon: HelpCircle, label: t('navigation:menu.help') }            : undefined)
       ?? (activeSection === 'powersync-status' ? { id: 'powersync-status', icon: RefreshCw,  label: t('navigation:menu.powersyncStatus') } : undefined);
-    // Espelha o standalone: expandido = ícones + texto, colapsado = ícones apenas
+    // Expandido = ícones + texto, colapsado = ícones apenas
     const navRailW    = sidebarCollapsed ? NAV_RAIL_COLLAPSED_W : NAV_RAIL_EXPANDED_W;
 
     return (
@@ -207,7 +183,7 @@ export default function HomePage() {
               })}
             </div>
 
-            {/* Definições + Toggle no fundo — mesmo padrão do standalone */}
+            {/* Definições + Toggle no fundo */}
             <button
               onClick={() => setActiveSection('settings')}
               title={sidebarCollapsed ? t('navigation:header.settings') : undefined}
@@ -343,214 +319,6 @@ export default function HomePage() {
       </DashboardProvider>
     );
   }
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // MODO STANDALONE — layout clássico com sidebar lateral
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Largura efectiva da sidebar (afecta o marginLeft do conteúdo)
-  const sidebarW = isCompact ? 56 : 220;
-
-  return (
-    <DashboardProvider>
-    <div className="flex h-full bg-background overflow-hidden">
-      {/* Overlay mobile */}
-      {isSidebarOpen && isMobileOverlay && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar — fixed: cobre o topo (barra drag) na parte esquerda */}
-      <aside
-        style={{
-          position:   'fixed',
-          left:       0,
-          top:        0,
-          bottom:     0,
-          width:      sidebarW,
-          transition: 'width 200ms ease-in-out, transform 200ms ease-in-out',
-          zIndex:     50,
-        }}
-        className={[
-          isMobileOverlay
-            ? (isSidebarOpen ? 'translate-x-0' : '-translate-x-full')
-            : 'translate-x-0',
-          'bg-muted/30 backdrop-blur-xl border-r border-border flex flex-col py-4 overflow-hidden',
-        ].join(' ')}
-        onMouseEnter={navAutoCollapse && !isMobileOverlay ? () => setSidebarCollapsed(false) : undefined}
-        onMouseLeave={navAutoCollapse && !isMobileOverlay ? () => setSidebarCollapsed(true)  : undefined}
-      >
-        {/* Logo */}
-        <div className="mb-5 flex flex-col items-center px-2">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
-            <Truck className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <div
-            className="text-center overflow-hidden"
-            style={{
-              opacity:    isCompact ? 0 : 1,
-              maxHeight:  isCompact ? 0 : 60,
-              marginTop:  isCompact ? 0 : 8,
-              overflow:   'hidden',
-              transition: 'opacity 180ms ease, max-height 200ms ease-in-out, margin-top 200ms ease-in-out',
-            }}
-          >
-            <h2 className="font-bold text-sm whitespace-nowrap">{t('navigation:app.name')}</h2>
-            <p className="text-xs text-muted-foreground whitespace-nowrap">{t('navigation:app.tagline')}</p>
-          </div>
-        </div>
-
-        <ScrollArea className="flex-1 px-2">
-          <nav className="space-y-0.5 pb-4">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const active = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveSection(item.id);
-                    if (isMobileOverlay) setIsSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    active ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground'
-                  }`}
-                  title={isCompact ? item.label : undefined}
-                >
-                  <Icon className="w-[18px] h-[18px] flex-shrink-0" />
-                  <span
-                    style={{
-                      opacity:    isCompact ? 0 : 1,
-                      maxWidth:   isCompact ? 0 : 200,
-                      overflow:   'hidden',
-                      whiteSpace: 'nowrap',
-                      transition: 'opacity 180ms ease, max-width 200ms ease-in-out',
-                    }}
-                  >
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
-        </ScrollArea>
-
-        <div className="px-2 mt-auto pt-3 space-y-0.5">
-          <button
-            onClick={() => setActiveSection('settings')}
-            className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-sm font-medium hover:bg-muted text-muted-foreground transition-colors"
-            title={isCompact ? t('navigation:header.settings') : undefined}
-          >
-            <Settings className="w-[18px] h-[18px] flex-shrink-0" />
-            <span
-              style={{
-                opacity:    isCompact ? 0 : 1,
-                maxWidth:   isCompact ? 0 : 200,
-                overflow:   'hidden',
-                whiteSpace: 'nowrap',
-                transition: 'opacity 180ms ease, max-width 200ms ease-in-out',
-              }}
-            >
-              {t('navigation:header.settings')}
-            </span>
-          </button>
-
-          {/* Toggle colapsar/expandir — só em desktop e sem auto-collapse */}
-          {!isMobileOverlay && !navAutoCollapse && (
-            <button
-              onClick={toggleSidebarCollapsed}
-              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium hover:bg-muted text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-              title={sidebarCollapsed ? t('navigation:sidebar.expand') : t('navigation:sidebar.collapse')}
-            >
-              {sidebarCollapsed
-                ? <ChevronRight className="w-4 h-4 flex-shrink-0" />
-                : <ChevronLeft className="w-4 h-4 flex-shrink-0" />
-              }
-              <span
-                style={{
-                  opacity:    isCompact ? 0 : 1,
-                  maxWidth:   isCompact ? 0 : 200,
-                  overflow:   'hidden',
-                  whiteSpace: 'nowrap',
-                  transition: 'opacity 180ms ease, max-width 200ms ease-in-out',
-                }}
-              >
-                {t('navigation:sidebar.collapse')}
-              </span>
-            </button>
-          )}
-        </div>
-      </aside>
-
-      {/* Conteúdo principal — margem esquerda compensa a sidebar fixed */}
-      <main
-        className="flex-1 flex flex-col overflow-hidden min-w-0"
-        style={{
-          marginLeft: isMobileOverlay ? 0 : sidebarW,
-          transition: 'margin-left 200ms ease-in-out',
-        }}
-      >
-        <header className="h-14 min-h-[56px] border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4 flex-shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            {(isMobileOverlay || !isSidebarOpen) && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 flex-shrink-0"
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
-            )}
-            {menuItems.find(item => item.id === activeSection)?.icon &&
-              React.createElement(menuItems.find(item => item.id === activeSection)!.icon, {
-                className: 'w-5 h-5 text-muted-foreground flex-shrink-0',
-              })
-            }
-            <h1 className="text-base font-semibold truncate">
-              {menuItems.find(item => item.id === activeSection)?.label}
-            </h1>
-          </div>
-          <div className="flex items-center gap-1">
-            <LanguageSwitcher size="md" />
-            <button
-              title={t('navigation:menu.help')}
-              onClick={() => setActiveSection('help')}
-              className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-muted text-muted-foreground transition-colors"
-            >
-              <HelpCircle className="w-[18px] h-[18px]" />
-            </button>
-            {isConnected && (
-              <AlertBellPopover
-                alerts={alerts}
-                unreadAlerts={unreadAlerts}
-                onAcknowledge={id => trackingDispatch({ type: 'ALERT_ACKNOWLEDGED', payload: id })}
-                onAcknowledgeAll={() => alerts.filter(a => !a.acknowledged).forEach(a => trackingDispatch({ type: 'ALERT_ACKNOWLEDGED', payload: a.id }))}
-                trigger={
-                  <button
-                    title={t('navigation:menu.alerts')}
-                    className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-muted text-muted-foreground transition-colors relative"
-                  >
-                    <Bell className="w-[18px] h-[18px]" />
-                    {unreadAlerts > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />}
-                  </button>
-                }
-              />
-            )}
-            <UserMenu />
-          </div>
-        </header>
-
-        <div className={`flex-1 min-h-0 overflow-hidden ${(activeSection === 'tracking' || activeSection === 'help' || activeSection === 'settings') ? '' : hasPadding ? 'overflow-y-auto p-4 md:p-6' : 'overflow-y-auto p-2'}`}>
-          {renderContent()}
-        </div>
-      </main>
-
-
-    </div>
-    </DashboardProvider>
-  );
 }
 
 // ─── Alertas Bell Popover ────────────────────────────────────────────────────

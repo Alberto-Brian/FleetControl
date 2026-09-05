@@ -14,7 +14,7 @@ import langs from '@/localization/langs';
 import { setAppLanguage } from '@/helpers/language-helpers';
 
 interface LanguageSwitcherProps {
-  /** 'sm' para o modo connected, 'md' para standalone */
+  /** 'sm' no painel flutuante do mapa; 'md' (default) nos restantes contextos */
   size?: 'sm' | 'md';
 }
 

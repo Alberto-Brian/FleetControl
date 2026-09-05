@@ -20,7 +20,6 @@ import {
   Plus, Filter, MoreHorizontal, CheckCircle2, Clock, Settings2, Ban, Upload, Wifi, RotateCcw,
 } from 'lucide-react';
 import { getAllVehicles, deleteVehicle, registerGpsOnVehicle, unregisterVehicleGps } from '@/helpers/vehicle-helpers';
-import { useLicense } from '@/hooks/useLicense';
 import { getAllVehicleCategories, deleteVehicleCategory } from '@/helpers/vehicle-category-helpers';
 import { cn } from '@/lib/utils';
 import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
@@ -53,8 +52,6 @@ type ViewMode = 'compact' | 'normal' | 'cards';
 export default function VehiclesPageContent() {
   const { t } = useTranslation();
   const { handleError, showSuccess } = useErrorHandler();
-  const { license } = useLicense();
-  const isConnected = license?.mode === 'connected';
 
   const [addGpsDialogOpen, setAddGpsDialogOpen] = useState(false);
   const [addGpsVehicleId, setAddGpsVehicleId] = useState<string | null>(null);
@@ -435,7 +432,7 @@ export default function VehiclesPageContent() {
                     <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectVehicle(vehicle); setEditDialogOpen(true); })}>
                       <Edit className="w-4 h-4 mr-2" /> {t('vehicles:actions.edit')}
                     </DropdownMenuItem>
-                    {isConnected && !vehicle.traccar_unique_id && (
+                    {!vehicle.traccar_unique_id && (
                       <DropdownMenuItem onClick={() => openAddGpsDialog(vehicle.id)}>
                         <Wifi className="w-4 h-4 mr-2" /> {t('vehicles:dialogs.addGps.action')}
                       </DropdownMenuItem>
@@ -481,7 +478,7 @@ export default function VehiclesPageContent() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {isConnected && !vehicle.traccar_unique_id && (
+                  {!vehicle.traccar_unique_id && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -532,7 +529,7 @@ export default function VehiclesPageContent() {
                   <Truck className="w-5 h-5" />
                 </div>
                 <div className="flex flex-wrap justify-end items-center gap-1.5 min-w-0">
-                  {isConnected && !vehicle.traccar_unique_id && (
+                  {!vehicle.traccar_unique_id && (
                     <Badge
                       variant="outline"
                       className="text-[10px] px-2 py-0.5 font-semibold cursor-pointer rounded-full transition-colors hover:bg-muted"
@@ -601,7 +598,7 @@ export default function VehiclesPageContent() {
                     <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectVehicle(vehicle); setEditDialogOpen(true); })}>
                       <Edit className="w-4 h-4 mr-2" /> {t('vehicles:actions.edit')}
                     </DropdownMenuItem>
-                    {isConnected && !vehicle.traccar_unique_id && (
+                    {!vehicle.traccar_unique_id && (
                       <DropdownMenuItem onClick={() => openAddGpsDialog(vehicle.id)}>
                         <Wifi className="w-4 h-4 mr-2" /> {t('vehicles:dialogs.addGps.action')}
                       </DropdownMenuItem>
@@ -814,19 +811,17 @@ export default function VehiclesPageContent() {
                     </SelectContent>
                   </Select>
 
-                  {isConnected && (
-                    <Select value={imeiFilter} onValueChange={(v) => { setImeiFilter(v as typeof imeiFilter); setCurrentPage(1); }}>
-                      <SelectTrigger className="flex-1 min-w-[140px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
-                        <Upload className="w-4 h-4 text-muted-foreground shrink-0" />
-                        <SelectValue placeholder={t('vehicles:filters.imei')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">{t('vehicles:filters.imeiAll')}</SelectItem>
-                        <SelectItem value="with_imei">{t('vehicles:filters.withImei')}</SelectItem>
-                        <SelectItem value="without_imei">{t('vehicles:filters.withoutImei')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
+                  <Select value={imeiFilter} onValueChange={(v) => { setImeiFilter(v as typeof imeiFilter); setCurrentPage(1); }}>
+                    <SelectTrigger className="flex-1 min-w-[140px] max-w-full overflow-hidden h-10 text-sm bg-muted/20 border-none">
+                      <Upload className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <SelectValue placeholder={t('vehicles:filters.imei')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('vehicles:filters.imeiAll')}</SelectItem>
+                      <SelectItem value="with_imei">{t('vehicles:filters.withImei')}</SelectItem>
+                      <SelectItem value="without_imei">{t('vehicles:filters.withoutImei')}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* View modes — só visível na linha 1 quando layout horizontal */}

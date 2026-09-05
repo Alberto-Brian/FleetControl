@@ -49,15 +49,13 @@ function ConnectionStatusBadge() {
 // ─── Layout base ─────────────────────────────────────────────────────────────
 export default function BaseLayout({ children }: { children: React.ReactNode }) {
     const { license } = useLicense();
-    const isMapMode          = license?.isValid && license.mode === 'connected';
-    const isConnectedLicense = license?.mode === 'connected';
     const { historicalDbPath, historicalDbName, deactivate } = useHistoricalDb();
 
     return (
         <div className="flex flex-col h-screen overflow-hidden">
             <DragWindowRegion
                 title=""
-                rightContent={isConnectedLicense ? <ConnectionStatusBadge /> : undefined}
+                rightContent={license ? <ConnectionStatusBadge /> : undefined}
             />
             {historicalDbPath && (
                 <div className="flex items-center justify-between gap-3 px-4 py-1.5 bg-amber-500 text-amber-950 text-xs font-medium shrink-0 z-50">

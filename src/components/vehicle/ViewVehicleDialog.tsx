@@ -20,7 +20,6 @@ import { cn } from '@/lib/utils';
 import { useVehicles } from '@/contexts/VehiclesContext';
 import { useTracking } from '@/contexts/TrackingContext';
 import { useTranslation } from 'react-i18next';
-import { useLicense } from '@/hooks/useLicense';
 import { updateVehicle, unregisterVehicleGps, toggleVehicleTracking } from '@/helpers/vehicle-helpers';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
@@ -56,8 +55,6 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
   const { state: { selectedVehicle }, dispatch } = useVehicles();
   const { reloadActiveImeis, state: trackingState, isConnected: trackingConnected } = useTracking();
   const { t } = useTranslation();
-  const { license } = useLicense();
-  const isConnected = license?.mode === 'connected' && license?.isValid;
 
   const [activeTab, setActiveTab] = useState<'details' | 'history' | 'telemetry'>('details');
   const [historyLoaded, setHistoryLoaded] = useState(false);
@@ -463,31 +460,27 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
                       <div className="flex items-start gap-1.5 mt-0.5 flex-wrap">
                         <Wifi className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
                         <span className="font-medium font-mono text-xs flex-1 break-all">{selectedVehicle.traccar_unique_id}</span>
-                        {isConnected && (
-                          <div className="flex gap-2 w-full mt-1">
-                            {/* Para mudar IMEI: remover GPS e registar novo — ver web module (futuro) */}
-                            <button
-                              onClick={() => setConfirmRemoveGps(true)}
-                              disabled={isLoading}
-                              className="text-[11px] text-destructive hover:text-destructive/80 underline disabled:opacity-50"
-                            >
-                              Remover GPS
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex gap-2 w-full mt-1">
+                          {/* Para mudar IMEI: remover GPS e registar novo — ver web module (futuro) */}
+                          <button
+                            onClick={() => setConfirmRemoveGps(true)}
+                            disabled={isLoading}
+                            className="text-[11px] text-destructive hover:text-destructive/80 underline disabled:opacity-50"
+                          >
+                            Remover GPS
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <WifiOff className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                         <span className="font-medium text-muted-foreground flex-1">{t('vehicles:dialogs.view.noGps')}</span>
-                        {isConnected && (
-                          <button
-                            onClick={() => { onRegisterGps?.(selectedVehicle.id); }}
-                            className="text-[11px] text-blue-500 hover:text-blue-600 underline flex-shrink-0"
-                          >
-                            Registar GPS
-                          </button>
-                        )}
+                        <button
+                          onClick={() => { onRegisterGps?.(selectedVehicle.id); }}
+                          className="text-[11px] text-blue-500 hover:text-blue-600 underline flex-shrink-0"
+                        >
+                          Registar GPS
+                        </button>
                       </div>
                     )}
                   </div>
@@ -553,14 +546,6 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
               )}
             </div>
 
-            {!isConnected && (
-              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50">
-                <MapPin className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-blue-700/80 dark:text-blue-300/70 leading-relaxed">
-                  {t('vehicles:connectedHint.viewGps')}
-                </p>
-              </div>
-            )}
 
               <div className="text-center text-xs text-muted-foreground pt-2">
                 <p>{t('vehicles:dialogs.view.fullEditHint')}</p>

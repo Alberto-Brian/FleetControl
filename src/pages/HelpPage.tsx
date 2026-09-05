@@ -3,7 +3,6 @@
 // ========================================
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLicense } from '@/hooks/useLicense';
 import {
   Home, Truck, Users, Fuel, Wrench, DollarSign, AlertTriangle,
   FileText, MapPin, Settings, Database, Bell, HelpCircle, Search,
@@ -182,8 +181,6 @@ function SectionCard({ section, connectedOnlyLabel }: { section: HelpSection; co
 // ─── Help Page ────────────────────────────────────────────────────────────────
 export default function HelpPage() {
   const { t } = useTranslation('help');
-  const { license } = useLicense();
-  const isConnected = license?.mode === 'connected';
   const [search, setSearch] = useState('');
   const [activeId, setActiveId] = useState('intro');
   const contentRef = useRef<HTMLDivElement>(null);
@@ -192,7 +189,6 @@ export default function HelpPage() {
   const allSections = t('sections', { returnObjects: true }) as HelpSection[];
 
   const visibleSections = allSections.filter(s => {
-    if (s.connectedOnly && !isConnected) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (

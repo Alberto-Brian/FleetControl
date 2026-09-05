@@ -13,13 +13,8 @@ export const enHelp = {
       id: 'intro',
       title: 'Introduction to FleetControl',
       content: [
-        { type: 'text', text: 'FleetControl is a fleet management system for monitoring vehicles, drivers, trips, fuel, maintenance, expenses, and fines. It includes real-time GPS tracking via Traccar in connected mode.' },
-        { type: 'text', text: 'Two operating modes:' },
-        { type: 'list', items: [
-          'Standalone Mode — works completely offline. All data is stored locally on your computer. License key starts with ST-.',
-          'Connected Mode — connects to the FleetControl server and the real-time GPS tracking module via Traccar. License key starts with LK-.',
-        ]},
-        { type: 'tip', text: 'Your operating mode is determined by your license type. You can check your current mode under Settings › License.' },
+        { type: 'text', text: 'FleetControl is a fleet management system for monitoring vehicles, drivers, trips, fuel, maintenance, expenses, and fines. It includes real-time GPS tracking via Traccar.' },
+        { type: 'text', text: 'The Desktop connects to the FleetControl server (license key starts with LK-) and syncs data automatically; it keeps working temporarily without an internet connection, syncing again as soon as the connection returns.' },
       ],
     },
 
@@ -438,14 +433,7 @@ export const enHelp = {
       id: 'license',
       title: 'License & Activation',
       content: [
-        { type: 'text', text: 'FleetControl is activated with a license key provided by AKM Systems. Two license types exist:' },
-        { type: 'table',
-          headers: ['Type', 'Key starts with', 'Features'],
-          rows: [
-            ['Standalone', 'ST-', 'Offline mode, local data, no server required'],
-            ['Connected', 'LK-', 'Server, real-time GPS tracking, multi-user'],
-          ],
-        },
+        { type: 'text', text: 'FleetControl is activated with a license key provided by AKM Systems (starts with LK-), linked to the customer\'s Organization — server, real-time GPS tracking, and multi-user support.' },
         { type: 'steps', steps: [
           'Go to Settings › License',
           'Enter the provided license key',
@@ -470,7 +458,7 @@ export const enHelp = {
       id: 'settings',
       title: 'Settings — Overview',
       content: [
-        { type: 'text', text: 'Access Settings via the gear icon in the bottom-left corner (standalone mode) or the top-right of the panel (connected mode). There is a search bar at the top of the Settings dialog to quickly find any option.' },
+        { type: 'text', text: 'Access Settings via the gear icon in the top-right of the panel. There is a search bar at the top of the Settings dialog to quickly find any option.' },
         { type: 'tip', text: 'To change the interface language, click the flag icon in the top-right bar (next to the help button). A dropdown with the available languages will appear.' },
         { type: 'table',
           headers: ['Tab', 'What you configure'],

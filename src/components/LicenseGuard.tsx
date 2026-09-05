@@ -23,7 +23,7 @@ export function LicenseGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (license.mode === 'connected' && !hasConnected.current) {
+    if (!hasConnected.current) {
       const token = getAccessToken();
       if (token) {
         hasConnected.current = true;
@@ -31,9 +31,6 @@ export function LicenseGuard({ children }: { children: React.ReactNode }) {
       } else {
         console.warn('[LicenseGuard] JWT ainda não disponível');
       }
-    } else if (license.mode !== 'connected') {
-      disconnect();
-      hasConnected.current = false;
     }
   }, [license, licenseLoading]);
 
