@@ -126,10 +126,19 @@ export async function getPowerSyncStatus(): Promise<IPowerSyncStatusSnapshot> {
   };
 }
 
-// As 7 tabelas dos Sync Streams (sync-config.yaml, Prompt 22.6/22.9) — lista
-// fixa, nunca interpolar um nome de tabela vindo do renderer directamente
-// numa query SQL.
-const SYNCED_TABLES = ['vehicles', 'drivers', 'trips', 'fuel', 'maintenance', 'expenses', 'categories'] as const;
+// As 15 tabelas dos Sync Streams (sync-config.yaml) — lista fixa, nunca
+// interpolar um nome de tabela vindo do renderer directamente numa query
+// SQL. Achado (2026-09-05): esta lista só tinha os 7 streams originais do
+// Prompt 22.6 — nunca actualizada com os 8 domínios da Fase 4
+// (routes/workshops/fuel_stations/maintenance_categories/fines/
+// vehicle_documents/maintenance_items/scheduled_trips), o que escondia
+// exactamente os dados que este ecrã de diagnóstico mais precisa de
+// mostrar ao investigar "sobe para o Neon mas não aparece no Desktop".
+const SYNCED_TABLES = [
+  'vehicles', 'drivers', 'trips', 'fuel', 'maintenance', 'expenses', 'categories',
+  'routes', 'workshops', 'fuel_stations', 'maintenance_categories',
+  'fines', 'vehicle_documents', 'maintenance_items', 'scheduled_trips',
+] as const;
 
 export interface IPowerSyncVehiclePreviewRow {
   id:                string;

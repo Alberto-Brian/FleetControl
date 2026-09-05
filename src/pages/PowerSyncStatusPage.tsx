@@ -61,6 +61,14 @@ export default function PowerSyncStatusPage() {
     maintenance: t('counts.tables.maintenance'),
     expenses: t('counts.tables.expenses'),
     categories: t('counts.tables.categories'),
+    routes: t('counts.tables.routes'),
+    workshops: t('counts.tables.workshops'),
+    fuel_stations: t('counts.tables.fuel_stations'),
+    maintenance_categories: t('counts.tables.maintenance_categories'),
+    fines: t('counts.tables.fines'),
+    vehicle_documents: t('counts.tables.vehicle_documents'),
+    maintenance_items: t('counts.tables.maintenance_items'),
+    scheduled_trips: t('counts.tables.scheduled_trips'),
   };
 
   return (
