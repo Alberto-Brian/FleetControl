@@ -107,13 +107,25 @@ export interface IPowerSyncStatusSnapshot {
 }
 
 export async function getPowerSyncStatus(): Promise<IPowerSyncStatusSnapshot> {
-  if (!_db) {
-    return {
-      connected: false, connecting: false, lastSyncedAt: null, hasSynced: false,
-      uploading: false, downloading: false, uploadError: null, downloadError: null,
-    };
-  }
-  const s = _db.currentStatus;
+  // Achado real (2026-09-0X): este early-return original ("se _db nunca foi
+  // criado, não crie só para diagnosticar") tinha uma premissa errada — criar
+  // _db aqui via getDb() só abre o ficheiro SQLite local, nunca liga a nada
+  // (connect() continua a ser a única chamada que estabelece sessão de
+  // sincronização real). Sem isto, testar offline logo a partir de um
+  // arranque frio (connect() nunca chegou a correr, ex. sem sessão API
+  // restaurável) mostrava sempre "sem dados" neste ecrã, mesmo com dados
+  // reais já sincronizados de uma sessão anterior sentados no ficheiro —
+  // exactamente o cenário que este ecrã de diagnóstico existe para mostrar.
+  const db = await getDb();
+  return mapStatus(db.currentStatus);
+}
+
+// Extraído de getPowerSyncStatus() para ser partilhado com
+// subscribeToStatusChanges() abaixo — a mesma conversão SyncStatus (do SDK,
+// não atravessa bem o IPC tal como está — Date/Error não serializam) →
+// snapshot simples, usada tanto pela leitura pontual como pelo push
+// em tempo real.
+function mapStatus(s: PowerSyncDatabaseType['currentStatus']): IPowerSyncStatusSnapshot {
   return {
     connected:     s.connected,
     connecting:    s.connecting,
@@ -155,8 +167,9 @@ export interface IPowerSyncSnapshot {
 }
 
 export async function getPowerSyncSnapshot(): Promise<IPowerSyncSnapshot> {
-  if (!_db) return { counts: Object.fromEntries(SYNCED_TABLES.map(t => [t, 0])), vehiclesPreview: [] };
-  const db = _db;
+  // Mesmo achado de getPowerSyncStatus() acima — os dados já estão no
+  // ficheiro local independentemente de connect() ter corrido nesta sessão.
+  const db = await getDb();
 
   const counts: Record<string, number> = {};
   for (const table of SYNCED_TABLES) {
@@ -169,4 +182,41 @@ export async function getPowerSyncSnapshot(): Promise<IPowerSyncSnapshot> {
   );
 
   return { counts, vehiclesPreview };
+}
+
+// Achado real (2026-09-0X): os dados chegavam ao ficheiro local (upload/
+// download reais, confirmados no ecrã de diagnóstico), mas as páginas
+// (VehiclesPageContent, etc.) só voltavam a consultar powersync.db quando
+// o próprio utilizador fazia alguma acção (montar a página, premir
+// Actualizar) — nada as avisava de que o PowerSync tinha recebido algo
+// novo em segundo plano. O SDK já expõe exactamente esse aviso
+// (db.onChangeWithCallback) — só não estava a ser usado. Devolve uma
+// função de remoção (mesmo padrão de db.registerListener).
+export async function subscribeToStatusChanges(cb: (status: IPowerSyncStatusSnapshot) => void): Promise<() => void> {
+  const db = await getDb();
+  return db.registerListener({
+    statusChanged: (s) => cb(mapStatus(s)),
+  });
+}
+
+// Achado real (2026-09-0X, confirmado por log em produção): event.changedTables
+// devolve o nome de armazenamento INTERNO do SDK (ex. "ps_data__vehicles"),
+// não o nome do schema/vista (ex. "vehicles") — todos os consumidores
+// (usePowerSyncDataChanged.ts) comparavam contra o nome errado e nunca
+// disparavam. Normalizado aqui, uma única vez, para que ninguém a jusante
+// precise de saber deste pormenor interno do SDK.
+const PS_DATA_PREFIX = 'ps_data__';
+function stripPsDataPrefix(table: string): string {
+  return table.startsWith(PS_DATA_PREFIX) ? table.slice(PS_DATA_PREFIX.length) : table;
+}
+
+// Mesma ideia, mas para dados (não para o estado da ligação) — usado para a
+// UI voltar a consultar powersync.db sozinha quando uma sync em segundo
+// plano altera alguma das tabelas sincronizadas.
+export async function subscribeToDataChanges(cb: (changedTables: string[]) => void): Promise<() => void> {
+  const db = await getDb();
+  return db.onChangeWithCallback(
+    { onChange: (event) => cb(event.changedTables.map(stripPsDataPrefix)) },
+    { tables: [...SYNCED_TABLES] },
+  );
 }

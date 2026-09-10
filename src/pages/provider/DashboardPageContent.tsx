@@ -23,6 +23,7 @@ import AllActivitiesDialog from '@/components/dashboard/AllActivitiesDialog';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { getAllMaintenances } from '@/helpers/maintenance-helpers';
 import { IMaintenance } from '@/lib/types/maintenance';
+import { formatRelativeTime, useRelativeTimeTick } from '@/lib/relative-time';
 
 type MaintenanceWithDetails = IMaintenance & {
   vehicle_license?: string | null;
@@ -43,10 +44,13 @@ interface DashboardPageContentProps {
 }
 
 export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { state, refreshData } = useDashboard();
   const [showAllActivities, setShowAllActivities] = useState(false);
   const [upcomingMaintenances, setUpcomingMaintenances] = useState<MaintenanceWithDetails[]>([]);
+  // "há 5m"/"agora mesmo" precisa de re-render periódico para não ficar
+  // preso em "agora mesmo" para sempre — ver relative-time.ts.
+  useRelativeTimeTick();
 
   useEffect(() => { refreshData(); }, []);
 
@@ -294,8 +298,8 @@ export function DashboardPageContent({ onNavigate }: DashboardPageContentProps) 
                           </div>
                         </TableCell>
                         <TableCell className="text-sm font-mono">{activity.vehicle || '-'}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(activity.date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}
+                        <TableCell className="text-sm text-muted-foreground" title={new Date(activity.date).toLocaleString(i18n.language.startsWith('en') ? 'en-US' : 'pt-PT')}>
+                          {formatRelativeTime(activity.date, i18n.language.startsWith('en') ? 'en' : 'pt')}
                         </TableCell>
                         <TableCell className="text-right text-sm font-bold">
                           {activity.amount ? `${(activity.amount / 1000).toFixed(0)}K Kz` : '-'}

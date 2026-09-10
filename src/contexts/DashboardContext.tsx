@@ -3,6 +3,7 @@
 // ========================================
 import React, { createContext, useContext, useReducer, useCallback, useEffect, ReactNode } from 'react';
 import { loadDashboardData } from '@/helpers/dashboard-helpers';
+import { usePowerSyncDataChanged } from '@/hooks/usePowerSyncDataChanged';
 
 // ==================== TYPES ====================
 export interface DashboardStats {
@@ -140,8 +141,16 @@ export function DashboardProvider({ children }: DashboardProviderProps) {
     lastUpdated: null,
   });
 
-  const loadData = useCallback(async () => {
-    dispatch({ type: 'SET_LOADING', payload: true });
+  // `silent` — achado do utilizador (2026-09-0X): uma sync do PowerSync em
+  // segundo plano disparava loadData(), que começava sempre por
+  // SET_LOADING:true — DashboardPageContent troca a tela inteira por um
+  // spinner enquanto isLoading é true, por isso uma actualização silenciosa
+  // em segundo plano fazia o ecrã inteiro "piscar" (só visível quando o
+  // Dashboard calhava estar em ecrã nesse momento — daí parecer aleatório).
+  // Uma actualização em segundo plano nunca deve mostrar loading — só
+  // trocar os dados quando estiverem prontos.
+  const loadData = useCallback(async (silent = false) => {
+    if (!silent) dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const data = await loadDashboardData();
       dispatch({ type: 'SET_STATS', payload: data.stats });
@@ -151,13 +160,21 @@ export function DashboardProvider({ children }: DashboardProviderProps) {
     } catch (error) {
       console.error('Dashboard load error:', error);
     } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
+      if (!silent) dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Ponto único (este Context, montado uma vez em App.tsx) — cobre todos
+  // os consumidores de useDashboard() de uma só vez, sem precisar de
+  // repetir isto em cada página. silent:true — ver nota acima.
+  usePowerSyncDataChanged(
+    ['vehicles', 'drivers', 'trips', 'fuel', 'maintenance', 'expenses'],
+    () => loadData(true),
+  );
 
   const helpers = {
     setStats: (stats: DashboardStats) => {

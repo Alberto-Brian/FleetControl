@@ -20,6 +20,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import type { RecentActivity } from '@/contexts/DashboardContext';
+import { formatRelativeTime, useRelativeTimeTick } from '@/lib/relative-time';
 
 interface AllActivitiesDialogProps {
   open: boolean;
@@ -32,9 +33,10 @@ export default function AllActivitiesDialog({
   onOpenChange,
   activities,
 }: AllActivitiesDialogProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
+  useRelativeTimeTick();
 
   // Filtrar atividades
   const filteredActivities = activities.filter(activity => {
@@ -220,16 +222,13 @@ export default function AllActivitiesDialog({
                         {/* Meta Info */}
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground mt-3">
                           {/* Date */}
-                          <div className="flex items-center gap-1.5">
+                          <div
+                            className="flex items-center gap-1.5"
+                            title={new Date(activity.date).toLocaleString(i18n.language.startsWith('en') ? 'en-US' : 'pt-PT')}
+                          >
                             <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
                             <span className="whitespace-nowrap">
-                              {new Date(activity.date).toLocaleDateString('pt-PT', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
+                              {formatRelativeTime(activity.date, i18n.language.startsWith('en') ? 'en' : 'pt')}
                             </span>
                           </div>
 

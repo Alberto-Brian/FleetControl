@@ -28,6 +28,7 @@ import { useTracking } from '@/contexts/TrackingContext';
 import { VehicleAnalyticsPanel } from '@/components/analytics/VehicleAnalyticsPanel';
 import { usePageViewSettings } from '@/hooks/usePageViewSettings';
 import { usePagePagination } from '@/hooks/usePagePagination';
+import { usePowerSyncDataChanged } from '@/hooks/usePowerSyncDataChanged';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Dialogs
@@ -161,24 +162,37 @@ export default function VehiclesPageContent() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  useEffect(() => {
-    loadCategories();
-    // Contagens totais sem filtros — carregadas uma vez para o selector de categoria
-    getAllVehicles({ limit: 9999 }).then(result => {
+  // Contagens totais sem filtros — usadas no selector de categoria
+  // ("Todas as categorias (N)"). Extraída para função nomeada porque,
+  // achado 2026-09-0X, precisa de correr de novo sempre que o PowerSync
+  // recebe um veículo novo/alterado — antes só corria uma vez ao montar.
+  const loadStaticCounts = useCallback(async () => {
+    try {
+      const result = await getAllVehicles({ limit: 9999 });
       const byCategory: Record<string, number> = {};
       result.data.forEach((v: any) => {
         if (v.category_id) byCategory[v.category_id] = (byCategory[v.category_id] ?? 0) + 1;
       });
       setStaticCounts({ total: result.pagination.total, byCategory });
-    }).catch(() => {});
+    } catch {
+      // silencioso — contagem secundária, não crítica
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCategories();
+    loadStaticCounts();
   }, []);
 
   useEffect(() => {
     loadVehicles();
   }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter, imeiFilter]);
 
-  const loadVehicles = useCallback(async () => {
-    setLoading(true);
+  // silent — achado do utilizador (2026-09-0X): uma actualização em segundo
+  // plano (PowerSync) nunca deve mostrar o spinner de "a carregar" — troca
+  // a tela por um instante sem motivo, já que os dados chegam sozinhos.
+  const loadVehicles = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     const filterParams = {
       search:      debouncedSearch,
       status:      statusFilter   === 'all' ? undefined : statusFilter,
@@ -200,19 +214,32 @@ export default function VehiclesPageContent() {
     } catch (error) {
       handleError(error, 'vehicles:errors.errorLoading');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter, imeiFilter]);
 
-  async function loadCategories() {
-    setCategoriesLoading(true);
+  // Achado 2026-09-0X: uma sync do PowerSync em segundo plano (outro
+  // utilizador/dispositivo a alterar um veículo) nunca chegava a esta
+  // página sozinha — só uma acção explícita do utilizador voltava a
+  // consultar powersync.db. loadVehicles já é a mesma função chamada por
+  // tudo o resto (paginação, filtros, sucesso de diálogos); loadStaticCounts
+  // (categoria/total do selector) tinha ficado de fora da primeira versão.
+  usePowerSyncDataChanged(['vehicles'], () => {
+    loadVehicles(true);
+    loadStaticCounts();
+  });
+
+  usePowerSyncDataChanged(['categories'], () => loadCategories(true));
+
+  async function loadCategories(silent = false) {
+    if (!silent) setCategoriesLoading(true);
     try {
       const data = await getAllVehicleCategories();
       setCategories(data);
     } catch (error) {
       handleError(error, 'vehicles:errors.errorLoadingCategories');
     } finally {
-      setCategoriesLoading(false);
+      if (!silent) setCategoriesLoading(false);
     }
   }
 

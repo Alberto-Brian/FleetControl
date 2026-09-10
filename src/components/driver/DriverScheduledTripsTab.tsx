@@ -31,6 +31,7 @@ import {
 import { IScheduledTrip } from '@/lib/types/scheduled-trip';
 import { ScheduledTripStatus } from '@/lib/db/schemas/scheduled_trips';
 import { useScheduledTrips } from '@/contexts/ScheduledTripsContext';
+import { usePowerSyncDataChanged } from '@/hooks/usePowerSyncDataChanged';
 import NewScheduledTripDialog from './NewScheduledTripDialog';
 import { cn } from '@/lib/utils';
 
@@ -290,8 +291,8 @@ export default function DriverScheduledTripsTab({
 
   useEffect(() => { loadTrips(); }, [currentPage, debouncedSearch, statusFilter]);
 
-  const loadTrips = useCallback(async () => {
-    setLoading(true);
+  const loadTrips = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const result = await getAllScheduledTrips({
         page: currentPage,
@@ -307,9 +308,13 @@ export default function DriverScheduledTripsTab({
     } catch (error) {
       handleError(error, 'scheduledTrips:errors.loadError');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [currentPage, debouncedSearch, statusFilter]);
+
+  // Achado 2026-09-0X: ver o mesmo comentário em VehiclesPageContent.tsx —
+  // uma sync do PowerSync em segundo plano nunca chegava a esta tab sozinha.
+  usePowerSyncDataChanged(['scheduled_trips'], () => loadTrips(true));
 
   function handleCancelClick(trip: IScheduledTrip) {
     setSelectedTrip(trip);

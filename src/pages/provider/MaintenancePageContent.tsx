@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { maintenanceStatus } from '@/lib/db/schemas/maintenances';
 import { usePageViewSettings } from '@/hooks/usePageViewSettings';
 import { usePagePagination } from '@/hooks/usePagePagination';
+import { usePowerSyncDataChanged } from '@/hooks/usePowerSyncDataChanged';
 import { MaintenanceAnalyticsPanel } from '@/components/analytics/MaintenanceAnalyticsPanel';
 import { cn } from '@/lib/utils';
 import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
@@ -153,8 +154,10 @@ export function MaintenancePageContent() {
     setCurrentPage(1);
   }
 
-  const loadMaintenances = useCallback(async () => {
-    setLoading(true);
+  // silent — ver o mesmo comentário em VehiclesPageContent.tsx: uma
+  // actualização em segundo plano nunca deve mostrar o spinner de "a carregar".
+  const loadMaintenances = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     const filterParams = {
       search:      debouncedSearch,
       status:      statusFilter   === 'all' ? undefined : statusFilter,
@@ -173,22 +176,28 @@ export function MaintenancePageContent() {
     } catch (error) {
       handleError(error, 'maintenances:errors.errorLoading');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, typeFilter, categoryFilter]);
 
-  async function loadCategories() {
-    setCategoriesLoading(true);
+  // Achado 2026-09-0X: ver o mesmo comentário em VehiclesPageContent.tsx —
+  // uma sync do PowerSync em segundo plano nunca chegava a esta página sozinha.
+  usePowerSyncDataChanged(['maintenance'], () => loadMaintenances(true));
+  usePowerSyncDataChanged(['maintenance_categories'], () => loadCategories(true));
+  usePowerSyncDataChanged(['workshops'], () => loadWorkshops(true));
+
+  async function loadCategories(silent = false) {
+    if (!silent) setCategoriesLoading(true);
     try { const data = await getAllCategoriesHelper(); setCategories(data); }
     catch (error) { handleError(error, 'maintenances:errors.errorLoadingCategories'); }
-    finally { setCategoriesLoading(false); }
+    finally { if (!silent) setCategoriesLoading(false); }
   }
 
-  async function loadWorkshops() {
-    setWorkshopsLoading(true);
+  async function loadWorkshops(silent = false) {
+    if (!silent) setWorkshopsLoading(true);
     try { const data = await getAllWorkshops(); setWorkshops(data); }
     catch (error) { handleError(error, 'common:errors.loadingData'); }
-    finally { setWorkshopsLoading(false); }
+    finally { if (!silent) setWorkshopsLoading(false); }
   }
 
   async function handleDeleteMaintenance() {

@@ -24,6 +24,7 @@ import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, write
 import { useTrips } from '@/contexts/TripsContext';
 import { usePageViewSettings } from '@/hooks/usePageViewSettings';
 import { usePagePagination } from '@/hooks/usePagePagination';
+import { usePowerSyncDataChanged } from '@/hooks/usePowerSyncDataChanged';
 import { TripsAnalyticsPanel } from '@/components/analytics/TripsAnalyticsPanel';
 
 // Dialogs — trips
@@ -128,8 +129,10 @@ export default function TripsPageContent() {
     loadRoutes();
   }, []);
 
-  const loadTrips = useCallback(async () => {
-    setLoading(true);
+  // silent — ver o mesmo comentário em VehiclesPageContent.tsx: uma
+  // actualização em segundo plano nunca deve mostrar o spinner de "a carregar".
+  const loadTrips = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const result = await getAllTrips({
         page:   currentPage,
@@ -147,19 +150,24 @@ export default function TripsPageContent() {
     } catch (error) {
       handleError(error, 'trips:errors.errorLoading');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [currentPage, itemsPerPage, debouncedSearch, statusFilter]);
 
-  async function loadRoutes() {
-    setIsRoutesLoading(true);
+  // Achado 2026-09-0X: ver o mesmo comentário em VehiclesPageContent.tsx —
+  // uma sync do PowerSync em segundo plano nunca chegava a esta página sozinha.
+  usePowerSyncDataChanged(['trips'], () => loadTrips(true));
+  usePowerSyncDataChanged(['routes'], () => loadRoutes(true));
+
+  async function loadRoutes(silent = false) {
+    if (!silent) setIsRoutesLoading(true);
     try {
       const data = await getAllRoutes();
       setRoutes(data);
     } catch (error) {
       handleError(error, 'routes:errors.errorLoading');
     } finally {
-      setIsRoutesLoading(false);
+      if (!silent) setIsRoutesLoading(false);
     }
   }
 

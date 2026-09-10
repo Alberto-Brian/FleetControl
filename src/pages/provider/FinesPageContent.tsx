@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
 import { usePageViewSettings } from '@/hooks/usePageViewSettings';
+import { usePowerSyncDataChanged } from '@/hooks/usePowerSyncDataChanged';
 import {
   AlertCircle, Search, DollarSign, FileText, Calendar, Eye, Edit,
   Trash2, CheckCircle2, Scale, LayoutGrid, List, Rows, MapPin, Filter, MoreHorizontal
@@ -80,8 +81,10 @@ export default function FinesPageContent() {
     loadFines();
   }, [currentPage, itemsPerPage, debouncedSearch, statusFilter]);
 
-  const loadFines = useCallback(async () => {
-    setLoading(true);
+  // silent — ver o mesmo comentário em VehiclesPageContent.tsx: uma
+  // actualização em segundo plano nunca deve mostrar o spinner de "a carregar".
+  const loadFines = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const result = await getAllFines({
         page:   currentPage,
@@ -100,9 +103,13 @@ export default function FinesPageContent() {
     } catch (error) {
       handleError(error, 'fines:errors.loading');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [currentPage, itemsPerPage, debouncedSearch, statusFilter]);
+
+  // Achado 2026-09-0X: ver o mesmo comentário em VehiclesPageContent.tsx —
+  // uma sync do PowerSync em segundo plano nunca chegava a esta página sozinha.
+  usePowerSyncDataChanged(['fines'], () => loadFines(true));
 
   async function handleDelete() {
     if (!selectedFine) return;

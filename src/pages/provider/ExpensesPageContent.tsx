@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { readPersistedFilter, writePersistedFilter, readPersistedViewMode, writePersistedViewMode } from '@/lib/filter-persistence';
 import { usePageViewSettings } from '@/hooks/usePageViewSettings';
 import { usePagePagination } from '@/hooks/usePagePagination';
+import { usePowerSyncDataChanged } from '@/hooks/usePowerSyncDataChanged';
 import { ExpensesAnalyticsPanel } from '@/components/analytics/ExpensesAnalyticsPanel';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -135,8 +136,10 @@ export default function ExpensesPageContent() {
     if (handler === RESTORE_EXPENSE_CATEGORY && result) updateCategory(result);
   }, [updateCategory]);
 
-  const loadExpenses = useCallback(async () => {
-    setLoading(true);
+  // silent — ver o mesmo comentário em VehiclesPageContent.tsx: uma
+  // actualização em segundo plano nunca deve mostrar o spinner de "a carregar".
+  const loadExpenses = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     const filterParams = {
       search:      debouncedSearch,
       status:      statusFilter   === 'all' ? undefined : statusFilter,
@@ -154,19 +157,24 @@ export default function ExpensesPageContent() {
     } catch (error) {
       handleError(error, 'expenses:errors.errorLoading');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, categoryFilter]);
 
-  async function loadCategories() {
-    setCategoriesLoading(true);
+  // Achado 2026-09-0X: ver o mesmo comentário em VehiclesPageContent.tsx —
+  // uma sync do PowerSync em segundo plano nunca chegava a esta página sozinha.
+  usePowerSyncDataChanged(['expenses'], () => loadExpenses(true));
+  usePowerSyncDataChanged(['categories'], () => loadCategories(true));
+
+  async function loadCategories(silent = false) {
+    if (!silent) setCategoriesLoading(true);
     try {
       const data = await getAllExpenseCategories();
       setCategories(data);
     } catch (error) {
       handleError(error, 'expenses:errors.errorLoadingCategories');
     } finally {
-      setCategoriesLoading(false);
+      if (!silent) setCategoriesLoading(false);
     }
   }
 

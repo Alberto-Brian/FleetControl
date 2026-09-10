@@ -25,6 +25,7 @@ import {
 import { useRefuelings } from '@/contexts/RefuelingsContext';
 import { usePageViewSettings } from '@/hooks/usePageViewSettings';
 import { usePagePagination } from '@/hooks/usePagePagination';
+import { usePowerSyncDataChanged } from '@/hooks/usePowerSyncDataChanged';
 import { FuelAnalyticsPanel } from '@/components/analytics/FuelAnalyticsPanel';
 import { getAllRefuelings, deleteRefueling as deleteRefuelingHelper } from '@/helpers/refueling-helpers';
 import { getAllFuelStations, deleteFuelStation as deleteFuelStationHelper } from '@/helpers/fuel-station-helpers';
@@ -132,8 +133,10 @@ export default function FuelPageContent() {
     setCurrentPage(1);
   }
 
-  const loadRefuelings = useCallback(async () => {
-    setLoading(true);
+  // silent — ver o mesmo comentário em VehiclesPageContent.tsx: uma
+  // actualização em segundo plano nunca deve mostrar o spinner de "a carregar".
+  const loadRefuelings = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const filterParams = {
         search:     debouncedSearch || undefined,
@@ -152,18 +155,23 @@ export default function FuelPageContent() {
     } catch (error) {
       handleError(error, 'refuelings:errors.errorLoading');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [currentPage, itemsPerPage, debouncedSearch, vehicleFilter, fuelTypeFilter, stationFilter]);
 
-  async function loadStations() {
-    setFuelStationsLoading(true);
+  // Achado 2026-09-0X: ver o mesmo comentário em VehiclesPageContent.tsx —
+  // uma sync do PowerSync em segundo plano nunca chegava a esta página sozinha.
+  usePowerSyncDataChanged(['fuel'], () => loadRefuelings(true));
+  usePowerSyncDataChanged(['fuel_stations'], () => loadStations(true));
+
+  async function loadStations(silent = false) {
+    if (!silent) setFuelStationsLoading(true);
     try {
       setFuelStations(await getAllFuelStations());
     } catch (error) {
       handleError(error, 'refuelings:errors.errorLoadingStations');
     } finally {
-      setFuelStationsLoading(false);
+      if (!silent) setFuelStationsLoading(false);
     }
   }
 

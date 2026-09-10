@@ -72,8 +72,7 @@ export default function PowerSyncStatusPage() {
   };
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-2xl mx-auto px-8 py-6 space-y-6">
+    <div className="space-y-6">
 
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -194,7 +193,6 @@ export default function PowerSyncStatusPage() {
         </div>
 
         <p className="text-xs text-center" style={{ color: 'var(--ui-t20)' }}>{t('autoRefreshNote')}</p>
-      </div>
     </div>
   );
 }

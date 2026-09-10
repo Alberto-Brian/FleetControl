@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { usePageViewSettings } from '@/hooks/usePageViewSettings';
 import { usePagePagination } from '@/hooks/usePagePagination';
+import { usePowerSyncDataChanged } from '@/hooks/usePowerSyncDataChanged';
 import { DriverAnalyticsPanel } from '@/components/analytics/DriverAnalyticsPanel';
 import { getAllDrivers, deleteDriver as deleteDriverHelper } from '@/helpers/driver-helpers';
 import { getAllVehicles }  from '@/helpers/vehicle-helpers';
@@ -140,8 +141,10 @@ export default function DriversPageContent() {
     }
   }
 
-  const loadDrivers = useCallback(async () => {
-    setLoading(true);
+  // silent — ver o mesmo comentário em VehiclesPageContent.tsx: uma
+  // actualização em segundo plano nunca deve mostrar o spinner de "a carregar".
+  const loadDrivers = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     const filterParams = {
       search: debouncedSearch,
       status: availabilityFilter === 'all' ? undefined : availabilityFilter,
@@ -158,9 +161,14 @@ export default function DriversPageContent() {
     } catch (error) {
       handleError(error, 'drivers:errors.errorLoading');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [currentPage, itemsPerPage, debouncedSearch, availabilityFilter]);
+
+  // Achado 2026-09-0X: ver o mesmo comentário em VehiclesPageContent.tsx —
+  // uma sync do PowerSync em segundo plano nunca chegava a esta página sozinha.
+  usePowerSyncDataChanged(['drivers'], () => loadDrivers(true));
+  usePowerSyncDataChanged(['vehicles', 'routes'], () => loadVehiclesAndRoutes());
 
   async function loadVehiclesAndRoutes() {
     try {
