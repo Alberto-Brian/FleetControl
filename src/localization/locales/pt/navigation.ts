@@ -15,7 +15,6 @@ export const ptNavigation = {
     reports: 'Relatórios',
     analytics: 'Análises',
     tracking: "Rastreamento",
-    powersyncStatus: 'Estado do PowerSync',
     help: 'Ajuda',
     alerts: 'Alertas',
   },

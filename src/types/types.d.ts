@@ -85,6 +85,16 @@ export interface CachedSession {
         id:    string;
         email: string;
         name:  string;
+        // Achado real (2026-09-0X): a decisão de apagar/manter os dados
+        // locais do PowerSync ao trocar de utilizador deve ser por
+        // Organization, não por pessoa — dois utilizadores da mesma
+        // empresa nunca devem perder a cache um do outro (ver
+        // AuthContext.login()); só uma Organization diferente justifica
+        // limpar. organizationId opcional só por compatibilidade com uma
+        // cache gravada antes desta alteração (sessões antigas sem este
+        // campo tratam-se como "organização desconhecida", nunca como
+        // "mesma organização").
+        organizationId?: string | null;
     };
     cached_at: number;
 }
@@ -117,6 +127,10 @@ interface IServicePowerSync {
     // Prompt 22.10 — ecrã de diagnóstico "Estado do PowerSync"
     getStatus:           () => Promise<IPowerSyncStatusSnapshot>;
     getSnapshot:         () => Promise<IPowerSyncSnapshot>;
+    // Achado 2026-09-0X — pushes em tempo real do processo principal;
+    // devolvem uma função para deixar de ouvir.
+    onStatusChanged:     (callback: (status: IPowerSyncStatusSnapshot) => void) => () => void;
+    onDataChanged:       (callback: (changedTables: string[]) => void) => () => void;
 }
 
 interface IClients {

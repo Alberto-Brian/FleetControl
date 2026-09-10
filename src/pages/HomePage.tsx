@@ -8,7 +8,6 @@ import {
   FileText, Home, Settings, Menu, AlertTriangle,
   ChevronLeft, ChevronRight, HelpCircle, Bell,
   LogIn, LogOut, Gauge, Zap, ZapOff, Play, Square, CheckCheck,
-  RefreshCw,
 } from 'lucide-react';
 import { Button }      from '@/components/ui/button';
 import { ScrollArea }  from '@/components/ui/scroll-area';
@@ -38,7 +37,6 @@ import ReportsPage      from '@/pages/ReportsPage';
 import AnalyticsPage    from '@/pages/AnalyticsPage';
 import TrackingPage     from '@/pages/TrackingPage';
 import HelpPage        from '@/pages/HelpPage';
-import PowerSyncStatusPage from '@/pages/PowerSyncStatusPage';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 // ─── larguras do nav rail em modo connected ───────────────────────────────────
@@ -94,7 +92,6 @@ export default function HomePage() {
       case 'fines':       return <FinesPage />;
       case 'reports':     return <ReportsPage />;
       case 'tracking':    return <TrackingPage />;
-      case 'powersync-status': return <PowerSyncStatusPage />;
       case 'analytics':   return <AnalyticsPage />;
       case 'help':        return <HelpPage />;
       case 'settings':    return <SettingsDialog />;
@@ -107,9 +104,8 @@ export default function HomePage() {
   // ─────────────────────────────────────────────────────────────────────────────
   {
     const activeItem  = menuItems.find(m => m.id === activeSection)
-      ?? (activeSection === 'settings'         ? { id: 'settings',         icon: Settings,  label: t('navigation:header.settings') }      : undefined)
-      ?? (activeSection === 'help'             ? { id: 'help',             icon: HelpCircle, label: t('navigation:menu.help') }            : undefined)
-      ?? (activeSection === 'powersync-status' ? { id: 'powersync-status', icon: RefreshCw,  label: t('navigation:menu.powersyncStatus') } : undefined);
+      ?? (activeSection === 'settings' ? { id: 'settings', icon: Settings,  label: t('navigation:header.settings') } : undefined)
+      ?? (activeSection === 'help'     ? { id: 'help',     icon: HelpCircle, label: t('navigation:menu.help') }      : undefined);
     // Expandido = ícones + texto, colapsado = ícones apenas
     const navRailW    = sidebarCollapsed ? NAV_RAIL_COLLAPSED_W : NAV_RAIL_EXPANDED_W;
 
@@ -224,9 +220,9 @@ export default function HomePage() {
                 bottom:        hasPadding ? 8 : 0,
                 left:          hasPadding ? navRailW + 6 : navRailW,
                 right:         hasPadding ? 8 : 0,
-                background:    ((activeSection === 'settings' || activeSection === 'help' || activeSection === 'powersync-status') && !glassPreviewActive) ? 'hsl(var(--card))' : 'var(--glass-bg)',
-                backdropFilter: ((activeSection === 'settings' || activeSection === 'help' || activeSection === 'powersync-status') && !glassPreviewActive) ? 'none' : 'var(--glass-filter)',
-                WebkitBackdropFilter: ((activeSection === 'settings' || activeSection === 'help' || activeSection === 'powersync-status') && !glassPreviewActive) ? 'none' : 'var(--glass-filter)',
+                background:    ((activeSection === 'settings' || activeSection === 'help') && !glassPreviewActive) ? 'hsl(var(--card))' : 'var(--glass-bg)',
+                backdropFilter: ((activeSection === 'settings' || activeSection === 'help') && !glassPreviewActive) ? 'none' : 'var(--glass-filter)',
+                WebkitBackdropFilter: ((activeSection === 'settings' || activeSection === 'help') && !glassPreviewActive) ? 'none' : 'var(--glass-filter)',
                 borderRadius:  hasPadding ? 14 : 0,
                 border:        hasPadding ? '1px solid var(--ui-b07)' : 'none',
                 boxShadow:     hasPadding ? '0 8px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3)' : 'none',
@@ -288,22 +284,12 @@ export default function HomePage() {
                   >
                     <Settings className="w-4 h-4" />
                   </button>
-                  <button
-                    title={t('navigation:menu.powersyncStatus')}
-                    onClick={() => setActiveSection('powersync-status')}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
-                    style={{ color: 'var(--ui-t40)', background: 'transparent' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--ui-b08)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t85)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--ui-t40)'; }}
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
                   <UserMenu compact />
                 </div>
               </div>
 
-              {/* Conteúdo com scroll (HelpPage, SettingsDialog e PowerSyncStatusPage têm layout próprio — sem wrapper scrollável) */}
-              {(activeSection === 'help' || activeSection === 'settings' || activeSection === 'powersync-status') ? (
+              {/* Conteúdo com scroll (HelpPage e SettingsDialog têm layout próprio — sem wrapper scrollável) */}
+              {(activeSection === 'help' || activeSection === 'settings') ? (
                 <div className="flex-1 overflow-hidden">{renderContent()}</div>
               ) : (
                 <div className="flex-1 overflow-y-auto overflow-x-hidden">

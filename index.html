@@ -11,11 +11,22 @@
             style-src 'self' 'unsafe-inline';
             img-src 'self' data: https: blob:;
             font-src 'self' data:;
-            connect-src 'self' data: blob: http://localhost:3001 ws://localhost:3001;
+            connect-src 'self' data: blob: http: https: ws: wss:;
             worker-src 'self' blob:;
             frame-src 'self' blob: data:;
           "
         />
+        <!-- URL do servidor é configurável em runtime (Definições -> Servidor,
+             server-config.ts) — nunca conhecido em build-time, pode ser
+             qualquer host self-hosted. Um CSP <meta> é estático e não pode
+             ser reescrito a partir do renderer quando o URL muda; restringir
+             connect-src a um host fixo (ex. só localhost:3001) bloqueava
+             permanentemente qualquer servidor real (achado 2026-09-09, "URL
+             do servidor" nas Definições nunca funcionou para nada que não
+             fosse localhost). script-src/worker-src continuam restritos a
+             'self' — é isso que protege contra scripts injectados; alargar
+             só connect-src não abre um vector de XSS novo, só permite ao
+             próprio app ligar-se a onde for configurado. -->
         <link rel="stylesheet" href="/src/styles/global.css" />
     </head>
     <body>

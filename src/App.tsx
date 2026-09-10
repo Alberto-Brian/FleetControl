@@ -9,6 +9,7 @@ import ChangePasswordRequiredPage from "./pages/ChangePasswordRequiredPage";
 import BaseLayout from "./layouts/BaseLayout";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LicenseProvider } from "./contexts/LicenseContext";
+import { useLicense } from "./hooks/useLicense";
 import { LicenseGuard } from "./components/LicenseGuard";
 import { TrackingProvider }    from '@/contexts/TrackingContext';
 import { LayoutProvider }      from '@/contexts/LayoutContext';
@@ -30,6 +31,7 @@ initGlassSettings();
 function AppContent() {
     const { i18n } = useTranslation();
     const { isAuthenticated, isLoading, mustChangePassword } = useAuth();
+    const { loading: licenseLoading } = useLicense();
 
     // Inicializar tema e idioma
     useEffect(() => {
@@ -38,8 +40,21 @@ function AppContent() {
         requestNotificationPermission();
     }, [i18n]);
 
-    // Loading state
-    if (isLoading) {
+    // Achado real (2026-09-0X): LicenseProvider só montava DEPOIS de
+    // isAuthenticated===true (dentro do ramo autenticado abaixo) — no
+    // arranque a frio de um dispositivo já licenciado (o caso mais comum),
+    // o LoginPage aparecia sem a licença alguma vez ter sido consultada, e
+    // getLicensedOrganizationId() (license-helpers.ts) ficava sempre `null`
+    // para o primeiro login da sessão. O portão em AuthContext.login() —
+    // "só utilizadores da Organization licenciada neste dispositivo podem
+    // entrar" — falha aberto de propósito quando a licença é desconhecida
+    // (para nunca bloquear um dispositivo por activar), o que na prática
+    // deixava entrar qualquer utilizador de qualquer Organization sempre
+    // que a app tinha acabado de arrancar. Esperar aqui por licenseLoading
+    // (agora que LicenseProvider está montado desde o início, ver App())
+    // garante que a licença já foi consultada — e o portão já está armado —
+    // antes de o ecrã de login sequer aparecer.
+    if (licenseLoading || isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
                 <div className="text-center">
@@ -67,13 +82,9 @@ function AppContent() {
         return <ChangePasswordRequiredPage />;
     }
 
-    // Utilizador autenticado → App principal com LicenseGuard
-    // LicenseProvider por cima de tudo: uma única verificação de licença
-    // partilhada por LicenseGuard, HomePage e todos os outros consumidores
-    // de useLicense() — elimina o "flash" de modo standalone que aparecia
-    // quando cada componente disparava a sua própria verificação do zero.
+    // Utilizador autenticado → App principal com LicenseGuard (LicenseProvider
+    // já está montado desde App(), acima de tudo — ver nota acima).
     return (
-        <LicenseProvider>
         <HistoricalDbProvider>
         <LayoutProvider>
         <TrackingProvider>
@@ -85,15 +96,16 @@ function AppContent() {
         </TrackingProvider>
         </LayoutProvider>
         </HistoricalDbProvider>
-        </LicenseProvider>
     );
 }
 
 export default function App() {
     return (
         <AuthProvider>
+        <LicenseProvider>
             <AppContent />
             <Toaster />
+        </LicenseProvider>
         </AuthProvider>
     );
 }
