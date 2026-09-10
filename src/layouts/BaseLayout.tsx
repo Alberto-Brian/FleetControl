@@ -84,12 +84,18 @@ const SYNC_DOT_COLOR = '#10a37f'; // amarelo, pedido explícito do utilizador
 // SYNC_MIN_VISIBLE_MS, mesmo que a sincronização em si já tenha terminado
 // — sem isto, uma sync de uma única linha (ex. um veículo) era rápida
 // demais para o olho humano perceber os pontinhos a aparecer.
-function PowerSyncActivityDots() {
+function PowerSyncActivityDots({ onVisibilityChange }: { onVisibilityChange?: (shown: boolean) => void }) {
     const [shown, setShown] = React.useState(false);
     const [faded, setFaded] = React.useState(false);
     const shownAtRef = React.useRef(0);
     const hideTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     const unmountTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // O alerta Traccar (TraccarAlertFlash, logo abaixo) dá prioridade a este
+    // indicador — nunca mostra o flash de alerta por cima de uma sync a
+    // decorrer. Reporta a visibilidade ao pai para essa decisão sem os dois
+    // componentes precisarem de se conhecer directamente.
+    React.useEffect(() => { onVisibilityChange?.(shown); }, [shown, onVisibilityChange]);
 
     React.useEffect(() => {
         ensureSyncDotsStyle();
@@ -138,9 +144,70 @@ function PowerSyncActivityDots() {
     );
 }
 
+const ALERT_FLASH_MS = 1400; // curto de propósito — um "flash", não uma barra persistente
+const ALERT_FLASH_COLOR = '#f59e0b'; // mesma cor do toast.warning() do sonner (richColors, ui/sooner.tsx)
+
+// ─── Três pontinhos na titlebar quando chega um alerta Traccar (geofence/
+// velocidade/ignição) — pedido explícito do utilizador: mesmos três
+// pontinhos e mesma animação do PowerSyncActivityDots acima, só a cor
+// muda (âmbar, igual ao toast.warning() do alerta) para se distinguir à
+// vista. Um alerta pode disparar várias vezes por minuto (confirmado com
+// o simulador) — por isso é um flash curto que acende e apaga a cada
+// alerta novo, nunca uma barra que fica ligada. Cede sempre ao
+// PowerSyncActivityDots: se a sync estiver visível no momento em que
+// chega um alerta, o flash não aparece por cima — pedido explícito do
+// utilizador ("priorizar o loading do sync").
+function TraccarAlertFlash({ suppressed }: { suppressed: boolean }) {
+    const { state } = useTracking();
+    const [shown, setShown] = React.useState(false);
+    const lastAlertIdRef = React.useRef<string | number | null>(null);
+    const hideTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const firstRunRef = React.useRef(true);
+
+    React.useEffect(() => { ensureSyncDotsStyle(); }, []);
+
+    React.useEffect(() => {
+        const latest = state.alerts[0];
+        if (!latest) return;
+
+        // Não disparar no primeiro render (alertas já existentes ao montar,
+        // ex. após reabrir a app) — só alertas que chegam a partir de agora.
+        if (firstRunRef.current) {
+            firstRunRef.current = false;
+            lastAlertIdRef.current = latest.id;
+            return;
+        }
+        if (latest.id === lastAlertIdRef.current) return;
+        lastAlertIdRef.current = latest.id;
+
+        if (suppressed) return; // sync tem prioridade — este alerta fica sem flash
+
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        setShown(true);
+        hideTimerRef.current = setTimeout(() => setShown(false), ALERT_FLASH_MS);
+    }, [state.alerts, suppressed]);
+
+    if (!shown) return null;
+
+    // Mesmos três pontinhos/animação do PowerSyncActivityDots
+    // (fc-sync-dot, já injectada por ensureSyncDotsStyle) — só a cor muda.
+    return (
+        <div className="flex items-center gap-1" title="Novo alerta Traccar">
+            {[0, 1, 2].map((i) => (
+                <span
+                    key={i}
+                    className="fc-sync-dot"
+                    style={{ width: 4, height: 4, borderRadius: '50%', background: ALERT_FLASH_COLOR, animationDelay: `${i * 0.25}s` }}
+                />
+            ))}
+        </div>
+    );
+}
+
 // ─── Badge de estado da ligação (lado direito da titlebar) ───────────────────
 function ConnectionStatusBadge() {
     const { connState, traccarStatus } = useTracking();
+    const [syncShown, setSyncShown] = React.useState(false);
 
     const isOnline        = connState === 'connected' && traccarStatus?.connected;
     const isApiOnly       = connState === 'connected' && !traccarStatus?.connected;
@@ -152,7 +219,8 @@ function ConnectionStatusBadge() {
     return (
         <div className="flex items-center gap-3 select-none">
             <SessionStatusLabel />
-            <PowerSyncActivityDots />
+            <PowerSyncActivityDots onVisibilityChange={setSyncShown} />
+            <TraccarAlertFlash suppressed={syncShown} />
             <div className="flex items-center gap-1.5">
                 {isOnline && (
                     <><Wifi style={{ width: 11, height: 11, color: '#4ade80' }} />
