@@ -4,6 +4,7 @@
 // ========================================
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { normalizeSocketUrl } from '@/helpers/license-helpers';
 import type { GeofenceAlert } from '@/contexts/TrackingContext';
 
 // ========================================
@@ -157,12 +158,27 @@ export function useApiConnection(): UseApiConnectionReturn {
   }, [cleanupSocket]);
 
   // -- Conectar --
-  const connect = useCallback((token: string) => {
+  // Achado real (2026-09-10): connect() lia socketUrlRef.current de forma
+  // SÍNCRONA — se o efeito de arranque (acima) ainda não tivesse resolvido
+  // getServerUrl() nesse preciso instante (corrida real contra o efeito de
+  // LicenseGuard.tsx, que chama connect() assim que a licença/token ficam
+  // prontos, tipicamente mais rápido que o IPC), o socket nascia preso ao
+  // 'http://localhost:3001' por omissão — para sempre, já que o Manager do
+  // socket.io fixa o URL na criação, nunca o relê sozinho em reconexões
+  // automáticas. Agora connect() vai buscar sempre o valor mais recente
+  // antes de construir o socket, em vez de confiar numa ref que pode ainda
+  // não estar actualizada.
+  const connect = useCallback(async (token: string) => {
     // Evita reconectar se já está conectado com o mesmo token
     if (socketRef.current?.connected && currentTokenRef.current === token) {
       console.log('[Socket] Já conectado com este token');
       return;
     }
+
+    try {
+      const saved: string | undefined = await (window as any).system?.getServerUrl?.();
+      if (saved) socketUrlRef.current = saved;
+    } catch { /* mantém o último valor conhecido de socketUrlRef */ }
 
     // Limpa conexão anterior se houver
     cleanupSocket();
@@ -173,7 +189,11 @@ export function useApiConnection(): UseApiConnectionReturn {
 
     console.log('[Socket] Iniciando conexão...');
 
-    const socket = io(`${socketUrlRef.current}${NAMESPACE}`, {
+    // normalizeSocketUrl: engine.io-client só isenta a ligação do fecho
+    // forçado em cada evento 'offline' do browser quando o hostname é
+    // literalmente "localhost" — "127.0.0.1" (equivalente em rede, string
+    // diferente) não conta. Ver o comentário completo em license-helpers.ts.
+    const socket = io(`${normalizeSocketUrl(socketUrlRef.current)}${NAMESPACE}`, {
       auth: { token },
       transports: ['websocket'],
       reconnection: true,

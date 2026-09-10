@@ -25,6 +25,10 @@ export interface CachedSession {
     id:    string;
     email: string;
     name:  string;
+    // Ver o mesmo campo em src/types/types.d.ts — usado para decidir se um
+    // login novo é da mesma Organization (cache mantida) ou de uma
+    // diferente (dados locais apagados).
+    organizationId?: string | null;
   };
   cached_at: number; // epoch ms — só informativo, nunca usado para decidir validade
 }

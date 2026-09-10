@@ -5,10 +5,10 @@
 import React, { useRef, useEffect } from 'react';
 import { LicenseActivationDialog } from '@/components/LicenseActivationDialog';
 import { useLicense }              from '@/hooks/useLicense';
-import { getAccessToken }          from '@/helpers/license-helpers';
+import { getAccessToken, SESSION_TOKEN_READY_EVENT } from '@/helpers/license-helpers';
 import { Loader2 }                 from 'lucide-react';
 import { useTracking }             from '@/contexts/TrackingContext';
-import { DesktopSessionBadge }     from '@/components/DesktopSessionBadge';
+import { SyncNotifier }            from '@/components/SyncNotifier';
 
 export function LicenseGuard({ children }: { children: React.ReactNode }) {
   const { license, loading: licenseLoading, refreshLicense } = useLicense();
@@ -33,6 +33,29 @@ export function LicenseGuard({ children }: { children: React.ReactNode }) {
       }
     }
   }, [license, licenseLoading]);
+
+  // Achado real (2026-09-08): o efeito acima só corre de novo se `license`/
+  // `licenseLoading` mudarem — nunca só porque um token passou a existir.
+  // Se getAccessToken() ainda era null no único momento em que o efeito
+  // chegou a correr (isAuthenticated já true via restauro local, mas o
+  // token online ainda a caminho — login/reactivação em segundo plano, ou
+  // o retry de 60s de tryRefreshOrReactivate() após uma falha transitória),
+  // a app ficava sem ligação de tracking pelo resto da sessão, mesmo que a
+  // sessão ficasse válida segundos depois. Ouve SESSION_TOKEN_READY_EVENT
+  // (disparado sempre que license-helpers.ts obtém um access_token novo com
+  // sucesso) e tenta connect() de novo — no-op se já estiver ligado.
+  useEffect(() => {
+    function handleTokenReady() {
+      if (hasConnected.current || licenseLoading || !license?.isValid) return;
+      const token = getAccessToken();
+      if (token) {
+        hasConnected.current = true;
+        connect(token);
+      }
+    }
+    window.addEventListener(SESSION_TOKEN_READY_EVENT, handleTokenReady);
+    return () => window.removeEventListener(SESSION_TOKEN_READY_EVENT, handleTokenReady);
+  }, [license, licenseLoading, connect]);
 
   const handleActivationSuccess = async () => {
     await refreshLicense();
@@ -62,9 +85,13 @@ export function LicenseGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // O estado da sessão (offline-cache-*/no-session) já é mostrado como
+  // texto pequeno na barra de título (ver SessionStatusLabel em
+  // BaseLayout.tsx, ao lado do estado de ligação) — não duplicar aqui com
+  // um banner de largura total.
   return (
     <>
-      <DesktopSessionBadge />
+      <SyncNotifier />
       {children}
     </>
   );

@@ -9,6 +9,7 @@ export const authTranslations = {
         wrongCurrentPassword: "Wrong current password",
         loginFailed:          "Login failed",
         logoutFailed:         "Failed to sign out",
+        organizationMismatch: "This account belongs to a different company than the one licensed for this device.",
       },
       login: {
         subtitle:            "Sign in to manage your fleet",
@@ -124,6 +125,7 @@ export const authTranslations = {
         wrongCurrentPassword: "Senha actual incorrecta",
         loginFailed:          "Falha ao fazer login",
         logoutFailed:         "Falha ao sair",
+        organizationMismatch: "Esta conta pertence a uma empresa diferente da licenciada para este dispositivo.",
       },
       login: {
         subtitle:            "Inicie sessão para gerir a sua frota",

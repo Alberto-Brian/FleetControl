@@ -17,6 +17,18 @@ import type { ValidatedLicense } from '@/lib/types/licence';
 // morta não deve deixar a pessoa "presa" dentro da app com a API partida.
 export const SESSION_REVOKED_EVENT = 'fc:session-revoked';
 
+// Achado real (2026-09-08): LicenseGuard só tenta ligar o socket de
+// tracking UMA VEZ (o seu próprio efeito só corre de novo se `license`/
+// `licenseLoading` mudarem, nunca só porque um token passou a existir) — se
+// getAccessToken() ainda for null nesse único momento (uma corrida comum:
+// isAuthenticated já é true via restauro local, mas o token online ainda
+// está a ser obtido/reactivado em segundo plano), a app fica sem ligação de
+// tracking pelo resto da sessão, mesmo que a sessão fique válida segundos
+// (ou até 60s, com o retry de tryRefreshOrReactivate()) depois. Disparado
+// sempre que _accessToken passa a ter um valor real com sucesso —
+// LicenseGuard volta a tentar connect() quando ouve isto.
+export const SESSION_TOKEN_READY_EVENT = 'fc:session-token-ready';
+
 // ── URL dinâmica — resolvida via IPC ─────────────────────────────────────────
 let _resolvedApiUrl: string | null = null;
 
@@ -33,6 +45,18 @@ async function resolveApiUrl(): Promise<string> {
 
 export function resetApiUrl(): void {
   _resolvedApiUrl = null;
+}
+
+// Achado real (2026-09-10): resetApiUrl() já existia mas nunca era chamada
+// em lado nenhum — este apiClient (login, probeApiReachable,
+// tryRefreshOrReactivate, activateOnApi, tudo) ficava preso ao primeiro URL
+// resolvido para sempre, mesmo depois de SettingsDialog.tsx disparar
+// 'serverUrlChanged' ao Guardar um URL novo (esse evento só era ouvido
+// pelo socket do tracking, useApiConnection.ts). Sintoma exacto: mudar o
+// URL do servidor nas Definições e Guardar corretamente, mas login/
+// "Servidor inacessível" continuavam a apontar para o valor antigo.
+if (typeof window !== 'undefined') {
+  window.addEventListener('serverUrlChanged', () => resetApiUrl());
 }
 
 const apiClient = axios.create({
@@ -67,6 +91,15 @@ function resetSessionMetadata(): void {
   _currentOrganizationId = null;
   _mustChangePassword = false;
 }
+
+// Organização da LICENÇA activa deste dispositivo (não da sessão — essa é
+// _currentOrganizationId acima, e reinicia a cada logout). Preenchida por
+// validateDisplayKey()/activateOnApi() sempre que a licença é confirmada
+// com o servidor; nunca reiniciada por um logout normal, só por
+// removeLicense(). Único portão que decide QUEM pode sequer tentar login
+// neste dispositivo — ver AuthContext.login().
+let _licensedOrganizationId: string | null = null;
+export function getLicensedOrganizationId(): string | null { return _licensedOrganizationId; }
 
 // ── Machine ID ───────────────────────────────────────────────────────────────
 export function getMachineId(): string {
@@ -160,8 +193,11 @@ export interface ApiLoginResult {
   message?: string;
   // Fase 11B.10 — presente só em sucesso; quem chama usa isto para
   // sincronizar o "cadeado" local (nunca para decidir role/scope/
-  // permissions, que o Desktop nunca lê localmente).
-  user?: { name: string; email: string };
+  // permissions, que o Desktop nunca lê localmente). organizationId serve
+  // só para AuthContext.login() decidir se os dados locais do PowerSync
+  // ficam ou são apagados (mesma Organization = ficam) — nunca para
+  // autorização, que continua inteiramente do lado da API.
+  user?: { name: string; email: string; organizationId: string | null };
   // true quando a API devolve must_change_password:true (ex: password
   // temporária de bootstrap, Fase 8B.3) — quem chama deve bloquear o resto
   // da app até uma troca bem-sucedida (changePasswordOnApi abaixo).
@@ -184,13 +220,14 @@ export async function loginOnApi(email: string, password: string): Promise<ApiLo
     _mustChangePassword    = !!data.user.must_change_password;
     await window._service_auth.setToken(data.access_token);
     scheduleRefresh(data.expires_in);
+    window.dispatchEvent(new Event(SESSION_TOKEN_READY_EVENT));
 
     // Fase 11B.9 — cacheia esta sessão (cifrada, safeStorage) para poder
     // ser reutilizada num próximo arranque/login sem ligação à API.
     await window._service_auth.saveCachedSession({
       access_token:  data.access_token,
       refresh_token: data.refresh_token,
-      user: { id: data.user.id, email: data.user.email, name: data.user.name },
+      user: { id: data.user.id, email: data.user.email, name: data.user.name, organizationId: _currentOrganizationId },
       cached_at: Date.now(),
     });
 
@@ -205,7 +242,7 @@ export async function loginOnApi(email: string, password: string): Promise<ApiLo
 
     return {
       success: true,
-      user: { name: data.user.name, email: data.user.email },
+      user: { name: data.user.name, email: data.user.email, organizationId: _currentOrganizationId },
       mustChangePassword: _mustChangePassword,
     };
   } catch (err) {
@@ -270,6 +307,7 @@ export async function tryRestoreCachedSession(expectedEmail: string): Promise<bo
     _accessToken  = cached.access_token;
     _refreshToken = cached.refresh_token;
     await window._service_auth.setToken(cached.access_token);
+    window.dispatchEvent(new Event(SESSION_TOKEN_READY_EVENT));
 
     // Se afinal houver ligação (ex.: falso negativo no momento do login, ou
     // é um arranque a frio e a conectividade ainda não foi testada), tenta
@@ -310,18 +348,57 @@ export async function changePasswordOnApi(currentPassword: string, newPassword: 
   _mustChangePassword = false;
 }
 
+// Achado real (2026-09-0X): esta função apagava sempre a cache de sessão
+// E os dados locais do PowerSync, em TODO logout — incluindo quando a
+// mesma pessoa, na mesma máquina, volta a entrar a seguir (o caso mais
+// comum). Consequência directa: sair e voltar a entrar com a API em baixo
+// mostrava sempre tudo a zero — a cache que tryRestoreCachedSession()
+// precisava tinha acabado de ser apagada por este próprio logout, e os
+// dados locais também. clearApiSession() passa a limpar só a sessão em
+// MEMÓRIA (nunca mais utilizável de qualquer forma depois de um logout) —
+// a cache e os dados locais só são apagados quando uma identidade
+// DIFERENTE é confirmada (ver wipeLocalDataForIdentitySwitch(), chamado
+// por AuthContext.login() só depois de um login ONLINE bem-sucedido — o
+// único momento em que se sabe com segurança quem é a pessoa nova).
 export async function clearApiSession(): Promise<void> {
   _accessToken  = null;
   _refreshToken = null;
   resetSessionMetadata();
   await window._service_auth.setToken(null);
-  await window._service_auth.clearCachedSession();
   if (_refreshTimer) clearTimeout(_refreshTimer);
+}
 
-  // Fase 12, Prompt 22.8 — desliga a sincronização e apaga a base local do
-  // PowerSync. Essencial num Desktop partilhado: sem isto, os dados
-  // sincronizados de uma pessoa (ou organização, numa troca de licença)
-  // ficariam legíveis localmente para quem iniciasse sessão a seguir.
+// Lido antes de loginOnApi() (que já sobrescreve a cache com a sessão de
+// quem está a entrar agora) — só assim é possível comparar "quem estava"
+// com "quem está a entrar agora". organizationId (não email) é quem decide
+// se os dados locais ficam: dois utilizadores da mesma Organization nunca
+// devem perder a cache um do outro — só uma Organization diferente
+// justifica apagar (ver wipeLocalDataForIdentitySwitch() abaixo).
+export async function peekCachedSessionIdentity(): Promise<{ email: string; organizationId: string | null } | null> {
+  try {
+    const cached = await window._service_auth.getCachedSession();
+    if (!cached) return null;
+    return { email: cached.user.email, organizationId: cached.user.organizationId ?? null };
+  } catch {
+    return null;
+  }
+}
+
+// Chamado só depois de confirmar (login online bem-sucedido) que quem
+// entrou agora é de uma Organization diferente da última sessão guardada —
+// nunca deixar os dados locais dela visíveis a quem entrou a seguir num
+// Desktop partilhado. A cache da sessão em si já não precisa de limpeza
+// aqui: loginOnApi() já a sobrescreveu correctamente com a sessão nova.
+//
+// Limitação conhecida, não resolvida aqui: dentro da MESMA Organization,
+// dois utilizadores com Scope diferente (ex. um vê toda a frota, outro só
+// 2 veículos) NUNCA disparam este wipe — a app confia inteiramente no
+// PowerSync retirar (ou nunca ter sincronizado) as linhas que o utilizador
+// novo não pode ver, através do bucket dele próprio. Este é exactamente o
+// "ponto em aberto do Prompt 22.1" já referido no projecto (nunca
+// confirmado empiricamente) — testar com dois utilizadores reais de Scope
+// diferente, na mesma máquina, antes de confiar nisto em produção.
+export async function wipeLocalDataForIdentitySwitch(): Promise<void> {
   await window._service_powersync.disconnectAndClear();
 }
 
@@ -341,6 +418,7 @@ export async function removeLicense(): Promise<void> {
   _accessToken  = null;
   _refreshToken = null;
   resetSessionMetadata();
+  _licensedOrganizationId = null;
   await window._service_auth.setToken(null);
   await window._service_auth.clearCachedSession();
   if (_refreshTimer) clearTimeout(_refreshTimer);
@@ -383,6 +461,12 @@ async function validateDisplayKey(displayKey: string): Promise<ValidatedLicense>
         error: 'Esta licença pertence a outra organização — não corresponde ao utilizador com sessão iniciada.',
       };
     }
+
+    // Guarda qual Organization está licenciada NESTE dispositivo — é o que
+    // AuthContext.login() usa para recusar o login de um utilizador de uma
+    // Organization diferente (achado do utilizador, 2026-09-0X). Só
+    // reiniciada por removeLicense(); um logout normal nunca lhe toca.
+    _licensedOrganizationId = data.data.organization_id ?? null;
 
     // Fase 11B.12 — activar a licença já não autentica ninguém nem emite
     // tokens (licença = direito da Organization, não sessão humana). A
@@ -428,12 +512,25 @@ async function validateDisplayKey(displayKey: string): Promise<ValidatedLicense>
 // forma de obter uma sessão real é /api/auth/login (Fase 11B.8). Chamado
 // pelo fluxo de validação da chave e pelo fallback de tryRefreshOrReactivate()
 // quando não há refresh_token nenhum para tentar renovar.
-async function activateOnApi(licenseKey: string): Promise<void> {
+// Achado real (2026-09-08): devolvia sempre void — o único caller que
+// importava (tryRefreshOrReactivate, no arranque da app, sem refresh_token
+// nenhum ainda) não tinha forma de saber se isto falhou por um motivo
+// transitório (API/rede ainda não prontas — muito comum mesmo no arranque:
+// o container self-hosted pode levar mais alguns segundos que a própria
+// app Electron) ou por uma recusa real (chave inválida/revogada). 'transient'
+// é o único caso que vale a pena reagendar automaticamente — ver
+// tryRefreshOrReactivate() abaixo.
+async function activateOnApi(licenseKey: string): Promise<'ok' | 'transient' | 'rejected'> {
   try {
-    await apiClient.post('/api/auth/activate', {
+    const { data } = await apiClient.post('/api/auth/activate', {
       license_key: licenseKey,
       machine_id:  getMachineId(),
     });
+    // Mesmo achado de validateDisplayKey() acima — reactivação em segundo
+    // plano (ex. arranque da app) também confirma qual Organization está
+    // licenciada, não só a activação inicial por chave.
+    if (data?.data?.organization_id) _licensedOrganizationId = data.data.organization_id;
+    return 'ok';
   } catch (err) {
     const axiosErr = err as AxiosError<{ message?: string; code?: string }>;
     const code     = axiosErr.response?.data?.code;
@@ -441,17 +538,35 @@ async function activateOnApi(licenseKey: string): Promise<void> {
 
     if (code === 'DISPLAY_KEY_NOT_REGISTERED') {
       console.warn('[License] Chave curta não registada na API — usa a chave FULL');
-      return;
+      return 'rejected';
     }
     if (!axiosErr.response) {
       console.warn('[License] API inacessível — modo offline');
-      return;
+      return 'transient';
     }
     console.error('[License] Activação falhou:', message);
+    // 5xx é o servidor a falhar (ex. a ligar-se à sua própria BD), não uma
+    // decisão de negócio sobre a licença — mesmo tratamento que o ramo de
+    // refresh já dá a um 5xx.
+    return axiosErr.response.status >= 500 ? 'transient' : 'rejected';
   }
 }
 
 async function tryRefreshOrReactivate(): Promise<void> {
+  // Achado real (2026-09-08): sem isto, uma falha transitória aqui (5xx/sem
+  // resposta — ex. um blip de ligação da API self-hosted ao Neon) nunca
+  // reagendava outra tentativa. activateOnApi() (chamado mais abaixo, como
+  // fallback) engole os seus próprios erros e devolve void, por isso nem
+  // sequer um erro visível — só silêncio. scheduleRefresh() só é chamado no
+  // ramo de SUCESSO; se refresh E a reactivação por licença falharem os
+  // dois, _refreshTimer nunca mais dispara, e a sessão (e tudo o que
+  // depende de um access_token válido — devices/positions/geofences do
+  // Traccar, o token do PowerSync) fica presa num 401 permanente até a app
+  // ser reiniciada manualmente. Só true quando havia mesmo uma sessão a
+  // tentar renovar (nunca no arranque sem sessão nenhuma — checkExistingLicense
+  // chama isto uma vez só, antes do login, propositadamente sem retry).
+  let retryOnFailure = false;
+
   if (_refreshToken) {
     try {
       const { data } = await apiClient.post('/api/auth/refresh', {
@@ -461,6 +576,7 @@ async function tryRefreshOrReactivate(): Promise<void> {
         _accessToken = data.data.access_token;
         await window._service_auth.setToken(data.data.access_token);
         scheduleRefresh(data.data.expires_in);
+        window.dispatchEvent(new Event(SESSION_TOKEN_READY_EVENT));
         return;
       }
     } catch (err) {
@@ -513,19 +629,39 @@ async function tryRefreshOrReactivate(): Promise<void> {
       // uma recusa. Mantém os tokens/cache actuais (continuam válidos
       // localmente) e tenta a reactivação por licença como último recurso —
       // falha silenciosamente se também não houver ligação (activateOnApi
-      // já trata isso).
+      // já trata isso). Reagenda mais abaixo mesmo que este fallback também
+      // falhe — ver comentário no topo da função.
       console.warn('[License] Refresh falhou (sem ligação):', err);
+      retryOnFailure = true;
     }
   }
 
   const rawKey: string | null = await window.license.getRawLicense();
-  if (rawKey) await activateOnApi(rawKey);
+  if (rawKey) {
+    // Achado real (2026-09-08): esta chamada é TAMBÉM o único caminho no
+    // arranque da app (checkExistingLicense, sem _refreshToken nenhum
+    // ainda) — "modo offline" aqui não significava só "sem licença", podia
+    // ser só a API/rede ainda não estarem prontas no exacto milissegundo em
+    // que a app arrancou (self-hosted: o container pode continuar a
+    // inicializar por mais alguns segundos). Sem retry, a app ficava
+    // "offline" para o resto da sessão mesmo que a API respondesse
+    // perfeitamente segundos depois — exactamente o "às vezes fica offline
+    // mesmo com o servidor ligado" reportado.
+    const outcome = await activateOnApi(rawKey);
+    if (outcome === 'transient') retryOnFailure = true;
+  }
+  if (retryOnFailure) scheduleRetryAfterFailure();
 }
 
 function scheduleRefresh(expiresInSeconds: number): void {
   if (_refreshTimer) clearTimeout(_refreshTimer);
   const ms = Math.max((expiresInSeconds - 300) * 1000, 60_000);
   _refreshTimer = setTimeout(tryRefreshOrReactivate, ms);
+}
+
+function scheduleRetryAfterFailure(): void {
+  if (_refreshTimer) clearTimeout(_refreshTimer);
+  _refreshTimer = setTimeout(tryRefreshOrReactivate, 60_000);
 }
 
 // Fase 11B.11 — "quando voltar a estar online: validar/renovar sessão".
@@ -561,8 +697,64 @@ export interface DesktopSessionInfo {
   isOnline: boolean;
 }
 
+// Achado real (2026-09-0X): utilizador via "Offline" com a API a correr
+// localmente via WSL, sem ligação à Internet. Causa: `navigator.onLine`
+// reflecte se a OS tem rota para a Internet, não se o servidor configurado
+// está acessível — para um servidor loopback isso é irrelevante (nunca
+// precisou de internet para ser alcançado). O mesmo sinal engana também o
+// engine.io-client usado por useApiConnection.ts (ver normalizeSocketUrl
+// abaixo, e o comentário lá com a linha exacta da lib). Exportado para os
+// dois sítios partilharem a mesma noção de "isto é local".
+export function isLoopbackHostname(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '[::1]';
+}
+
+// engine.io-client (o motor por trás do Socket.io) força o fecho da ligação
+// sempre que o browser dispara o evento global 'offline' — EXCEPTO quando o
+// hostname da ligação é literalmente a string "localhost" (comparação de
+// string exacta, ver node_modules/engine.io-client/build/esm/socket.js,
+// `if (this.hostname !== "localhost")`). Configurar o servidor como
+// "127.0.0.1" (equivalente em termos de rede, mas uma string diferente)
+// não activa esta excepção — por isso normalizamos aqui antes de qualquer
+// `io(url, ...)`, em vez de depender de qual valor exacto foi guardado nas
+// definições.
+export function normalizeSocketUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (isLoopbackHostname(parsed.hostname)) {
+      parsed.hostname = 'localhost';
+      return parsed.toString().replace(/\/$/, '');
+    }
+    return url;
+  } catch {
+    return url;
+  }
+}
+
+// Correcção de uma correcção anterior (mesmo dia): a primeira tentativa
+// tratava "hostname loopback" como "está sempre acessível", presumindo que
+// uma rota loopback nunca falha — verdade para a ROTA, falso para o
+// SERVIDOR: se o processo da API estiver mesmo desligado (utilizador testou
+// isto explicitamente, infra toda desligada), não há nada a responder em
+// 127.0.0.1:PORT, e fingir "online" prendia a app no estado 'no-session'
+// para sempre (nunca cai para offline-cache-*, mesmo com uma sessão
+// cacheada válida à espera de ser usada). A única forma correcta de saber
+// se o servidor está mesmo a responder é perguntar-lhe — sem isto,
+// `navigator.onLine`/hostname nunca substituem uma verificação real.
+async function probeApiReachable(timeoutMs = 3000): Promise<boolean> {
+  try {
+    await apiClient.get('/health', { timeout: timeoutMs });
+    return true;
+  } catch (err) {
+    const axiosErr = err as AxiosError;
+    // O servidor respondeu (mesmo com erro) — está acessível; só a
+    // ausência de qualquer resposta significa "inalcançável".
+    return !!axiosErr.response;
+  }
+}
+
 export async function getDesktopSessionState(): Promise<DesktopSessionInfo> {
-  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+  const isOnline = await probeApiReachable();
   const accessExpiresAt = _accessToken ? decodeJwtExpiry(_accessToken) : null;
   const hasLiveAccessToken = !!accessExpiresAt && accessExpiresAt > Date.now();
 
@@ -570,9 +762,9 @@ export async function getDesktopSessionState(): Promise<DesktopSessionInfo> {
     if (hasLiveAccessToken) return { state: 'online-valid', isOnline };
     if (_accessToken) return { state: 'online-expired', isOnline };
     // Estado 8 do prompt original — mas achado real (2026-09-05): quem
-    // consome este estado (DesktopSessionBadge, dentro de LicenseGuard) só
-    // é montado por App.tsx DEPOIS de isAuthenticated já ser true (ver
-    // App.tsx: `if (!isAuthenticated) return <LoginPage/>`) — nunca antes.
+    // consome este estado (SessionStatusLabel, em BaseLayout.tsx) só é
+    // montado depois de isAuthenticated já ser true (ver App.tsx:
+    // `if (!isAuthenticated) return <LoginPage/>`) — nunca antes.
     // Nunca interpretar este estado como "ainda não fez login": o utilizador
     // já está autenticado localmente; só falta uma sessão live/em cache com
     // o servidor (`navigator.onLine` reporta true mesmo sem WAN real, ex.

@@ -5,7 +5,11 @@ import {
   updateProfile as updateProfileService,
   syncLocalUser,
  } from '@/helpers/service-auth-helpers';
-import { loginOnApi, clearApiSession, tryRestoreCachedSession, SESSION_REVOKED_EVENT } from '@/helpers/license-helpers';
+import {
+  loginOnApi, clearApiSession, tryRestoreCachedSession,
+  peekCachedSessionIdentity, wipeLocalDataForIdentitySwitch, getLicensedOrganizationId,
+  SESSION_REVOKED_EVENT,
+} from '@/helpers/license-helpers';
 import { ILogin } from '@/lib/types/auth';
 import { IUser } from '@/lib/types/user';
 
@@ -64,6 +68,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (loginData: ILogin) => {
+    // Lido ANTES de loginOnApi() (que já sobrescreve a cache com a sessão
+    // de quem está a entrar agora) — só assim se consegue saber de que
+    // Organization era a última sessão guardada.
+    const previousIdentity = await peekCachedSessionIdentity();
+
     // Fase 11B.10 — o local SQLite deixa de ser uma segunda fonte de
     // identidade independente; passa a representar "quem está autorizado a
     // desbloquear o cache local de uma sessão previamente autenticada", não
@@ -71,6 +80,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const apiResult = await loginOnApi(loginData.email, loginData.password);
 
     if (apiResult.success && apiResult.user) {
+      // Portão pedido pelo utilizador (2026-09-0X): só utilizadores da
+      // Organization licenciada NESTE dispositivo podem entrar — nunca um
+      // utilizador válido, mas de outra empresa. A API já confirmou a
+      // identidade E a Organization dele (apiResult.user.organizationId);
+      // comparamos contra a licença activa (getLicensedOrganizationId(),
+      // preenchida por validateDisplayKey()/activateOnApi()). Licença
+      // desconhecida (null — não devia acontecer, LicenseGuard já exige
+      // uma licença válida antes do ecrã de login existir) não bloqueia:
+      // o lado seguro aqui é falhar aberto só nesta verificação adicional,
+      // nunca impedir um login que a própria API já validou.
+      const licensedOrgId = getLicensedOrganizationId();
+      if (licensedOrgId && apiResult.user.organizationId !== licensedOrgId) {
+        // A sessão que loginOnApi() acabou de estabelecer nunca deve ficar
+        // viva para uma Organization não licenciada aqui.
+        await clearApiSession();
+        throw new Error('auth:errors.organizationMismatch');
+      }
+
+      // Organization diferente da última sessão guardada, agora confirmada
+      // online — nunca deixar os dados locais da Organization anterior
+      // visíveis a quem entrou agora, num Desktop partilhado. Dois
+      // utilizadores da MESMA Organization (mesmo que pessoas diferentes)
+      // NUNCA disparam isto — os dados locais são um recurso da
+      // Organization, não de uma pessoa; ver a nota sobre Scope em
+      // wipeLocalDataForIdentitySwitch(). organizationId anterior
+      // desconhecido (cache antiga, sem este campo) conta sempre como
+      // "diferente" — o lado seguro é apagar, não presumir que é a mesma.
+      // Decidido só aqui (login online bem-sucedido), nunca num simples
+      // logout — ver clearApiSession() em license-helpers.ts. Na prática,
+      // com o portão da licença acima, uma Organization diferente nunca
+      // devia sequer chegar aqui — mantido como defesa em profundidade.
+      const previousOrgId = previousIdentity?.organizationId ?? null;
+      const isDifferentOrganization = previousIdentity !== null
+        && (previousOrgId === null || previousOrgId !== apiResult.user.organizationId);
+      if (isDifferentOrganization) {
+        await wipeLocalDataForIdentitySwitch();
+      }
+
       // Online — a API já confirmou a identidade; o local nunca vale mais
       // do que isto e nunca pode vetar um login já aceite pelo servidor.
       // Só é sincronizado (upsert, nunca uma verificação) para continuar a
