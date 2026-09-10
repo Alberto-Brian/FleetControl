@@ -145,13 +145,13 @@ function PowerSyncActivityDots({ onVisibilityChange }: { onVisibilityChange?: (s
 }
 
 const ALERT_FLASH_MS = 1400; // curto de propósito — um "flash", não uma barra persistente
-const ALERT_FLASH_COLOR = '#f59e0b'; // mesma cor do toast.warning() do sonner (richColors, ui/sooner.tsx)
+const ALERT_FLASH_COLOR = '#60a5fa'; // mesmo azul do botão de menu seleccionado (--nav-active-color, styles/global.css)
 
 // ─── Três pontinhos na titlebar quando chega um alerta Traccar (geofence/
 // velocidade/ignição) — pedido explícito do utilizador: mesmos três
 // pontinhos e mesma animação do PowerSyncActivityDots acima, só a cor
-// muda (âmbar, igual ao toast.warning() do alerta) para se distinguir à
-// vista. Um alerta pode disparar várias vezes por minuto (confirmado com
+// muda (azul, igual ao botão de menu seleccionado — --nav-active-color)
+// para se distinguir à vista. Um alerta pode disparar várias vezes por minuto (confirmado com
 // o simulador) — por isso é um flash curto que acende e apaga a cada
 // alerta novo, nunca uma barra que fica ligada. Cede sempre ao
 // PowerSyncActivityDots: se a sync estiver visível no momento em que
