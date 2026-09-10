@@ -29,6 +29,7 @@ import { Switch }   from '@/components/ui/switch';
 import { Input }    from '@/components/ui/input';
 import { Label }    from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn }       from '@/lib/utils';
 
 import { exportBackup, restoreBackup, restoreFromAutoBackup, getBackupConfig, updateBackupConfig, listBackups,
@@ -38,7 +39,13 @@ import { getSystemVersion, listDatabases, getDatabaseStats, deleteDatabase, list
 import { getCompanySettings, updateCompanySettings, uploadCompanyLogo, removeCompanyLogo } from '@/helpers/company-helpers';
 import { getSystemSettings, updateSystemSettings, resetSystemSettings }                    from '@/helpers/system-settings-helpers';
 import { removeLicense, getActivations, revokeActivation, getMachineId, type DesktopActivation } from '@/helpers/license-helpers';
-import { requestNotificationPermission }          from '@/helpers/notifications';
+import { requestNotificationPermission, isAlertSoundEnabled, setAlertSoundEnabled, playAlertSound } from '@/helpers/notifications';
+import {
+  isSyncSoundEnabled, setSyncSoundEnabled, playSyncSound,
+  isSyncToastEnabled, setSyncToastEnabled,
+  getSyncToastPosition, setSyncToastPositionSetting, type SyncToastPosition,
+} from '@/helpers/sync-notifications';
+import PowerSyncStatusPage                        from '@/pages/PowerSyncStatusPage';
 import { useLicense }                             from '@/hooks/useLicense';
 import { LicenseActivationDialog }                from '@/components/LicenseActivationDialog';
 import { useHistoricalDb }                        from '@/contexts/HistoricalDbContext';
@@ -1011,6 +1018,70 @@ function ServerTab() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SyncTab — pedido do utilizador (2026-09-0X): "Estado do PowerSync" deixou
+// de ter acesso rápido próprio (não é uma acção do dia-a-dia) e passou a
+// viver aqui, junto com o interruptor de notificação sonora — um único
+// sítio para tudo o que é sincronização automática.
+// ─────────────────────────────────────────────────────────────────────────────
+function SyncTab() {
+  const { t } = useTranslation('settings');
+  const [soundEnabled, setSoundEnabled] = useState(() => isSyncSoundEnabled());
+  const [toastEnabled, setToastEnabled] = useState(() => isSyncToastEnabled());
+  const [toastPosition, setToastPosition] = useState<SyncToastPosition>(() => getSyncToastPosition());
+
+  function handleToggleSound(checked: boolean) {
+    setSyncSoundEnabled(checked);
+    setSoundEnabled(checked);
+    if (checked) playSyncSound(); // pré-visualização imediata ao activar
+  }
+
+  function handleToggleToast(checked: boolean) {
+    setSyncToastEnabled(checked);
+    setToastEnabled(checked);
+  }
+
+  function handleChangeToastPosition(value: SyncToastPosition) {
+    setSyncToastPositionSetting(value);
+    setToastPosition(value);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-base font-semibold mb-0.5">{t('sync.title')}</h3>
+        <p className="text-sm text-muted-foreground">{t('sync.subtitle')}</p>
+      </div>
+
+      <SettingSection title={t('sync.notificationsTitle')}>
+        <SettingRow label={t('sync.soundLabel')} description={t('sync.soundDescription')}>
+          <Switch checked={soundEnabled} onCheckedChange={handleToggleSound} />
+        </SettingRow>
+        <SettingRow label={t('sync.toastLabel')} description={t('sync.toastDescription')}>
+          <Switch checked={toastEnabled} onCheckedChange={handleToggleToast} />
+        </SettingRow>
+        <SettingRow label={t('sync.toastPositionLabel')} description={t('sync.toastPositionDescription')}>
+          <Select
+            value={toastPosition}
+            onValueChange={(v) => handleChangeToastPosition(v as SyncToastPosition)}
+            disabled={!toastEnabled}
+          >
+            <SelectTrigger className="min-w-[220px] w-auto"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="own-corner">{t('sync.toastPositionOwnCorner')}</SelectItem>
+              <SelectItem value="same-as-toasts">{t('sync.toastPositionSameAsToasts')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingRow>
+      </SettingSection>
+
+      <SettingSection title={t('sync.statusTitle')} description={t('sync.statusDescription')}>
+        <PowerSyncStatusPage />
+      </SettingSection>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GeofenceAlertsTab
 // ─────────────────────────────────────────────────────────────────────────────
 function GeofenceAlertsTab() {
@@ -1026,6 +1097,16 @@ function GeofenceAlertsTab() {
     cooldownSpeedMs:      60000,
   }));
   const { status, isDirty, markDirty, save } = useSaveStatus();
+  // Sinal sonoro — mesmo padrão do SyncTab (helpers/sync-notifications.ts):
+  // escrita imediata no localStorage, independente do botão Guardar (que só
+  // se aplica aos campos do servidor/dos outros locais desta aba).
+  const [soundEnabled, setSoundEnabled] = useState(() => isAlertSoundEnabled());
+
+  function handleToggleSound(checked: boolean) {
+    setAlertSoundEnabled(checked);
+    setSoundEnabled(checked);
+    if (checked) playAlertSound(); // pré-visualização imediata ao activar
+  }
 
   // Só actualiza os campos do servidor — os campos de localStorage já estão no estado inicial
   useEffect(() => {
@@ -1088,6 +1169,12 @@ function GeofenceAlertsTab() {
             checked={localSettings.nativeNotificationsEnabled}
             onCheckedChange={handleToggleNativeNotifications}
           />
+        </SettingRow>
+        <SettingRow
+          label={t('settings.soundLabel')}
+          description={t('settings.soundDescription')}
+        >
+          <Switch checked={soundEnabled} onCheckedChange={handleToggleSound} />
         </SettingRow>
       </SettingSection>
 
@@ -2077,6 +2164,7 @@ export default function SettingsDialog() {
     { id: 'backups',         icon: HardDrive,   label: t('nav.backups')       },
     { id: 'databases',       icon: Database,    label: t('nav.databases')     },
     { id: 'server',          icon: Server,      label: t('nav.server')        },
+    { id: 'sync',            icon: RefreshCw,   label: t('nav.sync')          },
     { id: 'license',         icon: Key,         label: t('nav.license')       },
     { id: 'about',           icon: Info,        label: t('nav.about')         },
   ];
@@ -2091,6 +2179,7 @@ export default function SettingsDialog() {
     { tabId: 'backups',         text: [t('nav.backups'), 'backup', 'cópia', 'restaurar', 'restore', 'exportar', 'import', 'export', 'automático', 'auto', 'agendamento', 'schedule'].join(' ') },
     { tabId: 'databases',       text: [t('nav.databases'), 'base de dados', 'database', 'sqlite', 'histórico', 'historical', 'eliminar', 'delete', 'db'].join(' ') },
     { tabId: 'server',          text: [t('nav.server'), 'servidor', 'server', 'api', 'conexão', 'connection', 'url', 'chave', 'key', 'traccar'].join(' ') },
+    { tabId: 'sync',            text: [t('nav.sync'), 'sincronização', 'sync', 'powersync', 'som', 'sound', 'notificação', 'notification', 'offline', 'automático', 'automatic'].join(' ') },
     { tabId: 'license',         text: [t('nav.license'), 'licença', 'license', 'activar', 'activate', 'revogar', 'revoke', 'chave', 'key', 'expiração', 'expiry', 'serial'].join(' ') },
     { tabId: 'about',           text: [t('nav.about'), 'sobre', 'about', 'versão', 'version', 'copyright', 'fleetcontrol'].join(' ') },
   ], [t]);
@@ -3274,6 +3363,9 @@ export default function SettingsDialog() {
 
                   {/* ── Servidor ── */}
                   {activeTab === 'server' && <ServerTab />}
+
+                  {/* ── Sincronização ── */}
+                  {activeTab === 'sync' && <SyncTab />}
 
                   {/* ── Licença ── */}
                   {activeTab === 'license' && <LicenseTab />}

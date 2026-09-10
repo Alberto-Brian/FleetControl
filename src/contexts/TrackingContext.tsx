@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { useApiConnection } from '@/hooks/useApiConnection';
 import type { Position, Device, ConnectionState, TraccarStatus } from '@/hooks/useApiConnection';
 import type { TrackedDevice } from '@/helpers/tracking-helpers';
-import { sendNativeNotification } from '@/helpers/notifications';
+import { sendNativeNotification, isAlertSoundEnabled, playAlertSound } from '@/helpers/notifications';
 import type { AlertSettings } from '@/helpers/notifications';
 import { getAllVehicles } from '@/helpers/vehicle-helpers';
 import { getTrackedDevices } from '@/helpers/tracking-helpers';
@@ -375,6 +375,7 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
           toast.warning(`${EVENT_TOAST_LABELS[latest.eventType] ?? latest.eventType} · ${deviceLabel}${zonePart}`);
         }
         if (settings) sendNativeNotification(latest, settings, deviceLabel, EVENT_TOAST_LABELS[latest.eventType] ?? latest.eventType);
+        if (isAlertSoundEnabled()) playAlertSound();
       }
     }
   }, [geofenceAlerts]);

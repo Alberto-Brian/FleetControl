@@ -189,6 +189,8 @@ export const enTracking = {
     nativeOsTitle:             'Operating System Notifications',
     nativeOsNotifications:     'Native OS notifications',
     nativeOsNotificationsDesc: 'Show native OS notifications when the app is minimized or in the background',
+    soundLabel:                'Alert sound',
+    soundDescription:          'Plays a short sound whenever a geofence, speed, or ignition alert arrives.',
     osOnlyNotifications:       'OS notifications only',
     osOnlyNotificationsDesc:   'Use exclusively OS notifications — no in-app pop-ups. OS notifications will always appear regardless of the window state.',
     notifyWhenFocused:         'Notify when app is open',

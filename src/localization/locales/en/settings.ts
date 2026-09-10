@@ -30,6 +30,24 @@ export const enSettings = {
     geofenceAlerts: 'GPS Alerts',
     server:         'Server',
     views:          'Views',
+    sync:           'Sync',
+  },
+
+  // ── Sync (PowerSync) ─────────────────────────────────────────────────────
+  sync: {
+    title:              'Automatic sync',
+    subtitle:            'How the Desktop keeps itself up to date with the server in the background (PowerSync).',
+    notificationsTitle:  'Notifications',
+    soundLabel:          'Sound on sync',
+    soundDescription:    'Plays a short sound whenever new data arrives from the server in the background.',
+    toastLabel:                'Show updated-data notification',
+    toastDescription:          'A small notice saying what changed (e.g. "Vehicles updated").',
+    toastPositionLabel:        'Notice position',
+    toastPositionDescription:  'Where the notice appears on screen.',
+    toastPositionOwnCorner:    'Own corner (top-right)',
+    toastPositionSameAsToasts: 'Same corner as other notices',
+    statusTitle:         'Detailed status',
+    statusDescription:   'Local counts and connection state — useful to confirm sync is actually working.',
   },
 
   // ── Databases ─────────────────────────────────────────────────────────────

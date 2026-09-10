@@ -31,6 +31,24 @@ export const ptSettings = {
     geofenceAlerts: 'Alertas GPS',
     server:         'Servidor',
     views:          'Vistas',
+    sync:           'Sincronização',
+  },
+
+  // ── Sincronização (PowerSync) ────────────────────────────────────────────
+  sync: {
+    title:              'Sincronização automática',
+    subtitle:            'Como o Desktop se mantém actualizado com o servidor em segundo plano (PowerSync).',
+    notificationsTitle:  'Notificações',
+    soundLabel:          'Som ao sincronizar',
+    soundDescription:    'Toca um som curto sempre que dados novos chegam do servidor em segundo plano.',
+    toastLabel:                'Mostrar notificação de dados actualizados',
+    toastDescription:          'Um pequeno aviso a dizer o que mudou (ex. "Veículos actualizados").',
+    toastPositionLabel:        'Posição do aviso',
+    toastPositionDescription:  'Onde o aviso aparece no ecrã.',
+    toastPositionOwnCorner:    'Canto próprio (superior direito)',
+    toastPositionSameAsToasts: 'Mesmo canto dos outros avisos',
+    statusTitle:         'Estado detalhado',
+    statusDescription:   'Contagens locais e estado da ligação — útil para confirmar que a sincronização está a funcionar.',
   },
 
   // ── Bases de Dados ────────────────────────────────────────────────────────

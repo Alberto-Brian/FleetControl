@@ -189,6 +189,8 @@ export const ptTracking = {
     nativeOsTitle:             'Notificações do Sistema Operativo',
     nativeOsNotifications:     'Notificações nativas (SO)',
     nativeOsNotificationsDesc: 'Com a app em foco usa notificações internas; quando minimizada ou em segundo plano usa notificações nativas do sistema operativo',
+    soundLabel:                'Sinal sonoro de alerta',
+    soundDescription:          'Toca um som curto sempre que chega um alerta de geofence, velocidade ou ignição.',
     notifyEnter:          'Notificação ao entrar numa zona',
     notifyExit:           'Notificação ao sair de uma zona',
     notifySpeed:          'Notificação de velocidade excessiva',
