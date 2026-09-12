@@ -552,7 +552,30 @@ async function activateOnApi(licenseKey: string): Promise<'ok' | 'transient' | '
   }
 }
 
+// Achado real (2026-09-12): num arranque a frio com sessão local já
+// persistida, AuthContext.tsx (tryRestoreCachedSession, fire-and-forget) e
+// LicenseContext.tsx (checkExistingLicense, aguardado) montam ao mesmo
+// tempo e chamavam ESTA função em paralelo, ambos com o MESMO
+// _refreshToken — dois POST /api/auth/refresh concorrentes para a mesma
+// sessão. Consoante a ordem em que as respostas chegavam, o pedido que
+// resolvia por último podia limpar um _accessToken que o outro pedido
+// tinha acabado de estabelecer com sucesso — reprodutível de forma
+// praticamente determinística em TODOS os arranques a frio, só resolvido
+// manualmente com logout+login (caminho de chamada única). O guard
+// anterior (_reconnectRefreshInFlight) só cobria o listener 'online' —
+// não este par. Movido para dentro da própria função: todas as chamadas
+// (listener 'online', tryRestoreCachedSession, checkExistingLicense, e os
+// timers de scheduleRefresh/scheduleRetryAfterFailure) partilham agora a
+// MESMA promise em curso, nunca disparam pedidos paralelos.
+let _refreshInFlight: Promise<void> | null = null;
+
 async function tryRefreshOrReactivate(): Promise<void> {
+  if (_refreshInFlight) return _refreshInFlight;
+  _refreshInFlight = tryRefreshOrReactivateImpl().finally(() => { _refreshInFlight = null; });
+  return _refreshInFlight;
+}
+
+async function tryRefreshOrReactivateImpl(): Promise<void> {
   // Achado real (2026-09-08): sem isto, uma falha transitória aqui (5xx/sem
   // resposta — ex. um blip de ligação da API self-hosted ao Neon) nunca
   // reagendava outra tentativa. activateOnApi() (chamado mais abaixo, como
@@ -687,20 +710,13 @@ function scheduleRetryAfterFailure(): void {
 // tryRefreshOrReactivate() já é um no-op.
 //
 // Achado real (2026-09-12): o evento 'online' do Electron/Chromium é
-// conhecido por disparar em rajada (vários eventos seguidos) ao reconectar
-// — sem guarda nenhuma, cada disparo chamava tryRefreshOrReactivate() em
-// paralelo, aumentando as hipóteses de rebentar o rate limit de
-// `/api/auth/refresh` (429) logo nos primeiros segundos de ligação
-// recuperada. `_reconnectRefreshInFlight` garante uma única tentativa de
-// cada vez — um disparo a meio de outro é ignorado, não enfileirado (o
-// próximo disparo real do 'online', ou o retry de 60s já existente,
-// cobre o caso de a tentativa em curso falhar).
-let _reconnectRefreshInFlight = false;
+// conhecido por disparar em rajada (vários eventos seguidos) ao reconectar.
+// Não precisa de guarda própria aqui — tryRefreshOrReactivate() já
+// deduplica internamente (_refreshInFlight, ver acima) qualquer chamada
+// concorrente, de qualquer origem, não só desta.
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
-    if (_reconnectRefreshInFlight) return;
-    _reconnectRefreshInFlight = true;
-    void tryRefreshOrReactivate().finally(() => { _reconnectRefreshInFlight = false; });
+    void tryRefreshOrReactivate();
   });
 }
 
