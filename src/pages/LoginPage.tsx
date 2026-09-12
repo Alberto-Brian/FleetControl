@@ -187,7 +187,7 @@ export default function LoginPage() {
           {/* Marca — o próprio logotipo já tem o seu enquadramento circular,
               sem caixa colorida à volta (evita duplicar moldura). */}
           <div className="flex flex-col items-center gap-3.5 mb-8">
-            <img src="./images/fleetlogo.png" alt="FleetControl" className="w-16 h-16 shrink-0" />
+            <img src="./images/fleetlogo.png" alt="FleetControl" className="w-20 h-20 shrink-0" />
             <div className="text-center">
               <h1
                 className="text-[26px] leading-tight"

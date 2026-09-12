@@ -3362,7 +3362,7 @@ export default function SettingsDialog() {
                   {activeTab === 'about' && (
                     <div className="space-y-6">
                       <div className="text-center pb-6 border-b border-border">
-                        <img src="./images/fleetlogo.png" alt="" className="w-20 h-20 mx-auto mb-4" />
+                        <img src="./images/fleetlogo.png" alt="" className="w-24 h-24 mx-auto mb-4" />
                         <h3 className="text-2xl font-bold mb-1">{t('about.appName')}</h3>
                         <p className="text-sm text-muted-foreground mb-3">{t('about.appSubtitle')}</p>
                         <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
