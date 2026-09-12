@@ -22,6 +22,8 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { removeLicense } from '@/helpers/license-helpers';
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog';
 
 // ─── Fundo: rota GPS estilizada ─────────────────────────────────────────────
 // Grelha ténue + duas rotas de fundo + uma rota "activa" com um ponto a
@@ -129,6 +131,27 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
+
+  // Achado real (2026-09-12): depois da licença passar a ser pedida ANTES
+  // do login, activar uma licença ERRADA (de outra Organization, ou
+  // simplesmente enganada) deixava sem saída nenhuma — sem credenciais
+  // válidas para essa Organization, nunca era possível entrar, e "Remover
+  // Licença" só existe dentro de Definições, só alcançável depois de
+  // entrar. Ficava-se preso neste ecrã para sempre. Reutiliza o mesmo
+  // removeLicense() (já desloga/limpa tudo) + ConfirmDeleteDialog já
+  // usados em Definições — devolve a app ao ecrã de activação.
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [removingLicense, setRemovingLicense] = useState(false);
+
+  const handleChangeLicense = async () => {
+    setRemovingLicense(true);
+    try {
+      await removeLicense();
+      window.location.reload();
+    } finally {
+      setRemovingLicense(false);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -285,7 +308,26 @@ export default function LoginPage() {
         <p className="text-center text-xs mt-5" style={{ color: 'var(--ui-t35)' }}>
           {t('navigation:app.tagline')}
         </p>
+
+        <button
+          type="button"
+          onClick={() => setShowRemoveConfirm(true)}
+          className="block mx-auto mt-3 text-xs underline underline-offset-2 transition-colors"
+          style={{ color: 'var(--ui-t35)' }}
+        >
+          Licença errada? Trocar licença
+        </button>
       </div>
+
+      <ConfirmDeleteDialog
+        open={showRemoveConfirm}
+        onOpenChange={setShowRemoveConfirm}
+        onConfirm={handleChangeLicense}
+        title="Trocar licença"
+        description="Isto remove a licença activada neste computador e volta ao ecrã de activação."
+        warning="Qualquer sessão iniciada é terminada. Vais precisar de uma licença válida para voltar a usar o sistema."
+        isLoading={removingLicense}
+      />
     </div>
   );
 }
