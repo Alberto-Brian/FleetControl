@@ -200,7 +200,7 @@ export const ptHelp = {
           'Número de ordem de trabalho (opcional)',
         ]},
         { type: 'warning', text: 'Quando um veículo entra em manutenção, o seu estado muda automaticamente. Marca a manutenção como concluída quando os trabalhos terminarem para restituir o veículo ao serviço.' },
-        { type: 'tip', text: 'Define a quilometragem da próxima manutenção ao criar ou concluir um registo. O sistema avisa-te automaticamente no topo da página quando o veículo se aproximar desse valor. Configura o limiar de aviso em Definições › Operações.' },
+        { type: 'tip', text: 'Define a quilometragem da próxima manutenção ao criar ou concluir um registo. O sistema avisa-te automaticamente no topo da página quando o veículo se aproximar desse valor.' },
       ],
     },
 
@@ -302,9 +302,8 @@ export const ptHelp = {
     {
       id: 'tracking',
       title: 'Rastreamento GPS',
-      connectedOnly: true,
       content: [
-        { type: 'text', text: 'O módulo de rastreamento GPS (disponível apenas no modo conectado) permite monitorar em tempo real a posição de todos os veículos equipados com dispositivo GPS via servidor Traccar.' },
+        { type: 'text', text: 'O módulo de rastreamento GPS permite monitorar em tempo real a posição de todos os veículos equipados com dispositivo GPS via servidor Traccar.' },
         { type: 'list', items: [
           'Mapa em tempo real com posição de todos os dispositivos',
           'Velocidade, rumo e última actualização de cada veículo',
@@ -335,7 +334,6 @@ export const ptHelp = {
     {
       id: 'notifications',
       title: 'Notificações GPS',
-      connectedOnly: true,
       content: [
         { type: 'text', text: 'O FleetControl usa dois tipos de notificação para alertas GPS:' },
         { type: 'list', items: [
@@ -435,11 +433,12 @@ export const ptHelp = {
       content: [
         { type: 'text', text: 'O FleetControl é activado através de uma chave de licença fornecida pela AKM Systems (começa por LK-), ligada à Organization do cliente — servidor, rastreamento GPS em tempo real e multi-utilizador.' },
         { type: 'steps', steps: [
-          'Vai a Definições › Licença',
-          'Introduz a chave de licença fornecida',
-          'Clica em "Activar"',
-          'O sistema fica operacional no modo correspondente ao tipo de licença',
+          'No primeiro arranque (ou em Definições › Licença › "Reactivar")',
+          'Cola o código curto fornecido pela AKM Systems, no formato LK-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX',
+          'Clica em "Activar Sistema"',
+          'O sistema fica operacional de imediato',
         ]},
+        { type: 'tip', text: 'Se em vez do código curto recebeste um ficheiro de licença (.txt) com uma linha que começa por "FULL:", clica em "Tenho uma chave completa (avançado)" no ecrã de activação para colar essa chave longa em alternativa.' },
         { type: 'warning', text: 'Guarda a tua chave de licença em local seguro. Em caso de perda, contacta a AKM Systems para assistência.' },
         { type: 'tip', text: 'A chave conectada (LK-) está vinculada à tua organização no servidor. Podes usar a mesma chave para activar o FleetControl noutro computador.' },
         { type: 'text', text: 'Modo conectado sem ligação à Internet:' },
@@ -467,12 +466,12 @@ export const ptHelp = {
             ['Vistas', 'Painéis de análise por secção (on/off) e posição (vertical/horizontal)'],
             ['Empresa', 'Nome, logótipo, NIF, telefone, email, morada e moeda da empresa'],
             ['Relatórios PDF', 'Cabeçalho, cores, marca de água, gráficos, formato e orientação dos PDFs exportados'],
-            ['Alertas GPS', 'Que eventos GPS geram alertas e cooldown entre notificações do mesmo tipo'],
-            ['Alertas', 'Limiares de quilometragem e dias para alertas de manutenção, licença e seguro'],
+            ['Alertas GPS', 'Que eventos GPS (geofencing, velocidade, ignição) geram alertas e cooldown entre notificações do mesmo tipo'],
             ['Cópias de Segurança', 'Localização e frequência das cópias automáticas da base de dados'],
             ['Bases de Dados', 'Listar e activar bases de dados históricas para consulta'],
-            ['Servidor', 'Configurações de ligação ao servidor FleetControl (modo conectado)'],
-            ['Licença', 'Informação sobre a licença activa, modo de operação e expiração'],
+            ['Servidor', 'Configurações de ligação à API do FleetControl'],
+            ['Sincronização', 'Estado da sincronização automática (PowerSync) e som/notificações de sincronização'],
+            ['Licença', 'Informação sobre a licença activa, utilizadores/sessões (seats) e expiração'],
             ['Sobre', 'Versão da aplicação e informações técnicas'],
           ],
         },

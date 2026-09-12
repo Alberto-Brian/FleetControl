@@ -200,7 +200,7 @@ export const enHelp = {
           'Work order number (optional)',
         ]},
         { type: 'warning', text: 'When a vehicle enters maintenance, its status changes automatically. Mark maintenance as completed when work is finished to return the vehicle to service.' },
-        { type: 'tip', text: 'Set the next maintenance mileage when creating or completing a record. The system will automatically alert you at the top of the page when the vehicle approaches that value. Configure the warning threshold under Settings › Operations.' },
+        { type: 'tip', text: 'Set the next maintenance mileage when creating or completing a record. The system will automatically alert you at the top of the page when the vehicle approaches that value.' },
       ],
     },
 
@@ -302,9 +302,8 @@ export const enHelp = {
     {
       id: 'tracking',
       title: 'GPS Tracking',
-      connectedOnly: true,
       content: [
-        { type: 'text', text: 'The GPS tracking module (available only in connected mode) allows real-time monitoring of the position of all GPS-equipped vehicles via the Traccar server.' },
+        { type: 'text', text: 'The GPS tracking module allows real-time monitoring of the position of all GPS-equipped vehicles via the Traccar server.' },
         { type: 'list', items: [
           'Real-time map with position of all devices',
           'Speed, heading and last update for each vehicle',
@@ -335,7 +334,6 @@ export const enHelp = {
     {
       id: 'notifications',
       title: 'GPS Notifications',
-      connectedOnly: true,
       content: [
         { type: 'text', text: 'FleetControl uses two types of notification for GPS alerts:' },
         { type: 'list', items: [
@@ -435,11 +433,12 @@ export const enHelp = {
       content: [
         { type: 'text', text: 'FleetControl is activated with a license key provided by AKM Systems (starts with LK-), linked to the customer\'s Organization — server, real-time GPS tracking, and multi-user support.' },
         { type: 'steps', steps: [
-          'Go to Settings › License',
-          'Enter the provided license key',
-          'Click "Activate"',
-          'The system becomes operational in the mode corresponding to the license type',
+          'On first launch (or under Settings › License › "Reactivate")',
+          'Paste the short code provided by AKM Systems, in the format LK-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX',
+          'Click "Activate System"',
+          'The system becomes operational immediately',
         ]},
+        { type: 'tip', text: 'If you received a license file (.txt) with a "FULL:" line instead of a short code, click "I have a full key (advanced)" on the activation screen to paste that long key instead.' },
         { type: 'warning', text: 'Keep your license key in a safe place. If lost, contact AKM Systems for assistance.' },
         { type: 'tip', text: 'The connected key (LK-) is linked to your organisation on the server. You can use the same key to activate FleetControl on another computer.' },
         { type: 'text', text: 'Connected mode without an Internet connection:' },
@@ -467,12 +466,12 @@ export const enHelp = {
             ['Views', 'Analytics panels per section (on/off) and layout position (vertical/horizontal)'],
             ['Company', 'Company name, logo, NIF, phone, email, address and currency'],
             ['PDF Reports', 'Header, colours, watermark, charts, format and orientation of exported PDFs'],
-            ['GPS Alerts', 'Which GPS events generate alerts and cooldown between notifications of the same type'],
-            ['Alerts', 'Mileage and day thresholds for maintenance, license and insurance alerts'],
+            ['GPS Alerts', 'Which GPS events (geofencing, speed, ignition) generate alerts and cooldown between notifications of the same type'],
             ['Backups', 'Location and frequency of automatic database backups'],
             ['Databases', 'List and activate historical databases for browsing'],
-            ['Server', 'Connection settings to the FleetControl server (connected mode)'],
-            ['License', 'Information about the active license, operating mode and expiry'],
+            ['Server', 'Connection settings to the FleetControl API'],
+            ['Sync', 'Automatic sync (PowerSync) status and sync sound/notifications'],
+            ['License', 'Information about the active license, users/sessions (seats) and expiry'],
             ['About', 'Application version and technical information'],
           ],
         },
