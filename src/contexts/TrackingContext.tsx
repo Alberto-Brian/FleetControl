@@ -9,6 +9,7 @@ import type { AlertSettings } from '@/helpers/notifications';
 import { getAllVehicles } from '@/helpers/vehicle-helpers';
 import { getTrackedDevices } from '@/helpers/tracking-helpers';
 import { reconcileVehicleImeis, type ReconciliationResult } from '@/lib/utils/imei-reconciliation';
+import { SESSION_TOKEN_READY_EVENT } from '@/helpers/license-helpers';
 
 export interface LocalGeofence {
   id:           number; // traccarId
@@ -302,8 +303,9 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.devices, isConnected]);
 
-  // Load geofences on mount
-  useEffect(() => {
+  // Load geofences on mount — nomeado (useCallback) para poder ser partilhado
+  // com o listener de SESSION_TOKEN_READY_EVENT logo abaixo.
+  const loadGeofences = useCallback(() => {
     window._tracking.getGeofences().then((raw: any[]) => {
       const geofences: LocalGeofence[] = raw.map(g => ({
         id:          g.traccar_id ?? g.traccarId ?? g.id,
@@ -315,6 +317,26 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'GEOFENCES_LOADED', payload: geofences });
     }).catch(console.error);
   }, []);
+
+  useEffect(() => { loadGeofences(); }, [loadGeofences]);
+
+  // Achado real (2026-09-12): "às vezes dá 'Sem token de autenticação' mesmo
+  // com a licença activa" — reloadActiveImeis()/getTrackedDevices() acima e
+  // loadGeofences() corriam uma única vez ao montar, sem nenhuma noção de
+  // que o token ainda podia não estar disponível nesse exacto milissegundo
+  // (login/reactivação em segundo plano ainda em curso) — mesma janela já
+  // corrigida para o socket de tracking em LicenseGuard.tsx via
+  // SESSION_TOKEN_READY_EVENT, mas nunca aplicada aqui. Reexecuta as duas
+  // cargas sempre que um token fica disponível — no-op barato se já tinham
+  // corrido com sucesso.
+  useEffect(() => {
+    function handleTokenReady() {
+      reloadActiveImeis();
+      loadGeofences();
+    }
+    window.addEventListener(SESSION_TOKEN_READY_EVENT, handleTokenReady);
+    return () => window.removeEventListener(SESSION_TOKEN_READY_EVENT, handleTokenReady);
+  }, [reloadActiveImeis, loadGeofences]);
 
   // Named loader so it can be shared between the isConnected effect and the custom event listener
   const loadAlertSettings = useCallback(() => {

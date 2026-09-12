@@ -21,6 +21,7 @@ import { GeofenceFormModal }        from '@/components/tracking/GeofenceFormModa
 import { TraccarDevicesPanel }      from '@/components/tracking/TraccarDevicesPanel';
 import { AlertTriangle, Loader2, X } from 'lucide-react';
 import { useMapSettings }           from '@/hooks/useMapSettings';
+import { SESSION_TOKEN_READY_EVENT } from '@/helpers/license-helpers';
 
 interface TrackingPageContentProps {
   showControls?: boolean;
@@ -48,6 +49,19 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
   useEffect(() => { loadInitial(); }, []);
   // Recarrega dados após reconexão Socket.IO (reconnectCount começa em 0, skip no mount)
   useEffect(() => { if (reconnectCount > 0) loadInitial(); }, [reconnectCount]);
+
+  // Achado real (2026-09-12): "às vezes dá 'Sem token de autenticação' mesmo
+  // com a licença activa" — o loadInitial() acima corre uma única vez ao
+  // montar, sem nenhuma noção de que o token ainda podia não estar
+  // disponível nesse exacto milissegundo (login/reactivação em segundo
+  // plano ainda em curso) — mesma janela já corrigida para o socket de
+  // tracking em LicenseGuard.tsx via SESSION_TOKEN_READY_EVENT, mas nunca
+  // aplicada aqui. Recarrega sempre que um token fica disponível — no-op
+  // barato se já tinha carregado com sucesso.
+  useEffect(() => {
+    window.addEventListener(SESSION_TOKEN_READY_EVENT, loadInitial);
+    return () => window.removeEventListener(SESSION_TOKEN_READY_EVENT, loadInitial);
+  }, []);
 
   // Ao carregar as primeiras posições, encaixa todos no ecrã (uma vez)
   useEffect(() => {
