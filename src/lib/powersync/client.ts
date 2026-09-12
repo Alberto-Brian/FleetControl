@@ -146,7 +146,10 @@ function mapStatus(s: PowerSyncDatabaseType['currentStatus']): IPowerSyncStatusS
 // vehicle_documents/maintenance_items/scheduled_trips), o que escondia
 // exactamente os dados que este ecrã de diagnóstico mais precisa de
 // mostrar ao investigar "sobe para o Neon mas não aparece no Desktop".
-const SYNCED_TABLES = [
+// Exportada (Fase 6+) — reutilizada em powersync-service-listeners.ts para o
+// broadcast forçado pós-connect() (ver ensurePushSubscriptions), evitando
+// uma segunda lista hardcoded que poderia divergir desta.
+export const SYNCED_TABLES = [
   'vehicles', 'drivers', 'trips', 'fuel', 'maintenance', 'expenses', 'categories',
   'routes', 'workshops', 'fuel_stations', 'maintenance_categories',
   'fines', 'vehicle_documents', 'maintenance_items', 'scheduled_trips',

@@ -355,7 +355,7 @@ export function TrackingMap({
                   <strong>Início</strong>
                   {historyPositions.find(p => p.deviceId === deviceId && p.latitude === start[0]) && (
                     <p style={{ color: '#888', marginTop: 4 }}>
-                      {new Date(historyPositions.find(p => p.deviceId === deviceId)!.fixTime).toLocaleString('pt-PT')}
+                      {new Date(historyPositions.find(p => p.deviceId === deviceId)!.timestamp).toLocaleString('pt-PT')}
                     </p>
                   )}
                 </div>
@@ -367,7 +367,7 @@ export function TrackingMap({
                   <strong>Fim</strong>
                   {historyPositions.filter(p => p.deviceId === deviceId).at(-1) && (
                     <p style={{ color: '#888', marginTop: 4 }}>
-                      {new Date(historyPositions.filter(p => p.deviceId === deviceId).at(-1)!.fixTime).toLocaleString('pt-PT')}
+                      {new Date(historyPositions.filter(p => p.deviceId === deviceId).at(-1)!.timestamp).toLocaleString('pt-PT')}
                     </p>
                   )}
                 </div>

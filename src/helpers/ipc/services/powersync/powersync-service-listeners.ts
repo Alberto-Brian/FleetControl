@@ -16,6 +16,7 @@ import {
   getPowerSyncSnapshot,
   subscribeToStatusChanges,
   subscribeToDataChanges,
+  SYNCED_TABLES,
 } from '@/lib/powersync/client';
 
 function broadcast(channel: string, payload: unknown) {
@@ -40,6 +41,24 @@ export function addServicePowerSyncEventListeners() {
   ipcMain.handle(POWERSYNC_CONNECT, async () => {
     await connectPowerSync();
     await ensurePushSubscriptions();
+
+    // Achado real (2026-09-11): "às vezes ao entrar os dados não aparecem,
+    // só saindo e voltando a entrar" — usePowerSyncDataChanged.ts só começa
+    // a ouvir (ipcRenderer.on) quando o componente da página MONTA
+    // (powersync-service-context.ts:onDataChanged). Electron não guarda
+    // mensagens para um listener que ainda não existia — qualquer
+    // POWERSYNC_DATA_CHANGED_PUSH disparado por subscribeToDataChanges()
+    // entre este connect() e a página ainda a montar (ex. dados já
+    // sincronizados de uma sessão anterior a ficarem "visíveis" para o SDK
+    // quase de imediato, mais rápido que o React montar a página) perde-se
+    // para sempre — a página fica com o resultado vazio da sua consulta
+    // inicial e nunca mais é avisada. Um novo login força um novo mount, que
+    // volta a consultar do zero e já encontra os dados — daí "resolver-se"
+    // ao sair e entrar. Corrigido com um broadcast forçado, incondicional,
+    // logo a seguir ao connect() — fecha a janela de corrida
+    // independentemente do timing exacto, sem depender de nenhuma página já
+    // estar a ouvir a tempo.
+    broadcast(POWERSYNC_DATA_CHANGED_PUSH, [...SYNCED_TABLES]);
   });
 
   ipcMain.handle(POWERSYNC_DISCONNECT_AND_CLEAR, async () => {

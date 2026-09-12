@@ -57,9 +57,24 @@ import {
 import { ICreateVehicle, IUpdateStatus, IUpdateVehicle } from '@/lib/types/vehicle';
 import { ConflictError, NotFoundError, WarningError } from "@/lib/errors/AppError";
 import { vehicleStatus } from "@/lib/db/schemas/vehicles";
+import { getApiUrl } from "@/helpers/server-config";
 import { getStoredApiToken } from "@/helpers/ipc/services/auth/token-store";
 
-const API_URL = process.env.API_URL || 'http://localhost:3001';
+// Achado real (2026-09-10): isto era `const API_URL = process.env.API_URL ||
+// 'http://localhost:3001'` — uma variável de ambiente do Node que nunca está
+// definida (não é o mesmo mecanismo do Server URL configurável em
+// Definições), por isso caía sempre para localhost, ignorando por completo
+// o servidor real configurado pelo utilizador. Register/unregister-gps,
+// toggle-tracking e o polling de waitForVehicleOnBackend nunca falavam com
+// a VPS — falhavam sempre por rede contra um localhost sem nada a
+// escutar, silenciosamente tolerado como "transitório" pelo fix anterior
+// desta mesma função, até esgotar em "vehicleNotYetSynced". Corrigido para
+// ler sempre o valor actual configurado (getApiUrl(), server-config.ts —
+// mesma fonte de verdade já usada em license-helpers.ts/useApiConnection.ts),
+// nunca cacheado ao carregar o módulo.
+function apiUrl(): string {
+  return getApiUrl();
+}
 
 function apiHeaders() {
   const token = getStoredApiToken();
@@ -108,7 +123,7 @@ export function addVehiclesEventListeners() {
     // quando o TrackingContext detectar reconexão.
     try {
       const headers = apiHeaders(); // lança se ainda não há sessão API — não enfileirar
-      axios.post(`${API_URL}/api/vehicles/${vehicleId}/unregister-gps`, {}, { headers, timeout: 10_000 })
+      axios.post(`${apiUrl()}/api/vehicles/${vehicleId}/unregister-gps`, {}, { headers, timeout: 10_000 })
         .catch((err: any) => {
           if (!err.response) enqueue('post', `/api/vehicles/${vehicleId}/unregister-gps`, {});
           else console.warn('[vehicles] unregister-gps falhou:', err.response.status);
@@ -130,7 +145,7 @@ export function addVehiclesEventListeners() {
     // Sync API em fire-and-forget com retry automático em caso de offline.
     try {
       const headers = apiHeaders();
-      axios.patch(`${API_URL}/api/vehicles/${vehicleId}/tracking`, { tracking_enabled: enabled }, { headers, timeout: 8_000 })
+      axios.patch(`${apiUrl()}/api/vehicles/${vehicleId}/tracking`, { tracking_enabled: enabled }, { headers, timeout: 8_000 })
         .catch((err: any) => {
           if (!err.response) enqueue('patch', `/api/vehicles/${vehicleId}/tracking`, { tracking_enabled: enabled });
           else console.warn('[vehicles] toggle-tracking falhou:', err.response.status);
@@ -300,10 +315,18 @@ async function waitForVehicleOnBackend(vehicleId: string, headers: Record<string
 
   while (Date.now() < deadline) {
     try {
-      await axios.get(`${API_URL}/api/vehicles/${vehicleId}`, { headers, timeout: 5_000 });
+      await axios.get(`${apiUrl()}/api/vehicles/${vehicleId}`, { headers, timeout: 5_000 });
       return true;
     } catch (err: any) {
-      if (err?.response?.status !== 404) throw err; // erro real (não "ainda não existe") propaga-se já
+      // Achado real (2026-09-10): sem `err.response` (falha de rede/timeout —
+      // sem resposta nenhuma do servidor, ex. AggregateError do axios/undici),
+      // `err?.response?.status` era `undefined`, sempre `!== 404`, e a
+      // condição original lançava logo na 1ª tentativa — o oposto do que
+      // esta função existe para fazer (tolerar condições transitórias
+      // enquanto o veículo ainda não aterrou no servidor). Só um erro HTTP
+      // real do servidor, diferente de 404, deve propagar-se já; sem
+      // resposta nenhuma é tratado como transitório, igual a 404.
+      if (err?.response && err.response.status !== 404) throw err;
     }
     await new Promise(resolve => setTimeout(resolve, INTERVAL_MS));
   }
@@ -327,7 +350,7 @@ async function registerGpsOnVehicleEvent(vehicleId: string, imei: string) {
   }
 
   try {
-    await axios.post(`${API_URL}/api/vehicles/${vehicleId}/register-gps`, {
+    await axios.post(`${apiUrl()}/api/vehicles/${vehicleId}/register-gps`, {
       traccar_unique_id: imei.trim(),
     }, {
       headers,
