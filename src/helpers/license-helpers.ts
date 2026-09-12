@@ -592,7 +592,27 @@ async function tryRefreshOrReactivate(): Promise<void> {
       // precisasse dela offline. Só um 4xx é uma decisão de negócio real
       // sobre esta sessão (REFRESH_EXPIRED/SESSION_REVOKED/etc.); um 5xx
       // vale como "sem ligação", tal como a ausência de resposta.
-      if (axiosErr.response && axiosErr.response.status < 500) {
+      //
+      // Achado real (2026-09-12): "ao voltar a ficar online, fica preso em
+      // 'Sem sessão activa no servidor' em vez de reconectar" — QUALQUER 4xx
+      // (não só REFRESH_EXPIRED/SESSION_REVOKED) caía neste ramo e apagava a
+      // sessão de vez, sem agendar retry nenhum. `authRateLimit.ts` devolve
+      // 429 (<500) em rajadas de pedidos — e o listener 'online' (mais
+      // abaixo) não tinha guarda contra chamadas concorrentes: o evento
+      // 'online' do Electron/Chromium é conhecido por disparar em rajada ao
+      // reconectar, cada disparo chamando tryRefreshOrReactivate() em
+      // paralelo, plausivelmente rebentando o rate limit. Um 429 (ou
+      // qualquer 4xx que não seja mesmo uma recusa da SESSÃO) nunca deveria
+      // apagar tokens válidos — só os dois códigos que a API emite para uma
+      // recusa deliberada desta sessão específica contam como revogação
+      // real; qualquer outro 4xx (429, ou um futuro código não prometido
+      // pelo contrato) cai para o mesmo tratamento "sem ligação"/transitório
+      // do 5xx logo abaixo, com retry agendado.
+      const code = axiosErr.response?.data?.code;
+      const isDeliberateRevocation =
+        axiosErr.response && (code === 'REFRESH_EXPIRED' || code === 'SESSION_REVOKED');
+
+      if (isDeliberateRevocation) {
         // Fase 11B.11 (estado 6 — "sessão revogada remotamente") — o
         // servidor RESPONDEU e recusou explicitamente esta sessão; não é
         // falta de ligação. Nunca cair para activateOnApi() aqui: isso
@@ -600,7 +620,6 @@ async function tryRefreshOrReactivate(): Promise<void> {
         // recusa real com uma identidade diferente — exactamente o
         // problema que as Fases 11B.8-11B.10 eliminaram. Limpa tudo (tokens
         // + cache) e força um login explícito.
-        const code = axiosErr.response.data?.code;
         await clearApiSession();
 
         if (code === 'REFRESH_EXPIRED') {
@@ -608,14 +627,9 @@ async function tryRefreshOrReactivate(): Promise<void> {
             description: i18n.t('auth:session.toast.expiredDescription'),
             duration: 10000,
           });
-        } else if (code === 'SESSION_REVOKED') {
+        } else {
           toast.error(i18n.t('auth:session.toast.revokedTitle'), {
             description: i18n.t('auth:session.toast.revokedDescription'),
-            duration: 10000,
-          });
-        } else {
-          toast.error(i18n.t('auth:session.toast.invalidTitle'), {
-            description: i18n.t('auth:session.toast.invalidDescription'),
             duration: 10000,
           });
         }
@@ -624,14 +638,16 @@ async function tryRefreshOrReactivate(): Promise<void> {
         return;
       }
 
-      // Sem resposta, ou resposta com 5xx — genuinamente sem ligação (ou o
-      // servidor a falhar por não conseguir alcançar a sua própria BD), não
-      // uma recusa. Mantém os tokens/cache actuais (continuam válidos
-      // localmente) e tenta a reactivação por licença como último recurso —
-      // falha silenciosamente se também não houver ligação (activateOnApi
-      // já trata isso). Reagenda mais abaixo mesmo que este fallback também
+      // Sem resposta, resposta com 5xx, ou um 4xx que não é mesmo uma
+      // recusa desta sessão (ex. 429 do rate limit) — genuinamente sem
+      // ligação, o servidor a falhar por não conseguir alcançar a sua
+      // própria BD, ou um blip transitório, nunca uma recusa deliberada.
+      // Mantém os tokens/cache actuais (continuam válidos localmente) e
+      // tenta a reactivação por licença como último recurso — falha
+      // silenciosamente se também não houver ligação (activateOnApi já
+      // trata isso). Reagenda mais abaixo mesmo que este fallback também
       // falhe — ver comentário no topo da função.
-      console.warn('[License] Refresh falhou (sem ligação):', err);
+      console.warn('[License] Refresh falhou (sem ligação/transitório):', err);
       retryOnFailure = true;
     }
   }
@@ -669,9 +685,22 @@ function scheduleRetryAfterFailure(): void {
 // scheduleRefresh (até ~7h55 de distância) ou na próxima acção explícita do
 // utilizador. Seguro chamar sempre: sem _refreshToken e sem licença guardada,
 // tryRefreshOrReactivate() já é um no-op.
+//
+// Achado real (2026-09-12): o evento 'online' do Electron/Chromium é
+// conhecido por disparar em rajada (vários eventos seguidos) ao reconectar
+// — sem guarda nenhuma, cada disparo chamava tryRefreshOrReactivate() em
+// paralelo, aumentando as hipóteses de rebentar o rate limit de
+// `/api/auth/refresh` (429) logo nos primeiros segundos de ligação
+// recuperada. `_reconnectRefreshInFlight` garante uma única tentativa de
+// cada vez — um disparo a meio de outro é ignorado, não enfileirado (o
+// próximo disparo real do 'online', ou o retry de 60s já existente,
+// cobre o caso de a tentativa em curso falhar).
+let _reconnectRefreshInFlight = false;
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
-    void tryRefreshOrReactivate();
+    if (_reconnectRefreshInFlight) return;
+    _reconnectRefreshInFlight = true;
+    void tryRefreshOrReactivate().finally(() => { _reconnectRefreshInFlight = false; });
   });
 }
 
