@@ -121,7 +121,7 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Props
                       <h3 className="text-xl font-bold mb-1">Activação de Licença</h3>
                       <p className="text-sm text-muted-foreground">
                         {advancedMode
-                          ? 'Cole a chave completa do ficheiro enviado pela TechSoft'
+                          ? 'Cole a chave completa do ficheiro enviado pela AKM Systems'
                           : 'Insere o código de licença da tua organização'}
                       </p>
                     </div>
@@ -133,7 +133,7 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Props
                           <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                           <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
                             <p className="font-medium">Onde encontrar o código?</p>
-                            <p>Foi-te enviado um código curto pela TechSoft — cola-o exactamente como recebeste, no formato <span className="font-mono font-bold">LK-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX</span>.</p>
+                            <p>Foi-te enviado um código curto pela AKM Systems — cola-o exactamente como recebeste, no formato <span className="font-mono font-bold">LK-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX</span>.</p>
                           </div>
                         </div>
 
@@ -254,10 +254,10 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Props
                     </div>
                     <div className="space-y-3">
                       {[
-                        { icon: Mail,  label: 'Email',    value: 'suporte.techsoft@gmail.com' },
-                        { icon: Phone, label: 'WhatsApp', value: '+244 932 047 303'           },
-                        { icon: Globe, label: 'Website',  value: 'www.techsoft.ao'            },
-                        { icon: MapPin,label: 'Morada',   value: 'Ingombota, Luanda'          },
+                        { icon: Mail,  label: 'Email',    value: 'albertobrian16@gmail.com' },
+                        { icon: Phone, label: 'WhatsApp', value: '+244 932 047 303'         },
+                        { icon: Globe, label: 'Website',  value: 'akmsystems.ao'            },
+                        { icon: MapPin,label: 'Morada',   value: 'Ingombota, Luanda'        },
                       ].map(({ icon: Icon, label, value }) => (
                         <div key={label} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50">
                           <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
@@ -271,7 +271,7 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Props
                       ))}
                     </div>
                     <div className="pt-4 border-t border-border text-center">
-                      <p className="text-xs text-muted-foreground">© 2025 TechSoft Solutions</p>
+                      <p className="text-xs text-muted-foreground">© 2025–2026 AKM Systems</p>
                     </div>
                   </div>
                 )}

@@ -135,25 +135,54 @@ function decodeJwtExpiry(token: string): number | null {
   }
 }
 
-// ── Activações de desktop ─────────────────────────────────────────────────────
+// ── Seats (utilizadores concorrentes, Fase 11B.3/11B.6) ─────────────────────
+// Achado real (2026-09-12): a secção "Desktops activos" (SettingsDialog)
+// usava getActivations()/revokeActivation() — desktop_activations, o modelo
+// ANTIGO por máquina — para mostrar "X/Y desktop(s) em uso" e revogar por
+// password. Desde a Fase 11B.7, machine_id é só metadado operacional/
+// histórico, NUNCA gate de seat; os seats reais são por UTILIZADOR
+// CONCORRENTE (Fase 11B.3), consultáveis em GET /api/licenses/seats. Essas
+// duas funções (e o tipo DesktopActivation) foram removidas — confirmado
+// sem outros chamadores — substituídas pelas duas abaixo.
 
-export interface DesktopActivation {
-  id:             string;
-  machine_id:     string;
-  activated_at:   string;
-  last_active_at: string;
+export interface ILicenseSeatSession {
+  id:               string;
+  clientType:       string;
+  clientIdentifier: string | null;
+  createdAt:        string;
+  lastSeenAt:       string;
 }
 
-export async function getActivations(): Promise<DesktopActivation[]> {
-  const { data } = await apiClient.get('/api/activations', { headers: authHeaders() });
-  return data.data as DesktopActivation[];
+export interface ILicenseSeatUser {
+  userId:   string;
+  name:     string;
+  email:    string;
+  sessions: ILicenseSeatSession[];
 }
 
-export async function revokeActivation(machineId: string, password: string): Promise<void> {
-  await apiClient.delete(`/api/activations/${machineId}`, {
-    headers: authHeaders(),
-    data: { password },
-  });
+export interface ILicenseSeats {
+  used:  number;
+  max:   number;
+  users: ILicenseSeatUser[];
+}
+
+// GET /api/licenses/seats exige a permission `session:read` (org-only, só o
+// Administrador tem por omissão no catálogo — Fase 11B.6) — um utilizador
+// sem essa permission recebe 403, e quem chama esta função deve tratar
+// isso como "não mostrar a secção", nunca como um erro a expor. É assim
+// que "só utilizadores permitidos podem ver esta informação" é garantido:
+// o backend é a única autoridade (mesmo princípio já aplicado em toda a
+// autorização deste projecto), nunca uma verificação feita aqui no cliente.
+export async function getLicenseSeats(): Promise<ILicenseSeats> {
+  const { data } = await apiClient.get('/api/licenses/seats', { headers: authHeaders() });
+  return data.data as ILicenseSeats;
+}
+
+// DELETE /api/sessions/:id exige `session:revoke` (Alto risco no catálogo,
+// só o Administrador por omissão) — mesma disciplina: o backend decide,
+// esta função só propaga o 403 se o chamador não tiver a permission.
+export async function revokeSession(sessionId: string): Promise<void> {
+  await apiClient.delete(`/api/sessions/${sessionId}`, { headers: authHeaders() });
 }
 
 // ── Validação e activação ─────────────────────────────────────────────────────

@@ -19,7 +19,7 @@ import {
   Clock, Loader2, CheckCircle, XCircle, Camera, Trash2, Save,
   Building, Hash, AtSign, ImageIcon, FileText, Bell, Car,
   Fuel, Sliders, RotateCcw, Eye, EyeOff, Droplets, Filter,
-  Key, ShieldCheck, RefreshCw, PanelLeft, Maximize2, Server, WifiOff, Wifi,
+  Key, ShieldCheck, RefreshCw, PanelLeft, Maximize2, Server, WifiOff, Wifi, User,
   Database, Search, BarChart, Moon, Sun, LayoutList, Bookmark,
   Lock, LockOpen, ShieldAlert, RotateCw,
 } from 'lucide-react';
@@ -38,7 +38,7 @@ import { exportBackup, restoreBackup, restoreFromAutoBackup, getBackupConfig, up
 import { getSystemVersion, listDatabases, getDatabaseStats, deleteDatabase, listBackupDatabases } from '@/helpers/system-helpers';
 import { getCompanySettings, updateCompanySettings, uploadCompanyLogo, removeCompanyLogo } from '@/helpers/company-helpers';
 import { getSystemSettings, updateSystemSettings, resetSystemSettings }                    from '@/helpers/system-settings-helpers';
-import { removeLicense, getActivations, revokeActivation, getMachineId, type DesktopActivation } from '@/helpers/license-helpers';
+import { removeLicense, getLicenseSeats, revokeSession, type ILicenseSeats } from '@/helpers/license-helpers';
 import { requestNotificationPermission, isAlertSoundEnabled, setAlertSoundEnabled, playAlertSound } from '@/helpers/notifications';
 import {
   isSyncSoundEnabled, setSyncSoundEnabled, playSyncSound,
@@ -48,6 +48,7 @@ import {
 import PowerSyncStatusPage                        from '@/pages/PowerSyncStatusPage';
 import { useLicense }                             from '@/hooks/useLicense';
 import { LicenseActivationDialog }                from '@/components/LicenseActivationDialog';
+import ConfirmDeleteDialog                        from '@/components/ConfirmDeleteDialog';
 import { useHistoricalDb }                        from '@/contexts/HistoricalDbContext';
 
 import { ICompanySettings, IUpdateCompanySettings }           from '@/lib/types/company';
@@ -643,17 +644,21 @@ function LicenseTab() {
   const { license, loading, refreshLicense } = useLicense();
   const [showActivation, setShowActivation]  = useState(false);
   const [removing, setRemoving]              = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
-  // Activações de desktop
-  const [activations, setActivations]        = useState<DesktopActivation[]>([]);
-  const [activationsLoading, setActivationsLoading] = useState(false);
-  const thisMachineId                        = getMachineId();
+  // Seats (utilizadores concorrentes) — Fase 11B.3/11B.6. seatsForbidden
+  // fica true num 403 (sem permission session:read) — nesse caso a secção
+  // inteira não é mostrada, nunca um erro; é assim que "só utilizadores
+  // permitidos podem ver isto" é garantido, pelo backend, não aqui.
+  const [seats, setSeats]                    = useState<ILicenseSeats | null>(null);
+  const [seatsLoading, setSeatsLoading]       = useState(false);
+  const [seatsForbidden, setSeatsForbidden]   = useState(false);
 
-  // Modal de revogação por admin
-  const [revokeTarget, setRevokeTarget]      = useState<string | null>(null);
-  const [revokePassword, setRevokePassword]  = useState('');
-  const [revokeError, setRevokeError]        = useState('');
-  const [revoking, setRevoking]              = useState(false);
+  // Confirmação de revogação de sessão (ConfirmDeleteDialog, RBAC-gated no
+  // servidor — session:revoke — já não precisa de reconfirmar a própria
+  // password aqui, ao contrário do antigo fluxo por desktop).
+  const [revokeSessionTarget, setRevokeSessionTarget] = useState<{ id: string; label: string } | null>(null);
+  const [revokingSession, setRevokingSession]         = useState(false);
 
   const modeLabel: Record<string, string> = {
     connected:  t('license.modeConnected'),
@@ -668,24 +673,41 @@ function LicenseTab() {
 
   useEffect(() => {
     if (license?.isValid) {
-      loadActivations();
+      loadSeats();
     }
   }, [license?.isValid]);
 
-  async function loadActivations() {
-    setActivationsLoading(true);
+  async function loadSeats() {
+    setSeatsLoading(true);
     try {
-      const list = await getActivations();
-      setActivations(list);
-    } catch {
-      // silencioso — pode estar offline
+      const data = await getLicenseSeats();
+      setSeats(data);
+      setSeatsForbidden(false);
+    } catch (err: any) {
+      if (err?.response?.status === 403) setSeatsForbidden(true);
+      // outros erros (offline, etc.) — silencioso, mesma disciplina do fluxo antigo
     } finally {
-      setActivationsLoading(false);
+      setSeatsLoading(false);
+    }
+  }
+
+  async function handleRevokeSession() {
+    if (!revokeSessionTarget) return;
+    setRevokingSession(true);
+    try {
+      await revokeSession(revokeSessionTarget.id);
+      toast.success('Sessão revogada', { description: 'O seat foi libertado.' });
+      setRevokeSessionTarget(null);
+      await loadSeats();
+    } catch (err: any) {
+      toast.error('Erro ao revogar sessão', { description: err?.response?.data?.message || 'Tenta novamente.' });
+    } finally {
+      setRevokingSession(false);
     }
   }
 
   async function handleRemove() {
-    if (!confirm(t('license.removeConfirm'))) return;
+    setShowRemoveConfirm(false);
     setRemoving(true);
     try {
       await removeLicense();
@@ -699,28 +721,6 @@ function LicenseTab() {
     setShowActivation(false);
     await refreshLicense();
     setTimeout(() => window.location.reload(), 800);
-  }
-
-  async function handleRevokeConfirm() {
-    if (!revokeTarget || !revokePassword) return;
-    setRevoking(true);
-    setRevokeError('');
-    try {
-      await revokeActivation(revokeTarget, revokePassword);
-      toast.success('Activação revogada', { description: 'O desktop foi desactivado e o seat foi libertado.' });
-      setRevokeTarget(null);
-      setRevokePassword('');
-      await loadActivations();
-    } catch (err: any) {
-      const code = err?.response?.data?.code;
-      if (code === 'WRONG_PASSWORD') {
-        setRevokeError('Palavra-passe incorreta.');
-      } else {
-        setRevokeError(err?.response?.data?.message || 'Erro ao revogar activação.');
-      }
-    } finally {
-      setRevoking(false);
-    }
   }
 
   if (loading) {
@@ -786,66 +786,72 @@ function LicenseTab() {
               ))}
           </div>
 
-          {/* Desktops activos */}
-          {(
+          {/* Seats (utilizadores concorrentes) — Fase 11B.3/11B.6. Secção
+              omitida por completo sem a permission session:read
+              (seatsForbidden) — "só utilizadores permitidos podem ver isto"
+              é decidido pelo backend (403), nunca por uma condição aqui. */}
+          {!seatsForbidden && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Desktops activos</p>
-                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" onClick={loadActivations} disabled={activationsLoading}>
-                  {activationsLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Sessões activas</p>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" onClick={loadSeats} disabled={seatsLoading}>
+                  {seatsLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                   Actualizar
                 </Button>
               </div>
 
               <div className="rounded-xl border border-border overflow-hidden">
-                {activationsLoading && activations.length === 0 ? (
+                {seatsLoading && !seats ? (
                   <div className="flex items-center justify-center py-6 text-muted-foreground text-sm gap-2">
                     <Loader2 className="w-4 h-4 animate-spin" /> A carregar...
                   </div>
-                ) : activations.length === 0 ? (
-                  <div className="py-6 text-center text-sm text-muted-foreground">Nenhum desktop activo encontrado</div>
+                ) : !seats || seats.users.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">Nenhum utilizador com sessão activa</div>
                 ) : (
                   <div className="divide-y divide-border">
-                    {activations.map((a) => {
-                      const isSelf = a.machine_id === thisMachineId;
-                      const lastSeen = new Date(a.last_active_at).toLocaleDateString('pt', {
-                        day: '2-digit', month: 'short', year: 'numeric',
-                      });
-                      return (
-                        <div key={a.id} className={cn('flex items-center gap-3 px-4 py-3 text-sm', isSelf && 'bg-primary/5')}>
+                    {seats.users.map((u) => (
+                      <div key={u.userId} className="px-4 py-3 text-sm space-y-2">
+                        <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                            <HardDrive className="w-4 h-4 text-muted-foreground" />
+                            <User className="w-4 h-4 text-muted-foreground" />
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-xs truncate">{a.machine_id.slice(0, 16)}…</span>
-                              {isSelf && (
-                                <span className="shrink-0 text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Esta máquina</span>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-0.5">Último acesso: {lastSeen}</p>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{u.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                           </div>
-                          {!isSelf && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-                              onClick={() => { setRevokeTarget(a.machine_id); setRevokeError(''); setRevokePassword(''); }}
-                            >
-                              Revogar
-                            </Button>
-                          )}
                         </div>
-                      );
-                    })}
+                        <div className="pl-10 space-y-1">
+                          {u.sessions.map((s) => {
+                            const lastSeen = new Date(s.lastSeenAt).toLocaleDateString('pt', {
+                              day: '2-digit', month: 'short', year: 'numeric',
+                            });
+                            return (
+                              <div key={s.id} className="flex items-center justify-between gap-2 text-xs">
+                                <span className="text-muted-foreground">{s.clientType} · último acesso {lastSeen}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-[11px] text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setRevokeSessionTarget({ id: s.id, label: `${u.name} (${s.clientType})` })}
+                                >
+                                  Revogar
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
 
-              <p className="text-xs text-muted-foreground">
-                {activations.length}/{license.maxUsers ?? '?'} desktop(s) em uso.
-                Revoga um para libertar um seat.
-              </p>
+              {seats && (
+                <p className="text-xs text-muted-foreground">
+                  {seats.used}/{seats.max} utilizador(es) concorrente(s) em uso.
+                  Revoga uma sessão para libertar um seat.
+                </p>
+              )}
             </div>
           )}
 
@@ -857,7 +863,7 @@ function LicenseTab() {
                 <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
                 <p className="text-xs text-destructive">{t('license.removeWarning')}</p>
               </div>
-              <Button variant="destructive" size="sm" className="w-full gap-2" onClick={handleRemove} disabled={removing}>
+              <Button variant="destructive" size="sm" className="w-full gap-2" onClick={() => setShowRemoveConfirm(true)} disabled={removing}>
                 {removing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                 {t('license.remove')}
               </Button>
@@ -885,48 +891,32 @@ function LicenseTab() {
         onSuccess={handleActivationSuccess}
       />
 
-      {/* Modal: confirmação de credenciais para revogar outro desktop */}
-      {revokeTarget && (
-        <Dialog open onOpenChange={(o) => { if (!o) { setRevokeTarget(null); setRevokePassword(''); setRevokeError(''); } }}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-base">
-                <AlertCircle className="w-4 h-4 text-destructive" /> Revogar activação
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <p className="text-sm text-muted-foreground">
-                Esta acção desactiva o desktop <span className="font-mono text-foreground">{revokeTarget.slice(0, 16)}…</span> e liberta um seat da licença.
-              </p>
-              <div className="space-y-1.5">
-                <Label className="text-sm">Palavra-passe do administrador</Label>
-                <Input
-                  type="password"
-                  placeholder="Confirma a tua palavra-passe"
-                  value={revokePassword}
-                  onChange={(e) => setRevokePassword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleRevokeConfirm()}
-                  autoFocus
-                />
-                {revokeError && (
-                  <p className="text-xs text-destructive flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" /> {revokeError}
-                  </p>
-                )}
-              </div>
-            </div>
-            <DialogFooter className="gap-2">
-              <Button variant="outline" size="sm" onClick={() => { setRevokeTarget(null); setRevokePassword(''); setRevokeError(''); }}>
-                Cancelar
-              </Button>
-              <Button variant="destructive" size="sm" onClick={handleRevokeConfirm} disabled={revoking || !revokePassword}>
-                {revoking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                Revogar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Achado real (2026-09-12): usava window.confirm() (modal do SO, sem
+          estilo), diferente de todos os outros pontos de confirmação
+          destrutiva da app — trocado pelo mesmo ConfirmDeleteDialog já
+          usado em todo o resto (veículos, motoristas, viagens, etc.). */}
+      <ConfirmDeleteDialog
+        open={showRemoveConfirm}
+        onOpenChange={setShowRemoveConfirm}
+        onConfirm={handleRemove}
+        title={t('license.remove')}
+        description={t('license.removeConfirm')}
+        warning={t('license.removeWarning')}
+        isLoading={removing}
+      />
+
+      {/* Revogar uma sessão — RBAC-gated no servidor (session:revoke), por
+          isso já não precisa de reconfirmar a própria password aqui (ao
+          contrário do antigo fluxo por desktop) — mesmo ConfirmDeleteDialog
+          reutilizado em toda a app. */}
+      <ConfirmDeleteDialog
+        open={!!revokeSessionTarget}
+        onOpenChange={(o) => { if (!o) setRevokeSessionTarget(null); }}
+        onConfirm={handleRevokeSession}
+        title="Revogar sessão"
+        description={revokeSessionTarget ? `Esta acção termina a sessão de ${revokeSessionTarget.label} e liberta um seat da licença.` : undefined}
+        isLoading={revokingSession}
+      />
     </div>
   );
 }

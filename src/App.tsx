@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LicenseProvider } from "./contexts/LicenseContext";
 import { useLicense } from "./hooks/useLicense";
 import { LicenseGuard } from "./components/LicenseGuard";
+import { LicenseActivationDialog } from "./components/LicenseActivationDialog";
 import { TrackingProvider }    from '@/contexts/TrackingContext';
 import { LayoutProvider }      from '@/contexts/LayoutContext';
 import { HistoricalDbProvider } from '@/contexts/HistoricalDbContext';
@@ -31,7 +32,7 @@ initGlassSettings();
 function AppContent() {
     const { i18n } = useTranslation();
     const { isAuthenticated, isLoading, mustChangePassword } = useAuth();
-    const { loading: licenseLoading } = useLicense();
+    const { license, loading: licenseLoading, refreshLicense } = useLicense();
 
     // Inicializar tema e idioma
     useEffect(() => {
@@ -61,6 +62,29 @@ function AppContent() {
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
                     <p className="text-muted-foreground">Carregando...</p>
                 </div>
+            </div>
+        );
+    }
+
+    // Achado real (2026-09-12): sem isto, remover a licença (que agora
+    // também faz logout — ver removeLicense()/SESSION_REVOKED_EVENT em
+    // license-helpers.ts) caía directo no ecrã de LOGIN antes de pedir a
+    // licença nova — sem licença nenhuma, entrar não faz sentido, e
+    // AuthContext.login() "falha aberto" de propósito quando a licença é
+    // desconhecida (deixaria entrar sem confirmar a Organization). A
+    // licença é sempre o primeiro portão, independentemente de haver ou não
+    // uma sessão local — só depois de válida é que o ecrã de login (ou o
+    // resto da app, se já houver sessão) sequer aparece. Mesmo bloco que já
+    // existia dentro de LicenseGuard (só alcançável depois do login) — aqui
+    // cobre também o caso de ainda não haver ninguém autenticado.
+    if (!license?.isValid) {
+        return (
+            <div className="min-h-screen bg-background">
+                <LicenseActivationDialog
+                    open={true}
+                    onOpenChange={() => {}}
+                    onSuccess={() => { void refreshLicense(); }}
+                />
             </div>
         );
     }
