@@ -25,6 +25,7 @@
         "db:check": "node src/scripts/check-migration.js",
         "rebuild": "electron-rebuild -f -w better-sqlite3",
         "build-icons": "electron-icon-builder --input=./images/fleeticon.png --output=./build --flatten",
+        "round-image": "node src/scripts/round-image.js",
         "postinstall": "npm run rebuild",
         "seed": "tsx src/scripts/seed.ts"
     },
