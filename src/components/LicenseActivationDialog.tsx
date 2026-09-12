@@ -22,19 +22,28 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Props
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [version, setVersion] = useState('');
+  // Achado real (2026-09-12): a chave LONGA ("FULL:", colada num textarea)
+  // era o caminho principal deste ecrã, com a chave CURTA (LK-XXXXX-...) só
+  // detectada como um bónus depois de já a teres colado. Mas a partir de
+  // agora toda organização nova recebe a chave curta — passa a ser o modo
+  // por omissão, com a longa só acessível num modo "avançado" à parte,
+  // nunca removida (continua a ser preciso para casos sem ligação/
+  // standalone antigo).
+  const [advancedMode, setAdvancedMode] = useState(false);
   const textareaRef           = useRef<HTMLTextAreaElement>(null);
+  const inputRef              = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) getSystemVersion().then(setVersion);
   }, [open]);
 
-  // Foca o textarea quando o diálogo abre ou quando muda para o tab de activação.
+  // Foca o campo certo quando o diálogo abre ou quando muda de tab/modo.
   // O setTimeout garante que o foco é aplicado depois do FocusTrap do Radix UI.
   useEffect(() => {
     if (!open || tab !== 'activate') return;
-    const id = setTimeout(() => textareaRef.current?.focus(), 80);
+    const id = setTimeout(() => (advancedMode ? textareaRef : inputRef).current?.focus(), 80);
     return () => clearTimeout(id);
-  }, [open, tab]);
+  }, [open, tab, advancedMode]);
 
   // LK- curta → válida via API (online).
   const isConnectedDisplayKey  = /^LK-[A-F0-9]{5}(-[A-F0-9]{5}){4}$/i.test(key.trim());
@@ -111,56 +120,110 @@ export function LicenseActivationDialog({ open, onOpenChange, onSuccess }: Props
                     <div className="text-center pb-4 border-b border-border">
                       <h3 className="text-xl font-bold mb-1">Activação de Licença</h3>
                       <p className="text-sm text-muted-foreground">
-                        Cole a chave de licença do ficheiro enviado pela TechSoft
+                        {advancedMode
+                          ? 'Cole a chave completa do ficheiro enviado pela TechSoft'
+                          : 'Insere o código de licença da tua organização'}
                       </p>
                     </div>
 
-                    {/* Instrução de onde encontrar a chave */}
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-                      <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                      <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-                        <p className="font-medium">Onde encontrar a chave?</p>
-                        <p>No ficheiro de licença (.txt) recebido por email, copia o conteúdo completo da linha que começa por <span className="font-mono font-bold">FULL:</span></p>
-                        <p className="text-blue-500 dark:text-blue-400">Exemplo: <span className="font-mono">eyJjbi...</span></p>
-                      </div>
-                    </div>
-
-                    {/* Campo da chave */}
-                    <div className="p-4 rounded-lg border-2 border-primary/20 bg-primary/5 space-y-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-                          <Key className="w-4 h-4 text-primary-foreground" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Chave de Licença</p>
-                          <p className="text-xs text-muted-foreground">Formato: eyJj... (linha FULL do ficheiro) ou LK-XXXXX-... (chave conectada curta)</p>
-                        </div>
-                      </div>
-                      <textarea
-                        ref={textareaRef}
-                        value={key}
-                        onChange={e => setKey(e.target.value.trim())}
-                        placeholder="Cole aqui o conteúdo da linha FULL: do ficheiro de licença..."
-                        className="w-full px-4 py-3 border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary font-mono text-xs bg-background resize-none transition-colors cursor-text caret-foreground"
-                        rows={5}
-                        disabled={loading}
-                        onMouseDown={() => {
-                          // setTimeout garante foco após os event listeners de captura do Radix UI
-                          setTimeout(() => textareaRef.current?.focus(), 0);
-                        }}
-                      />
-
-                      {/* LK- curta → vai à API */}
-                      {isConnectedDisplayKey && (
-                        <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    {!advancedMode ? (
+                      <>
+                        {/* Instrução de onde encontrar o código — chave curta, o caminho por omissão */}
+                        <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
                           <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                          <p className="text-xs text-blue-700 dark:text-blue-300">
-                            Chave conectada (LK-) detectada — será verificada no servidor. Requer ligação à internet.
-                          </p>
+                          <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                            <p className="font-medium">Onde encontrar o código?</p>
+                            <p>Foi-te enviado um código curto pela TechSoft — cola-o exactamente como recebeste, no formato <span className="font-mono font-bold">LK-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX</span>.</p>
+                          </div>
                         </div>
-                      )}
 
-                    </div>
+                        {/* Campo do código — chave curta */}
+                        <div className="p-4 rounded-lg border-2 border-primary/20 bg-primary/5 space-y-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+                              <Key className="w-4 h-4 text-primary-foreground" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">Código de Licença</p>
+                              <p className="text-xs text-muted-foreground">Formato: LK-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX</p>
+                            </div>
+                          </div>
+                          <input
+                            ref={inputRef}
+                            type="text"
+                            value={key}
+                            onChange={e => setKey(e.target.value.trim())}
+                            placeholder="LK-16DED-E1D7F-E24B4-633F8-20CB9"
+                            className="w-full px-4 py-3 border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary font-mono text-sm bg-background transition-colors cursor-text caret-foreground"
+                            disabled={loading}
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => { setAdvancedMode(true); setKey(''); setError(''); }}
+                          className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+                        >
+                          Tenho uma chave completa (avançado)
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {/* Instrução de onde encontrar a chave — chave completa, modo avançado */}
+                        <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                          <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                          <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                            <p className="font-medium">Onde encontrar a chave?</p>
+                            <p>No ficheiro de licença (.txt) recebido por email, copia o conteúdo completo da linha que começa por <span className="font-mono font-bold">FULL:</span></p>
+                            <p className="text-blue-500 dark:text-blue-400">Exemplo: <span className="font-mono">eyJjbi...</span></p>
+                          </div>
+                        </div>
+
+                        {/* Campo da chave — chave completa */}
+                        <div className="p-4 rounded-lg border-2 border-primary/20 bg-primary/5 space-y-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+                              <Key className="w-4 h-4 text-primary-foreground" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">Chave de Licença</p>
+                              <p className="text-xs text-muted-foreground">Formato: eyJj... (linha FULL do ficheiro) ou LK-XXXXX-... (código curto)</p>
+                            </div>
+                          </div>
+                          <textarea
+                            ref={textareaRef}
+                            value={key}
+                            onChange={e => setKey(e.target.value.trim())}
+                            placeholder="Cole aqui o conteúdo da linha FULL: do ficheiro de licença..."
+                            className="w-full px-4 py-3 border-2 border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary font-mono text-xs bg-background resize-none transition-colors cursor-text caret-foreground"
+                            rows={5}
+                            disabled={loading}
+                            onMouseDown={() => {
+                              // setTimeout garante foco após os event listeners de captura do Radix UI
+                              setTimeout(() => textareaRef.current?.focus(), 0);
+                            }}
+                          />
+
+                          {/* LK- curta colada aqui por engano → confirma que também é aceite */}
+                          {isConnectedDisplayKey && (
+                            <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                              <p className="text-xs text-blue-700 dark:text-blue-300">
+                                Código curto (LK-) detectado — será verificado no servidor. Requer ligação à internet.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => { setAdvancedMode(false); setKey(''); setError(''); }}
+                          className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+                        >
+                          ← Usar código de licença
+                        </button>
+                      </>
+                    )}
 
                     {/* Erro de validação */}
                     {error && (

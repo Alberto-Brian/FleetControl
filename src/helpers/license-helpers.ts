@@ -160,7 +160,26 @@ export async function revokeActivation(machineId: string, password: string): Pro
 
 export async function validateLicense(licenseKey: string): Promise<ValidatedLicense> {
   const key = licenseKey.trim();
+  const result = await validateLicenseImpl(key);
 
+  // Achado real (2026-09-12): activar uma licença (nova ou re-inserida)
+  // podia deixar um utilizador com sessão iniciada, ligado a uma
+  // Organization DIFERENTE (a da licença antiga) — a licença já mudou de
+  // Organization, mas o utilizador continuava logado, potencialmente sem
+  // sequer pertencer à Organization nova. `validateLicense()` só é chamada
+  // a partir de `LicenseActivationDialog` (a UI de entrada explícita da
+  // chave) — nunca do fluxo automático de reactivação em segundo plano
+  // (`tryRefreshOrReactivate`/`activateOnApi` sozinho), por isso reutilizar
+  // SESSION_REVOKED_EVENT aqui nunca desloga alguém só por uma
+  // confirmação de licença rotineira. AuthContext.logout() (o único
+  // listener deste evento) é seguro chamar mesmo sem ninguém com sessão
+  // iniciada — no-op nesse caso.
+  if (result.isValid) window.dispatchEvent(new Event(SESSION_REVOKED_EVENT));
+
+  return result;
+}
+
+async function validateLicenseImpl(key: string): Promise<ValidatedLicense> {
   if (DISPLAY_KEY_RE.test(key)) {
     return validateDisplayKey(key);
   }
@@ -427,6 +446,14 @@ export async function removeLicense(): Promise<void> {
   // anterior e nunca devem sobreviver a isto.
   await window._service_powersync.disconnectAndClear();
   await window.license.removeLicense();
+
+  // Achado real (2026-09-12): removeLicense() já limpava os tokens API
+  // (acima), mas nunca o login LOCAL (AuthContext) — o utilizador ficava
+  // "dentro" da app, autenticado, com uma sessão que já não corresponde a
+  // nenhuma licença/Organization activa. Reutiliza o mesmo evento já usado
+  // para sessão revogada remotamente — AuthContext.logout() devolve a app
+  // ao ecrã de login, é seguro chamar mesmo sem ninguém com sessão iniciada.
+  window.dispatchEvent(new Event(SESSION_REVOKED_EVENT));
 }
 
 // ── Lógica interna ────────────────────────────────────────────────────────────
