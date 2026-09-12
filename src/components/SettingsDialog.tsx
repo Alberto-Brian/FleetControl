@@ -14,7 +14,7 @@ import { useLayoutPadding }           from '@/hooks/useLayoutPadding';
 import { useMapSettings }             from '@/hooks/useMapSettings';
 import { toast } from 'sonner';
 import {
-  Settings, Globe, Palette, Info, Package, AlertCircle,
+  Settings, Globe, Palette, Info, AlertCircle,
   Mail, Phone, MapPin, Building2, HardDrive, Download, Upload,
   Clock, Loader2, CheckCircle, XCircle, Camera, Trash2, Save,
   Building, Hash, AtSign, ImageIcon, FileText, Bell, Car,
@@ -2064,8 +2064,6 @@ export default function SettingsDialog() {
   const { sidebarCollapsed, setSidebarCollapsed, navAutoCollapse, setNavAutoCollapse } = useLayoutSettings();
   const { hasPadding, setHasPadding }                                = useLayoutPadding();
   const { labelType, animateMarkers, pulseMarkers, setLabelType, setAnimateMarkers, setPulseMarkers } = useMapSettings();
-  const { license }                                                   = useLicense();
-  const isConnectedMode = !!license?.isValid;
   const [systemVersion, setSystemVersion] = useState('');
   const [search, setSearch]               = useState('');
   const [persistFilters, setPersistFiltersState] = useState(() => localStorage.getItem('app_persist_filters') === 'true');
@@ -2511,8 +2509,8 @@ export default function SettingsDialog() {
                         </div>
                       </div>
 
-                      {/* Transparência e desfoque — apenas em modo conectado */}
-                      {isConnectedMode && <div>
+                      {/* Transparência e desfoque do painel de fundo */}
+                      <div>
                         <h3 className="text-base font-semibold mb-1">{t('appearance.glassPanel')}</h3>
                         <p className="text-sm text-muted-foreground mb-4">{t('appearance.glassPanelDesc')}</p>
                         <div className="space-y-5 p-4 rounded-lg border border-border bg-card/50">
@@ -2635,7 +2633,7 @@ export default function SettingsDialog() {
                             </div>
                           </div>
                         </div>
-                      </div>}
+                      </div>
 
                       {/* Menu lateral */}
                       <div>
@@ -2696,8 +2694,8 @@ export default function SettingsDialog() {
                         </div>
                       </div>
 
-                      {/* Mapa de rastreamento — apenas em modo conectado */}
-                      {isConnectedMode && <div>
+                      {/* Mapa de rastreamento */}
+                      <div>
                         <h3 className="text-base font-semibold mb-1">{t('appearance.mapTitle')}</h3>
                         <p className="text-sm text-muted-foreground mb-4">{t('appearance.mapDesc')}</p>
                         <div className="space-y-3">
@@ -2748,7 +2746,7 @@ export default function SettingsDialog() {
                             <Switch checked={pulseMarkers} onCheckedChange={setPulseMarkers} />
                           </div>
                         </div>
-                      </div>}
+                      </div>
 
                       {/* Filtros */}
                       <div>
@@ -3364,9 +3362,7 @@ export default function SettingsDialog() {
                   {activeTab === 'about' && (
                     <div className="space-y-6">
                       <div className="text-center pb-6 border-b border-border">
-                        <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
-                          <Package className="w-10 h-10 text-primary-foreground" />
-                        </div>
+                        <img src="./images/fleetlogo.png" alt="" className="w-20 h-20 mx-auto mb-4" />
                         <h3 className="text-2xl font-bold mb-1">{t('about.appName')}</h3>
                         <p className="text-sm text-muted-foreground mb-3">{t('about.appSubtitle')}</p>
                         <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">

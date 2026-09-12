@@ -6,7 +6,7 @@
 // Redesenho — este ecrã passou a ser visitado com frequência (Fase 11B.8,
 // login por utilizador real em vez de só activar a licença). Em vez de um
 // Card genérico "SaaS login" desligado do resto da app, o fundo ecoa o
-// próprio modo conectado do HomePage ("mapa como fundo, painel flutuante
+// próprio visual do HomePage ("mapa como fundo, painel flutuante
 // em vidro por cima") — uma rota GPS estilizada com um ponto a percorrê-la
 // lentamente, o mesmo tipo de coisa que a aplicação mostra de verdade
 // assim que se entra. Paleta e vidro vêm inteiramente dos tokens já
@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { Truck, Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 // ─── Fundo: rota GPS estilizada ─────────────────────────────────────────────
 // Grelha ténue + duas rotas de fundo + uma rota "activa" com um ponto a
@@ -184,14 +184,10 @@ export default function LoginPage() {
             boxShadow: '0 8px 40px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.2)',
           }}
         >
-          {/* Marca */}
+          {/* Marca — o próprio logotipo já tem o seu enquadramento circular,
+              sem caixa colorida à volta (evita duplicar moldura). */}
           <div className="flex flex-col items-center gap-3.5 mb-8">
-            <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
-              style={{ background: 'var(--nav-logo-bg)', boxShadow: '0 4px 16px hsl(var(--primary) / 0.35)' }}
-            >
-              <Truck className="w-7 h-7 text-white" />
-            </div>
+            <img src="./images/fleetlogo.png" alt="FleetControl" className="w-16 h-16 shrink-0" />
             <div className="text-center">
               <h1
                 className="text-[26px] leading-tight"

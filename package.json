@@ -24,7 +24,7 @@
         "db:rename": "node src/scripts/rename-migration.js",
         "db:check": "node src/scripts/check-migration.js",
         "rebuild": "electron-rebuild -f -w better-sqlite3",
-        "build-icons": "electron-icon-builder --input=./images/logo.png --output=./build --flatten",
+        "build-icons": "electron-icon-builder --input=./images/fleeticon.png --output=./build --flatten",
         "postinstall": "npm run rebuild",
         "seed": "tsx src/scripts/seed.ts"
     },
