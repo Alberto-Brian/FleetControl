@@ -259,9 +259,9 @@ export const enSettings = {
     fontsize_xl:          'Extra large',
     fontsize_xl_desc:     'Accessible',
 
-    // Glass panel (connected mode)
+    // Glass panel
     glassPanel:           'Background panel',
-    glassPanelDesc:       'Transparency and blur of the floating panel (connected mode)',
+    glassPanelDesc:       'Transparency and blur of the floating panel',
     glassOpacity:         'Opacity',
     glassBlur:            'Blur',
     glassTransparent:     'Transparent',

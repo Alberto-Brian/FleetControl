@@ -183,10 +183,6 @@ export const enTrips = {
       actions: "Actions"
   },
 
-  connectedHint: {
-    liveTracking: 'In connected mode, each trip is tracked in real-time via GPS — view the exact route, speed and stops directly on the map.',
-  },
-
   analytics: {
     completionRate:   'Completion Rate',
     inProgress:       'In Progress',

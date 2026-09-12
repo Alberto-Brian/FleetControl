@@ -11,7 +11,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LicenseProvider } from "./contexts/LicenseContext";
 import { useLicense } from "./hooks/useLicense";
 import { LicenseGuard } from "./components/LicenseGuard";
-import { LicenseActivationDialog } from "./components/LicenseActivationDialog";
+import { LicenseActivationScreen } from "./components/LicenseActivationDialog";
 import { TrackingProvider }    from '@/contexts/TrackingContext';
 import { LayoutProvider }      from '@/contexts/LayoutContext';
 import { HistoricalDbProvider } from '@/contexts/HistoricalDbContext';
@@ -79,13 +79,7 @@ function AppContent() {
     // cobre também o caso de ainda não haver ninguém autenticado.
     if (!license?.isValid) {
         return (
-            <div className="min-h-screen bg-background">
-                <LicenseActivationDialog
-                    open={true}
-                    onOpenChange={() => {}}
-                    onSuccess={() => { void refreshLicense(); }}
-                />
-            </div>
+            <LicenseActivationScreen onSuccess={() => { void refreshLicense(); }} />
         );
     }
 

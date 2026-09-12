@@ -343,7 +343,7 @@ export const enVehicles = {
     mileageDifferenceTooBig: "Mileage difference too large. Please verify the value",
     restoreFailed: "Error activating category",
     noCategoriesFound: 'No categories found',
-    imeiRequiresConnected: "IMEI requires connected mode — activate the connected license first",
+    imeiRequiresConnected: "IMEI requires an active session — check your connection and sign in first",
     imeiAlreadyExists: "A device with this IMEI is already registered",
     traccarUnavailable: "Tracking server unreachable. Check the connection and try again",
     traccarError: "Error registering tracking device. Please try again",
@@ -356,11 +356,6 @@ export const enVehicles = {
   warnings: {
     noAvailableVehicles: "No available vehicles",
     categoryExistsInactive: "Category '{{name}}' exists but is inactive. Do you want to activate it?"
-  },
-
-  connectedHint: {
-    viewGps:    'In connected mode, this vehicle appears on the live map with real-time position, speed and route history.',
-    statusSync: 'In connected mode, status changes sync automatically with the central platform and are visible across all devices.',
   },
 
   analytics: {

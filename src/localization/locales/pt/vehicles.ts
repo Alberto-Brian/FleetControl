@@ -343,7 +343,7 @@ export const ptVehicles = {
     mileageDifferenceTooBig: "Diferença muito grande na quilometragem. Verifique o valor",
     restoreFailed: "Erro ao activar categoria",
     noCategoriesFound: 'Nenhuma categoria encontrada',
-    imeiRequiresConnected: "O IMEI requer modo conectado — active a licença conectada primeiro",
+    imeiRequiresConnected: "O IMEI requer uma sessão activa — verifique a ligação e inicie sessão primeiro",
     imeiAlreadyExists: "Já existe um dispositivo com este IMEI registado",
     traccarUnavailable: "Servidor de rastreamento inacessível. Verifique a ligação e tente novamente",
     traccarError: "Erro ao registar o dispositivo de rastreamento. Tente novamente",
@@ -356,11 +356,6 @@ export const ptVehicles = {
   warnings: {
     noAvailableVehicles: "Sem veículos disponíveis",
     categoryExistsInactive: "A categoria '{{name}}' existe mas está inactiva. Deseja activá-la?"
-  },
-
-  connectedHint: {
-    viewGps:    'No modo conectado, este veículo aparece no mapa em tempo real com posição, velocidade e histórico de percursos.',
-    statusSync: 'No modo conectado, as alterações de status sincronizam automaticamente com a plataforma central e ficam visíveis em todos os dispositivos.',
   },
 
   analytics: {

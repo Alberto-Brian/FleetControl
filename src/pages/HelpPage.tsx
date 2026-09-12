@@ -21,7 +21,6 @@ type HelpBlock =
 interface HelpSection {
   id: string;
   title: string;
-  connectedOnly?: boolean;
   content: HelpBlock[];
 }
 
@@ -146,7 +145,7 @@ function renderBlock(block: HelpBlock, idx: number) {
 }
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
-function SectionCard({ section, connectedOnlyLabel }: { section: HelpSection; connectedOnlyLabel: string }) {
+function SectionCard({ section }: { section: HelpSection }) {
   const Icon = SECTION_ICONS[section.id] ?? HelpCircle;
   return (
     <div id={`help-${section.id}`} className="scroll-mt-2">
@@ -161,14 +160,6 @@ function SectionCard({ section, connectedOnlyLabel }: { section: HelpSection; co
           <h2 className="text-sm font-semibold leading-snug" style={{ color: 'var(--ui-t90)' }}>
             {section.title}
           </h2>
-          {section.connectedOnly && (
-            <span
-              className="inline-block mt-1 text-xs px-1.5 py-0.5 rounded"
-              style={{ background: 'rgba(96,165,250,0.12)', color: '#60a5fa' }}
-            >
-              {connectedOnlyLabel}
-            </span>
-          )}
         </div>
       </div>
       <div className="space-y-3">
@@ -242,7 +233,6 @@ export default function HelpPage() {
     }
   }, []);
 
-  const connectedOnlyLabel = t('connectedOnly');
   const searchPlaceholder  = t('search.placeholder');
   const noResultsPrefix    = t('noResults');
   const footerText         = t('footer');
@@ -319,7 +309,7 @@ export default function HelpPage() {
           ) : (
             visibleSections.map((section, i) => (
               <React.Fragment key={section.id}>
-                <SectionCard section={section} connectedOnlyLabel={connectedOnlyLabel} />
+                <SectionCard section={section} />
                 {i < visibleSections.length - 1 && (
                   <hr style={{ borderColor: 'var(--ui-b05)' }} />
                 )}

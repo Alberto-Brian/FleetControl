@@ -66,7 +66,7 @@ export default function DragWindowRegion({
         return () => observer.disconnect();
     }, []);
 
-    // Em modo conectado (dark=true) força sempre dark; caso contrário segue o tema
+    // Quando dark=true força sempre dark; caso contrário segue o tema
     const effectiveDark = dark || isSystemDark;
 
     const bg    = effectiveDark ? 'rgba(6,10,22,0.98)'      : 'rgba(228,231,240,0.98)';

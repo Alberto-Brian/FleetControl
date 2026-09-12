@@ -183,10 +183,6 @@ export const ptTrips = {
       actions: "Acções"
   },
 
-  connectedHint: {
-    liveTracking: 'No modo conectado, cada viagem é rastreada em tempo real por GPS — consulta o percurso exacto, velocidade e paragens directamente no mapa.',
-  },
-
   analytics: {
     completionRate:   'Taxa de Conclusão',
     inProgress:       'Em Progresso',

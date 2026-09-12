@@ -3,7 +3,7 @@
 // FILE: src/components/LicenseGuard.tsx
 // ========================================
 import React, { useRef, useEffect } from 'react';
-import { LicenseActivationDialog } from '@/components/LicenseActivationDialog';
+import { LicenseActivationScreen } from '@/components/LicenseActivationDialog';
 import { useLicense }              from '@/hooks/useLicense';
 import { getAccessToken, SESSION_TOKEN_READY_EVENT } from '@/helpers/license-helpers';
 import { Loader2 }                 from 'lucide-react';
@@ -73,16 +73,10 @@ export function LicenseGuard({ children }: { children: React.ReactNode }) {
   }
 
   // Sem licença válida — mostra apenas o ecrã de activação, nada mais
+  // (na prática inalcançável agora — App.tsx já intercepta este caso mais
+  // cedo, ver o mesmo bloco lá — mantido como rede de segurança).
   if (!license?.isValid) {
-    return (
-      <div className="min-h-screen bg-background">
-        <LicenseActivationDialog
-          open={true}
-          onOpenChange={() => {}}
-          onSuccess={handleActivationSuccess}
-        />
-      </div>
-    );
+    return <LicenseActivationScreen onSuccess={handleActivationSuccess} />;
   }
 
   // O estado da sessão (offline-cache-*/no-session) já é mostrado como

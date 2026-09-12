@@ -587,7 +587,7 @@ function NavRailButton({
   );
 }
 
-// ─── Toggle do nav rail (modo conectado) ─────────────────────────────────────
+// ─── Toggle do nav rail ───────────────────────────────────────────────────────
 function NavRailToggle({
   collapsed, onClick, t,
 }: {

@@ -261,9 +261,9 @@ export const ptSettings = {
     fontsize_xl:          'Extra grande',
     fontsize_xl_desc:     'Acessível',
 
-    // Painel de fundo (modo conectado)
+    // Painel de fundo
     glassPanel:           'Painel de fundo',
-    glassPanelDesc:       'Transparência e desfoque do painel flutuante (modo conectado)',
+    glassPanelDesc:       'Transparência e desfoque do painel flutuante',
     glassOpacity:         'Opacidade',
     glassBlur:            'Desfoque',
     glassTransparent:     'Transparente',

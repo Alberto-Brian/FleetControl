@@ -4,7 +4,6 @@
 export const ptHelp = {
   search: { placeholder: 'Pesquisar ajuda...' },
   noResults: 'Nenhum resultado para',
-  connectedOnly: 'Apenas modo conectado',
   footer: 'FleetControl · AKM Systems',
 
   sections: [
@@ -84,7 +83,7 @@ export const ptHelp = {
           'Número de chassis e estado actual (activo, em manutenção, inactivo)',
           'Quilometragem actual e histórico de actualizações',
           'Histórico de viagens, abastecimentos e manutenções por veículo',
-          'Associação ao dispositivo de rastreamento GPS com IMEI (modo conectado)',
+          'Associação ao dispositivo de rastreamento GPS com IMEI',
         ]},
         { type: 'steps', steps: [
           'Clica em "+ Novo Veículo" no canto superior direito',
@@ -92,7 +91,7 @@ export const ptHelp = {
           'Selecciona a categoria e o estado inicial',
           'Guarda o registo',
         ]},
-        { type: 'text', text: 'Acções GPS disponíveis por veículo (modo conectado):' },
+        { type: 'text', text: 'Acções GPS disponíveis por veículo:' },
         { type: 'list', items: [
           'Registar GPS: associa o IMEI ao veículo — após o registo, o sistema sugere adicionar o veículo a uma zona virtual de geofencing',
           'Remover GPS: desvincula o dispositivo; o nome do device no Traccar passa automaticamente a "GPS-XXXXXX" (últimos 6 dígitos do IMEI), indicando que está disponível para reutilização',
@@ -163,7 +162,7 @@ export const ptHelp = {
           'Regista o odómetro inicial',
           'Ao terminar, actualiza com data de chegada e odómetro final',
         ]},
-        { type: 'tip', text: 'Em modo conectado, as viagens podem ser correlacionadas com os percursos GPS gravados automaticamente pelo Traccar.' },
+        { type: 'tip', text: 'As viagens podem ser correlacionadas com os percursos GPS gravados automaticamente pelo Traccar.' },
       ],
     },
 
@@ -462,7 +461,7 @@ export const ptHelp = {
         { type: 'table',
           headers: ['Separador', 'O que configuras'],
           rows: [
-            ['Aparência', 'Tema (claro/escuro), família tipográfica, tamanho de texto, espaçamento do layout, compressão do sidebar, painel de fundo (modo conectado), preferências de listagens'],
+            ['Aparência', 'Tema (claro/escuro), família tipográfica, tamanho de texto, espaçamento do layout, compressão do sidebar, painel de fundo, preferências de listagens'],
             ['Vistas', 'Painéis de análise por secção (on/off) e posição (vertical/horizontal)'],
             ['Empresa', 'Nome, logótipo, NIF, telefone, email, morada e moeda da empresa'],
             ['Relatórios PDF', 'Cabeçalho, cores, marca de água, gráficos, formato e orientação dos PDFs exportados'],
@@ -500,7 +499,7 @@ export const ptHelp = {
           'Sidebar compacta — reduz a largura do menu lateral para libertar espaço no conteúdo',
           'Auto-colapso da sidebar — colapsa automaticamente a sidebar ao navegar para uma secção',
         ]},
-        { type: 'text', text: 'Painel de Fundo (modo conectado) — controla o painel de vidro translúcido da interface:' },
+        { type: 'text', text: 'Painel de Fundo — controla o painel de vidro translúcido da interface:' },
         { type: 'list', items: [
           'Opacidade — de 40% (transparente) a 100% (sólido)',
           'Desfoque — de 0px (sem desfoque) a 40px (desfoque máximo)',

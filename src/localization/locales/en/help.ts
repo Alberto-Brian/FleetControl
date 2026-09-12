@@ -4,7 +4,6 @@
 export const enHelp = {
   search: { placeholder: 'Search help...' },
   noResults: 'No results for',
-  connectedOnly: 'Connected mode only',
   footer: 'FleetControl · AKM Systems',
 
   sections: [
@@ -84,7 +83,7 @@ export const enHelp = {
           'Chassis number and current status (active, in maintenance, inactive)',
           'Current mileage and update history',
           'Trip, fuel and maintenance history per vehicle',
-          'Association with GPS tracking device by IMEI (connected mode)',
+          'Association with GPS tracking device by IMEI',
         ]},
         { type: 'steps', steps: [
           'Click "+ New Vehicle" in the top-right corner',
@@ -92,7 +91,7 @@ export const enHelp = {
           'Select the category and initial status',
           'Save the record',
         ]},
-        { type: 'text', text: 'GPS actions available per vehicle (connected mode):' },
+        { type: 'text', text: 'GPS actions available per vehicle:' },
         { type: 'list', items: [
           'Register GPS: links the IMEI to the vehicle — after registration, the system suggests adding the vehicle to a geofencing zone',
           'Remove GPS: unlinks the device; the device name in Traccar automatically changes to "GPS-XXXXXX" (last 6 IMEI digits), indicating it is available for reuse',
@@ -163,7 +162,7 @@ export const enHelp = {
           'Record the initial odometer',
           'On completion, update with arrival date and final odometer',
         ]},
-        { type: 'tip', text: 'In connected mode, trips can be correlated with GPS routes recorded automatically by Traccar.' },
+        { type: 'tip', text: 'Trips can be correlated with GPS routes recorded automatically by Traccar.' },
       ],
     },
 
@@ -462,7 +461,7 @@ export const enHelp = {
         { type: 'table',
           headers: ['Tab', 'What you configure'],
           rows: [
-            ['Appearance', 'Theme (light/dark), font family, text size, layout padding, sidebar collapse, glass panel (connected mode), listing preferences'],
+            ['Appearance', 'Theme (light/dark), font family, text size, layout padding, sidebar collapse, glass panel, listing preferences'],
             ['Views', 'Analytics panels per section (on/off) and layout position (vertical/horizontal)'],
             ['Company', 'Company name, logo, NIF, phone, email, address and currency'],
             ['PDF Reports', 'Header, colours, watermark, charts, format and orientation of exported PDFs'],
@@ -500,7 +499,7 @@ export const enHelp = {
           'Compact sidebar — reduces the width of the side menu to free up content space',
           'Auto-collapse sidebar — collapses the sidebar automatically when navigating to a section',
         ]},
-        { type: 'text', text: 'Glass Panel (connected mode) — controls the translucent glass panel of the interface:' },
+        { type: 'text', text: 'Glass Panel — controls the translucent glass panel of the interface:' },
         { type: 'list', items: [
           'Opacity — from 40% (transparent) to 100% (solid)',
           'Blur — from 0px (no blur) to 40px (maximum blur)',
