@@ -139,14 +139,11 @@ export default function HomePage() {
             onMouseEnter={navAutoCollapse ? () => setSidebarCollapsed(false) : undefined}
             onMouseLeave={navAutoCollapse ? () => setSidebarCollapsed(true)  : undefined}
           >
-            {/* Logo */}
+            {/* Logo — o logótipo já tem o seu próprio enquadramento
+                circular, sem caixa colorida à volta (evita duplicar
+                moldura, mesmo tratamento do LoginPage). */}
             <div className="flex items-center flex-shrink-0 mb-3 px-3 gap-2.5">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: 'var(--nav-logo-bg)' }}
-              >
-                <Truck className="w-5 h-5 text-white" />
-              </div>
+              <img src="./images/fleetlogo.png" alt="" className="w-10 h-10 flex-shrink-0" />
               <div
                 style={{
                   opacity:    sidebarCollapsed ? 0 : 1,
