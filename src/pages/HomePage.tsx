@@ -141,9 +141,26 @@ export default function HomePage() {
           >
             {/* Logo — o logótipo já tem o seu próprio enquadramento
                 circular, sem caixa colorida à volta (evita duplicar
-                moldura, mesmo tratamento do LoginPage). */}
-            <div className="flex items-center flex-shrink-0 mb-3 px-3 gap-2.5">
-              <img src="./images/fleetlogo.png" alt="" className="w-10 h-10 flex-shrink-0" />
+                moldura, mesmo tratamento do LoginPage).
+                Achado real (2026-09-12): w-10 (40px) com px-3 (24px de
+                padding) só cabe em NAV_RAIL_EXPANDED_W (180px) — em
+                NAV_RAIL_COLLAPSED_W (56px) sobrava só 32px, menos do que
+                a imagem, ficava distorcida/cortada. Os ícones de
+                navegação ao lado (18px, 16px) nunca tiveram este
+                problema por seres muito mais pequenos — o logótipo
+                precisa do mesmo tratamento: tamanho e padding próprios
+                para o estado collapsed, nunca o mesmo tamanho fixo nos
+                dois estados. */}
+            <div
+              className="flex items-center flex-shrink-0 mb-3 gap-2.5 transition-[padding] duration-200"
+              style={{ paddingLeft: sidebarCollapsed ? 9 : 12, paddingRight: sidebarCollapsed ? 9 : 12 }}
+            >
+              <img
+                src="./images/fleetlogo.png"
+                alt=""
+                className="flex-shrink-0 transition-[width,height] duration-200"
+                style={{ width: sidebarCollapsed ? 32 : 40, height: sidebarCollapsed ? 32 : 40 }}
+              />
               <div
                 style={{
                   opacity:    sidebarCollapsed ? 0 : 1,
