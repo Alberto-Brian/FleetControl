@@ -82,6 +82,28 @@ export function formatSyncToastMessage(changedTables: string[], locale: 'pt' | '
   return locale === 'pt' ? `${joined} actualizados` : `${joined} updated`;
 }
 
+// ── Aviso de operação rejeitada pelo servidor ────────────────────────────
+// 2026-09-13 — "o aviso tem que ser melhor que o console.warn, tem que ser
+// informativo para o utilizador". Reutiliza labelForSyncedTable (mesmo
+// catálogo PT/EN de nomes amigáveis) — a mensagem nomeia a tabela e a acção
+// tentada, nunca só "algo falhou".
+const OP_LABELS: Record<'PUT' | 'PATCH' | 'DELETE', { pt: string; en: string }> = {
+  PUT:    { pt: 'criar/actualizar', en: 'create/update' },
+  PATCH:  { pt: 'actualizar',       en: 'update' },
+  DELETE: { pt: 'eliminar',         en: 'delete' },
+};
+
+export function formatRejectedOperationMessage(
+  op: { table: string; op: 'PUT' | 'PATCH' | 'DELETE' },
+  locale: 'pt' | 'en',
+): string {
+  const tableLabel = labelForSyncedTable(op.table, locale);
+  const actionLabel = OP_LABELS[op.op]?.[locale] ?? op.op;
+  return locale === 'pt'
+    ? `Não foi possível ${actionLabel}: ${tableLabel}. Sem permissão ou dados inválidos.`
+    : `Could not ${actionLabel}: ${tableLabel}. No permission or invalid data.`;
+}
+
 let _audioCtx: AudioContext | null = null;
 
 export function playSyncSound(): void {

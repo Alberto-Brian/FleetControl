@@ -13,3 +13,13 @@ export const POWERSYNC_GET_SNAPSHOT = 'service-powersync:get-snapshot';
 // sincronizada mudou (para a UI voltar a consultar powersync.db sozinha).
 export const POWERSYNC_STATUS_PUSH = 'service-powersync:status-push';
 export const POWERSYNC_DATA_CHANGED_PUSH = 'service-powersync:data-changed-push';
+
+// 2026-09-13 — antes disto, uma operação rejeitada pelo servidor (ex. sem
+// permissão) só ficava num console.warn — o utilizador via a alteração
+// "aplicar-se" localmente (PowerSync é local-first/optimista) sem nunca
+// saber que, do lado do servidor, nada mudou. connector.ts (processo
+// principal) empurra isto sempre que uploadData() recebe pelo menos um
+// resultado {success:false} — SyncNotifier.tsx (já montado, já ouve
+// onDataChanged) mostra um toast de aviso, distinto do toast azul normal
+// de "dados actualizados".
+export const POWERSYNC_OPERATION_REJECTED_PUSH = 'service-powersync:operation-rejected-push';

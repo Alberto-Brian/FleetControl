@@ -7,7 +7,9 @@ import {
   POWERSYNC_GET_SNAPSHOT,
   POWERSYNC_STATUS_PUSH,
   POWERSYNC_DATA_CHANGED_PUSH,
+  POWERSYNC_OPERATION_REJECTED_PUSH,
 } from './powersync-service-channels';
+import type { IRejectedSyncOperation } from '@/lib/powersync/rejected-operation';
 
 export function exposeServicePowerSyncContext() {
   const { contextBridge, ipcRenderer } = window.require('electron');
@@ -29,6 +31,12 @@ export function exposeServicePowerSyncContext() {
       const listener = (_event: unknown, data: string[]) => callback(data);
       ipcRenderer.on(POWERSYNC_DATA_CHANGED_PUSH, listener);
       return () => ipcRenderer.removeListener(POWERSYNC_DATA_CHANGED_PUSH, listener);
+    },
+    // 2026-09-13 — ver comentário no canal em powersync-service-channels.ts.
+    onOperationRejected: (callback: (ops: IRejectedSyncOperation[]) => void) => {
+      const listener = (_event: unknown, data: IRejectedSyncOperation[]) => callback(data);
+      ipcRenderer.on(POWERSYNC_OPERATION_REJECTED_PUSH, listener);
+      return () => ipcRenderer.removeListener(POWERSYNC_OPERATION_REJECTED_PUSH, listener);
     },
   });
 }

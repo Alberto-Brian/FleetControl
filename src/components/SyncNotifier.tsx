@@ -16,11 +16,13 @@
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertTriangle } from 'lucide-react';
 import {
   isSyncSoundEnabled, playSyncSound,
   isSyncToastEnabled, getSyncToastPosition, formatSyncToastMessage,
+  formatRejectedOperationMessage,
 } from '@/helpers/sync-notifications';
+import type { IRejectedSyncOperation } from '@/lib/powersync/rejected-operation';
 
 const BURST_WINDOW_MS = 600;
 
@@ -36,6 +38,28 @@ function SyncToast({ message }: { message: string }) {
       }}
     >
       <RefreshCw size={13} style={{ color: '#0ea5e9', flexShrink: 0 }} />
+      {message}
+    </div>
+  );
+}
+
+// 2026-09-13 — distinto de propósito do SyncToast azul acima: âmbar/vermelho
+// (aviso, não uma actualização de rotina), ícone de alerta, duração maior
+// (o utilizador precisa mesmo de ler isto, não é só um "pisca" informativo).
+// Nunca gated por isSyncToastEnabled — uma operação rejeitada é accionável
+// (o utilizador pensa que resultou e não resultou), não ruído de sync normal.
+function RejectedOperationToast({ message }: { message: string }) {
+  return (
+    <div
+      style={{
+        display: 'flex', alignItems: 'flex-start', gap: 8,
+        background: '#fffbeb', color: '#78350f',
+        padding: '10px 14px', borderRadius: 8, maxWidth: 340,
+        fontSize: 12, fontWeight: 500, lineHeight: 1.4,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.18)', border: '1px solid #fde68a',
+      }}
+    >
+      <AlertTriangle size={15} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
       {message}
     </div>
   );
@@ -70,6 +94,20 @@ export function SyncNotifier() {
           }
         }
       }, BURST_WINDOW_MS);
+    });
+  }, [i18n.language]);
+
+  useEffect(() => {
+    return window._service_powersync.onOperationRejected((ops: IRejectedSyncOperation[]) => {
+      const locale = i18n.language.startsWith('en') ? 'en' : 'pt';
+      ops.forEach((op) => {
+        const message = formatRejectedOperationMessage(op, locale);
+        toast.custom(() => <RejectedOperationToast message={message} />, {
+          position: getSyncToastPosition() === 'own-corner' ? 'top-right' : undefined,
+          duration: 6000,
+          unstyled: true,
+        });
+      });
     });
   }, [i18n.language]);
 

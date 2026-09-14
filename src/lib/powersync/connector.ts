@@ -30,6 +30,7 @@
 // {success:false} por operação) — só POST /api/powersync/sync/upload, ponto.
 // api-sync-queue.ts fica intocado, continua a servir o seu próprio propósito.
 import axios from 'axios';
+import { BrowserWindow } from 'electron';
 import type {
   AbstractPowerSyncDatabase,
   PowerSyncBackendConnector,
@@ -37,6 +38,17 @@ import type {
 } from '@powersync/node';
 import { getApiUrl } from '@/helpers/server-config';
 import { getStoredApiToken } from '@/helpers/ipc/services/auth/token-store';
+import { POWERSYNC_OPERATION_REJECTED_PUSH } from '@/helpers/ipc/services/powersync/powersync-service-channels';
+
+// Mesmo helper de powersync-service-listeners.ts, duplicado aqui de
+// propósito (2026-09-13) — este ficheiro corre no processo principal mas
+// nunca dependeu do módulo dos listeners; um import cruzado só para 5
+// linhas não compensava o acoplamento.
+function broadcast(channel: string, payload: unknown) {
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send(channel, payload);
+  }
+}
 
 interface IPowerSyncTokenResponse {
   endpoint:  string;
@@ -110,13 +122,24 @@ export class PowerSyncConnector implements PowerSyncBackendConnector {
       // a fila: complete() avança sempre que o pedido HTTP em si teve
       // sucesso, independentemente do resultado por-operação — mesma regra
       // "Return 2xx even for validation errors — never let them block the
-      // queue" da doc oficial. Falhas individuais só ficam registadas no log
-      // por agora; surfacing na UI (ex. tabela local-only de erros de sync)
-      // fica para uma fase de consumo/UI do PowerSync, fora do âmbito deste
-      // prompt (só integração do SDK).
+      // queue" da doc oficial.
+      //
+      // 2026-09-13 — "o aviso tem que ser melhor que o console.warn, tem
+      // que ser informativo para o utilizador": até aqui, uma operação
+      // rejeitada (ex. tentar eliminar uma categoria sem category:delete)
+      // ficava "aplicada" localmente (PowerSync é optimista/local-first —
+      // a escrita local já tinha acontecido antes deste upload sequer
+      // correr) sem AVISO nenhum visível — o utilizador achava que tinha
+      // resultado, sem saber que o servidor recusou e nada mudou lá.
+      // Empurra para o renderer em vez de só logar — SyncNotifier.tsx
+      // mostra um toast de aviso. Não resolve a reconciliação (a escrita
+      // local optimista continua "aplicada" até um próximo download
+      // corrigir — fica sinalizado, não é o âmbito deste pedido), mas
+      // pelo menos o utilizador fica a saber que aquilo não teve efeito
+      // nenhum no servidor.
       const failed = data.results.filter((r) => !r.success);
       if (failed.length > 0) {
-        console.warn('[PowerSync] Operações rejeitadas pelo servidor (não bloqueiam a fila):', failed);
+        broadcast(POWERSYNC_OPERATION_REJECTED_PUSH, failed);
       }
 
       await transaction.complete();

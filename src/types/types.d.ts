@@ -131,6 +131,8 @@ interface IServicePowerSync {
     // devolvem uma função para deixar de ouvir.
     onStatusChanged:     (callback: (status: IPowerSyncStatusSnapshot) => void) => () => void;
     onDataChanged:       (callback: (changedTables: string[]) => void) => () => void;
+    // 2026-09-13 — ver comentário no canal em powersync-service-channels.ts.
+    onOperationRejected: (callback: (ops: import('@/lib/powersync/rejected-operation').IRejectedSyncOperation[]) => void) => () => void;
 }
 
 interface IClients {
