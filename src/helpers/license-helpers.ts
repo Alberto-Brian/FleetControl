@@ -69,6 +69,58 @@ apiClient.interceptors.request.use(async (config) => {
   return config;
 });
 
+// 2026-09-13 — "se este estiver logado no desktop deve deslogar
+// automaticamente": sem isto, uma sessão revogada (ex. um admin
+// desactivou/eliminou este utilizador em organization-admin) só era
+// notada da PRÓXIMA vez que tryRefreshOrReactivate() corresse — até
+// ~7h55 depois (scheduleRefresh só dispara ~5min antes de expirar o
+// access_token de 8h). O authMiddleware da API já rejeita a sessão em
+// QUALQUER pedido autenticado (não só /refresh) — mas os pedidos REST
+// do dia-a-dia (vehicles-listeners.ts, tracking-listeners.ts,
+// api-sync-queue.ts) e o PowerSyncBackendConnector (connector.ts) usam
+// todos o `axios` por omissão directamente (import axios from 'axios'),
+// nunca este `apiClient` (uma instância própria, via axios.create() —
+// intercepta só os SEUS próprios pedidos, nunca os de outra instância).
+// Um interceptor global no `axios` por omissão apanha esses pedidos
+// avulsos sem precisar de tocar em cada ficheiro — o PRÓXIMO pedido de
+// QUALQUER um deles (normalmente segundos depois, não horas) já dispara
+// o mesmo logout. Nunca duplica com o tratamento já existente em
+// tryRefreshOrReactivateImpl (que usa `apiClient`, uma instância
+// diferente, com a sua própria cadeia de interceptors, independente
+// desta).
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const axiosErr = error as AxiosError<{ code?: string }>;
+    const code = axiosErr.response?.data?.code;
+    if (axiosErr.response?.status === 401 && (code === 'SESSION_REVOKED' || code === 'REFRESH_EXPIRED')) {
+      await handleSessionRevoked(code);
+    }
+    return Promise.reject(error);
+  },
+);
+
+// Extraído de tryRefreshOrReactivateImpl (2026-09-13) para ser partilhado
+// pelo interceptor global acima — mesmo comportamento em qualquer pedido
+// que descubra a sessão revogada, não só no /refresh explícito.
+async function handleSessionRevoked(code: 'REFRESH_EXPIRED' | 'SESSION_REVOKED'): Promise<void> {
+  await clearApiSession();
+
+  if (code === 'REFRESH_EXPIRED') {
+    toast.error(i18n.t('auth:session.toast.expiredTitle'), {
+      description: i18n.t('auth:session.toast.expiredDescription'),
+      duration: 10000,
+    });
+  } else {
+    toast.error(i18n.t('auth:session.toast.revokedTitle'), {
+      description: i18n.t('auth:session.toast.revokedDescription'),
+      duration: 10000,
+    });
+  }
+
+  window.dispatchEvent(new Event(SESSION_REVOKED_EVENT));
+}
+
 // ── Tokens em memória ─────────────────────────────────────────────────────────
 let _accessToken:  string | null = null;
 let _refreshToken: string | null = null;
@@ -699,21 +751,7 @@ async function tryRefreshOrReactivateImpl(): Promise<void> {
         // recusa real com uma identidade diferente — exactamente o
         // problema que as Fases 11B.8-11B.10 eliminaram. Limpa tudo (tokens
         // + cache) e força um login explícito.
-        await clearApiSession();
-
-        if (code === 'REFRESH_EXPIRED') {
-          toast.error(i18n.t('auth:session.toast.expiredTitle'), {
-            description: i18n.t('auth:session.toast.expiredDescription'),
-            duration: 10000,
-          });
-        } else {
-          toast.error(i18n.t('auth:session.toast.revokedTitle'), {
-            description: i18n.t('auth:session.toast.revokedDescription'),
-            duration: 10000,
-          });
-        }
-
-        window.dispatchEvent(new Event(SESSION_REVOKED_EVENT));
+        await handleSessionRevoked(code as 'REFRESH_EXPIRED' | 'SESSION_REVOKED');
         return;
       }
 
