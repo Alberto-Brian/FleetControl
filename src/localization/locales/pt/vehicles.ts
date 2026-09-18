@@ -68,7 +68,7 @@ export const ptVehicles = {
     updatedAt: "Última Actualização",
     gpsImei: "IMEI / ID do GPS",
     gpsImeiOptional: "(opcional)",
-    gpsImeiEditHint: "IMEI do dispositivo GPS instalado neste veículo. Utilizado para rastreamento em tempo real.",
+    gpsImeiEditHint: "Para associar ou remover o dispositivo GPS, feche esta janela e use \"Ver detalhes\" → Registar/Remover GPS.",
     gpsImeiCreationHint: "Se preenchido, o dispositivo GPS é criado automaticamente no servidor de rastreamento.",
   },
 
@@ -136,6 +136,7 @@ export const ptVehicles = {
       syncInfo: "GPS",
       gpsDevice: "GPS / IMEI",
       noGps: "Sem GPS",
+      gpsDeviceMissing: "Este dispositivo já não responde no servidor Traccar. Pode ter sido removido ou renomeado — investigue ou remova a associação.",
     },
     delete: {
       title: "Excluir Veículo",

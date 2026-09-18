@@ -68,7 +68,7 @@ export const enVehicles = {
     updatedAt: "Last Update",
     gpsImei: "IMEI / GPS ID",
     gpsImeiOptional: "(optional)",
-    gpsImeiEditHint: "IMEI of the GPS device installed in this vehicle. Used for real-time tracking.",
+    gpsImeiEditHint: "To link or remove the GPS device, close this dialog and use \"View details\" → Register/Remove GPS.",
     gpsImeiCreationHint: "If filled in, the GPS device is created automatically on the tracking server.",
   },
 
@@ -149,6 +149,7 @@ export const enVehicles = {
       syncInfo: "GPS",
       gpsDevice: "GPS / IMEI",
       noGps: "No GPS",
+      gpsDeviceMissing: "This device is no longer responding on the Traccar server. It may have been removed or renamed — investigate or remove the link.",
     },
     delete: {
       title: "Delete Vehicle",

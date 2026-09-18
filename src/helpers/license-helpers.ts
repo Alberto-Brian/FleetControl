@@ -142,6 +142,54 @@ export function getMustChangePassword(): boolean { return _mustChangePassword; }
 function resetSessionMetadata(): void {
   _currentOrganizationId = null;
   _mustChangePassword = false;
+  _permissions = null;
+}
+
+// ── Permissões efectivas do utilizador (gating de UI, 2026-09-18) ───────────
+// Achado real: nenhuma tela do Desktop escondia acções (ex. "Adicionar GPS"/
+// "Remover GPS") consoante a permissão de quem estava autenticado — qualquer
+// sessão válida via botão, e só descobria não ter `vehicle:link-device`/
+// `unlink-device` ao clicar (403/404 do servidor). GET /api/auth/me/access
+// já existe no backend, construído explicitamente para isto ("para UX, nunca
+// substituto de enforcement" — FindMyAccessUseCase); o servidor continua a
+// ser sempre a autoridade real em cada UseCase, isto é só para a UI não
+// oferecer acções que o clique vai recusar de qualquer forma.
+let _permissions: string[] | null = null;
+
+export function getCachedPermissions(): string[] | null { return _permissions; }
+
+// Sem lista carregada ainda (arranque a frio, ainda sem ligação) — falha
+// aberto: esconder a acção só porque a lista ainda não chegou seria pior UX
+// do que mostrá-la e deixar o backend decidir no clique, como já acontecia
+// antes desta alteração. Só depois de a lista chegar é que uma ausência
+// explícita da permissão esconde a acção.
+export function hasCachedPermission(code: string): boolean {
+  if (_permissions === null) return true;
+  return _permissions.includes(code);
+}
+
+async function fetchAndCachePermissions(): Promise<void> {
+  if (!_accessToken) return;
+  try {
+    const { data } = await apiClient.get('/api/auth/me/access', {
+      headers: { Authorization: `Bearer ${_accessToken}` },
+    });
+    _permissions = data?.data?.permissions ?? [];
+    window.dispatchEvent(new Event(PERMISSIONS_READY_EVENT));
+  } catch (err) {
+    // Falha (offline, token ainda a caminho, etc.) — nunca bloqueia nada por
+    // si só; mantém o que já estava em cache (ou null, "ainda não sei").
+    console.warn('[License] Falha ao obter permissões efectivas:', err);
+  }
+}
+
+export const PERMISSIONS_READY_EVENT = 'fc:permissions-ready';
+
+// Um único ponto de escuta em vez de chamar fetchAndCachePermissions() nos 3
+// sítios que já disparam SESSION_TOKEN_READY_EVENT (login, restauro de cache,
+// refresh) — mesma ideia de LicenseGuard a ouvir este evento para o socket.
+if (typeof window !== 'undefined') {
+  window.addEventListener(SESSION_TOKEN_READY_EVENT, () => { void fetchAndCachePermissions(); });
 }
 
 // Organização da LICENÇA activa deste dispositivo (não da sessão — essa é

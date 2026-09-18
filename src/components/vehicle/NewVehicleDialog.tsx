@@ -16,12 +16,14 @@ import { createVehicle } from '@/helpers/vehicle-helpers';
 import { getAllVehicleCategories } from '@/helpers/vehicle-category-helpers';
 import { ICreateVehicle } from '@/lib/types/vehicle';
 import { useVehicles } from '@/contexts/VehiclesContext';
+import { usePermission } from '@/hooks/usePermission';
 import { ImeiSelector } from './ImeiSelector';
 
 interface NewVehicleDialogProps { onSuccess?: () => void; }
 export default function NewVehicleDialog({ onSuccess }: NewVehicleDialogProps) {
   const { showSuccess, handleError } = useErrorHandler();
   const { t } = useTranslation();
+  const canLinkGps = usePermission('vehicle:link-device');
 
   const { addVehicle } = useVehicles();
   
@@ -314,19 +316,21 @@ const filteredCategories = categories.filter(cat =>
             />
           </div>
 
-            <div className="col-span-2 space-y-2">
-              <Label>
-                {t('vehicles:fields.gpsImei')}
-                <span className="ml-1 text-xs font-normal text-muted-foreground">{t('vehicles:fields.gpsImeiOptional')}</span>
-              </Label>
-              <ImeiSelector
-                value={formData.traccar_unique_id || null}
-                onChange={(v) => setFormData({ ...formData, traccar_unique_id: v ?? '' })}
-              />
-              <p className="text-xs text-muted-foreground">
-                {t('vehicles:fields.gpsImeiCreationHint')}
-              </p>
-            </div>
+            {canLinkGps && (
+              <div className="col-span-2 space-y-2">
+                <Label>
+                  {t('vehicles:fields.gpsImei')}
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">{t('vehicles:fields.gpsImeiOptional')}</span>
+                </Label>
+                <ImeiSelector
+                  value={formData.traccar_unique_id || null}
+                  onChange={(v) => setFormData({ ...formData, traccar_unique_id: v ?? '' })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t('vehicles:fields.gpsImeiCreationHint')}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

@@ -17,7 +17,6 @@ import { updateVehicle as updateVehiclesHelper } from '@/helpers/vehicle-helpers
 import { getAllVehicleCategories } from '@/helpers/vehicle-category-helpers';
 import { IUpdateVehicle } from '@/lib/types/vehicle';
 import { useVehicles } from '@/contexts/VehiclesContext';
-import { ImeiSelector } from './ImeiSelector';
 
 interface EditVehicleDialogProps {
   open: boolean;
@@ -51,7 +50,6 @@ export default function EditVehicleDialog({
     acquisition_date: '',
     acquisition_value: 0,
     notes: '',
-    traccar_unique_id: undefined,
   });
 
   useEffect(() => {
@@ -77,7 +75,6 @@ export default function EditVehicleDialog({
         acquisition_date: selectedVehicle.acquisition_date || '',
         acquisition_value: selectedVehicle.acquisition_value || 0,
         notes: selectedVehicle.notes || '',
-        traccar_unique_id: selectedVehicle.traccar_unique_id || '',
       });
     }
   }, [open, selectedVehicle, categories]);
@@ -292,16 +289,19 @@ export default function EditVehicleDialog({
 
                 </div>
 
+                {/* 2026-09-18 — este campo (ImeiSelector editável) não
+                    persistia: updateVehicle() no lado do Desktop descarta
+                    traccar_unique_id de propósito (o link/unlink de GPS é um
+                    caminho REST dedicado e síncrono, nunca a escrita genérica
+                    de vehicle via PowerSync). Um utilizador que mudasse o
+                    valor aqui e gravasse não via erro nenhum, mas nada
+                    acontecia — substituído por um valor só de leitura que
+                    aponta para a acção correcta (Ver detalhes). */}
                 <div className="col-span-2 space-y-2">
-                  <Label>
-                    {t('vehicles:fields.gpsImei')}
-                    <span className="ml-1 text-xs font-normal text-muted-foreground">{t('vehicles:fields.gpsImeiOptional')}</span>
-                  </Label>
-                  <ImeiSelector
-                    value={formData.traccar_unique_id || null}
-                    onChange={(v) => setFormData({ ...formData, traccar_unique_id: v })}
-                    currentVehicleImei={selectedVehicle?.traccar_unique_id ?? undefined}
-                  />
+                  <Label>{t('vehicles:fields.gpsImei')}</Label>
+                  <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm font-mono">
+                    {selectedVehicle?.traccar_unique_id || t('vehicles:dialogs.view.noGps')}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {t('vehicles:fields.gpsImeiEditHint')}
                   </p>

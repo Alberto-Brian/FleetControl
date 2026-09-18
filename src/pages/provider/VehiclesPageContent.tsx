@@ -29,6 +29,7 @@ import { VehicleAnalyticsPanel } from '@/components/analytics/VehicleAnalyticsPa
 import { usePageViewSettings } from '@/hooks/usePageViewSettings';
 import { usePagePagination } from '@/hooks/usePagePagination';
 import { usePowerSyncDataChanged } from '@/hooks/usePowerSyncDataChanged';
+import { usePermission } from '@/hooks/usePermission';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Dialogs
@@ -53,6 +54,7 @@ type ViewMode = 'compact' | 'normal' | 'cards';
 export default function VehiclesPageContent() {
   const { t } = useTranslation();
   const { handleError, showSuccess } = useErrorHandler();
+  const canLinkGps = usePermission('vehicle:link-device');
 
   const [addGpsDialogOpen, setAddGpsDialogOpen] = useState(false);
   const [addGpsVehicleId, setAddGpsVehicleId] = useState<string | null>(null);
@@ -459,7 +461,7 @@ export default function VehiclesPageContent() {
                     <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectVehicle(vehicle); setEditDialogOpen(true); })}>
                       <Edit className="w-4 h-4 mr-2" /> {t('vehicles:actions.edit')}
                     </DropdownMenuItem>
-                    {!vehicle.traccar_unique_id && (
+                    {!vehicle.traccar_unique_id && canLinkGps && (
                       <DropdownMenuItem onClick={() => openAddGpsDialog(vehicle.id)}>
                         <Wifi className="w-4 h-4 mr-2" /> {t('vehicles:dialogs.addGps.action')}
                       </DropdownMenuItem>
@@ -505,7 +507,7 @@ export default function VehiclesPageContent() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {!vehicle.traccar_unique_id && (
+                  {!vehicle.traccar_unique_id && canLinkGps && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -556,7 +558,7 @@ export default function VehiclesPageContent() {
                   <Truck className="w-5 h-5" />
                 </div>
                 <div className="flex flex-wrap justify-end items-center gap-1.5 min-w-0">
-                  {!vehicle.traccar_unique_id && (
+                  {!vehicle.traccar_unique_id && canLinkGps && (
                     <Badge
                       variant="outline"
                       className="text-[10px] px-2 py-0.5 font-semibold cursor-pointer rounded-full transition-colors hover:bg-muted"
@@ -625,7 +627,7 @@ export default function VehiclesPageContent() {
                     <DropdownMenuItem onClick={() => closeDropdownsAndOpenDialog(() => { selectVehicle(vehicle); setEditDialogOpen(true); })}>
                       <Edit className="w-4 h-4 mr-2" /> {t('vehicles:actions.edit')}
                     </DropdownMenuItem>
-                    {!vehicle.traccar_unique_id && (
+                    {!vehicle.traccar_unique_id && canLinkGps && (
                       <DropdownMenuItem onClick={() => openAddGpsDialog(vehicle.id)}>
                         <Wifi className="w-4 h-4 mr-2" /> {t('vehicles:dialogs.addGps.action')}
                       </DropdownMenuItem>

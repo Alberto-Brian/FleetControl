@@ -21,6 +21,7 @@ import { useVehicles } from '@/contexts/VehiclesContext';
 import { useTracking } from '@/contexts/TrackingContext';
 import { useTranslation } from 'react-i18next';
 import { updateVehicle, unregisterVehicleGps, toggleVehicleTracking } from '@/helpers/vehicle-helpers';
+import { usePermission } from '@/hooks/usePermission';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { getRefuelingsByVehicle } from '@/helpers/refueling-helpers';
@@ -55,6 +56,21 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
   const { state: { selectedVehicle }, dispatch } = useVehicles();
   const { reloadActiveImeis, state: trackingState, isConnected: trackingConnected } = useTracking();
   const { t } = useTranslation();
+  const canLinkGps = usePermission('vehicle:link-device');
+  const canUnlinkGps = usePermission('vehicle:unlink-device');
+  const canToggleTracking = usePermission('vehicle:toggle-tracking');
+
+  // 2026-09-18 — syncDevices() (backend) deliberadamente NUNCA desvincula um
+  // device sozinho quando este deixa de aparecer no Traccar real (evita
+  // perder o histórico por um blip transitório do servidor) — mas também
+  // não avisava ninguém, deixando a decisão de investigar/desligar
+  // inteiramente por acaso. `trackingState.devices` já é a lista ao vivo do
+  // Traccar (via socket); se o IMEI do veículo não aparece lá, o device
+  // pode ter sido apagado/renomeado no servidor Traccar por fora desta app.
+  const linkedTraccarDevice = selectedVehicle?.traccar_unique_id
+    ? trackingState.devices.find(d => d.uniqueId === selectedVehicle.traccar_unique_id)
+    : undefined;
+  const gpsDeviceMissingFromTraccar = !!selectedVehicle?.traccar_unique_id && !linkedTraccarDevice;
 
   const [activeTab, setActiveTab] = useState<'details' | 'history' | 'telemetry'>('details');
   const [historyLoaded, setHistoryLoaded] = useState(false);
@@ -460,27 +476,37 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
                       <div className="flex items-start gap-1.5 mt-0.5 flex-wrap">
                         <Wifi className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
                         <span className="font-medium font-mono text-xs flex-1 break-all">{selectedVehicle.traccar_unique_id}</span>
-                        <div className="flex gap-2 w-full mt-1">
-                          {/* Para mudar IMEI: remover GPS e registar novo — ver web module (futuro) */}
-                          <button
-                            onClick={() => setConfirmRemoveGps(true)}
-                            disabled={isLoading}
-                            className="text-[11px] text-destructive hover:text-destructive/80 underline disabled:opacity-50"
-                          >
-                            Remover GPS
-                          </button>
-                        </div>
+                        {gpsDeviceMissingFromTraccar && (
+                          <div className="flex items-center gap-1.5 w-full rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-amber-600 dark:text-amber-400">
+                            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="text-[11px] leading-tight">{t('vehicles:dialogs.view.gpsDeviceMissing')}</span>
+                          </div>
+                        )}
+                        {canUnlinkGps && (
+                          <div className="flex gap-2 w-full mt-1">
+                            {/* Para mudar IMEI: remover GPS e registar novo — ver web module (futuro) */}
+                            <button
+                              onClick={() => setConfirmRemoveGps(true)}
+                              disabled={isLoading}
+                              className="text-[11px] text-destructive hover:text-destructive/80 underline disabled:opacity-50"
+                            >
+                              Remover GPS
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <WifiOff className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                         <span className="font-medium text-muted-foreground flex-1">{t('vehicles:dialogs.view.noGps')}</span>
-                        <button
-                          onClick={() => { onRegisterGps?.(selectedVehicle.id); }}
-                          className="text-[11px] text-blue-500 hover:text-blue-600 underline flex-shrink-0"
-                        >
-                          Registar GPS
-                        </button>
+                        {canLinkGps && (
+                          <button
+                            onClick={() => { onRegisterGps?.(selectedVehicle.id); }}
+                            className="text-[11px] text-blue-500 hover:text-blue-600 underline flex-shrink-0"
+                          >
+                            Registar GPS
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -489,7 +515,7 @@ export default function ViewVehicleDialog({ open, onOpenChange, onRegisterGps }:
                 {(() => {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const v = selectedVehicle as any;
-                  if (!v.traccar_unique_id) return null;
+                  if (!v.traccar_unique_id || !canToggleTracking) return null;
                   return (
                     <div className="mt-3 flex items-center justify-between rounded-lg border p-3">
                       <div>
