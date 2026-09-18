@@ -102,6 +102,8 @@ export const ptHelp = {
         ]},
         { type: 'tip', text: 'O painel "Dispositivos GPS" (botão na barra do mapa) permite filtrar dispositivos com ou sem veículo associado, facilitando a gestão de IMEIs livres.' },
         { type: 'tip', text: 'Quando há filtros activos, aparece um botão "Limpar filtros" que repõe todos os filtros de uma só vez (visível na barra de ferramentas ou na linha da paginação, consoante o layout).' },
+        { type: 'text', text: 'As acções de GPS (Registar, Remover, pausar/retomar rastreamento) só aparecem a quem tem a permissão correspondente — consulta O Meu Perfil para veres exactamente o que podes fazer. Um dispositivo já não pode ser associado a dois veículos ao mesmo tempo; o sistema recusa e mostra a que veículo já pertence.' },
+        { type: 'warning', text: 'Se um veículo com GPS mostrar o aviso "dispositivo já não responde no Traccar", o servidor deixou de o reconhecer (pode ter sido apagado ou renomeado directamente no Traccar). O sistema não desvincula sozinho — investiga ou remove a associação manualmente.' },
       ],
     },
 
@@ -422,6 +424,22 @@ export const ptHelp = {
         { type: 'warning', text: 'Tanto o rotacionamento forçado como a aplicação de retenção são operações irreversíveis. Cria sempre um backup antes de executar qualquer uma destas acções.' },
         { type: 'tip', text: 'O modo Rotacionamento é ideal para sistemas em uso contínuo durante anos: cria um histórico organizado por períodos. O modo Retenção é ideal se queres manter a base de dados pequena sem acumular ficheiros históricos.' },
         { type: 'tip', text: 'Para restaurar um backup ou aceder à zona do programador, abre Definições › Bases de Dados e introduz o PIN de programador. A sessão de desbloqueio dura até fechar a aplicação.' },
+      ],
+    },
+
+    // ─── PERFIL ───────────────────────────────────────────────────────────────
+    {
+      id: 'profile',
+      title: 'O Meu Perfil',
+      content: [
+        { type: 'text', text: 'Acede ao teu perfil através do avatar/menu de utilizador, no canto superior direito, opção "Perfil". Podes actualizar o teu nome, email e fotografia.' },
+        { type: 'text', text: 'A secção "Acesso" mostra, para cada Scope a que pertences (Organização inteira ou um conjunto específico de veículos/motoristas), exactamente que permissões tens nesse Scope — para saberes de imediato o que podes ou não fazer no sistema, sem teres de tentar e descobrir pelo erro.' },
+        { type: 'list', items: [
+          'Cada permissão aparece no formato recurso:acção (ex: vehicle:read, vehicle:link-device) — o mesmo código que o sistema usa internamente para decidir o que autorizar',
+          'Um Scope "Organização inteira" dá-te essa permissão em toda a frota; um Scope de "Recursos específicos" só nos veículos/motoristas incluídos nesse Scope',
+          'Se não vires nenhuma permissão para uma acção (ex: GPS, edição de veículos), os botões correspondentes ficam escondidos nas telas relevantes — não é um erro, é o teu acesso actual',
+        ]},
+        { type: 'tip', text: 'Esta lista é só para consulta — quem decide mesmo se uma acção é permitida é sempre o servidor, em cada pedido. Se algo parecer errado, contacta um Administrador da tua organização para rever o teu Scope/permissões.' },
       ],
     },
 

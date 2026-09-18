@@ -102,6 +102,8 @@ export const enHelp = {
         ]},
         { type: 'tip', text: 'The "GPS Devices" panel (button in the map toolbar) lets you filter devices with or without an associated vehicle, making it easy to manage free IMEIs.' },
         { type: 'tip', text: 'When filters are active, a "Clear filters" button appears to reset them all at once (shown in the toolbar or pagination row depending on the layout).' },
+        { type: 'text', text: 'GPS actions (Register, Remove, pause/resume tracking) only appear for someone with the matching permission — check My Profile to see exactly what you can do. A device can no longer be linked to two vehicles at once; the system rejects it and shows which vehicle it already belongs to.' },
+        { type: 'warning', text: 'If a vehicle with GPS shows the "device no longer responding on Traccar" warning, the server no longer recognizes it (it may have been deleted or renamed directly on Traccar). The system never unlinks it automatically — investigate or remove the link manually.' },
       ],
     },
 
@@ -422,6 +424,22 @@ export const enHelp = {
         { type: 'warning', text: 'Both forced rotation and applying retention are irreversible operations. Always create a backup before performing either of these actions.' },
         { type: 'tip', text: 'Rotation mode is ideal for systems in continuous use over years: it creates an organised history by period. Retention mode is ideal if you want to keep the database small without accumulating historical files.' },
         { type: 'tip', text: 'To restore a backup or access the developer zone, open Settings › Databases and enter the developer PIN. The unlock session lasts until the application is closed.' },
+      ],
+    },
+
+    // ─── PROFILE ──────────────────────────────────────────────────────────────
+    {
+      id: 'profile',
+      title: 'My Profile',
+      content: [
+        { type: 'text', text: 'Access your profile through the user avatar/menu in the top-right corner, "Profile" option. You can update your name, email and photo there.' },
+        { type: 'text', text: 'The "Access" section shows, for each Scope you belong to (whole organization or a specific set of vehicles/drivers), exactly which permissions you have in that Scope — so you know right away what you can or can\'t do in the system, without having to try and find out from an error.' },
+        { type: 'list', items: [
+          'Each permission appears as resource:action (e.g. vehicle:read, vehicle:link-device) — the same code the system uses internally to decide what to authorize',
+          'A "whole organization" Scope gives you that permission across the entire fleet; a "specific resources" Scope only for the vehicles/drivers included in that Scope',
+          'If you don\'t see a permission for an action (e.g. GPS, editing vehicles), the corresponding buttons stay hidden in the relevant screens — that\'s not a bug, it\'s your current access',
+        ]},
+        { type: 'tip', text: 'This list is for reference only — the server always makes the real decision on every request. If something looks wrong, contact an Administrator of your organization to review your Scope/permissions.' },
       ],
     },
 
