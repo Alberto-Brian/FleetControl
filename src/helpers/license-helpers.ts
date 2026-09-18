@@ -168,7 +168,13 @@ export function hasCachedPermission(code: string): boolean {
   return _permissions.includes(code);
 }
 
-async function fetchAndCachePermissions(): Promise<void> {
+// 2026-09-19 — reforçado com retry: sem isto, uma única falha transitória
+// (rede, um blip do servidor mesmo a meio de um deploy) deixava
+// `_permissions` preso em `null` para o resto da sessão — e como
+// `hasCachedPermission()` falha aberto enquanto `null` (deliberado, ver
+// acima), isso significa "nunca mais esconder nada", indistinguível de um
+// bug de gating. 3 tentativas com espaçamento crescente antes de desistir.
+async function fetchAndCachePermissions(attempt = 1): Promise<void> {
   if (!_accessToken) return;
   try {
     const { data } = await apiClient.get('/api/auth/me/access', {
@@ -177,9 +183,10 @@ async function fetchAndCachePermissions(): Promise<void> {
     _permissions = data?.data?.permissions ?? [];
     window.dispatchEvent(new Event(PERMISSIONS_READY_EVENT));
   } catch (err) {
-    // Falha (offline, token ainda a caminho, etc.) — nunca bloqueia nada por
-    // si só; mantém o que já estava em cache (ou null, "ainda não sei").
-    console.warn('[License] Falha ao obter permissões efectivas:', err);
+    console.warn(`[License] Falha ao obter permissões efectivas (tentativa ${attempt}):`, err);
+    if (attempt < 3) {
+      setTimeout(() => { void fetchAndCachePermissions(attempt + 1); }, 3000 * attempt);
+    }
   }
 }
 
