@@ -143,6 +143,7 @@ function resetSessionMetadata(): void {
   _currentOrganizationId = null;
   _mustChangePassword = false;
   _permissions = null;
+  _accessScopes = null;
 }
 
 // ── Permissões efectivas do utilizador (gating de UI, 2026-09-18) ───────────
@@ -157,6 +158,23 @@ function resetSessionMetadata(): void {
 let _permissions: string[] | null = null;
 
 export function getCachedPermissions(): string[] | null { return _permissions; }
+
+// 2026-09-19 — pedido do utilizador: mostrar cargos/permissões/scopes no
+// perfil, "para saber exactamente o que pode ou não fazer no sistema". A
+// API nunca devolve nome de Role em /me/access de propósito (Fase 8 —
+// modelo ALLOW-union não guarda qual Role originou um grant já resolvido),
+// por isso o perfil mostra Scopes (cada um com as suas permissões), não
+// "cargos" — o mesmo que a própria API expõe, nada inventado no cliente.
+export interface ICachedAccessScope {
+  id: string;
+  name: string;
+  type: 'organization' | 'resource_set';
+  permissions: string[];
+}
+
+let _accessScopes: ICachedAccessScope[] | null = null;
+
+export function getCachedAccessScopes(): ICachedAccessScope[] | null { return _accessScopes; }
 
 // Sem lista carregada ainda (arranque a frio, ainda sem ligação) — falha
 // aberto: esconder a acção só porque a lista ainda não chegou seria pior UX
@@ -181,6 +199,7 @@ async function fetchAndCachePermissions(attempt = 1): Promise<void> {
       headers: { Authorization: `Bearer ${_accessToken}` },
     });
     _permissions = data?.data?.permissions ?? [];
+    _accessScopes = data?.data?.scopes ?? [];
     window.dispatchEvent(new Event(PERMISSIONS_READY_EVENT));
   } catch (err) {
     console.warn(`[License] Falha ao obter permissões efectivas (tentativa ${attempt}):`, err);

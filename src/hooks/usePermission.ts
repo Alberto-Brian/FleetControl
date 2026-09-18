@@ -11,7 +11,10 @@
 // backend (AuthorizationEngine, em cada UseCase).
 
 import { useEffect, useState } from 'react';
-import { hasCachedPermission, PERMISSIONS_READY_EVENT } from '@/helpers/license-helpers';
+import {
+  hasCachedPermission, getCachedAccessScopes, getCachedPermissions,
+  PERMISSIONS_READY_EVENT, type ICachedAccessScope,
+} from '@/helpers/license-helpers';
 
 export function usePermission(code: string): boolean {
   const [allowed, setAllowed] = useState(() => hasCachedPermission(code));
@@ -24,4 +27,32 @@ export function usePermission(code: string): boolean {
   }, [code]);
 
   return allowed;
+}
+
+// 2026-09-19 — para o ecrã de perfil ("cargos/permissões/scopes"), não só
+// gating de botões — reactivo pelo mesmo evento, mesma razão.
+export function useAccessScopes(): ICachedAccessScope[] | null {
+  const [scopes, setScopes] = useState<ICachedAccessScope[] | null>(() => getCachedAccessScopes());
+
+  useEffect(() => {
+    const refresh = () => setScopes(getCachedAccessScopes());
+    refresh();
+    window.addEventListener(PERMISSIONS_READY_EVENT, refresh);
+    return () => window.removeEventListener(PERMISSIONS_READY_EVENT, refresh);
+  }, []);
+
+  return scopes;
+}
+
+export function useEffectivePermissions(): string[] | null {
+  const [permissions, setPermissions] = useState<string[] | null>(() => getCachedPermissions());
+
+  useEffect(() => {
+    const refresh = () => setPermissions(getCachedPermissions());
+    refresh();
+    window.addEventListener(PERMISSIONS_READY_EVENT, refresh);
+    return () => window.removeEventListener(PERMISSIONS_READY_EVENT, refresh);
+  }, []);
+
+  return permissions;
 }

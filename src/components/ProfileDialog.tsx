@@ -6,11 +6,13 @@ import { Button }  from '@/components/ui/button';
 import { Input }   from '@/components/ui/input';
 import { Label }   from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Loader2, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Camera, Layers, Loader2, ShieldCheck, Trash2 } from 'lucide-react';
 import { useAuth }       from '@/contexts/AuthContext';
 import { updateProfile } from '@/helpers/service-auth-helpers';
 import { toast }         from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { useAccessScopes, useEffectivePermissions } from '@/hooks/usePermission';
 
 interface Props {
   open: boolean;
@@ -21,6 +23,13 @@ export default function ProfileDialog({ open, onOpenChange }: Props) {
   const { user, updateUser } = useAuth();
   const { t } = useTranslation('auth');
   const fileRef = useRef<HTMLInputElement>(null);
+  // 2026-09-19 — pedido do utilizador: "um utilizador tem cargos,
+  // permissões e escopos, seria bom que essas informações aparecessem no
+  // seu perfil". A API nunca devolve nome de Role em /me/access de
+  // propósito (Fase 8) — mostra-se Scopes (cada um com as suas
+  // permissões), o mesmo que a própria API expõe.
+  const effectivePermissions = useEffectivePermissions();
+  const accessScopes = useAccessScopes();
 
   const [name,   setName]   = useState('');
   const [email,  setEmail]  = useState('');
@@ -78,7 +87,7 @@ export default function ProfileDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px]">
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>{t('profile.title')}</DialogTitle>
         </DialogHeader>
@@ -142,6 +151,41 @@ export default function ProfileDialog({ open, onOpenChange }: Props) {
               value={email}
               onChange={e => setEmail(e.target.value)}
             />
+          </div>
+
+          {/* Acesso — cargos/permissões/scopes */}
+          <div className="space-y-2 rounded-lg border p-3">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              <p className="text-sm font-medium">{t('profile.accessTitle')}</p>
+            </div>
+            {effectivePermissions === null ? (
+              <p className="text-xs text-muted-foreground">{t('profile.accessLoading')}</p>
+            ) : (accessScopes?.length ?? 0) === 0 ? (
+              <p className="text-xs text-muted-foreground">{t('profile.accessNone')}</p>
+            ) : (
+              <div className="max-h-48 space-y-2.5 overflow-y-auto pr-1">
+                {accessScopes!.map((scope) => (
+                  <div key={scope.id}>
+                    <div className="mb-1 flex items-center gap-1.5">
+                      <Layers className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs font-medium">{scope.name}</span>
+                      <Badge variant="secondary" className="text-[10px]">
+                        {scope.type === 'organization' ? t('profile.accessScopeOrg') : t('profile.accessScopeResources')}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {scope.permissions.map((code) => (
+                        <Badge key={code} variant="outline" className="font-mono text-[9px]">{code}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground">
+              {t('profile.accessTotal', { count: effectivePermissions?.length ?? 0 })}
+            </p>
           </div>
         </div>
 
