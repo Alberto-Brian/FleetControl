@@ -170,7 +170,7 @@ export default function HomePage() {
                   transition: 'opacity 180ms ease, max-width 200ms ease-in-out',
                 }}
               >
-                <p className="text-sm font-bold text-white whitespace-nowrap">{t('navigation:app.name')}</p>
+                <p className="text-sm font-bold whitespace-nowrap" style={{ color: 'var(--ui-t90)' }}>{t('navigation:app.name')}</p>
                 <p className="text-[10px] whitespace-nowrap" style={{ color: 'var(--ui-t40)' }}>{t('navigation:app.tagline')}</p>
               </div>
             </div>
@@ -578,7 +578,7 @@ function NavRailButton({
           : hovered ? 'var(--ui-b08)' : 'transparent',
         color: active
           ? 'var(--nav-active-color)'
-          : hovered ? 'var(--ui-t75)' : 'var(--ui-t40)',
+          : hovered ? 'var(--ui-t90)' : 'var(--ui-t75)',
         border: active
           ? '1px solid var(--nav-active-border)'
           : '1px solid transparent',
