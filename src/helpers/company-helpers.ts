@@ -60,6 +60,12 @@ export async function getCompanyLogoBase64(): Promise<string | null> {
   return window._company.getLogoBase64();
 }
 
+// 2026-09-20 — limpeza ao trocar de organização nesta máquina, ver
+// wipeLocalDataForIdentitySwitch em license-helpers.ts.
+export async function deleteCompanySettings(): Promise<void> {
+  return window._company.delete();
+}
+
 // ─────────────────────────────────────────────
 // Internal
 // ─────────────────────────────────────────────

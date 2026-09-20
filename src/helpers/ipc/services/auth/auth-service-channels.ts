@@ -16,3 +16,9 @@ export const CLEAR_CACHED_SESSION = 'service-auth:clear-cached-session';
 // Fase 11B.10 — sincroniza o registo local ("cadeado do cache") com a
 // identidade que a API acabou de confirmar num login online bem-sucedido.
 export const SYNC_LOCAL_USER = 'service-auth:sync-local-user';
+
+// 2026-09-20 — gestão dos "cadeados" locais (Definições → Licença) e
+// limpeza automática ao trocar de organização nesta máquina.
+export const LIST_LOCAL_UNLOCK_RECORDS  = 'service-auth:list-local-unlock-records';
+export const DELETE_LOCAL_UNLOCK_RECORD = 'service-auth:delete-local-unlock-record';
+export const WIPE_LOCAL_UNLOCK_RECORDS  = 'service-auth:wipe-local-unlock-records';

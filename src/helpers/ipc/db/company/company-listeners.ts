@@ -9,6 +9,7 @@ import {
   COMPANY_UPLOAD_LOGO,
   COMPANY_REMOVE_LOGO,
   COMPANY_GET_LOGO_B64,
+  COMPANY_DELETE,
 } from './company-channels';
 import {
   getCompanySettings,
@@ -16,6 +17,7 @@ import {
   updateCompanyLogo,
   removeCompanyLogo,
   isCompanyConfigured,
+  deleteCompanySettings,
 } from '@/lib/db/queries/company.queries';
 import {
   saveLogo,
@@ -99,5 +101,15 @@ export function addCompanyEventListeners() {
     const settings = await getCompanySettings();
     if (settings?.logo) return readLogoAsBase64(settings.logo);
     return readLogoFromDisk(); // fallback
+  });
+
+  // ── DELETE (troca de organização nesta máquina) ──────────────────────────
+  // O perfil da empresa é um recurso da Organization, nunca de uma pessoa —
+  // mesma disciplina já aplicada ao PowerSync (wipeLocalDataForIdentitySwitch,
+  // license-helpers.ts) — nunca devia sobreviver a uma licença re-emitida
+  // para uma Organization diferente nesta máquina.
+  ipcMain.handle(COMPANY_DELETE, async () => {
+    await removeLogoFile().catch(() => {});
+    await deleteCompanySettings();
   });
 }

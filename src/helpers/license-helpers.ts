@@ -10,6 +10,9 @@ import { toast } from 'sonner';
 // it directly here avoids needing an export this plain module doesn't have.
 import i18n from 'i18next';
 import type { ValidatedLicense } from '@/lib/types/licence';
+import { wipeAllLocalUnlockRecords } from '@/helpers/local-users-helpers';
+import { deleteCompanySettings } from '@/helpers/company-helpers';
+import { resetSystemSettings } from '@/helpers/system-settings-helpers';
 
 // Fase 11B.11 — disparado quando o servidor recusa explicitamente a sessão
 // actual (revogada por um admin, ou expirada) enquanto online. AuthContext
@@ -311,6 +314,27 @@ export async function revokeSession(sessionId: string): Promise<void> {
   await apiClient.delete(`/api/sessions/${sessionId}`, { headers: authHeaders() });
 }
 
+// 2026-09-20 — achado real: o "Sair" do Desktop nunca chamava isto, só
+// limpava os tokens locais (clearApiSession()) — a sessão no servidor
+// nunca era revogada, só expirava sozinha (30 dias, ou 12h sem uso). Efeito
+// visível: a lista "Sessões activas" (LicenseTab) crescia sem nunca
+// encolher, mesmo depois de várias pessoas fazerem logout normalmente.
+// POST /api/auth/logout é público (Fase 11B.5) — não exige authMiddleware,
+// só o próprio refresh_token no corpo, porque o access_token pode já estar
+// expirado no momento em que a pessoa quer sair. Chamar SEMPRE antes de
+// clearApiSession() apagar _refreshToken da memória — depois disso já não
+// há nada para enviar. Falha silenciosa (rede em baixo, etc.) — um logout
+// nunca deve ficar "preso" à espera do servidor; a sessão expira sozinha
+// de qualquer forma se este pedido não chegar.
+export async function logoutOnApi(): Promise<void> {
+  if (!_refreshToken) return;
+  try {
+    await apiClient.post('/api/auth/logout', { refresh_token: _refreshToken });
+  } catch {
+    // Sem sessão para revogar, ou API inacessível — o logout local continua.
+  }
+}
+
 // ── Validação e activação ─────────────────────────────────────────────────────
 
 export async function validateLicense(licenseKey: string): Promise<ValidatedLicense> {
@@ -572,8 +596,26 @@ export async function peekCachedSessionIdentity(): Promise<{ email: string; orga
 // "ponto em aberto do Prompt 22.1" já referido no projecto (nunca
 // confirmado empiricamente) — testar com dois utilizadores reais de Scope
 // diferente, na mesma máquina, antes de confiar nisto em produção.
+// 2026-09-20 — achado real: até aqui só o PowerSync era limpo aqui — a
+// tabela local `users` (cadeados de quem já fez login nesta máquina) e as
+// preferências locais da empresa (company_settings/system_settings)
+// nunca eram tocadas, apesar de serem TAMBÉM um recurso da Organization
+// anterior, não de uma pessoa — mesma razão já usada para o PowerSync,
+// só nunca estendida a estes três. Numa máquina partilhada entre clientes
+// (ex. revenda de hardware, ou troca de licença para outra empresa), isto
+// deixava nome/email/hash de password de funcionários de uma organização
+// visíveis/geríveis por quem viesse a seguir — uma fuga real de PII entre
+// clientes. resetSystemSettings() repõe os valores por omissão (não há
+// "apagar" para esta tabela, é sempre uma única linha); as outras duas são
+// mesmo apagadas. Falhas isoladas não travam as restantes — cada limpeza é
+// independente, uma falhar não deve impedir as outras de correr.
 export async function wipeLocalDataForIdentitySwitch(): Promise<void> {
   await window._service_powersync.disconnectAndClear();
+  await Promise.allSettled([
+    wipeAllLocalUnlockRecords(),
+    deleteCompanySettings(),
+    resetSystemSettings(),
+  ]);
 }
 
 export async function removeLicense(): Promise<void> {

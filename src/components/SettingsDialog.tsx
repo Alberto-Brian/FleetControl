@@ -39,6 +39,8 @@ import { getSystemVersion, listDatabases, getDatabaseStats, deleteDatabase, list
 import { getCompanySettings, updateCompanySettings, uploadCompanyLogo, removeCompanyLogo } from '@/helpers/company-helpers';
 import { getSystemSettings, updateSystemSettings, resetSystemSettings }                    from '@/helpers/system-settings-helpers';
 import { removeLicense, getLicenseSeats, revokeSession, type ILicenseSeats } from '@/helpers/license-helpers';
+import { usePermission } from '@/hooks/usePermission';
+import { listLocalUnlockRecords, removeLocalUnlockRecord, type ILocalUnlockRecord } from '@/helpers/local-users-helpers';
 import { requestNotificationPermission, isAlertSoundEnabled, setAlertSoundEnabled, playAlertSound } from '@/helpers/notifications';
 import {
   isSyncSoundEnabled, setSyncSoundEnabled, playSyncSound,
@@ -654,11 +656,61 @@ function LicenseTab() {
   const [seatsLoading, setSeatsLoading]       = useState(false);
   const [seatsForbidden, setSeatsForbidden]   = useState(false);
 
+  // 2026-09-20 — achado real: esta secção nunca teve nenhuma verificação de
+  // permissão no lado do cliente (ao contrário do padrão já usado para as
+  // acções de GPS, usePermission) — dependia só do 403 do servidor, e
+  // chegava a aparecer (cabeçalho + spinner) por instantes antes disso ser
+  // conhecido. session:read decide se a secção sequer tenta carregar;
+  // session:revoke (separado) decide se o botão "Revogar" aparece — antes,
+  // quem tivesse só session:read via e podia clicar em "Revogar" para
+  // qualquer sessão, só falhando no servidor.
+  const canReadSessions   = usePermission('session:read');
+  const canRevokeSessions = usePermission('session:revoke');
+
   // Confirmação de revogação de sessão (ConfirmDeleteDialog, RBAC-gated no
   // servidor — session:revoke — já não precisa de reconfirmar a própria
   // password aqui, ao contrário do antigo fluxo por desktop).
   const [revokeSessionTarget, setRevokeSessionTarget] = useState<{ id: string; label: string } | null>(null);
   const [revokingSession, setRevokingSession]         = useState(false);
+
+  // 2026-09-20 — "utilizadores locais desta máquina" (cadeados, Fase
+  // 11B.10) — distinto das Sessões activas acima (essas são o servidor a
+  // mostrar utilizadores concorrentes em TODA a Organization; isto é só
+  // quem já fez login, alguma vez, nesta instalação específica, mesmo
+  // offline). Mesmo gating de permissão que as sessões — é informação
+  // sobre outras pessoas, não deve ficar visível a qualquer sessão válida.
+  const [localRecords, setLocalRecords]               = useState<ILocalUnlockRecord[] | null>(null);
+  const [localRecordsLoading, setLocalRecordsLoading]  = useState(false);
+  const [removingLocalId, setRemovingLocalId]          = useState<string | null>(null);
+  const [removeLocalTarget, setRemoveLocalTarget]      = useState<ILocalUnlockRecord | null>(null);
+
+  async function loadLocalRecords() {
+    setLocalRecordsLoading(true);
+    try {
+      setLocalRecords(await listLocalUnlockRecords());
+    } finally {
+      setLocalRecordsLoading(false);
+    }
+  }
+
+  async function handleRemoveLocalRecord() {
+    if (!removeLocalTarget) return;
+    setRemovingLocalId(removeLocalTarget.id);
+    try {
+      await removeLocalUnlockRecord(removeLocalTarget.id);
+      toast.success('Registo local removido');
+      setRemoveLocalTarget(null);
+      await loadLocalRecords();
+    } catch (err: any) {
+      toast.error('Erro ao remover registo', { description: err?.message || 'Tenta novamente.' });
+    } finally {
+      setRemovingLocalId(null);
+    }
+  }
+
+  useEffect(() => {
+    if (canReadSessions) loadLocalRecords();
+  }, [canReadSessions]);
 
   const modeLabel: Record<string, string> = {
     connected:  t('license.modeConnected'),
@@ -672,10 +724,10 @@ function LicenseTab() {
   };
 
   useEffect(() => {
-    if (license?.isValid) {
+    if (license?.isValid && canReadSessions) {
       loadSeats();
     }
-  }, [license?.isValid]);
+  }, [license?.isValid, canReadSessions]);
 
   async function loadSeats() {
     setSeatsLoading(true);
@@ -787,10 +839,11 @@ function LicenseTab() {
           </div>
 
           {/* Seats (utilizadores concorrentes) — Fase 11B.3/11B.6. Secção
-              omitida por completo sem a permission session:read
-              (seatsForbidden) — "só utilizadores permitidos podem ver isto"
-              é decidido pelo backend (403), nunca por uma condição aqui. */}
-          {!seatsForbidden && (
+              omitida sem session:read — verificado no cliente (canReadSessions,
+              2026-09-20, evita sequer tentar o pedido/flash) E no servidor
+              (seatsForbidden, mantido como defesa em profundidade — a
+              autoridade real continua a ser sempre o backend). */}
+          {canReadSessions && !seatsForbidden && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Sessões activas</p>
@@ -828,14 +881,16 @@ function LicenseTab() {
                             return (
                               <div key={s.id} className="flex items-center justify-between gap-2 text-xs">
                                 <span className="text-muted-foreground">{s.clientType} · último acesso {lastSeen}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 px-2 text-[11px] text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => setRevokeSessionTarget({ id: s.id, label: `${u.name} (${s.clientType})` })}
-                                >
-                                  Revogar
-                                </Button>
+                                {canRevokeSessions && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-[11px] text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => setRevokeSessionTarget({ id: s.id, label: `${u.name} (${s.clientType})` })}
+                                  >
+                                    Revogar
+                                  </Button>
+                                )}
                               </div>
                             );
                           })}
@@ -852,6 +907,66 @@ function LicenseTab() {
                   Revoga uma sessão para libertar um seat.
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Utilizadores locais desta máquina (cadeados, Fase 11B.10,
+              2026-09-20) — distinto das Sessões activas acima: isto é só
+              quem já fez login, alguma vez, NESTA instalação (mesmo
+              offline), não o servidor a mostrar utilizadores concorrentes
+              em toda a Organization. Mesmo gating (session:read/revoke),
+              é informação sobre outras pessoas. */}
+          {canReadSessions && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Utilizadores locais desta máquina</p>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" onClick={loadLocalRecords} disabled={localRecordsLoading}>
+                  {localRecordsLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                  Actualizar
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Cada pessoa que já fez login online nesta máquina fica com um registo local ("cadeado"),
+                usado para continuar a entrar offline com a última sessão válida. Remove um registo para
+                obrigar essa pessoa a fazer login online de novo antes de voltar a usar esta máquina offline.
+              </p>
+
+              <div className="rounded-xl border border-border overflow-hidden">
+                {localRecordsLoading && !localRecords ? (
+                  <div className="flex items-center justify-center py-6 text-muted-foreground text-sm gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> A carregar...
+                  </div>
+                ) : !localRecords || localRecords.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">Sem registos locais nesta máquina</div>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {localRecords.map((u) => (
+                      <div key={u.id} className="px-4 py-3 text-sm flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium truncate">{u.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {u.email}{u.last_access_at ? ` · último acesso ${new Date(u.last_access_at).toLocaleDateString('pt', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}
+                          </p>
+                        </div>
+                        {canRevokeSessions && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-[11px] text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                            onClick={() => setRemoveLocalTarget(u)}
+                            disabled={removingLocalId === u.id}
+                          >
+                            Remover
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -916,6 +1031,19 @@ function LicenseTab() {
         title="Revogar sessão"
         description={revokeSessionTarget ? `Esta acção termina a sessão de ${revokeSessionTarget.label} e liberta um seat da licença.` : undefined}
         isLoading={revokingSession}
+      />
+
+      {/* Remover um "cadeado" local (Fase 11B.10) — não afecta a sessão
+          activa dessa pessoa no servidor (isso é Revogar sessão, acima); só
+          obriga um novo login online nesta máquina antes de voltar a
+          desbloquear offline. */}
+      <ConfirmDeleteDialog
+        open={!!removeLocalTarget}
+        onOpenChange={(o) => { if (!o) setRemoveLocalTarget(null); }}
+        onConfirm={handleRemoveLocalRecord}
+        title="Remover utilizador local"
+        description={removeLocalTarget ? `${removeLocalTarget.name} (${removeLocalTarget.email}) vai precisar de fazer login online de novo antes de conseguir usar esta máquina offline.` : undefined}
+        isLoading={removingLocalId === removeLocalTarget?.id}
       />
     </div>
   );

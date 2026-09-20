@@ -183,6 +183,41 @@ export class AuthService {
   }
 
   /**
+   * 2026-09-20 — lista os "cadeados" locais (utilizadores que já fizeram
+   * login online, pelo menos uma vez, nesta máquina) para a nova secção de
+   * gestão em Definições → Licença. Nunca mostra password_hash.
+   */
+  static async listUnlockRecords(): Promise<Array<{ id: string; name: string; email: string; last_access_at: string | null }>> {
+    const db = getDb();
+    const rows = await db.query.users.findMany({ where: isNull(users.deleted_at) });
+    return rows.map((u) => ({ id: u.id, name: u.name, email: u.email, last_access_at: u.last_access_at }));
+  }
+
+  /**
+   * Remove um único "cadeado" local (ex. um admin a limpar o registo de
+   * alguém que já não trabalha cá) — hard delete, nunca soft, porque não há
+   * nenhum caso de uso para "recuperar" um cadeado apagado.
+   */
+  static async deleteUnlockRecord(userId: string): Promise<void> {
+    const db = getDb();
+    await db.delete(users).where(eq(users.id, userId));
+  }
+
+  /**
+   * Limpeza ao trocar de organização nesta máquina (ver
+   * wipeLocalDataForIdentitySwitch em license-helpers.ts) — achado real:
+   * até aqui só o PowerSync era limpo numa troca de licença para outra
+   * Organization; os "cadeados" locais (nome/email/hash de password de
+   * quem já fez login nesta máquina) ficavam para sempre, incluindo depois
+   * da máquina passar a servir um cliente diferente — uma fuga real de PII
+   * entre organizações na mesma máquina partilhada.
+   */
+  static async wipeAllUnlockRecords(): Promise<void> {
+    const db = getDb();
+    await db.delete(users);
+  }
+
+  /**
    * Actualizar perfil
    */
   static async updateProfile(

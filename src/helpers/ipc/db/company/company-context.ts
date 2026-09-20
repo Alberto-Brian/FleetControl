@@ -8,6 +8,7 @@ import {
   COMPANY_UPLOAD_LOGO,
   COMPANY_REMOVE_LOGO,
   COMPANY_GET_LOGO_B64,
+  COMPANY_DELETE,
 } from './company-channels';
 
 export function exposeCompanyContext() {
@@ -20,5 +21,6 @@ export function exposeCompanyContext() {
     uploadLogo:    (base64: string)      => ipcRenderer.invoke(COMPANY_UPLOAD_LOGO, base64),
     removeLogo:    ()                    => ipcRenderer.invoke(COMPANY_REMOVE_LOGO),
     getLogoBase64: ()                    => ipcRenderer.invoke(COMPANY_GET_LOGO_B64),
+    delete:        ()                    => ipcRenderer.invoke(COMPANY_DELETE),
   });
 }

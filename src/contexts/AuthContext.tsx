@@ -6,7 +6,7 @@ import {
   syncLocalUser,
  } from '@/helpers/service-auth-helpers';
 import {
-  loginOnApi, clearApiSession, tryRestoreCachedSession,
+  loginOnApi, clearApiSession, logoutOnApi, tryRestoreCachedSession,
   peekCachedSessionIdentity, wipeLocalDataForIdentitySwitch, getLicensedOrganizationId,
   SESSION_REVOKED_EVENT,
 } from '@/helpers/license-helpers';
@@ -160,9 +160,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setMustChangePassword(false);
     localStorage.removeItem('fleet_user');
-    // Liberta o token do utilizador que saiu — nunca deixar o próximo login
-    // (mesmo Desktop, outro utilizador) herdar a sessão API anterior.
-    void clearApiSession();
+    // 2026-09-20 — revoga a sessão no SERVIDOR primeiro (enquanto
+    // _refreshToken ainda existe em memória), só depois limpa localmente —
+    // clearApiSession() apaga _refreshToken, e logoutOnApi() já não teria
+    // nada para enviar se a ordem fosse invertida. Sem isto, "Sessões
+    // activas" nunca encolhia com um logout normal (achado real).
+    void (async () => {
+      await logoutOnApi();
+      await clearApiSession();
+    })();
   };
 
   const clearMustChangePassword = () => setMustChangePassword(false);

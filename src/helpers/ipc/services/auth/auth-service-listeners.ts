@@ -14,6 +14,9 @@ import {
     GET_CACHED_SESSION,
     CLEAR_CACHED_SESSION,
     SYNC_LOCAL_USER,
+    LIST_LOCAL_UNLOCK_RECORDS,
+    DELETE_LOCAL_UNLOCK_RECORD,
+    WIPE_LOCAL_UNLOCK_RECORDS,
  } from "./auth-service-channels";
 
 import { setStoredApiToken } from './token-store';
@@ -50,6 +53,16 @@ export function addServiceAuthEventListeners() {
 
     ipcMain.handle(SYNC_LOCAL_USER, async (_event, data: { name: string; email: string; password: string }) => {
         return await AuthService.syncLocalUnlockRecord(data.name, data.email, data.password);
+    });
+
+    ipcMain.handle(LIST_LOCAL_UNLOCK_RECORDS, async (_event) => {
+        return await AuthService.listUnlockRecords();
+    });
+    ipcMain.handle(DELETE_LOCAL_UNLOCK_RECORD, async (_event, userId: string) => {
+        return await AuthService.deleteUnlockRecord(userId);
+    });
+    ipcMain.handle(WIPE_LOCAL_UNLOCK_RECORDS, async (_event) => {
+        return await AuthService.wipeAllUnlockRecords();
     });
 }
 

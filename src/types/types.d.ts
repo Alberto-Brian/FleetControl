@@ -113,6 +113,9 @@ interface Services {
         getCachedSession:   () => Promise<CachedSession | null>;
         clearCachedSession: () => Promise<void>;
         syncLocalUser:      (data: { name: string; email: string; password: string }) => Promise<IUser>;
+        listLocalUnlockRecords:  () => Promise<Array<{ id: string; name: string; email: string; last_access_at: string | null }>>;
+        deleteLocalUnlockRecord: (userId: string) => Promise<void>;
+        wipeLocalUnlockRecords:  () => Promise<void>;
     }
 }
 
@@ -322,6 +325,7 @@ interface ICompany {
     uploadLogo:    (base64: string) => Promise<import('./lib/types/company').IUploadLogoResponse>;
     removeLogo:    () => Promise<import('./lib/types/company').ICompanySettings | null>;
     getLogoBase64: () => Promise<string | null>;
+    delete:        () => Promise<void>;
 }
 
 interface ISystemSettings {

@@ -12,6 +12,9 @@ import {
     GET_CACHED_SESSION,
     CLEAR_CACHED_SESSION,
     SYNC_LOCAL_USER,
+    LIST_LOCAL_UNLOCK_RECORDS,
+    DELETE_LOCAL_UNLOCK_RECORD,
+    WIPE_LOCAL_UNLOCK_RECORDS,
 } from "./auth-service-channels";
 
 import {
@@ -36,5 +39,8 @@ export function exposeServiceAuthContext() {
         getCachedSession: () => ipcRenderer.invoke(GET_CACHED_SESSION),
         clearCachedSession: () => ipcRenderer.invoke(CLEAR_CACHED_SESSION),
         syncLocalUser: (data: { name: string; email: string; password: string }) => ipcRenderer.invoke(SYNC_LOCAL_USER, data),
+        listLocalUnlockRecords: () => ipcRenderer.invoke(LIST_LOCAL_UNLOCK_RECORDS),
+        deleteLocalUnlockRecord: (userId: string) => ipcRenderer.invoke(DELETE_LOCAL_UNLOCK_RECORD, userId),
+        wipeLocalUnlockRecords: () => ipcRenderer.invoke(WIPE_LOCAL_UNLOCK_RECORDS),
     })
 }
