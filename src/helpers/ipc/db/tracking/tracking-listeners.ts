@@ -123,7 +123,6 @@ export function addTrackingEventListeners() {
   });
 
   ipcMain.handle(SYNC_DEVICES, async () => {
-    // console.log('O MEU TOKEN: ', apiHeaders());
     const { data } = await axios.post(`${getApiUrl()}/api/traccar/devices/sync`, {}, {
       headers: apiHeaders(),
       timeout: 15_000,

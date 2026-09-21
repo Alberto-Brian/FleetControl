@@ -93,6 +93,22 @@ async function createWindow() {
     
     registerListeners(mainWindow);
 
+    // Novas janelas (window.open): só blob: (pré-visualização de PDF gerada na
+    // própria app), e sem acesso ao Node; qualquer outra coisa (http/https/file)
+    // é recusada — evita que conteúdo injectado abra páginas remotas com o
+    // mesmo nível de privilégio da janela principal.
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        if (url.startsWith('blob:')) {
+            return {
+                action: 'allow',
+                overrideBrowserWindowOptions: {
+                    webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true },
+                },
+            };
+        }
+        return { action: 'deny' };
+    });
+
     // Garante que o renderer processa eventos socket mesmo com a janela minimizada
     mainWindow.webContents.setBackgroundThrottling(false);
 

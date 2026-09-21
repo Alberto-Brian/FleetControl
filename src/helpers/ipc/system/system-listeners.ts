@@ -21,7 +21,17 @@ export function addSystemEventListeners() {
     });
     ipcMain.on(FORCE_DB_ROTATION, () => db_manager.rotate(true, true));
     ipcMain.handle(GET_SERVER_URL, () => getApiUrl());
-    ipcMain.handle(SET_SERVER_URL, (_event, url: string) => { setApiUrl(url); return true; });
+    ipcMain.handle(SET_SERVER_URL, (_event, url: string) => {
+        // O URL do servidor recebe as credenciais no próximo login — só aceita
+        // http(s) bem formado (nunca file:, javascript:, etc.).
+        let parsed: URL;
+        try { parsed = new URL(String(url).trim()); } catch { throw new Error('URL do servidor inválido'); }
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+            throw new Error('O URL do servidor tem de começar por http:// ou https://');
+        }
+        setApiUrl(String(url).trim());
+        return true;
+    });
     ipcMain.on(SHOW_NOTIFICATION, (_event, title: string, body: string) => {
         if (Notification.isSupported()) {
             new Notification({ title, body, silent: false }).show();

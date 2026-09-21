@@ -14,6 +14,15 @@ import { wipeAllLocalUnlockRecords } from '@/helpers/local-users-helpers';
 import { deleteCompanySettings } from '@/helpers/company-helpers';
 import { resetSystemSettings } from '@/helpers/system-settings-helpers';
 
+// Um AxiosError inteiro, quando logado, imprime config.headers (Authorization:
+// Bearer …) e config.data (ex. refresh_token) — nunca logar o objecto; só o
+// estado HTTP ou a mensagem.
+function safeErr(err: unknown): string {
+  const e = err as { response?: { status?: number }; message?: string };
+  if (e?.response?.status) return `HTTP ${e.response.status}`;
+  return e?.message ?? String(err);
+}
+
 // Fase 11B.11 — disparado quando o servidor recusa explicitamente a sessão
 // actual (revogada por um admin, ou expirada) enquanto online. AuthContext
 // escuta este evento para devolver a app ao ecrã de login — uma sessão
@@ -205,7 +214,7 @@ async function fetchAndCachePermissions(attempt = 1): Promise<void> {
     _accessScopes = data?.data?.scopes ?? [];
     window.dispatchEvent(new Event(PERMISSIONS_READY_EVENT));
   } catch (err) {
-    console.warn(`[License] Falha ao obter permissões efectivas (tentativa ${attempt}):`, err);
+    console.warn(`[License] Falha ao obter permissões efectivas (tentativa ${attempt}):`, safeErr(err));
     if (attempt < 3) {
       setTimeout(() => { void fetchAndCachePermissions(attempt + 1); }, 3000 * attempt);
     }
@@ -524,7 +533,7 @@ export async function tryRestoreCachedSession(expectedEmail: string): Promise<bo
 
     return true;
   } catch (err) {
-    console.warn('[License] Falha ao reaproveitar sessão cacheada:', err);
+    console.warn('[License] Falha ao reaproveitar sessão cacheada:', safeErr(err));
     return false;
   }
 }
@@ -880,7 +889,7 @@ async function tryRefreshOrReactivateImpl(): Promise<void> {
       // silenciosamente se também não houver ligação (activateOnApi já
       // trata isso). Reagenda mais abaixo mesmo que este fallback também
       // falhe — ver comentário no topo da função.
-      console.warn('[License] Refresh falhou (sem ligação/transitório):', err);
+      console.warn('[License] Refresh falhou (sem ligação/transitório):', safeErr(err));
       retryOnFailure = true;
     }
   }
