@@ -31,7 +31,7 @@ interface TrackingPageContentProps {
 
 export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpenSettings }: TrackingPageContentProps) {
   const { t }               = useTranslation('tracking');
-  const { state, dispatch, isConnected, reconnectCount, reconciliationWarning, dismissReconciliationWarning } = useTracking();
+  const { state, dispatch, isConnected, reconnectCount, reconciliationWarning, dismissReconciliationWarning, reloadActiveImeis } = useTracking();
   const { labelType, animateMarkers, pulseMarkers } = useMapSettings();
   const mapRef             = useRef<any>(null);
   const zoomCycleRef       = useRef<0 | 1 | 2>(0); // 0=bairro(14) 1=rua(18) 2=todos
@@ -96,6 +96,9 @@ export function TrackingPageContent({ showControls = true, leftOffset = 0, onOpe
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       if (isConnected) await syncDevices();
+      // O botão "actualizar" também refresca o vínculo veículo↔device (vem
+      // dos veículos locais) — antes só recarregava devices/posições.
+      await reloadActiveImeis();
       const [devs, rawPos] = await Promise.all([
         getTrackedDevices(),
         getLivePositions(),

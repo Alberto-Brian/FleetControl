@@ -320,6 +320,22 @@ export function TrackingProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { loadGeofences(); }, [loadGeofences]);
 
+  // Achado real (2026-09-21): o vínculo veículo↔device vem dos veículos LOCAIS
+  // (PowerSync, traccar_unique_id) e reloadActiveImeis() só corria ao montar —
+  // um veículo ligado a um device noutro sítio (ex. organization-admin) só
+  // aparecia na barra lateral depois de reiniciar a app. Recarrega sempre que
+  // a tabela vehicles muda por sincronização (agrupado, para uma rajada de
+  // linhas não disparar N recargas).
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const off = window._service_powersync.onDataChanged((tables: string[]) => {
+      if (!tables.includes('vehicles')) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { reloadActiveImeis(); }, 800);
+    });
+    return () => { if (timer) clearTimeout(timer); off?.(); };
+  }, [reloadActiveImeis]);
+
   // Achado real (2026-09-12): "às vezes dá 'Sem token de autenticação' mesmo
   // com a licença activa" — reloadActiveImeis()/getTrackedDevices() acima e
   // loadGeofences() corriam uma única vez ao montar, sem nenhuma noção de
