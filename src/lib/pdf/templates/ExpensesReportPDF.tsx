@@ -1,12 +1,12 @@
 import React from 'react';
 import { Document, Page, Text, View } from '@react-pdf/renderer';
-import {
-  Header, Footer, InfoSection, SectionTitle,
-  StatusBadge, SummaryBox, EmptyState, Watermark, TableHeader,
-} from '@/components/PDFComponents';
-import { KPICards, DonutChart, BarChart, TwoColLayout } from '@/components/PDFCharts';
-import { commonStyles, formatDate, formatCurrency, getPDFSettings, PDF_CONFIG } from '../pdf-config-react';
+import { Footer, StatusBadge, Watermark } from '@/components/PDFComponents';
+import { formatDate, formatCurrency, getPDFSettings, PDF_CONFIG } from '../pdf-config-react';
 import { pdfT } from '../pdf-translations';
+import {
+  reportStyles as styles, ReportHeader, SectionHeader, KpiGrid, AnalysisBox,
+  ProgressList, EmptyNote, DonutBox, ColumnChart
+} from '../report-design';
 
 const DATE_FIELD_LABELS: Record<string, string> = {
   expense_date:  'Data da Despesa',
@@ -33,6 +33,8 @@ function fmtDate(val: string | null | undefined): string {
   if (!val) return '—';
   return formatDate(val);
 }
+
+const CATEGORY_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#64748b'];
 
 export const ExpensesReportPDF: React.FC<ExpensesReportProps> = ({ expenses, stats, dateField, dateRange }) => {
   const t = pdfT();
@@ -64,104 +66,99 @@ export const ExpensesReportPDF: React.FC<ExpensesReportProps> = ({ expenses, sta
   }));
 
   const byStatus = stats?.byStatus ?? {};
-  const cellFlex = { ...commonStyles.tableCell, flex: 1 };
-  const cellSm   = { ...commonStyles.tableCell, flex: 0.85, fontSize: 7 };
 
   return (
     <Document>
-      <Page size={s.paperSize} orientation="landscape" style={commonStyles.page}>
+      <Page size={s.paperSize} orientation="landscape" style={styles.pageContainer}>
         <Watermark />
-        <Header
+
+        <ReportHeader
           title="Relatório de Despesas"
-          subtitle={`${dateFieldLabel}: ${formatDate(dateRange.start)} — ${formatDate(dateRange.end)}`}
+          subtitle={`${dateFieldLabel} · ${stats?.count ?? 0} registos`}
+          dateRange={dateRange}
         />
 
-        <InfoSection items={[
-          { label: 'Período',          value: `${formatDate(dateRange.start)} — ${formatDate(dateRange.end)}` },
-          { label: 'Filtro de data',   value: dateFieldLabel },
-          { label: 'Total de registos', value: stats?.count ?? 0 },
-          { label: t.generatedAt,      value: formatDate(new Date()) },
+        <SectionHeader>{t.summary}</SectionHeader>
+        <KpiGrid cards={[
+          { label: 'Total',    value: formatCurrency(stats?.total ?? 0),     icon: 'dollar', color: PDF_CONFIG.colors.danger },
+          { label: 'Pago',     value: formatCurrency(byStatus.paid ?? 0),    icon: 'check',  color: '#10b981' },
+          { label: 'Pendente', value: formatCurrency(byStatus.pending ?? 0), icon: 'clock',  color: '#f59e0b' },
+          { label: 'Vencido',  value: formatCurrency(byStatus.overdue ?? 0), icon: 'alert',  color: '#ef4444' },
         ]} />
 
-        {/* KPIs por status */}
-        <KPICards cards={[
-          { label: 'Total',     value: formatCurrency(stats?.total ?? 0),         color: PDF_CONFIG.colors.danger   },
-          { label: 'Pago',      value: formatCurrency(byStatus.paid ?? 0),         color: PDF_CONFIG.colors.success  },
-          { label: 'Pendente',  value: formatCurrency(byStatus.pending ?? 0),      color: PDF_CONFIG.colors.warning  },
-          { label: 'Vencido',   value: formatCurrency(byStatus.overdue ?? 0),      color: PDF_CONFIG.colors.danger   },
-        ]} />
-
-        {s.showCharts && (
-          <TwoColLayout
-            left={categoryData.length > 0
-              ? <DonutChart data={categoryData} title="Por Categoria" size={120} />
-              : null}
-            right={byMonth.labels.length > 1
-              ? <BarChart
-                  data={byMonth.labels.map((l, i) => ({ label: l, value: byMonth.values[i] }))}
-                  title="Despesas por Mês (Kz×1000)"
-                  height={135}
-                  formatValue={v => `${v}k`}
+        {s.showCharts && (categoryData.length > 0 || byMonth.labels.length > 1) && (
+          <View style={styles.twoCol}>
+            {categoryData.length > 0 && (
+              <AnalysisBox title="Por Categoria">
+                <DonutBox
+                  centerLabel="categorias"
+                  items={categoryData.map((c: any, i: number) => ({
+                    label: c.label, value: c.value, color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+                    display: formatCurrency(c.value),
+                  }))}
                 />
-              : null}
-          />
-        )}
-
-        {/* Sumário por categoria */}
-        {s.showSummary && (stats?.byCategory ?? []).length > 0 && (
-          <View style={commonStyles.section}>
-            <SectionTitle>Sumário por Categoria</SectionTitle>
-            <View style={commonStyles.table}>
-              <TableHeader>
-                <Text style={[commonStyles.tableCellHeader, { flex: 2.5 }]}>Categoria</Text>
-                <Text style={[commonStyles.tableCellHeader, { flex: 1 }]}>Qtd.</Text>
-                <Text style={[commonStyles.tableCellHeader, { flex: 1.5 }]}>Total</Text>
-                <Text style={[commonStyles.tableCellHeader, { flex: 1 }]}>%</Text>
-              </TableHeader>
-              {(stats.byCategory as any[]).map((cat, i) => (
-                <View key={i} style={i % 2 === 0 ? commonStyles.tableRow : commonStyles.tableRowAlt}>
-                  <Text style={[commonStyles.tableCellBold, { flex: 2.5 }]}>{cat.name}</Text>
-                  <Text style={[commonStyles.tableCell,     { flex: 1   }]}>{cat.count}</Text>
-                  <Text style={[commonStyles.tableCell,     { flex: 1.5 }]}>{formatCurrency(cat.total)}</Text>
-                  <Text style={[commonStyles.tableCell,     { flex: 1   }]}>{cat.percentage?.toFixed(1)}%</Text>
-                </View>
-              ))}
-            </View>
+              </AnalysisBox>
+            )}
+            {byMonth.labels.length > 1 && (
+              <AnalysisBox title="Despesas por Mês (Kz×1000)">
+                <ColumnChart
+                  color="#06b6d4"
+                  items={byMonth.labels.map((label, i) => ({ label, value: byMonth.values[i], display: `${byMonth.values[i]}k` }))}
+                />
+              </AnalysisBox>
+            )}
           </View>
         )}
 
-        <View style={{ height: 60 }} minPresenceAhead={0} />
-
-        {/* Tabela detalhada com todas as datas */}
-        <View style={commonStyles.section}>
-          <SectionTitle>Detalhe das Despesas</SectionTitle>
-          {!expenses?.length ? <EmptyState message={t.empty.noData} /> : (
-            <View style={commonStyles.table}>
-              <TableHeader>
-                <Text style={[commonStyles.tableCellHeader, { flex: 1.8 }]}>Descrição</Text>
-                <Text style={[commonStyles.tableCellHeader, { flex: 1.2 }]}>Categoria</Text>
-                <Text style={[commonStyles.tableCellHeader, cellSm]}>Dt. Despesa</Text>
-                <Text style={[commonStyles.tableCellHeader, cellSm]}>Dt. Venc.</Text>
-                <Text style={[commonStyles.tableCellHeader, cellSm]}>Dt. Pgto.</Text>
-                <Text style={[commonStyles.tableCellHeader, cellSm]}>Dt. Criação</Text>
-                <Text style={[commonStyles.tableCellHeader, cellFlex]}>Valor</Text>
-                <Text style={[commonStyles.tableCellHeader, cellFlex]}>Status</Text>
-              </TableHeader>
-              {expenses.map((exp, i) => (
-                <View key={exp.id} style={i % 2 === 0 ? commonStyles.tableRow : commonStyles.tableRowAlt}>
-                  <Text style={[commonStyles.tableCell,     { flex: 1.8, fontSize: 7 }]}>{exp.description ?? '—'}</Text>
-                  <Text style={[commonStyles.tableCell,     { flex: 1.2, fontSize: 7 }]}>{exp.category_name ?? '—'}</Text>
-                  <Text style={[commonStyles.tableCell,     cellSm]}>{fmtDate(exp.expense_date)}</Text>
-                  <Text style={[commonStyles.tableCell,     cellSm]}>{fmtDate(exp.due_date)}</Text>
-                  <Text style={[commonStyles.tableCell,     cellSm]}>{fmtDate(exp.payment_date)}</Text>
-                  <Text style={[commonStyles.tableCell,     cellSm]}>{fmtDate(exp.created_at)}</Text>
-                  <Text style={[commonStyles.tableCellBold, cellFlex]}>{formatCurrency(exp.amount)}</Text>
-                  <View style={cellFlex}><StatusBadge status={exp.status} /></View>
+        {s.showSummary && (stats?.byCategory ?? []).length > 0 && (
+          <>
+            <SectionHeader>Sumário por Categoria</SectionHeader>
+            <View style={styles.table}>
+              <View style={styles.tableHead}>
+                <Text style={[styles.th, { flex: 2.5 }]}>Categoria</Text>
+                <Text style={[styles.th, { flex: 1 }]}>Qtd.</Text>
+                <Text style={[styles.th, { flex: 1.5 }]}>Total</Text>
+                <Text style={[styles.th, { flex: 1 }]}>%</Text>
+              </View>
+              {(stats.byCategory as any[]).map((cat, i) => (
+                <View key={i} style={styles.tr} wrap={false}>
+                  <Text style={[styles.tdBold, { flex: 2.5 }]}>{cat.name}</Text>
+                  <Text style={[styles.td, { flex: 1 }]}>{cat.count}</Text>
+                  <Text style={[styles.td, { flex: 1.5 }]}>{formatCurrency(cat.total)}</Text>
+                  <Text style={[styles.td, { flex: 1 }]}>{cat.percentage?.toFixed(1)}%</Text>
                 </View>
               ))}
             </View>
-          )}
-        </View>
+          </>
+        )}
+
+        <SectionHeader>Detalhe das Despesas</SectionHeader>
+        {!expenses?.length ? <EmptyNote message={t.empty.noData} /> : (
+          <View style={styles.table}>
+            <View style={styles.tableHead}>
+              <Text style={[styles.th, { flex: 1.8 }]}>Descrição</Text>
+              <Text style={[styles.th, { flex: 1.2 }]}>Categoria</Text>
+              <Text style={[styles.th, { flex: 0.85 }]}>Dt. Despesa</Text>
+              <Text style={[styles.th, { flex: 0.85 }]}>Dt. Venc.</Text>
+              <Text style={[styles.th, { flex: 0.85 }]}>Dt. Pgto.</Text>
+              <Text style={[styles.th, { flex: 0.85 }]}>Dt. Criação</Text>
+              <Text style={[styles.th, { flex: 1 }]}>Valor</Text>
+              <Text style={[styles.th, { flex: 1 }]}>Status</Text>
+            </View>
+            {expenses.map((exp) => (
+              <View key={exp.id} style={styles.tr} wrap={false}>
+                <Text style={[styles.td, { flex: 1.8 }]}>{exp.description ?? '—'}</Text>
+                <Text style={[styles.td, { flex: 1.2 }]}>{exp.category_name ?? '—'}</Text>
+                <Text style={[styles.td, { flex: 0.85 }]}>{fmtDate(exp.expense_date)}</Text>
+                <Text style={[styles.td, { flex: 0.85 }]}>{fmtDate(exp.due_date)}</Text>
+                <Text style={[styles.td, { flex: 0.85 }]}>{fmtDate(exp.payment_date)}</Text>
+                <Text style={[styles.td, { flex: 0.85 }]}>{fmtDate(exp.created_at)}</Text>
+                <Text style={[styles.tdBold, { flex: 1 }]}>{formatCurrency(exp.amount)}</Text>
+                <View style={{ flex: 1 }}><StatusBadge status={exp.status} /></View>
+              </View>
+            ))}
+          </View>
+        )}
 
         <Footer />
       </Page>

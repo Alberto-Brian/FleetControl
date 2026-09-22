@@ -3,25 +3,13 @@
 // ========================================
 import React from 'react';
 import { Document, Page, Text, View } from '@react-pdf/renderer';
-import {
-  Header, Footer, InfoSection, SectionTitle,
-  StatusBadge, EmptyState, Watermark, TableHeader,
-} from '@/components/PDFComponents';
-import {
-  KPICards, DonutChart, BarChart, HBarChart, TwoColLayout,
-} from '@/components/PDFCharts';
-import {
-  commonStyles, formatDate, formatDistance, getPDFSettings,
-  PDF_CONFIG,
-} from '../pdf-config-react';
+import { Footer, StatusBadge, Watermark } from '@/components/PDFComponents';
+import { formatDate, formatDistance, getPDFSettings } from '../pdf-config-react';
 import { pdfT } from '../pdf-translations';
-
-const cellPlate    = { ...commonStyles.tableCell, flex: 1 };
-const cellVehicle  = { ...commonStyles.tableCell, flex: 1.5 };
-const cellCategory = { ...commonStyles.tableCell, flex: 1.3 };
-const cellYear     = { ...commonStyles.tableCell, flex: 0.6 };
-const cellMileage  = { ...commonStyles.tableCell, flex: 1.1 };
-const cellStatus   = { ...commonStyles.tableCell, flex: 1 };
+import {
+  reportStyles as styles, ReportHeader, SectionHeader, KpiGrid, AnalysisBox,
+  ProgressList, StatusPills, EmptyNote, DonutBox, ColumnChart
+} from '../report-design';
 
 interface VehiclesReportProps {
   vehicles:  any[];
@@ -29,24 +17,23 @@ interface VehiclesReportProps {
   dateRange: { start: string; end: string };
 }
 
-export const VehiclesReportPDF: React.FC<VehiclesReportProps> = ({ 
-  vehicles, 
-  stats, 
-  dateRange 
+export const VehiclesReportPDF: React.FC<VehiclesReportProps> = ({
+  vehicles,
+  stats,
+  dateRange
 }) => {
   const t = pdfT();
   const s = getPDFSettings();
 
-  // ── Dados para gráficos ──────────────────────────────────────────────────
   const statusData = [
-    { label: t.stats.available,   value: stats?.available   ?? 0, color: '#10b981' },
-    { label: t.stats.inUse,       value: stats?.inUse       ?? 0, color: s.primaryColor },
-    { label: t.stats.maintenance, value: stats?.maintenance ?? 0, color: '#f59e0b' },
-    { label: t.stats.inactive,    value: stats?.inactive    ?? 0, color: '#64748b' },
-  ].filter(d => d.value > 0);
+    { label: t.stats.available,   count: stats?.available   ?? 0, color: '#10b981' },
+    { label: t.stats.inUse,       count: stats?.inUse       ?? 0, color: '#3b82f6' },
+    { label: t.stats.maintenance, count: stats?.maintenance ?? 0, color: '#f59e0b' },
+    { label: t.stats.inactive,    count: stats?.inactive    ?? 0, color: '#64748b' },
+  ].filter(d => d.count > 0);
 
   const categoryData = (stats?.byCategory ?? [])
-    .slice(0, 5)  // ✅ Reduzido de 7 para 5 para caber melhor
+    .slice(0, 5)
     .map((c: any) => ({
       label: c.name,
       value: c.count,
@@ -55,120 +42,85 @@ export const VehiclesReportPDF: React.FC<VehiclesReportProps> = ({
   const topMileage = [...(vehicles ?? [])]
     .sort((a, b) => (b.current_mileage ?? 0) - (a.current_mileage ?? 0))
     .slice(0, 6)
-    .map(v => ({ 
-      label: v.license_plate, 
-      value: v.current_mileage ?? 0 
+    .map(v => ({
+      label: v.license_plate,
+      value: v.current_mileage ?? 0
     }));
 
   return (
     <Document>
-      <Page size={s.paperSize} orientation={s.orientation} style={commonStyles.page}>
+      <Page size={s.paperSize} orientation={s.orientation} style={styles.pageContainer}>
         <Watermark />
-        <Header
+
+        <ReportHeader
           title={t.reports.vehicles}
-          subtitle={`${formatDate(dateRange.start)} — ${formatDate(dateRange.end)}`}
+          subtitle={`${vehicles?.length ?? 0} ${t.stats.totalVehicles.toLowerCase()} · ${formatDistance(stats?.totalMileage ?? 0)} ${t.stats.totalMileage.toLowerCase()}`}
+          dateRange={dateRange}
         />
 
-        <InfoSection items={[
-          { label: t.period,              value: `${formatDate(dateRange.start)} — ${formatDate(dateRange.end)}` },
-          { label: t.stats.totalVehicles, value: vehicles?.length ?? 0 },
-          { label: t.stats.totalMileage,  value: formatDistance(stats?.totalMileage ?? 0) },
-          { label: t.generatedAt,         value: formatDate(new Date()) },
+        <SectionHeader>{t.summary}</SectionHeader>
+        <KpiGrid cards={[
+          { label: t.stats.totalVehicles, value: stats?.total       ?? 0, icon: 'truck',  color: '#3b82f6' },
+          { label: t.stats.available,     value: stats?.available   ?? 0, icon: 'check',  color: '#10b981' },
+          { label: t.stats.inUse,         value: stats?.inUse       ?? 0, icon: 'route',  color: '#3b82f6' },
+          { label: t.stats.maintenance,   value: stats?.maintenance ?? 0, icon: 'wrench', color: '#f59e0b' },
+          { label: t.stats.inactive,      value: stats?.inactive    ?? 0, icon: 'clock',  color: '#64748b' },
         ]} />
 
-        {/* KPI Cards */}
-        <KPICards cards={[
-          { label: t.stats.totalVehicles, value: stats?.total       ?? 0 },
-          { 
-            label: t.stats.available,     
-            value: stats?.available   ?? 0, 
-            color: '#10b981'
-          },
-          { 
-            label: t.stats.inUse,         
-            value: stats?.inUse       ?? 0, 
-            color: s.primaryColor
-          },
-          { 
-            label: t.stats.maintenance,   
-            value: stats?.maintenance ?? 0, 
-            color: '#f59e0b'
-          },
-          { 
-            label: t.stats.inactive,      
-            value: stats?.inactive    ?? 0, 
-            color: '#64748b'
-          },
-        ]} />
-
-        {/* Gráficos - Layout ajustado */}
         {s.showCharts && (
-          <TwoColLayout
-            left={
-              <DonutChart
-                data={statusData}
-                title={t.sections.distributionByStatus}
-                size={120}  // ✅ Reduzido de 130
-              />
-            }
-            right={
-              categoryData.length > 0 ? (
-                <BarChart 
-                  data={categoryData} 
-                  title={t.sections.distributionByCategory} 
-                  width={240}   // ✅ Largura explícita para coluna
-                  height={120}  // ✅ Reduzido de 145
-                  showValues={true}
+          <>
+            <SectionHeader>{t.sections.distributionByStatus}</SectionHeader>
+            <View style={styles.twoCol}>
+              <AnalysisBox title={t.sections.distributionByStatus}>
+                <DonutBox centerLabel={t.stats.totalVehicles} items={statusData.map((d: any) => ({ label: d.label, value: d.count, color: d.color }))} />
+              </AnalysisBox>
+              {categoryData.length > 0 && (
+                <AnalysisBox title={t.sections.distributionByCategory}>
+                  <ProgressList
+                    items={categoryData.map((c: any) => ({ label: c.label, value: c.value, color: '#8b5cf6' }))}
+                  />
+                </AnalysisBox>
+              )}
+            </View>
+
+            {topMileage.length > 0 && (
+              <AnalysisBox title={t.sections.topMileage} full>
+                <ColumnChart
+                  color="#06b6d4"
+                  items={topMileage.map(v => ({ label: v.label.length > 10 ? v.label.slice(0, 9) + '…' : v.label, value: v.value, display: formatDistance(v.value) }))}
                 />
-              ) : null
-            }
-          />
+              </AnalysisBox>
+            )}
+          </>
         )}
 
-        {/* Ranking por quilometragem */}
-        {s.showCharts && topMileage.length > 0 && (
-          <View style={commonStyles.section}>
-            <SectionTitle>{t.sections.topMileage}</SectionTitle>
-            <HBarChart
-              data={topMileage}
-              formatValue={v => formatDistance(v)}
-            />
+        <SectionHeader>{t.sections.vehicleList}</SectionHeader>
+        {!vehicles?.length ? (
+          <EmptyNote message={t.empty.noVehicles} />
+        ) : (
+          <View style={styles.table}>
+            <View style={styles.tableHead}>
+              <Text style={[styles.th, { flex: 1 }]}>{t.table.licensePlate}</Text>
+              <Text style={[styles.th, { flex: 1.5 }]}>{t.table.vehicle}</Text>
+              <Text style={[styles.th, { flex: 1.3 }]}>{t.table.category}</Text>
+              <Text style={[styles.th, { flex: 0.6 }]}>{t.table.year}</Text>
+              <Text style={[styles.th, { flex: 1.1 }]}>{t.table.mileage}</Text>
+              <Text style={[styles.th, { flex: 1 }]}>{t.table.status}</Text>
+            </View>
+            {vehicles.map((v) => (
+              <View key={v.id} style={styles.tr} wrap={false}>
+                <Text style={[styles.tdBold, { flex: 1 }]}>{v.license_plate}</Text>
+                <Text style={[styles.td, { flex: 1.5 }]}>{v.brand} {v.model}</Text>
+                <Text style={[styles.td, { flex: 1.3 }]}>{v.category_name ?? '—'}</Text>
+                <Text style={[styles.td, { flex: 0.6 }]}>{v.year ?? '—'}</Text>
+                <Text style={[styles.td, { flex: 1.1 }]}>{formatDistance(v.current_mileage ?? 0)}</Text>
+                <View style={{ flex: 1 }}>
+                  <StatusBadge status={v.status} />
+                </View>
+              </View>
+            ))}
           </View>
         )}
-
-        {/* Lista detalhada */}
-        <View style={commonStyles.section}>
-          <SectionTitle>{t.sections.vehicleList}</SectionTitle>
-          {!vehicles?.length ? (
-            <EmptyState message={t.empty.noVehicles} />
-          ) : (
-            <View style={commonStyles.table}>
-              <TableHeader>
-                <Text style={[commonStyles.tableCellHeader, cellPlate]}>{t.table.licensePlate}</Text>
-                <Text style={[commonStyles.tableCellHeader, cellVehicle]}>{t.table.vehicle}</Text>
-                <Text style={[commonStyles.tableCellHeader, cellCategory]}>{t.table.category}</Text>
-                <Text style={[commonStyles.tableCellHeader, cellYear]}>{t.table.year}</Text>
-                <Text style={[commonStyles.tableCellHeader, cellMileage]}>{t.table.mileage}</Text>
-                <Text style={[commonStyles.tableCellHeader, cellStatus]}>{t.table.status}</Text>
-              </TableHeader>
-              {vehicles.map((v, i) => (
-                <View
-                  key={v.id}
-                  style={i % 2 === 0 ? commonStyles.tableRow : commonStyles.tableRowAlt}
-                >
-                  <Text style={[commonStyles.tableCellBold, cellPlate]}>{v.license_plate}</Text>
-                  <Text style={[commonStyles.tableCell, cellVehicle]}>{v.brand} {v.model}</Text>
-                  <Text style={[commonStyles.tableCell, cellCategory]}>{v.category_name ?? '—'}</Text>
-                  <Text style={[commonStyles.tableCell, cellYear]}>{v.year ?? '—'}</Text>
-                  <Text style={[commonStyles.tableCell, cellMileage]}>{formatDistance(v.current_mileage ?? 0)}</Text>
-                  <View style={cellStatus}>
-                    <StatusBadge status={v.status} />
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
 
         <Footer />
       </Page>

@@ -2,15 +2,13 @@
 // FILE: src/lib/pdf/templates/ShiftPlanReportPDF.tsx
 // ========================================
 import React from 'react';
-import { Document, Page, Text, View, Svg, Rect, Circle, Path, G } from '@react-pdf/renderer';
-import {
-  Header, Footer, InfoSection, SectionTitle, Watermark,
-} from '@/components/PDFComponents';
-import { KPICards } from '@/components/PDFCharts';
-import {
-  commonStyles, formatDate, formatDateLong, getPDFSettings, PDF_CONFIG,
-} from '../pdf-config-react';
+import { Document, Page, Text, View } from '@react-pdf/renderer';
+import { Footer, Watermark } from '@/components/PDFComponents';
+import { formatDate, getPDFSettings } from '../pdf-config-react';
 import { pdfT } from '../pdf-translations';
+import {
+  reportStyles as styles, ReportHeader, SectionHeader, KpiGrid, EmptyNote,
+} from '../report-design';
 import { IDriverShift } from '@/lib/types/driver-shift';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -51,42 +49,36 @@ export const ShiftPlanReportPDF: React.FC<ShiftPlanReportProps> = ({ shifts, dat
 
   return (
     <Document>
-      <Page size={s.paperSize} orientation={s.orientation} style={commonStyles.page}>
+      <Page size={s.paperSize} orientation={s.orientation} style={styles.pageContainer}>
         <Watermark />
-        <Header
+
+        <ReportHeader
           title="PLANO DE TURNOS"
-          subtitle={`${formatDate(dateRange.start)} — ${formatDate(dateRange.end)}`}
+          subtitle={`${shifts.length} turnos · ${formatDate(new Date())}`}
+          dateRange={dateRange}
         />
 
-        <InfoSection items={[
-          { label: 'Período',      value: `${formatDate(dateRange.start)} — ${formatDate(dateRange.end)}` },
-          { label: 'Total Turnos', value: shifts.length },
-          { label: 'Gerado em',   value: formatDate(new Date()) },
+        <SectionHeader>Resumo</SectionHeader>
+        <KpiGrid cards={[
+          { label: 'Turnos Activos',    value: activeShifts,  icon: 'check', color: '#10b981' },
+          { label: 'Rascunhos',         value: draftShifts,   icon: 'clock', color: '#64748b' },
+          { label: 'Total Motoristas',  value: totalDrivers,  icon: 'users', color: '#3b82f6' },
+          { label: 'Total de Turnos',   value: shifts.length, icon: 'route', color: '#8b5cf6' },
         ]} />
 
-        <KPICards cards={[
-          { label: 'Turnos Activos',    value: activeShifts,  color: '#10b981'       },
-          { label: 'Rascunhos',         value: draftShifts,   color: '#64748b'       },
-          { label: 'Total Motoristas',  value: totalDrivers,  color: s.primaryColor  },
-          { label: 'Total de Turnos',   value: shifts.length, color: '#8b5cf6'       },
-        ]} />
-
+        <SectionHeader>Turnos</SectionHeader>
         {/* ── Listagem de turnos ─────────────────────────────────────── */}
         {shifts.length === 0 ? (
-          <View style={{ padding: 20, alignItems: 'center' }}>
-            <Text style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>
-              Nenhum turno encontrado para o período seleccionado.
-            </Text>
-          </View>
+          <EmptyNote message="Nenhum turno encontrado para o período seleccionado." />
         ) : (
           shifts.map((shift, shiftIdx) => (
             <View
               key={shift.id}
               style={{
-                marginBottom: 16,
+                marginBottom: 12,
                 borderWidth:  1,
                 borderColor:  '#e2e8f0',
-                borderRadius: 8,
+                borderRadius: 6,
                 overflow:     'hidden',
               }}
               wrap={false}
@@ -96,16 +88,18 @@ export const ShiftPlanReportPDF: React.FC<ShiftPlanReportProps> = ({ shifts, dat
                 flexDirection:   'row',
                 justifyContent:  'space-between',
                 alignItems:      'center',
-                backgroundColor: s.primaryColor,
+                backgroundColor: '#f8fafc',
                 padding:         10,
+                borderBottomWidth: 1,
+                borderBottomColor: '#e2e8f0',
               }}>
                 {/* Nome e horário */}
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#ffffff' }}>
+                  <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#0f172a' }}>
                     {shift.name}
                   </Text>
                   {shift.description && (
-                    <Text style={{ fontSize: 7, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>
+                    <Text style={{ fontSize: 7, color: '#64748b', marginTop: 2 }}>
                       {shift.description}
                     </Text>
                   )}
@@ -113,17 +107,19 @@ export const ShiftPlanReportPDF: React.FC<ShiftPlanReportProps> = ({ shifts, dat
 
                 {/* Horário */}
                 <View style={{
-                  backgroundColor: 'rgba(255,255,255,0.15)',
+                  backgroundColor: '#ffffff',
+                  borderWidth:     1,
+                  borderColor:     '#e2e8f0',
                   borderRadius:    6,
                   padding:         6,
                   marginLeft:      8,
                   alignItems:      'center',
                   minWidth:        80,
                 }}>
-                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#ffffff', fontFamily: 'Courier' }}>
+                  <Text style={{ fontSize: 11, fontFamily: 'Courier-Bold', color: '#0f172a' }}>
                     {shift.start_time} – {shift.end_time}
                   </Text>
-                  <Text style={{ fontSize: 6, color: 'rgba(255,255,255,0.75)', marginTop: 1 }}>
+                  <Text style={{ fontSize: 6, color: '#64748b', marginTop: 1 }}>
                     HORÁRIO
                   </Text>
                 </View>
@@ -136,7 +132,7 @@ export const ShiftPlanReportPDF: React.FC<ShiftPlanReportProps> = ({ shifts, dat
                   paddingVertical:   4,
                   marginLeft:      8,
                 }}>
-                  <Text style={{ fontSize: 7, fontWeight: 'bold', color: '#ffffff', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#ffffff', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     {statusLabel(shift.status, t)}
                   </Text>
                 </View>
@@ -146,18 +142,18 @@ export const ShiftPlanReportPDF: React.FC<ShiftPlanReportProps> = ({ shifts, dat
               <View style={{
                 flexDirection:   'row',
                 justifyContent:  'space-between',
-                backgroundColor: '#f8fafc',
+                backgroundColor: '#ffffff',
                 paddingHorizontal: 10,
                 paddingVertical:   6,
                 borderBottomWidth: 1,
                 borderBottomColor: '#e2e8f0',
               }}>
                 <Text style={{ fontSize: 8, color: '#64748b' }}>
-                  <Text style={{ fontWeight: 'bold' }}>Período: </Text>
+                  <Text style={{ fontFamily: 'Helvetica-Bold' }}>Período: </Text>
                   {formatDate(shift.start_date)} → {formatDate(shift.end_date)}
                 </Text>
                 <Text style={{ fontSize: 8, color: '#64748b' }}>
-                  <Text style={{ fontWeight: 'bold' }}>{shift.member_count} </Text>
+                  <Text style={{ fontFamily: 'Helvetica-Bold' }}>{shift.member_count} </Text>
                   {shift.member_count === 1 ? 'motorista' : 'motoristas'}
                   {shift.leader_name && (
                     <Text style={{ color: '#f59e0b' }}>  · Líder: {shift.leader_name}</Text>
@@ -183,17 +179,17 @@ export const ShiftPlanReportPDF: React.FC<ShiftPlanReportProps> = ({ shifts, dat
                     borderBottomWidth: 1,
                     borderBottomColor: '#e2e8f0',
                   }}>
-                    <Text style={{ fontSize: 7, fontWeight: 'bold', color: '#374151', flex: 3 }}>
+                    <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#475569', flex: 3 }}>
                       MOTORISTA
                     </Text>
-                    <Text style={{ fontSize: 7, fontWeight: 'bold', color: '#374151', flex: 1, textAlign: 'center' }}>
+                    <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#475569', flex: 1, textAlign: 'center' }}>
                       HORÁRIO
                     </Text>
-                    <Text style={{ fontSize: 7, fontWeight: 'bold', color: '#374151', flex: 1, textAlign: 'center' }}>
+                    <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#475569', flex: 1, textAlign: 'center' }}>
                       FUNÇÃO
                     </Text>
                     {/* Coluna de assinatura */}
-                    <Text style={{ fontSize: 7, fontWeight: 'bold', color: '#374151', flex: 2, textAlign: 'center' }}>
+                    <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: '#475569', flex: 2, textAlign: 'center' }}>
                       ASSINATURA
                     </Text>
                   </View>
@@ -228,14 +224,14 @@ export const ShiftPlanReportPDF: React.FC<ShiftPlanReportProps> = ({ shifts, dat
                         }}>
                           <Text style={{
                             fontSize:   8,
-                            fontWeight: 'bold',
-                            color:      member.is_leader ? '#d97706' : s.primaryColor,
+                            fontFamily: 'Helvetica-Bold',
+                            color:      member.is_leader ? '#d97706' : '#3b82f6',
                           }}>
                             {(member.driver_name ?? '?').charAt(0).toUpperCase()}
                           </Text>
                         </View>
                         <View>
-                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#1e293b' }}>
+                          <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#1e293b' }}>
                             {member.driver_name}
                           </Text>
                           {member.notes && (
@@ -247,7 +243,7 @@ export const ShiftPlanReportPDF: React.FC<ShiftPlanReportProps> = ({ shifts, dat
                       </View>
 
                       {/* Horário */}
-                      <Text style={{ fontSize: 8, color: '#4b5563', flex: 1, textAlign: 'center', fontFamily: 'Courier' }}>
+                      <Text style={{ fontSize: 8, color: '#334155', flex: 1, textAlign: 'center', fontFamily: 'Courier' }}>
                         {shift.start_time}–{shift.end_time}
                       </Text>
 
@@ -262,7 +258,7 @@ export const ShiftPlanReportPDF: React.FC<ShiftPlanReportProps> = ({ shifts, dat
                             borderWidth:       0.5,
                             borderColor:       '#fcd34d',
                           }}>
-                            <Text style={{ fontSize: 6, fontWeight: 'bold', color: '#d97706', textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                            <Text style={{ fontSize: 6, fontFamily: 'Helvetica-Bold', color: '#d97706', textTransform: 'uppercase', letterSpacing: 0.3 }}>
                               ★ Líder
                             </Text>
                           </View>
@@ -294,7 +290,7 @@ export const ShiftPlanReportPDF: React.FC<ShiftPlanReportProps> = ({ shifts, dat
                   borderTopColor:    '#fde68a',
                 }}>
                   <Text style={{ fontSize: 7, color: '#92400e' }}>
-                    <Text style={{ fontWeight: 'bold' }}>Nota: </Text>
+                    <Text style={{ fontFamily: 'Helvetica-Bold' }}>Nota: </Text>
                     {shift.notes}
                   </Text>
                 </View>
