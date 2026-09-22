@@ -32,12 +32,33 @@
 // tempo de execução, por isso não precisaram do mesmo tratamento.
 import { app } from 'electron';
 import path from 'path';
+import { Worker } from 'node:worker_threads';
 import type { PowerSyncDatabase as PowerSyncDatabaseType } from '@powersync/node';
 import { loadAppSchema } from './schema';
 import { PowerSyncConnector } from './connector';
 
 let _db: PowerSyncDatabaseType | null = null;
 let _connector: PowerSyncConnector | null = null;
+
+// Achado real (2026-09-22): ver powersync-worker-entry.ts para a explicação
+// completa. Resumo: o worker por omissão do SDK calcula o caminho do .dll
+// nativo relativo ao seu próprio ficheiro (import.meta.url) — dentro de um
+// app.asar isso resolve sempre para o caminho VIRTUAL do arquivo, nunca
+// para o ficheiro real que o forge.config.ts já desempacota
+// (asar.unpack), e Database.loadExtension() é uma chamada directa ao SO
+// que não entende esse caminho virtual. Só relevante quando empacotado —
+// em dev (sem asar) o cálculo por omissão do SDK já resolve para um
+// caminho real, por isso não se aplica nenhum override.
+function computeUnpackedPowerSyncLibDir(): string {
+  return path.join(
+    process.resourcesPath,
+    'app.asar.unpacked',
+    'node_modules',
+    '@powersync',
+    'node',
+    'lib',
+  );
+}
 
 // Fase 6 (migração Standalone -> Connected-first), Prompt 6.1 — exportado
 // para os módulos de query por-domínio (src/lib/db/queries/*.queries.powersync.ts)
@@ -59,6 +80,18 @@ async function getDb(): Promise<PowerSyncDatabaseType> {
       schema,
       database: {
         dbFilename: path.join(app.getPath('userData'), 'powersync.db'),
+        // Só em pacote — ver computeUnpackedPowerSyncLibDir() acima. Em
+        // dev, omitir openWorker mantém o comportamento por omissão do
+        // SDK (já correcto sem asar).
+        ...(app.isPackaged
+          ? {
+              openWorker: (_url, options) =>
+                new Worker(path.join(__dirname, 'powersync-worker-entry.js'), {
+                  ...(options as object),
+                  workerData: { extensionDir: computeUnpackedPowerSyncLibDir() },
+                }),
+            }
+          : {}),
       },
     });
   }
